@@ -1,0 +1,44 @@
+class KnjGtkMenu
+	def initialize(paras)
+		require "knjrbfw/libknjphpfuncs.rb"
+		
+		@paras = paras
+		@items = []
+		@mainmenu = Gtk::Menu.new
+		@signal = ""
+		
+		count = 0
+		@paras["items"].each do |signal, menuitem|
+			newitem = Gtk::MenuItem.new(menuitem["text"])
+			
+			if (menuitem["connect"])
+				newitem.signal_connect("activate") do
+					call_user_func(menuitem["connect"])
+				end
+			else
+				newitem.signal_connect("activate") do
+					on_menuitem_activate()
+				end
+			end
+			
+			@items[count] = {
+				"gtkmenuitem" => newitem,
+				"signal" => signal
+			}
+			@mainmenu.prepend(newitem)
+			
+			count += 1
+		end
+		
+		event = Gdk::EventButton.new(Gdk::Event::BUTTON_PRESS)
+		
+		@mainmenu.show_all
+		@mainmenu.popup(nil, nil, event.button, event.time)
+	end
+	
+	def on_menuitem_activate(signal)
+		@signal = signal
+	end
+	
+	def signal() return @signal end
+end
