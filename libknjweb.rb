@@ -105,8 +105,14 @@ module Knj
 		
 		def self.input(paras)
 			if (paras["value"])
-				value = paras["value"]
-			else
+				if (paras["value"].is_a?(Array))
+					value = ""
+				else
+					value = paras["value"]
+				end
+			end
+			
+			if (!value)
 				value = ""
 			end
 			
@@ -142,6 +148,8 @@ module Knj
 				
 				if (paras["type"] == "textarea")
 					html += "<textarea class=\"input_textarea\" name=\"" + paras["name"].html + "\" id=\"" + paras["id"].html + "\">" + value + "</textarea>"
+				elsif (paras["type"] == "fckeditor")
+					require "/usr/share/fckeditor/fckeditor.rb"
 				else
 					html += "<input type=\"" + paras["type"].html + "\" class=\"input_" + paras["type"].html + "\" id=\"" + paras["id"].html + "\" name=\"" + paras["name"].html + "\" value=\"" + value.html + "\" />"
 				end

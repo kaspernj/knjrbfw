@@ -112,3 +112,28 @@ end
 def ucwords(string)
 	return string.to_s.split(" ").select {|w| w.capitalize! || w }.join(" ")
 end
+
+def htmlspecialchars(string)
+	require("cgi")
+	return CGI.escapeHTML(string)
+end
+
+def isset(var)
+	if (var == nil or var == false)
+		return false
+	end
+	
+	return true
+end
+
+def strpos(haystack, needle)
+	if (!haystack)
+		return false
+	end
+	
+	if (!haystack.to_s.include?(needle))
+		return false
+	end
+	
+	return haystack.index(needle)
+end
