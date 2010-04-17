@@ -21,7 +21,12 @@ module Knj
 			@post = {}
 			if (@cgi.request_method == "POST")
 				@cgi.params.each do |pair|
-					@post[pair[0]] = pair[1][0]
+					if pair[1][0].is_a?(Tempfile)
+						@post[pair[0]] = File.read(pair[1][0].path)
+						pair[1][0].unlink
+					else
+						@post[pair[0]] = pair[1][0]
+					end
 				end
 			end
 			
@@ -71,6 +76,31 @@ module Knj
 			return @session[key] = value
 		end
 		
+		def self.global_params
+			require "cgi"
+			cgi = CGI.new("html4")
+			
+			$_POST = {}
+			if (cgi.request_method == "POST")
+				cgi.params.each do |pair|
+					if pair[1][0].is_a?(Tempfile)
+						$_POST[pair[0]] = File.read(pair[1][0].path)
+						pair[1][0].unlink
+					else
+						$_POST[pair[0]] = pair[1][0]
+					end
+				end
+			end
+			
+			$_GET = {}
+			if (cgi.query_string)
+				cgi.query_string.split("&").each do |value|
+					valuearr = value.split("=")
+					$_GET[valuearr[0]] = valuearr[1]
+				end
+			end
+		end
+		
 		def global_params
 			$_POST = @post
 			$_GET = @get
@@ -105,14 +135,14 @@ module Knj
 		
 		def self.input(paras)
 			if (paras["value"])
-				if (paras["value"].is_a?(Array))
-					value = ""
-				else
-					value = paras["value"]
+				if (paras["value"].is_a?(Array) and paras["value"][0].class.to_s != "NilClass")
+					value = paras["value"][0][paras["value"][1]]
+				elsif (paras["value"].is_a?(String) or paras["value"].is_a?(Integer))
+					value = paras["value"].to_s
 				end
 			end
 			
-			if (!value)
+			if (value.is_a?(NilClass))
 				value = ""
 			end
 			
@@ -122,6 +152,10 @@ module Knj
 			
 			if (!paras["type"])
 				paras["type"] = "text"
+			end
+			
+			if (!paras["height"])
+				paras["height"] = 400
 			end
 			
 			html = ""
@@ -150,6 +184,10 @@ module Knj
 					html += "<textarea class=\"input_textarea\" name=\"" + paras["name"].html + "\" id=\"" + paras["id"].html + "\">" + value + "</textarea>"
 				elsif (paras["type"] == "fckeditor")
 					require "/usr/share/fckeditor/fckeditor.rb"
+					fck = FCKeditor.new(paras["name"])
+					fck.Height = paras["height"].to_i
+					fck.Value = value
+					html += fck.CreateHtml
 				else
 					html += "<input type=\"" + paras["type"].html + "\" class=\"input_" + paras["type"].html + "\" id=\"" + paras["id"].html + "\" name=\"" + paras["name"].html + "\" value=\"" + value.html + "\" />"
 				end

@@ -13,6 +13,7 @@ module Knj
 	autoload :Web, "knjrbfw/libknjweb"
 	autoload :Strings, "knjrbfw/libstrings.rb"
 	autoload :SSHRobot, "knjrbfw/sshrobot/sshrobot"
+	autoload :Date, "knjrbfw/date.rb"
 end
 
 #ruby objects.
@@ -20,6 +21,7 @@ autoload :GetText, "gettext"
 autoload :Gtk, "gtk2"
 autoload :FileUtils, "fileutils"
 autoload :Mysql, "mysql"
+autoload :ParseDate, "parsedate"
 
 module Net
 	autoload :IMAP, "net/imap"

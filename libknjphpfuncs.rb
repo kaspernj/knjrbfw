@@ -27,7 +27,9 @@ def call_user_func(*paras)
 end
 
 def print_r(argument, count = 1)
-	if (argument.is_a?(Hash) or argument.class.to_s == "SQLite3::ResultSet::HashWithTypes" or argument.class.to_s == "CGI" or argument.is_a?(Knj::Db_row))
+	cstr = argument.class.to_s
+	
+	if (argument.is_a?(Hash) or cstr == "SQLite3::ResultSet::HashWithTypes" or cstr == "CGI" or cstr == "Knj::Db_row" or cstr == "Apache::Table")
 		print argument.class.to_s + "{\n"
 		argument.each do |pair|
 			i = 0
@@ -47,10 +49,11 @@ def print_r(argument, count = 1)
 		end
 		
 		print "}\n"
-	elsif(argument.is_a?(Array))
+	elsif(argument.is_a?(Array) or argument.is_a?(MatchData))
 		print argument.class.to_s + "{\n"
+		
 		arr_count = 0
-		argument.each{ |i|
+		argument.to_a.each{ |i|
 			i_spaces = 0
 			while(i_spaces < count)
 				print "   "
@@ -69,7 +72,7 @@ def print_r(argument, count = 1)
 		end
 		
 		print "}\n"
-	elsif(argument.class.to_s == "String" or argument.class.to_s == "Integer" or argument.class.to_s == "Fixnum")
+	elsif(argument.is_a?(String) or argument.is_a?(Integer) or argument.is_a?(Fixnum))
 		print argument, "\n"
 	else
 		#print argument.to_s, "\n"
@@ -136,4 +139,22 @@ def strpos(haystack, needle)
 	end
 	
 	return haystack.index(needle)
+end
+
+def substr(string, from, to = -1)
+	return string.to_s.slice(from.to_i, to.to_i)
+end
+
+def md5(string)
+	return Digest::MD5.hexdigest(string)
+end
+
+def header(headerstr)
+	match = headerstr.to_s.match(/(.*): (.*)/)
+	
+	if !match
+		raise "Couldnt parse header."
+	end
+	
+	Apache.request.headers_out[match[1]] = match[2]
 end
