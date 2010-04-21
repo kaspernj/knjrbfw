@@ -93,7 +93,7 @@ module Knj
 				sql += @conn.escape_col
 				sql += " = "
 				sql += @conn.escape_val
-				sql += pair[1]
+				sql += @conn.escape(pair[1])
 				sql += @conn.escape_val
 			end
 			

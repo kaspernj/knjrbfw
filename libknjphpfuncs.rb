@@ -89,6 +89,9 @@ def date(date_format, date_object = nil)
 	date_format = date_format.gsub("m", "%02d" % date_object.mon)
 	date_format = date_format.gsub("y", "%02d" % date_object.year.to_s[2,2].to_i)
 	date_format = date_format.gsub("Y", "%04d" % date_object.year)
+	date_format = date_format.gsub("H", "%02d" % date_object.hour)
+	date_format = date_format.gsub("i", "%02d" % date_object.min)
+	date_format = date_format.gsub("s", "%02d" % date_object.sec)
 	
 	return date_format
 end
@@ -157,4 +160,33 @@ def header(headerstr)
 	end
 	
 	Apache.request.headers_out[match[1]] = match[2]
+end
+
+def nl2br(string)
+	return string.to_s.gsub("\n", "<br />\n")
+end
+
+def urldecode(string)
+	require("cgi")
+	return CGI.unescape(string)
+end
+
+def urlencode(string)
+	require("cgi")
+	return CGI.escape(string)
+end
+
+def file_put_contents(filepath, content)
+	filepath.untaint
+	File.open(filepath, "w") do |file|
+		file.write content
+	end
+end
+
+def file_get_contents(filepath)
+	return File.read(filepath)
+end
+
+def strtotime(date_string)
+	return Time.local(*ParseDate.parsedate(date_string))
 end

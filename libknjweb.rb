@@ -21,20 +21,37 @@ module Knj
 			@post = {}
 			if (@cgi.request_method == "POST")
 				@cgi.params.each do |pair|
+					isstring = true
+					varname = pair[0]
+					
 					if pair[1][0].is_a?(Tempfile)
-						@post[pair[0]] = File.read(pair[1][0].path)
+						isstring = false
+						stringparse = File.read(pair[1][0].path)
 						pair[1][0].unlink
+					elsif pair[1][0].is_a?(StringIO)
+						stringparse = pair[1][0].string
 					else
-						@post[pair[0]] = pair[1][0]
+						stringparse = pair[1][0]
+					end
+					
+					if isstring
+						Knj::Web::parse_name(@post, varname, stringparse)
+					else
+						@post[varname] = stringparse
 					end
 				end
 			end
 			
 			@get = {}
 			if (@cgi.query_string)
-				@cgi.query_string.split("&").each do |value|
+				urldecode(@cgi.query_string).split("&").each do |value|
 					valuearr = value.split("=")
-					@get[valuearr[0]] = valuearr[1]
+					
+					if valuearr[1]
+						valuearr[1] = CGI.unescape(valuearr[1])
+					end
+					
+					Knj::Web::parse_name(@get, valuearr[0], valuearr[1])
 				end
 			end
 			
@@ -76,6 +93,60 @@ module Knj
 			return @session[key] = value
 		end
 		
+		def self.parse_name(seton, varname, value)
+			if varname and varname.index("[") != nil
+				match = varname.match(/\[(.*?)\]/)
+				if match
+					namepos = varname.index(match[0])
+					name = varname.slice(0..namepos - 1)
+					
+					valuefrom = namepos + match[1].length + 2
+					restname = varname.slice(valuefrom..-1)
+					
+					if !seton[name]
+						seton[name] = {}
+					end
+					
+					if restname and restname.index("[") != nil
+						if !seton[name][match[1]]
+							seton[name][match[1]] = {}
+						end
+						
+						Knj::Web::parse_name_second(seton[name][match[1]], restname, value)
+					else
+						seton[name][match[1]] = value
+					end
+				else
+					seton[varname][match[1]] = value
+				end
+			else
+				seton[varname] = value
+			end
+		end
+		
+		def self.parse_name_second(seton, varname, value)
+			match = varname.match(/\[(.*?)\]/)
+			if match
+				namepos = varname.index(match[0])
+				name = match[1]
+				
+				valuefrom = namepos + match[1].length + 2
+				restname = varname.slice(valuefrom..-1)
+				
+				if restname and restname.index("[") != nil
+					if !seton[name]
+						seton[name] = {}
+					end
+					
+					Knj::Web::parse_name_second(seton[name], restname, value)
+				else
+					seton[name] = value
+				end
+			else
+				seton[varname] = value
+			end
+		end
+		
 		def self.global_params
 			require "cgi"
 			cgi = CGI.new("html4")
@@ -96,7 +167,7 @@ module Knj
 			if (cgi.query_string)
 				cgi.query_string.split("&").each do |value|
 					valuearr = value.split("=")
-					$_GET[valuearr[0]] = valuearr[1]
+					$_GET[valuearr[0]] = CGI.unescape(valuearr[1])
 				end
 			end
 		end
@@ -133,9 +204,15 @@ module Knj
 			exit
 		end
 		
+		def self.back
+			html = "<script type=\"text/javascript\">history.back(-1);</script>"
+			print html
+			exit
+		end
+		
 		def self.input(paras)
 			if (paras["value"])
-				if (paras["value"].is_a?(Array) and paras["value"][0].class.to_s != "NilClass")
+				if paras["value"].is_a?(Array) and !paras["value"][0].is_a?(NilClass)
 					value = paras["value"][0][paras["value"][1]]
 				elsif (paras["value"].is_a?(String) or paras["value"].is_a?(Integer))
 					value = paras["value"].to_s
@@ -161,7 +238,7 @@ module Knj
 			html = ""
 			
 			if (paras["type"] == "checkbox")
-				if (value.class.to_s == "String" and value == "1")
+				if (value.is_a(String) and value == "1")
 					checked = " checked"
 				else
 					checked = ""
@@ -188,11 +265,35 @@ module Knj
 					fck.Height = paras["height"].to_i
 					fck.Value = value
 					html += fck.CreateHtml
+				elsif paras["type"] == "select"
+					html += "<select name=\"#{paras["name"].html}\" id=\"#{paras["id"].html}\" class=\"input_select\">"
+					html += Knj::Web::opts(paras["opts"], value)
+					html += "</select>"
 				else
 					html += "<input type=\"" + paras["type"].html + "\" class=\"input_" + paras["type"].html + "\" id=\"" + paras["id"].html + "\" name=\"" + paras["name"].html + "\" value=\"" + value.html + "\" />"
 				end
 				
 				html += "</tr>"
+			end
+			
+			return html
+		end
+		
+		def self.opts(opthash, curvalue = nil)
+			if !opthash
+				return ""
+			end
+			
+			html = ""
+			
+			opthash.each do |key, value|
+				html += "<option"
+				
+				if curvalue == key
+					html += " selected=\"selected\""
+				end
+				
+				html += " value=\"#{key.html}\">#{value.html}</option>"
 			end
 			
 			return html
@@ -209,9 +310,7 @@ def redirect(string)
 end
 
 def jsback(string)
-	html = "<script type=\"text/javascript\">history.back(-1);</script>"
-	print html
-	exit
+	return Knj::Web::back
 end
 
 class String

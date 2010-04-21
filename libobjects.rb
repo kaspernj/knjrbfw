@@ -21,12 +21,12 @@ module Knj
 		end
 		
 		def get(classname, data)
-			if (data.class.to_s == "Hash" and data[@paras["col_id"]])
+			if data.is_a?(Hash) and data[@paras["col_id"]]
 				id = data[@paras["col_id"]].to_i
-			elsif(data.class.to_s == "Integer" or data.class.to_s == "String" or data.class.to_s == "Fixnum")
+			elsif data.is_a?(Integer) or data.is_a?(String) or data.is_a?(Fixnum)
 				id = data.to_i
 			else
-				raise "Unknown data: " + data.to_s
+				raise "Unknown data: " + data.class.to_s
 			end
 			
 			if (!@objects[classname])
