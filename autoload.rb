@@ -6,23 +6,17 @@ module Knj
 	autoload :Opts, "knj/opts"
 	autoload :Mail, "knj/mail"
 	autoload :Web, "knj/web"
-	autoload :Strings, "knj/libstrings"
+	autoload :Strings, "knj/strings"
 	autoload :SSHRobot, "knj/sshrobot/sshrobot"
 	autoload :Date, "knj/date"
 	autoload :Http, "knj/http"
 	autoload :Sms, "knj/sms"
 	autoload :Os, "knj/os"
-	
 	autoload :Gtk2, "knj/gtk2"
-	module Gtk2
-		autoload :Cb, "knj/gtk2_cb"
-		autoload :Menu, "knj/gtk2_menu"
-		autoload :StatusWindow, "knj/gtk2_statuswindow"
-		autoload :Tv, "knj/gtk2_tv"
-	end
 end
 
 #ruby objects.
+autoload :CGI, "cgi"
 autoload :GetText, "gettext"
 autoload :Gtk, "gtk2"
 autoload :FileUtils, "fileutils"

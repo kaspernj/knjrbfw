@@ -1,5 +1,10 @@
 module Knj
 	module Gtk2
+		autoload :Cb, "knj/gtk2_cb"
+		autoload :Menu, "knj/gtk2_menu"
+		autoload :StatusWindow, "knj/gtk2_statuswindow"
+		autoload :Tv, "knj/gtk2_tv"
+		
 		def msgbox(paras, type = "warning", title = "Warning")
 			if (paras.class.to_s == "Array")
 				msg = paras[0]

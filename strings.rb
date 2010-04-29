@@ -1,11 +1,11 @@
 module Knj
 	module Strings
-		def UnixSafe(tha_string)
+		def self.UnixSafe(tha_string)
 			tha_string = tha_string.gsub(" ", "\ ").gsub("&", "\&")
 			return tha_string
 		end
 		
-		def searchstring(string)
+		def self.searchstring(string)
 			words = []
 			string = string.to_s
 			
