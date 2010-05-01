@@ -12,7 +12,7 @@ module Knj
 			end
 		end
 		
-		def get(title)
+		def self.get(title)
 			db = $knjoptions["knjdb"]
 			value = db.select($knjoptions["table"], {"title" => title}, {"limit" => "1"}).fetch
 			
@@ -23,7 +23,7 @@ module Knj
 			end
 		end
 		
-		def set(title, value)
+		def self.set(title, value)
 			db = $knjoptions["knjdb"]
 			result = db.select($knjoptions["table"], {"title" => title}, {"limit" => "1"}).fetch
 			

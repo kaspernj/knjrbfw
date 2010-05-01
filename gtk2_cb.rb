@@ -1,7 +1,7 @@
 module Knj
 	module Gtk2
 		module Cb
-			def init(paras)
+			def self.init(paras)
 				ls = Gtk::ListStore.new(String, String)
 				cr = Gtk::CellRendererText.new
 				
@@ -15,7 +15,7 @@ module Knj
 				paras["cb"].model = ls
 			end
 			
-			def sel(cb)
+			def self.sel(cb)
 				return {
 					"active" => cb.active,
 					"text" => cb.active_iter[0]
@@ -27,12 +27,10 @@ end
 
 class Gtk::ComboBox
 	def init(items)
-		paras = {
+		return Knj::Gtk2::Cb::init(
 			"cb" => self,
 			"items" => items
-		}
-		
-		return Knj::Gtk2::Cb::init(paras)
+		)
 	end
 	
 	def sel
@@ -43,7 +41,7 @@ class Gtk::ComboBox
 		self.model.each do |model, path, iter|
 			text = self.model.get_value(iter, 0)
 			
-			if (text == textval)
+			if text == textval
 				self.active_iter = iter
 				return nil
 			end

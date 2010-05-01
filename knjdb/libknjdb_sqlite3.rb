@@ -13,9 +13,6 @@ class KnjDB_sqlite3
 	
 	def initialize(knjdb_ob)
 		@knjdb = knjdb_ob
-		require "sqlite3"
-		require "knjrbfw/libknjphpfuncs.rb"
-		
 		@conn = SQLite3::Database.open(@knjdb.opts["path"])
 		@conn.results_as_hash = true
 		@conn.type_translation = false
@@ -51,13 +48,13 @@ class KnjDB_sqlite3_result
 		
 		tha_return = @result_array[tha_index]
 		
-		if (tha_return.class.to_s == "SQLite3::ResultSet::HashWithTypes")
+		if tha_return.class.to_s == "SQLite3::ResultSet::HashWithTypes"
 			tha_return = Hash.new.replace(tha_return)
 		end
 		
-		if (tha_return.class.to_s == "Hash")
+		if tha_return.is_a?(Hash)
 			tha_return.each do |pair|
-				if (is_numeric(pair[0]))
+				if Knj::Php::is_numeric(pair[0])
 					tha_return.delete(pair[0])
 				end
 			end

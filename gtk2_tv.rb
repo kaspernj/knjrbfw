@@ -1,7 +1,7 @@
 module Knj
 	module Gtk2
 		module Tv
-			def init(tv, columns)
+			def self.init(tv, columns)
 				list_store = nil
 				eval_string = "list_store = Gtk::ListStore.new("
 				
@@ -30,7 +30,7 @@ module Knj
 				end
 			end
 			
-			def append(tv, data)
+			def self.append(tv, data)
 				iter = tv.model.append
 				
 				count = 0
@@ -40,7 +40,7 @@ module Knj
 				}
 			end
 			
-			def sel(tv)
+			def self.sel(tv)
 				selected = tv.selection.selected_rows
 				
 				if (!tv.model or selected.size <= 0)
