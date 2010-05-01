@@ -23,6 +23,7 @@ autoload :FileUtils, "fileutils"
 autoload :Mysql, "mysql"
 autoload :ParseDate, "parsedate"
 autoload :Digest, "digest/md5"
+autoload :Erubis, "erubis"
 
 module Net
 	autoload :IMAP, "net/imap"

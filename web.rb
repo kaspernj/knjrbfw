@@ -189,8 +189,7 @@ module Knj
 		end
 		
 		def self.require_eruby(filepath)
-			require "erubis"
-			cont = File.read(filepath)
+			cont = File.read(filepath).untaint
 			parse = Erubis::Eruby.new(cont)
 			eval(parse.src.to_s)
 		end
