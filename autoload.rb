@@ -13,6 +13,7 @@ module Knj
 	autoload :Sms, "knj/sms"
 	autoload :Os, "knj/os"
 	autoload :Gtk2, "knj/gtk2"
+	autoload :Php, "knj/php"
 end
 
 #ruby objects.
@@ -23,6 +24,7 @@ autoload :FileUtils, "fileutils"
 autoload :Mysql, "mysql"
 autoload :ParseDate, "parsedate"
 autoload :Digest, "digest/md5"
+autoload :SQLite3, "sqlite3"
 
 module Net
 	autoload :IMAP, "net/imap"
