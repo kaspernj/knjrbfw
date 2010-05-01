@@ -114,6 +114,8 @@ module Knj
 			return GetText._(string)
 		end
 		
+		alias gettext gtext
+		
 		def number_format(number, precision, seperator, delimiter)
 			if number.is_a?(Float)
 				number = number.to_f
@@ -216,6 +218,30 @@ module Knj
 		
 		def html_entity_decode(string)
 			return CGI::unescapeHTML(string.to_s)
+		end
+		
+		def die(msg)
+			print msg
+			exit
+		end
+		
+		def fopen(filename, mode)
+			return File.open(filename, mode)
+		end
+		
+		def fwrite(fp, str)
+			fp.print str
+		end
+		
+		def fread(fp, length = 4096)
+			return fp.read(length)
+		end
+		
+		alias fgets fread
+		alias fputs fwrite
+		
+		def fclose(fp)
+			fp.close
 		end
 	end
 end
