@@ -9,7 +9,7 @@ module Knj
 	autoload :Web, "knj/web"
 	autoload :Strings, "knj/strings"
 	autoload :SSHRobot, "knj/sshrobot/sshrobot"
-	autoload :Date, "knj/date"
+	autoload :Datestamp, "knj/datestamp"
 	autoload :Http, "knj/http"
 	autoload :Sms, "knj/sms"
 	autoload :Os, "knj/os"
@@ -19,13 +19,14 @@ end
 
 #ruby objects.
 autoload :CGI, "cgi"
+autoload :Date, "date"
+autoload :Digest, "digest"
+autoload :Erubis, "erubis"
+autoload :FileUtils, "fileutils"
 autoload :GetText, "gettext"
 autoload :Gtk, "gtk2"
-autoload :FileUtils, "fileutils"
 autoload :Mysql, "mysql"
 autoload :ParseDate, "parsedate"
-autoload :Digest, "digest/md5"
-autoload :Erubis, "erubis"
 autoload :SQLite3, "sqlite3"
 
 module Net
@@ -40,3 +41,8 @@ end
 
 #facets
 autoload :Dictionary, "facets/dictionary.rb"
+
+#gems
+autoload :Twitter, "knj/autoload/twitter"
+autoload :Facebooker, "knj/autoload/facebooker"
+autoload :Cinch, "knj/autoload/cinch"

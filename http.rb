@@ -1,5 +1,15 @@
 module Knj
 	class Http
+		def self.isgdlink(url)
+			http = Knj::Http.new(
+				"host" => "is.gd"
+			)
+			http.connect
+			resp = http.get("api.php?longurl=" + url)
+			
+			return resp["data"]
+		end
+		
 		def initialize(opts)
 			@opts = opts
 			@cookies = {}

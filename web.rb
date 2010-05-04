@@ -9,43 +9,83 @@ module Knj
 			@paras = paras
 			@db = @paras["db"]
 			
-			if (!@paras["id"])
+			if !@paras["tmp"]
+				@paras["tmp"] = "/tmp"
+			end
+			
+			if !@paras["id"]
 				raise "No ID was given."
 			end
 			
-			if (@paras["cgi"])
+			if @paras["cgi"]
 				@cgi = @paras["cgi"]
 			else
 				require "cgi"
 				@cgi = CGI.new("html4")
 			end
 			
+			@files = {}
 			@post = {}
-			if (@cgi.request_method == "POST")
+			if @cgi.request_method == "POST"
 				@cgi.params.each do |pair|
+					do_files = false
 					isstring = true
 					varname = pair[0]
 					
 					if pair[1][0].is_a?(Tempfile)
-						isstring = false
-						stringparse = File.read(pair[1][0].path)
+						if varname[0..3] == "file"
+							tmpname = @paras["tmp"] + "/knj_web_upload_" + Time.now.to_f.to_s + "_" + rand(1000).to_s.untaint
+							isstring = false
+							do_files = true
+							cont = File.read(pair[1][0].path)
+							file_put_contents(tmpname, cont)
+							stringparse = {
+								"tmp_name" => tmpname,
+								"size" => cont.length,
+								"error" => 0
+							}
+						else
+							stringparse = File.read(pair[1][0].path)
+						end
+						
 						pair[1][0].unlink
 					elsif pair[1][0].is_a?(StringIO)
-						stringparse = pair[1][0].string
+						if varname[0..3] == "file"
+							tmpname = @paras["tmp"] + "/knj_web_upload_" + Time.now.to_f.to_s + "_" + rand(1000).to_s.untaint
+							isstring = false
+							do_files = true
+							cont = pair[1][0].string
+							file_put_contents(tmpname, cont.to_s)
+							stringparse = {
+								"tmp_name" => tmpname,
+								"size" => cont.length,
+								"error" => 0
+							}
+						else
+							stringparse = pair[1][0].string
+						end
 					else
 						stringparse = pair[1][0]
 					end
 					
-					if isstring
-						Knj::Web::parse_name(@post, varname, stringparse)
+					if !do_files
+						if isstring
+							Knj::Web::parse_name(@post, varname, stringparse)
+						else
+							@post[varname] = stringparse
+						end
 					else
-						@post[varname] = stringparse
+						if isstring
+							Knj::Web::parse_name(@files, varname, stringparse)
+						else
+							@files[varname] = stringparse
+						end
 					end
 				end
 			end
 			
 			@get = {}
-			if (@cgi.query_string)
+			if @cgi.query_string
 				urldecode(@cgi.query_string).split("&").each do |value|
 					valuearr = value.split("=")
 					
@@ -66,7 +106,7 @@ module Knj
 				session_id = @paras["id"] + "_" + @cookie[@paras["id"]]
 			else
 				@db.insert("sessions", {
-					"date_start" => date("Y") + "-" + date("m") + "-" + date("d") + " " + date("H") + ":" + date("i") + ":" + date("s")
+					"date_start" => Datestamp::dbstr
 				})
 				id = @db.last_id
 				cookie = CGI::Cookie.new("name" => @paras["id"], "value" => id.to_s)
@@ -154,7 +194,7 @@ module Knj
 			cgi = CGI.new("html4")
 			
 			$_POST = {}
-			if (cgi.request_method == "POST")
+			if cgi.request_method == "POST"
 				cgi.params.each do |pair|
 					if pair[1][0].is_a?(Tempfile)
 						$_POST[pair[0]] = File.read(pair[1][0].path)
@@ -169,7 +209,7 @@ module Knj
 			if (cgi.query_string)
 				cgi.query_string.split("&").each do |value|
 					valuearr = value.split("=")
-					$_GET[valuearr[0]] = CGI.unescape(valuearr[1])
+					$_GET[valuearr[0].to_s] = CGI.unescape(valuearr[1].to_s)
 				end
 			end
 		end
@@ -178,6 +218,7 @@ module Knj
 			$_POST = @post
 			$_GET = @get
 			$_COOKIE = @cookie
+			$_FILES = @files
 		end
 		
 		def destroy
@@ -211,17 +252,29 @@ module Knj
 			exit
 		end
 		
+		def self.checkval(value, offval)
+			if !value
+				return offval
+			else
+				return value
+			end
+		end
+		
 		def self.input(paras)
 			if paras["value"]
 				if paras["value"].is_a?(Array) and !paras["value"][0].is_a?(NilClass)
 					value = paras["value"][0][paras["value"][1]]
-				elsif (paras["value"].is_a?(String) or paras["value"].is_a?(Integer))
+				elsif paras["value"].is_a?(String) or paras["value"].is_a?(Integer)
 					value = paras["value"].to_s
 				end
 			end
 			
 			if value.is_a?(NilClass)
 				value = ""
+			end
+			
+			if value and paras.has_key?("value_func") and paras["value_func"]
+				value = call_user_func(paras["value_func"], value)
 			end
 			
 			if !paras["id"]
@@ -243,6 +296,10 @@ module Knj
 					checked = " checked"
 				else
 					checked = ""
+				end
+				
+				if paras.has_key?("value_active")
+					checked += " value=\"#{paras["value_active"]}\""
 				end
 				
 				html += "<tr>"
@@ -276,6 +333,22 @@ module Knj
 					html += ">"
 					html += Knj::Web::opts(paras["opts"], value, paras["opts_paras"])
 					html += "</select>"
+				elsif paras["type"] == "imageupload"
+					html += "<table class=\"designtable\"><tr><td style=\"width: 100%;\">"
+					html += "<input type=\"file\" name=\"#{paras["name"].html}\" class=\"input_file\" />"
+					html += "</td><td style=\"padding-left: 5px;\">"
+					
+					path = paras["path"].gsub("%value%", value).untaint
+					if File.exists?(path)
+						html += "<img src=\"image.php?picture=#{urlencode(path).html}&smartsize=100&edgesize=25\" alt=\"Image\" />"
+						
+						if paras["dellink"]
+							dellink = paras["dellink"].gsub("%value%", value)
+							html += "<div style=\"text-align: center;\">(<a href=\"javascript: if (confirm('#{_("Do you want to delete the image?")}')){location.href='#{dellink}';}\">#{_("delete")}</a>)</div>"
+						end
+					end
+					
+					html += "</td></tr></table>"
 				else
 					html += "<input type=\"" + paras["type"].html + "\" class=\"input_" + paras["type"].html + "\" id=\"" + paras["id"].html + "\" name=\"" + paras["name"].html + "\" value=\"" + value.html + "\" />"
 				end
@@ -364,5 +437,11 @@ class String
 	
 	def sql
 		return $db.escape(self)
+	end
+end
+
+class Fixnum
+	def sql
+		return self.to_s.sql
 	end
 end

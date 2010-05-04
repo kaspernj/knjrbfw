@@ -94,10 +94,12 @@ module Knj
 			end
 		end
 		
-		def date(date_format, date_object = nil)
-			if date_object == nil
-				date_object = Time.now
+		def date(date_format, date_unixt = nil)
+			if date_unixt == nil
+				date_unixt = Time.now.to_i
 			end
+			
+			date_object = Time.at(date_unixt.to_i)
 			
 			date_format = date_format.gsub("d", "%02d" % date_object.mday)
 			date_format = date_format.gsub("m", "%02d" % date_object.mon)
@@ -116,7 +118,7 @@ module Knj
 		
 		alias gettext gtext
 		
-		def number_format(number, precision, seperator, delimiter)
+		def number_format(number, precision = 2, seperator = ".", delimiter = ",")
 			if number.is_a?(Float)
 				number = number.to_f
 			end
@@ -161,7 +163,12 @@ module Knj
 		end
 		
 		def substr(string, from, to = -1)
-			return string.to_s.slice(from.to_i, to.to_i)
+			string = string.to_s.slice(from.to_i, to.to_i)
+			
+			ic = Iconv.new("UTF-8//IGNORE", "UTF-8")
+			string = ic.iconv(string + "  ")[0..-2]
+			
+			return string
 		end
 		
 		def md5(string)
@@ -176,6 +183,10 @@ module Knj
 			end
 			
 			Apache.request.headers_out[match[1]] = match[2]
+			
+			if $cgi.is_a?(CGI)
+				$cgi.header(match[1] => match[2])
+			end
 		end
 		
 		def nl2br(string)
@@ -204,7 +215,11 @@ module Knj
 		end
 		
 		def strtotime(date_string)
-			return Time.local(*ParseDate.parsedate(date_string))
+			begin
+				return Time.local(*ParseDate.parsedate(date_string)).to_i
+			rescue
+				return Time.local(1970, 1, 1, 1).to_i
+			end
 		end
 		
 		def class_exists(classname)
@@ -217,7 +232,18 @@ module Knj
 		end
 		
 		def html_entity_decode(string)
-			return CGI::unescapeHTML(string.to_s)
+			string = CGI::unescapeHTML(string.to_s)
+			string = string.gsub("&oslash;", "ø").gsub("&aelig;", "æ").gsub("&aring;", "å")
+			
+			return string
+		end
+		
+		def strip_tags(htmlstr)
+			htmlstr.scan(/(<([\/A-z]+).*?>)/) do |match|
+				htmlstr = htmlstr.gsub(match[0], "")
+			end
+			
+			return htmlstr
 		end
 		
 		def die(msg)
@@ -242,6 +268,18 @@ module Knj
 		
 		def fclose(fp)
 			fp.close
+		end
+		
+		def move_uploaded_file(tmp_path, new_path)
+			FileUtils.mv(tmp_path.untaint, new_path.untaint)
+		end
+		
+		def utf8_encode(str)
+			return Iconv.conv("iso-8859-1//ignore", "utf-8", str.to_s + "  ").slice(0..-2)
+		end
+		
+		def utf8_decode(str)
+			return Iconv.conv("utf-8//ignore", "iso-8859-1", str.to_s)
 		end
 	end
 end
