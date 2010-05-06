@@ -1,6 +1,7 @@
 module Knj
 	class Web
 		include Knj::Php
+		include Knj
 		
 		def cgi; return @cgi; end
 		def session; return @session; end
@@ -20,9 +21,15 @@ module Knj
 			if @paras["cgi"]
 				@cgi = @paras["cgi"]
 			else
-				require "cgi"
 				@cgi = CGI.new("html4")
 			end
+			
+			$_CGI = @cgi
+			
+			@server = {
+				"HTTP_USER_AGENT" => Apache.request.headers_in["User-Agent"],
+				"REMOTE_ADDR" => Apache.request.remote_host(1)
+			}
 			
 			@files = {}
 			@post = {}
@@ -31,24 +38,23 @@ module Knj
 					do_files = false
 					isstring = true
 					varname = pair[0]
+					stringparse = nil
 					
 					if pair[1][0].is_a?(Tempfile)
 						if varname[0..3] == "file"
-							tmpname = @paras["tmp"] + "/knj_web_upload_" + Time.now.to_f.to_s + "_" + rand(1000).to_s.untaint
 							isstring = false
 							do_files = true
-							cont = File.read(pair[1][0].path)
-							file_put_contents(tmpname, cont)
-							stringparse = {
-								"tmp_name" => tmpname,
-								"size" => cont.length,
-								"error" => 0
-							}
+							
+							if pair[1][0].size > 0
+								stringparse = {
+									"tmp_name" => pair[1][0].path,
+									"size" => pair[1][0].size,
+									"error" => 0
+								}
+							end
 						else
 							stringparse = File.read(pair[1][0].path)
 						end
-						
-						pair[1][0].unlink
 					elsif pair[1][0].is_a?(StringIO)
 						if varname[0..3] == "file"
 							tmpname = @paras["tmp"] + "/knj_web_upload_" + Time.now.to_f.to_s + "_" + rand(1000).to_s.untaint
@@ -56,11 +62,14 @@ module Knj
 							do_files = true
 							cont = pair[1][0].string
 							file_put_contents(tmpname, cont.to_s)
-							stringparse = {
-								"tmp_name" => tmpname,
-								"size" => cont.length,
-								"error" => 0
-							}
+							
+							if cont.length > 0
+								stringparse = {
+									"tmp_name" => tmpname,
+									"size" => cont.length,
+									"error" => 0
+								}
+							end
 						else
 							stringparse = pair[1][0].string
 						end
@@ -68,17 +77,19 @@ module Knj
 						stringparse = pair[1][0]
 					end
 					
-					if !do_files
-						if isstring
-							Knj::Web::parse_name(@post, varname, stringparse)
+					if stringparse
+						if !do_files
+							if isstring
+								Web::parse_name(@post, varname, stringparse)
+							else
+								@post[varname] = stringparse
+							end
 						else
-							@post[varname] = stringparse
-						end
-					else
-						if isstring
-							Knj::Web::parse_name(@files, varname, stringparse)
-						else
-							@files[varname] = stringparse
+							if isstring
+								Web::parse_name(@files, varname, stringparse)
+							else
+								@files[varname] = stringparse
+							end
 						end
 					end
 				end
@@ -93,7 +104,7 @@ module Knj
 						valuearr[1] = CGI.unescape(valuearr[1])
 					end
 					
-					Knj::Web::parse_name(@get, valuearr[0], valuearr[1])
+					Web::parse_name(@get, valuearr[0], valuearr[1])
 				end
 			end
 			
@@ -103,16 +114,28 @@ module Knj
 			end
 			
 			if @cookie[@paras["id"]]
-				session_id = @paras["id"] + "_" + @cookie[@paras["id"]]
-			else
-				@db.insert("sessions", {
-					"date_start" => Datestamp::dbstr
-				})
-				id = @db.last_id
-				cookie = CGI::Cookie.new("name" => @paras["id"], "value" => id.to_s)
-				@cgi.header("Cookie" => [cookie])
-				@cgi.out("cookie" => [cookie]){""}
-				session_id = @paras["id"] + "_" + id.to_s
+				@data = $db.single("sessions", "id" => @cookie[@paras["id"]])
+				
+				if @data
+					if @data["user_agent"] != @server["HTTP_USER_AGENT"] or @data["ip"] != @server["REMOTE_ADDR"]
+						@data = nil
+					else
+						@db.update("sessions", {"date_active" => Datestamp::dbstr}, {"id" => @data["id"]})
+						session_id = @paras["id"] + "_" + @data["id"]
+					end
+				end
+			end
+			
+			if !@data or !session_id
+				@db.insert("sessions",
+					"date_start" => Datestamp::dbstr, "date_active" => Datestamp::dbstr,
+					"user_agent" => @server["HTTP_USER_AGENT"],
+					"ip" => @server["REMOTE_ADDR"]
+				)
+				
+				@data = @db.single("sessions", "id" => @db.last_id)
+				session_id = @paras["id"] + "_" + @data["id"]
+				setcookie(@paras["id"], @data["id"])
 			end
 			
 			require "cgi/session"
@@ -154,7 +177,7 @@ module Knj
 							seton[name][match[1]] = {}
 						end
 						
-						Knj::Web::parse_name_second(seton[name][match[1]], restname, value)
+						Web::parse_name_second(seton[name][match[1]], restname, value)
 					else
 						seton[name][match[1]] = value
 					end
@@ -180,7 +203,7 @@ module Knj
 						seton[name] = {}
 					end
 					
-					Knj::Web::parse_name_second(seton[name], restname, value)
+					Web::parse_name_second(seton[name], restname, value)
 				else
 					seton[name] = value
 				end
@@ -189,36 +212,12 @@ module Knj
 			end
 		end
 		
-		def self.global_params
-			require "cgi"
-			cgi = CGI.new("html4")
-			
-			$_POST = {}
-			if cgi.request_method == "POST"
-				cgi.params.each do |pair|
-					if pair[1][0].is_a?(Tempfile)
-						$_POST[pair[0]] = File.read(pair[1][0].path)
-						pair[1][0].unlink
-					else
-						$_POST[pair[0]] = pair[1][0]
-					end
-				end
-			end
-			
-			$_GET = {}
-			if (cgi.query_string)
-				cgi.query_string.split("&").each do |value|
-					valuearr = value.split("=")
-					$_GET[valuearr[0].to_s] = CGI.unescape(valuearr[1].to_s)
-				end
-			end
-		end
-		
 		def global_params
 			$_POST = @post
 			$_GET = @get
 			$_COOKIE = @cookie
 			$_FILES = @files
+			$_SERVER = @server
 		end
 		
 		def destroy
@@ -331,7 +330,7 @@ module Knj
 					end
 					
 					html += ">"
-					html += Knj::Web::opts(paras["opts"], value, paras["opts_paras"])
+					html += Web::opts(paras["opts"], value, paras["opts_paras"])
 					html += "</select>"
 				elsif paras["type"] == "imageupload"
 					html += "<table class=\"designtable\"><tr><td style=\"width: 100%;\">"
@@ -414,6 +413,20 @@ module Knj
 			
 			return html
 		end
+		
+		def self.rendering_engine
+			agent = $_SERVER["HTTP_USER_AGENT"].downcase
+			
+			if agent.index("webkit") != nil
+				return "webkit"
+			elsif agent.index("gecko") != nil
+				return "gecko"
+			elsif agent.index("msie") != nil
+				return "msie"
+			else
+				print agent
+			end
+		end
 	end
 end
 
@@ -431,7 +444,6 @@ end
 
 class String
 	def html
-		require("cgi")
 		return CGI.escapeHTML(self)
 	end
 	

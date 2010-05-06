@@ -23,7 +23,7 @@ class KnjDB_mysql
 	end
 	
 	def escape(string)
-		return @conn.escape_string(string)
+		return @conn.escape_string(string.to_s)
 	end
 	
 	def lastID

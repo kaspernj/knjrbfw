@@ -1,20 +1,22 @@
 #knj's objects.
+$knjpath = File.dirname(__FILE__) + "/"
+
 module Knj
-	autoload :ArrayExt, "knj/arrayext"
-	autoload :Db, "knj/knjdb/libknjdb"
-	autoload :Db_row, "knj/knjdb/libknjdb_row"
-	autoload :Objects, "knj/objects"
-	autoload :Opts, "knj/opts"
-	autoload :Mail, "knj/mail"
-	autoload :Web, "knj/web"
-	autoload :Strings, "knj/strings"
-	autoload :SSHRobot, "knj/sshrobot/sshrobot"
-	autoload :Datestamp, "knj/datestamp"
-	autoload :Http, "knj/http"
-	autoload :Sms, "knj/sms"
-	autoload :Os, "knj/os"
-	autoload :Gtk2, "knj/gtk2"
-	autoload :Php, "knj/php"
+	autoload :ArrayExt, $knjpath + "arrayext"
+	autoload :Db, $knjpath + "knjdb/libknjdb"
+	autoload :Db_row, $knjpath + "knjdb/libknjdb_row"
+	autoload :Objects, $knjpath + "objects"
+	autoload :Opts, $knjpath + "opts"
+	autoload :Mail, $knjpath + "mail"
+	autoload :Web, $knjpath + "web"
+	autoload :Strings, $knjpath + "strings"
+	autoload :SSHRobot, $knjpath + "sshrobot/sshrobot"
+	autoload :Datestamp, $knjpath + "datestamp"
+	autoload :Http, $knjpath + "http"
+	autoload :Sms, $knjpath + "sms"
+	autoload :Os, $knjpath + "os"
+	autoload :Gtk2, $knjpath + "gtk2"
+	autoload :Php, $knjpath + "php"
 end
 
 #ruby objects.
@@ -43,6 +45,6 @@ end
 autoload :Dictionary, "facets/dictionary.rb"
 
 #gems
-autoload :Twitter, "knj/autoload/twitter"
-autoload :Facebooker, "knj/autoload/facebooker"
-autoload :Cinch, "knj/autoload/cinch"
+autoload :Twitter, $knjpath + "autoload/twitter"
+autoload :Facebooker, $knjpath + "autoload/facebooker"
+autoload :Cinch, $knjpath + "autoload/cinch"
