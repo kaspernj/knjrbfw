@@ -214,12 +214,42 @@ module Knj
 			return File.read(filepath)
 		end
 		
-		def strtotime(date_string)
-			begin
-				return Time.local(*ParseDate.parsedate(date_string)).to_i
-			rescue
-				return Time.local(1970, 1, 1, 1).to_i
+		def strtotime(date_string, cur = nil)
+			if !cur
+				cur = Time.new
+			else
+				cur = Time.at(cur)
 			end
+			
+			date_string = date_string.to_s.downcase
+			
+			if date_string.match(/[0-9]+-[0-9]+-[0-9]+/i)
+				return Time.local(*ParseDate.parsedate(date_string)).to_i
+			end
+			
+			date_string.scan(/((\+|-)([0-9]+) (\S+))/) do |match|
+				timestr = match[3]
+				number = match[2].to_i
+				mathval = match[1]
+				
+				if timestr == "years" or timestr == "year"
+					cur += ((number.to_i * 3600) * 24) * 365
+				elsif timestr == "months" or timestr == "month"
+					cur += ((number.to_i * 3600) * 24) * 30
+				elsif timestr == "weeks" or timestr == "week"
+					cur += (number.to_i * 3600) * 24 * 7
+				elsif timestr == "days" or timestr == "day"
+					cur += (number.to_i * 3600) * 24
+				elsif timestr == "hours" or timestr == "hour"
+					cur += number.to_i * 3600
+				elsif timestr == "minutes" or timestr == "minute" or timestr == "min" or timestr == "mints"
+					cur += number.to_i * 60
+				elsif timestr == "seconds" or timestr == "second" or timestr == "sec" or timestr == "secs"
+					cur += number.to_i
+				end
+			end
+			
+			return cur.to_i
 		end
 		
 		def class_exists(classname)
@@ -280,6 +310,32 @@ module Knj
 		
 		def utf8_decode(str)
 			return Iconv.conv("utf-8//ignore", "iso-8859-1", str.to_s)
+		end
+		
+		def setcookie(cname, cvalue, expire = nil, domain = nil)
+			paras = {
+				"name" => cname,
+				"value" => cvalue
+			}
+			
+			if expire
+				paras["expire"] = Time.at(expire)
+			end
+			
+			if domain
+				paras["domain"] = domain
+			end
+			
+			cookie = CGI::Cookie.new(paras)
+			$_CGI.out("cookie" => cookie){""}
+			
+			if $_COOKIE
+				$_COOKIE[cname] = cvalue
+			end
+		end
+		
+		def explode(expl, strexp)
+			return strexp.to_s.split(expl)
 		end
 	end
 end

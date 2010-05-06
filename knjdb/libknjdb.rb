@@ -25,7 +25,7 @@ module Knj
 		end
 		
 		def connect
-			require("knjrbfw/knjdb/libknjdb_" + @opts["type"] + ".rb")
+			require(File.dirname(__FILE__) + "/libknjdb_" + @opts["type"] + ".rb")
 			@conn = Kernel.const_get("KnjDB_" + @opts["type"]).new(self)
 		end
 		
@@ -164,7 +164,7 @@ module Knj
 				end
 				
 				sql += @conn.escape_col
-				sql += pair[0]
+				sql += pair[0].to_s
 				sql += @conn.escape_col
 				sql += " = "
 				sql += @conn.escape_val

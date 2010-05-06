@@ -25,7 +25,8 @@ module Knj
 			end
 			
 			@server = {
-				"HTTP_USER_AGENT" => Apache.request.headers_in["User-Agent"]
+				"HTTP_USER_AGENT" => Apache.request.headers_in["User-Agent"],
+				"REMOTE_ADDR" => Apache.request.remote_host(1)
 			}
 			
 			@files = {}
@@ -111,6 +112,7 @@ module Knj
 			end
 			
 			if @cookie[@paras["id"]]
+<<<<<<< HEAD:web.rb
 				session_id = @paras["id"] + "_" + @cookie[@paras["id"]]
 			else
 				@db.insert("sessions", "date_start" => Datestamp::dbstr)
@@ -119,6 +121,30 @@ module Knj
 				@cgi.header("Cookie" => [cookie])
 				@cgi.out("cookie" => [cookie]){""}
 				session_id = @paras["id"] + "_" + id.to_s
+=======
+				@data = $db.single("sessions", "id" => @cookie[@paras["id"]])
+				
+				if @data
+					if @data["user_agent"] != @server["HTTP_USER_AGENT"] or @data["ip"] != @server["REMOTE_ADDR"]
+						@data = nil
+					else
+						@db.update("sessions", {"date_active" => Datestamp::dbstr}, {"id" => @data["id"]})
+						session_id = @paras["id"] + "_" + @data["id"]
+					end
+				end
+			end
+			
+			if !@data or !session_id
+				@db.insert("sessions",
+					"date_start" => Datestamp::dbstr, "date_active" => Datestamp::dbstr,
+					"user_agent" => @server["HTTP_USER_AGENT"],
+					"ip" => @server["REMOTE_ADDR"]
+				)
+				
+				@data = @db.single("sessions", "id" => @db.last_id)
+				session_id = @paras["id"] + "_" + @data["id"]
+				setcookie(@paras["id"], @data["id"])
+>>>>>>> 70fcc7fb98176cee6b21fdf1577f46d222f2b601:web.rb
 			end
 			
 			require "cgi/session"
