@@ -43,5 +43,13 @@ module Knj
 				raise "Could not figure out OS."
 			end
 		end
+		
+		def self.class_exist(classstr)
+			if Module.constants.index(classstr) != nil
+				return true
+			end
+			
+			return false
+		end
 	end
 end

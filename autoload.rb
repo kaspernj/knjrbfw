@@ -1,4 +1,5 @@
 #knj's objects.
+
 module Knj
 	autoload :ArrayExt, "knj/arrayext"
 	autoload :Db, "knj/knjdb/libknjdb"
