@@ -140,7 +140,7 @@ module Knj
 			
 			require "cgi/session"
 			require "cgi/session/pstore"
-			@session = CGI::Session.new(@session, "database_manager" => CGI::Session::PStore, "session_id" => session_id)
+			@session = CGI::Session.new(@session, "database_manager" => CGI::Session::PStore, "session_id" => session_id, "session_path" => @paras["tmp"])
 			Kernel.at_exit do
 				@session.close
 			end
@@ -284,10 +284,6 @@ module Knj
 				paras["type"] = "text"
 			end
 			
-			if !paras["height"]
-				paras["height"] = 400
-			end
-			
 			html = ""
 			
 			if paras["type"] == "checkbox"
@@ -315,8 +311,18 @@ module Knj
 				html += "<td class=\"tdc\">"
 				
 				if paras["type"] == "textarea"
-					html += "<textarea class=\"input_textarea\" name=\"" + paras["name"].html + "\" id=\"" + paras["id"].html + "\">" + value + "</textarea>"
+					if paras.has_key?("height")
+						styleadd = " style=\"height: #{paras["height"].html}px;\""
+					else
+						styleadd = ""
+					end
+					
+					html += "<textarea#{styleadd} class=\"input_textarea\" name=\"" + paras["name"].html + "\" id=\"" + paras["id"].html + "\">" + value + "</textarea>"
 				elsif paras["type"] == "fckeditor"
+					if !paras["height"]
+						paras["height"] = 400
+					end
+					
 					require "/usr/share/fckeditor/fckeditor.rb"
 					fck = FCKeditor.new(paras["name"])
 					fck.Height = paras["height"].to_i
@@ -455,5 +461,9 @@ end
 class Fixnum
 	def sql
 		return self.to_s.sql
+	end
+	
+	def html
+		return self.to_s.html
 	end
 end
