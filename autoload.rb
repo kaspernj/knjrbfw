@@ -1,9 +1,4 @@
-<<<<<<< HEAD:autoload.rb
-#knj's objects.
-=======
-#knj's objects.
 $knjpath = File.dirname(__FILE__) + "/"
->>>>>>> 70fcc7fb98176cee6b21fdf1577f46d222f2b601:autoload.rb
 
 module Knj
 	autoload :ArrayExt, $knjpath + "arrayext"

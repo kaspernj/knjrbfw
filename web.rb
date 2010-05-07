@@ -24,6 +24,8 @@ module Knj
 				@cgi = CGI.new("html4")
 			end
 			
+			$_CGI = @cgi
+			
 			@server = {
 				"HTTP_USER_AGENT" => Apache.request.headers_in["User-Agent"],
 				"REMOTE_ADDR" => Apache.request.remote_host(1)
@@ -112,16 +114,6 @@ module Knj
 			end
 			
 			if @cookie[@paras["id"]]
-<<<<<<< HEAD:web.rb
-				session_id = @paras["id"] + "_" + @cookie[@paras["id"]]
-			else
-				@db.insert("sessions", "date_start" => Datestamp::dbstr)
-				id = @db.last_id
-				cookie = CGI::Cookie.new("name" => @paras["id"], "value" => id.to_s)
-				@cgi.header("Cookie" => [cookie])
-				@cgi.out("cookie" => [cookie]){""}
-				session_id = @paras["id"] + "_" + id.to_s
-=======
 				@data = $db.single("sessions", "id" => @cookie[@paras["id"]])
 				
 				if @data
@@ -144,7 +136,6 @@ module Knj
 				@data = @db.single("sessions", "id" => @db.last_id)
 				session_id = @paras["id"] + "_" + @data["id"]
 				setcookie(@paras["id"], @data["id"])
->>>>>>> 70fcc7fb98176cee6b21fdf1577f46d222f2b601:web.rb
 			end
 			
 			require "cgi/session"
