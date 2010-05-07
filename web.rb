@@ -140,7 +140,7 @@ module Knj
 			
 			require "cgi/session"
 			require "cgi/session/pstore"
-			@session = CGI::Session.new(@session, "database_manager" => CGI::Session::PStore, "session_id" => session_id)
+			@session = CGI::Session.new(@session, "database_manager" => CGI::Session::PStore, "session_id" => session_id, "session_path" => @paras["tmp"])
 			Kernel.at_exit do
 				@session.close
 			end
