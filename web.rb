@@ -27,8 +27,10 @@ module Knj
 			$_CGI = @cgi
 			
 			@server = {
+				"HTTP_HOST" => Apache.request.hostname,
 				"HTTP_USER_AGENT" => Apache.request.headers_in["User-Agent"],
-				"REMOTE_ADDR" => Apache.request.remote_host(1)
+				"REMOTE_ADDR" => Apache.request.remote_host(1),
+				"REQUEST_URI" => Apache.request.unparsed_uri
 			}
 			
 			@files = {}
