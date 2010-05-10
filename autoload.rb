@@ -1,4 +1,3 @@
-#knj's objects.
 $knjpath = File.dirname(__FILE__) + "/"
 
 module Knj
