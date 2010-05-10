@@ -305,11 +305,19 @@ module Knj
 		end
 		
 		def utf8_encode(str)
-			return Iconv.conv("iso-8859-1//ignore", "utf-8", str.to_s + "  ").slice(0..-2)
+			begin
+				return Iconv.conv("iso-8859-1", "utf-8", str.to_s)
+			rescue
+				return Iconv.conv("iso-8859-1//ignore", "utf-8", str.to_s + "  ").slice(0..-2)
+			end
 		end
 		
 		def utf8_decode(str)
-			return Iconv.conv("utf-8//ignore", "iso-8859-1", str.to_s)
+			begin
+				return Iconv.conv("utf-8", "iso-8859-1", str.to_s)
+			rescue
+				return Iconv.conv("utf-8//ignore", "iso-8859-1", str.to_s)
+			end
 		end
 		
 		def setcookie(cname, cvalue, expire = nil, domain = nil)
@@ -319,7 +327,7 @@ module Knj
 			}
 			
 			if expire
-				paras["expire"] = Time.at(expire)
+				paras["expires"] = Time.at(expire)
 			end
 			
 			if domain
