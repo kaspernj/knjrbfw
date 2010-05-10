@@ -280,7 +280,9 @@ module Knj
 				paras["id"] = paras["name"]
 			end
 			
-			if !paras["type"]
+			if !paras["type"] and paras["opts"]
+				paras["type"] = "select"
+			elsif !paras["type"]
 				paras["type"] = "text"
 			end
 			
