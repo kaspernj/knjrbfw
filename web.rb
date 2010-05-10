@@ -82,13 +82,13 @@ module Knj
 					if stringparse
 						if !do_files
 							if isstring
-								Web::parse_name(@post, varname, stringparse)
+								Web.parse_name(@post, varname, stringparse)
 							else
 								@post[varname] = stringparse
 							end
 						else
 							if isstring
-								Web::parse_name(@files, varname, stringparse)
+								Web.parse_name(@files, varname, stringparse)
 							else
 								@files[varname] = stringparse
 							end
@@ -100,13 +100,11 @@ module Knj
 			@get = {}
 			if @cgi.query_string
 				urldecode(@cgi.query_string).split("&").each do |value|
-					valuearr = value.split("=")
+					pos = value.index("=")
+					name = value[0..pos-1]
+					valuestr = value.slice(pos+1..-1)
 					
-					if valuearr[1]
-						valuearr[1] = CGI.unescape(valuearr[1])
-					end
-					
-					Web::parse_name(@get, valuearr[0], valuearr[1])
+					Web.parse_name(@get, name, valuestr)
 				end
 			end
 			
@@ -122,7 +120,7 @@ module Knj
 					if @data["user_agent"] != @server["HTTP_USER_AGENT"] or @data["ip"] != @server["REMOTE_ADDR"]
 						@data = nil
 					else
-						@db.update("sessions", {"date_active" => Datestamp::dbstr}, {"id" => @data["id"]})
+						@db.update("sessions", {"date_active" => Datestamp.dbstr}, {"id" => @data["id"]})
 						session_id = @paras["id"] + "_" + @data["id"]
 					end
 				end
@@ -130,7 +128,7 @@ module Knj
 			
 			if !@data or !session_id
 				@db.insert("sessions",
-					"date_start" => Datestamp::dbstr, "date_active" => Datestamp::dbstr,
+					"date_start" => Datestamp.dbstr, "date_active" => Datestamp.dbstr,
 					"user_agent" => @server["HTTP_USER_AGENT"],
 					"ip" => @server["REMOTE_ADDR"]
 				)
@@ -179,7 +177,7 @@ module Knj
 							seton[name][match[1]] = {}
 						end
 						
-						Web::parse_name_second(seton[name][match[1]], restname, value)
+						Web.parse_name_second(seton[name][match[1]], restname, value)
 					else
 						seton[name][match[1]] = value
 					end
@@ -205,7 +203,7 @@ module Knj
 						seton[name] = {}
 					end
 					
-					Web::parse_name_second(seton[name], restname, value)
+					Web.parse_name_second(seton[name], restname, value)
 				else
 					seton[name] = value
 				end
@@ -232,7 +230,7 @@ module Knj
 		
 		def self.require_eruby(filepath)
 			cont = File.read(filepath).untaint
-			parse = Erubis::Eruby.new(cont)
+			parse = Erubis.Eruby.new(cont)
 			eval(parse.src.to_s)
 		end
 		
@@ -340,7 +338,7 @@ module Knj
 					end
 					
 					html += ">"
-					html += Web::opts(paras["opts"], value, paras["opts_paras"])
+					html += Web.opts(paras["opts"], value, paras["opts_paras"])
 					html += "</select>"
 				elsif paras["type"] == "imageupload"
 					html += "<table class=\"designtable\"><tr><td style=\"width: 100%;\">"
@@ -441,15 +439,15 @@ module Knj
 end
 
 def alert(string)
-	return Knj::Web::alert(string)
+	return Knj.Web.alert(string)
 end
 
 def redirect(string)
-	return Knj::Web::redirect(string)
+	return Knj.Web.redirect(string)
 end
 
 def jsback(string)
-	return Knj::Web::back
+	return Knj.Web.back
 end
 
 class String

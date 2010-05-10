@@ -199,8 +199,7 @@ module Knj
 		end
 		
 		def urlencode(string)
-			require("cgi")
-			return CGI.escape(string)
+			return CGI.escape(string.to_s)
 		end
 		
 		def file_put_contents(filepath, content)
