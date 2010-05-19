@@ -33,7 +33,7 @@ module Knj
 			end
 		end
 		
-		def print_r(argument, ret = false, count = 1)
+		def self.print_r(argument, ret = false, count = 1)
 			retstr = ""
 			cstr = argument.class.to_s
 			supercl = argument.class.superclass
@@ -97,6 +97,10 @@ module Knj
 			else
 				print retstr
 			end
+		end
+		
+		def print_r(argument, ret = false, count = 1)
+			return Php::print_r(argument, ret, count)
 		end
 		
 		def date(date_format, date_unixt = nil)
