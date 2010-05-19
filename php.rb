@@ -294,11 +294,21 @@ module Knj
 		end
 		
 		def fopen(filename, mode)
-			return File.open(filename, mode)
+			begin
+				return File.open(filename, mode)
+			rescue Exception
+				return false
+			end
 		end
 		
 		def fwrite(fp, str)
-			fp.print str
+			begin
+				fp.print str
+			rescue Exception
+				return false
+			end
+			
+			return true
 		end
 		
 		def fread(fp, length = 4096)
