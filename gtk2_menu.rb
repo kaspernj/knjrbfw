@@ -8,7 +8,17 @@ module Knj
 				@signal = ""
 				
 				count = 0
-				@paras["items"].each do |signal, menuitem|
+				if @paras["items"].respond_to?("reverse")
+					items = @paras["items"].reverse
+				else
+					items = @paras["items"]
+				end
+				
+				if items.is_a?(Array)
+					items = Knj::ArrayExt.hash(items)
+				end
+				
+				items.each do |signal, menuitem|
 					newitem = Gtk::MenuItem.new(menuitem["text"])
 					
 					if (menuitem["connect"])

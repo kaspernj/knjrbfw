@@ -73,7 +73,7 @@ module Knj
 			@conn.query(sql)
 		end
 		
-		def update(tablename, arr_update, arr_terms)
+		def update(tablename, arr_update, arr_terms = {})
 			sql = "UPDATE "
 			sql += @conn.escape_col
 			sql += tablename
@@ -97,8 +97,10 @@ module Knj
 				sql += @conn.escape_val
 			end
 			
-			sql += " WHERE "
-			sql += self.makeWhere(arr_terms)
+			if arr_terms and arr_terms.length > 0
+				sql += " WHERE "
+				sql += self.makeWhere(arr_terms)
+			end
 			
 			self.query(sql)
 		end

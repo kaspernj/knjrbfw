@@ -1,8 +1,13 @@
 module Knj
 	module Php
 		def is_numeric(n) Float n rescue false end
+		def self.is_numeric(n) Float n rescue false end
 		
 		def call_user_func(*paras)
+			Knj::Php::call_user_func(*paras)
+		end
+		
+		def self.call_user_func(*paras)
 			if paras[0].is_a?(String)
 				eval_string = "send(:" + paras[0]
 				
@@ -134,6 +139,10 @@ module Knj
 		end
 		
 		def ucwords(string)
+			return Knj::Php::ucwords(string)
+		end
+		
+		def self.ucwords(string)
 			return string.to_s.split(" ").select {|w| w.capitalize! || w }.join(" ")
 		end
 		
@@ -172,7 +181,7 @@ module Knj
 		end
 		
 		def md5(string)
-			return Digest::MD5.hexdigest(string)
+			return Digest::MD5.hexdigest(string.to_s)
 		end
 		
 		def header(headerstr)
