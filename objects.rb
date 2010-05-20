@@ -1,6 +1,7 @@
 module Knj
 	class Objects
 		def initialize(paras)
+			@callbacks = {}
 			@paras = paras
 			
 			if (!@paras["col_id"])
@@ -8,6 +9,38 @@ module Knj
 			end
 			
 			@objects = {}
+		end
+		
+		def connect(paras)
+			if !paras["object"]
+				raise "No object given."
+			end
+			
+			if !@callbacks[paras["object"]]
+				@callbacks[paras["object"]] = {}
+			end
+			
+			@callbacks[paras["object"]][@callbacks[paras["object"]].length.to_s] = paras
+		end
+		
+		def call(paras)
+			classstr = paras["object"].class.to_s
+			
+			if @callbacks[classstr]
+				@callbacks[classstr].each do |callback_key, callback|
+					docall = false
+					
+					if callback.has_key?("signal") and paras.has_key?("signal") and callback["signal"] == paras["signal"]
+						docall = true
+					elsif callback["signals"] and paras["signal"] and callback["signals"].index(paras["signal"]) != nil
+						docall = true
+					end
+					
+					if docall
+						Php::call_user_func(callback["callback"], paras)
+					end
+				end
+			end
 		end
 		
 		def requireclass(classname)
@@ -118,22 +151,30 @@ module Knj
 		
 		def add(classname, data)
 			self.requireclass(classname)
-			return Kernel.const_get(classname).add(data)
+			retob = Kernel.const_get(classname).add(data)
+			
+			self.call("object" => retob, "signal" => "add")
+			
+			return retob
 		end
 		
 		def unset(object)
 			if !@objects.has_key?(object.class.to_s)
 				raise "Could not find object class in cache."
 			elsif !@objects[object.class.to_s][object[@paras["col_id"]].to_i]
-				#raise "Could not find object ID in cache."
+				raise "Could not find object ID in cache."
 			end
 			
 			@objects[object.class.to_s].delete(object)
 		end
 		
 		def delete(object)
+			self.call("object" => object, "signal" => "delete_before")
+			
 			self.unset(object)
 			object.delete
+			
+			self.call("object" => object, "signal" => "delete")
 		end
 	end
 end

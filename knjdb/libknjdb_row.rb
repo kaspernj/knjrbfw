@@ -8,18 +8,18 @@ module Knj
 			@paras = paras
 			@db = @paras["db"]
 			
-			if (!@paras["col_id"])
+			if !@paras["col_id"]
 				@paras["col_id"] = "id"
 			end
 			
 			if @paras["data"] and (@paras["data"].is_a?(Integer) or @paras["data"].is_a?(Fixnum) or @paras["data"].is_a?(String))
-				@data = {"id" => @paras["data"].to_s}
+				@data = {@paras["col_id"] => @paras["data"].to_s}
 				self.reload
 			elsif @paras["data"] and @paras["data"].is_a?(Hash)
 				@data = @paras["data"]
 			elsif @paras["id"]
 				@data = {}
-				@data["id"] = @paras["id"]
+				@data[@paras["col_id"]] = @paras["id"]
 				self.reload
 			else
 				raise "Invalid data: " + @paras["data"] + " (" + @paras["data"].class.to_s + ")"
@@ -27,20 +27,24 @@ module Knj
 		end
 		
 		def reload
-			last_id = @data["id"]
-			@data = @db.single(@paras["table"], {@paras["col_id"] => @data["id"]})
-			if (!@data)
+			last_id = @data[@paras["col_id"]]
+			@data = @db.single(@paras["table"], {@paras["col_id"] => @data[@paras["col_id"]]})
+			if !@data
 				raise "Could not find any data for the object with ID: '" + last_id + "' in the table '" + @paras["table"] + "'."
 			end
 		end
 		
 		def update(newdata)
-			@db.update(@paras["table"], newdata, {@paras["col_id"] => @data["id"]})
+			@db.update(@paras["table"], newdata, {@paras["col_id"] => @data[@paras["col_id"]]})
 			self.reload
+			
+			if self.objects
+				self.objects.call("object" => self, "signal" => "update")
+			end
 		end
 		
 		def delete
-			@db.delete(@paras["table"], {@paras["col_id"] => @data["id"]})
+			@db.delete(@paras["table"], {@paras["col_id"] => @data[@paras["col_id"]]})
 			self.destroy
 		end
 		
@@ -51,11 +55,11 @@ module Knj
 		end
 		
 		def [](key)
-			if (!key)
+			if !key
 				raise "No valid key given."
 			end
 			
-			if (!@data.has_key?(key))
+			if !@data.has_key?(key)
 				raise "No such key: " + key
 			end
 			
