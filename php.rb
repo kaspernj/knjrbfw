@@ -129,9 +129,7 @@ module Knj
 			end
 			
 			number = sprintf("%." + precision.to_s + "f", number)
-			
 			number = number.gsub(%r{([0-9]{3}(?=([0-9])))}, "\\1,")
-			
 			number = number.gsub(",", "comma").gsub(".", "dot")
 			number = number.gsub("comma", delimiter).gsub("dot", seperator)
 			
@@ -147,7 +145,6 @@ module Knj
 		end
 		
 		def htmlspecialchars(string)
-			require("cgi")
 			return CGI.escapeHTML(string)
 		end
 		
@@ -203,7 +200,6 @@ module Knj
 		end
 		
 		def urldecode(string)
-			require("cgi")
 			return CGI.unescape(string)
 		end
 		
