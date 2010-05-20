@@ -32,6 +32,14 @@ module Knj
 				end
 			end
 			
+			close_sig = "close"
+			cancel_sig = "cancel"
+			ok_sig = "ok"
+			yes_sig = "yes"
+			no_sig = "no"
+			
+			box = Gtk::HBox.new
+			
 			if type == "yesno"
 				button1 = [Gtk::Stock::YES, Gtk::Dialog::RESPONSE_YES]
 				button2 = [Gtk::Stock::NO, Gtk::Dialog::RESPONSE_NO]
@@ -43,11 +51,42 @@ module Knj
 			elsif type == "info"
 				button1 = [Gtk::Stock::OK, Gtk::Dialog::RESPONSE_OK]
 				image = Gtk::Image.new(Gtk::Stock::DIALOG_INFO, Gtk::IconSize::DIALOG)
+			elsif type == "list"
+				close_sig = false
+				cancel_sig = false
+				
+				button1 = [Gtk::Stock::OK, Gtk::Dialog::RESPONSE_OK]
+				
+				tv = Gtk::TreeView.new
+				tv.init([_("ID"), _("Title")])
+				tv.columns[0].visible = false
+				
+				if paras["items"].is_a?(Hash)
+					paras["items"].each do |key, value|
+						tv.append([key, value])
+					end
+				elsif paras["items"].is_a?(Array)
+					count = 0
+					paras["items"].each do |element|
+						if element.respond_to?("id") and element.respond_to?("title")
+							tv.append([count.to_s, element.title])
+						else
+							raise "Could not handle object in array: " + element.class.to_s
+						end
+						
+						count += 1
+					end
+				else
+					raise "Unhandeled class: " + items.class.to_s
+				end
+				
+				sw = Gtk::ScrolledWindow.new
+				sw.add(tv)
+				
+				box.pack_start(sw)
 			else
 				raise "No such mode: " + type
 			end
-			
-			box = Gtk::HBox.new
 			
 			if button1 && button2
 				dialog = Gtk::Dialog.new(title, nil, Gtk::Dialog::MODAL, button1, button2)
@@ -59,10 +98,8 @@ module Knj
 				box.pack_start(image)
 			end
 			
-			if type == "warning" or type == "yesno" or type == "info"
+			if msg
 				box.pack_start(Gtk::Label.new(msg))
-			else
-				raise "No such mode: " + type
 			end
 			
 			box.spacing = 15
@@ -70,19 +107,39 @@ module Knj
 			dialog.vbox.add(box)
 			dialog.has_separator = false
 			dialog.show_all
+			
+			if type == "list"
+				dialog.set_size_request(250, 370)
+				tv.grab_focus
+			end
+			
 			response = dialog.run
+			
+			if type == "list"
+				sel = tv.sel
+				if !sel
+					ok_sig = false
+				end
+				
+				if paras["items"].is_a?(Array)
+					ok_sig = paras["items"][sel[0].to_i]
+				else
+					ok_sig = sel[0]
+				end
+			end
+			
 			dialog.destroy
 			
 			if response == Gtk::Dialog::RESPONSE_OK
-				return "ok"
+				return ok_sig
 			elsif response == Gtk::Dialog::RESPONSE_YES
-				return "yes"
+				return yes_sig
 			elsif response == Gtk::Dialog::RESPONSE_NO
-				return "no"
+				return no_sig
 			elsif response == Gtk::Dialog::RESPONSE_CANCEL
-				return "cancel"
+				return cancel_sig
 			elsif response == Gtk::Dialog::RESPONSE_CLOSE or response == Gtk::Dialog::RESPONSE_DELETE_EVENT
-				return "close"
+				return close_sig
 			else
 				raise "Unknown response: " + response.to_s
 			end

@@ -9,25 +9,21 @@ module Knj
 		
 		def self.call_user_func(*paras)
 			if paras[0].is_a?(String)
-				eval_string = "send(:" + paras[0]
+				send_paras = [paras[0].to_sym]
 				
 				if (paras[1])
-					eval_string += ", paras[1]"
+					send_paras << paras[1]
 				end
 				
-				eval_string += ")"
-				
-				eval(eval_string)
+				send(*send_paras)
 			elsif paras[0].is_a?(Array)
-				eval_string = "paras[0][0].send(:" + paras[0][1]
+				send_paras = [paras[0][1].to_sym]
 				
 				if (paras[1])
-					eval_string += ", paras[1]"
+					send_paras << paras[1]
 				end
 				
-				eval_string += ")"
-				
-				eval(eval_string)
+				paras[0][0].send(*send_paras)
 			else
 				raise "Unknown user-func."
 			end

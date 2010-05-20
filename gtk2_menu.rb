@@ -19,6 +19,11 @@ module Knj
 				end
 				
 				items.each do |signal, menuitem|
+					if menuitem.is_a?(Array)
+						old_mi = menuitem
+						menuitem = {"text" => menuitem[0], "connect" => menuitem[1]}
+					end
+					
 					newitem = Gtk::MenuItem.new(menuitem["text"])
 					
 					if (menuitem["connect"])

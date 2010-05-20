@@ -14,6 +14,8 @@ module Knj
 		def connect(paras)
 			if !paras["object"]
 				raise "No object given."
+			elsif !paras.has_key?("signal") and !paras.has_key?("signals")
+				raise "No signals given."
 			end
 			
 			if !@callbacks[paras["object"]]

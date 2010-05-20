@@ -16,6 +16,7 @@ module Knj
 	autoload :Os, $knjpath + "os"
 	autoload :Gtk2, $knjpath + "gtk2"
 	autoload :Php, $knjpath + "php"
+	autoload :Errors, $knjpath + "errors"
 end
 
 #ruby objects.
