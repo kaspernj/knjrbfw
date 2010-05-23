@@ -36,6 +36,8 @@ module Net
 	autoload :IMAP, "net/imap"
 	autoload :SMTP, "net/smtp"
 	autoload :HTTP, "net/http"
+	autoload :POP3, "net/pop"
+	autoload :POP, "net/pop"
 end
 
 module TMail

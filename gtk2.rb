@@ -185,13 +185,27 @@ module Knj
 						"type" => "text",
 						"object" => text
 					}
-				elsif (item["type"] == "check")
+				elsif item["type"] == "check"
 					check = Gtk::CheckButton.new(item["title"])
 					table.attach(check, 0, 2, top, top + 1, Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK)
 					
 					objects[item["name"]] = {
 						"type" => "check",
 						"object" => check
+					}
+				elsif item["type"] == "select"
+					label = Gtk::Label.new(item["title"])
+					label.xalign = 0
+					
+					cb = Gtk::ComboBox.new
+					cb.init(item["opts"])
+					
+					table.attach(label, 0, 1, top, top + 1, Gtk::FILL, Gtk::FILL)
+					table.attach(cb, 1, 2, top, top + 1, Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK)
+					
+					objects[item["name"]] = {
+						"type" => "text",
+						"object" => cb
 					}
 				end
 				
@@ -214,6 +228,8 @@ module Knj
 				else
 					object.active = false
 				end
+			elsif object.is_a?(Gtk::ComboBox)
+				object.sel = val.to_s
 			end
 		end
 		
@@ -226,6 +242,9 @@ module Knj
 				else
 					return "0"
 				end
+			elsif object.is_a?(Gtk::ComboBox)
+				sel = object.sel
+				return sel["text"]
 			end
 		end
 	end

@@ -78,7 +78,13 @@ module Knj
 		
 		def list(classname, paras = {})
 			self.requireclass(classname)
-			return Kernel.const_get(classname).list(paras)
+			classob = Kernel.const_get(classname)
+			
+			if !classob.respond_to?("list")
+				raise "list-function has not been implemented for " + classname
+			end
+			
+			return classob.list(paras)
 		end
 		
 		def list_opts(classname, paras = {})

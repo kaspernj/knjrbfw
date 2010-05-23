@@ -3,6 +3,7 @@ module Knj
 		def paras; return @paras; end
 		def db; return @db; end
 		def objects; return @paras["objects"]; end
+		def is_knj?; return true; end
 		
 		def initialize(paras)
 			@paras = paras
