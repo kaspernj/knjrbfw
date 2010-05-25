@@ -39,6 +39,7 @@ module Net
 	autoload :HTTP, "net/http"
 	autoload :POP3, "net/pop"
 	autoload :POP, "net/pop"
+	autoload :SSH, "net/ssh"
 end
 
 module TMail
