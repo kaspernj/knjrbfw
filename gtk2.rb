@@ -117,14 +117,16 @@ module Knj
 			
 			if type == "list"
 				sel = tv.sel
-				if !sel
-					ok_sig = false
-				end
 				
-				if paras["items"].is_a?(Array)
-					ok_sig = paras["items"][sel[0].to_i]
+				if sel and sel[0]
+					if paras["items"].is_a?(Array) and paras["items"].length > 0 and sel and sel[0]
+						trala = sel[0].to_i
+						ok_sig = paras["items"][sel[0].to_i]
+					else
+						ok_sig = sel[0]
+					end
 				else
-					ok_sig = sel[0]
+					ok_sig = false
 				end
 			end
 			

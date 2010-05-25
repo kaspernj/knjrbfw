@@ -21,7 +21,7 @@ module Knj
 		end
 		
 		def getSFTP
-			@sftp = Net::SFTP.start(@args["host"], @args["user"], @args["passwd"])
+			@sftp = Net::SFTP.start(@args["host"], @args["user"], @args["passwd"], :port => @args["port"].to_i)
 		end
 		
 		def shellCMD(command)
