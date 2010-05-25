@@ -88,7 +88,7 @@ module Knj
 				raise "No such mode: " + type
 			end
 			
-			if button1 && button2
+			if button1 and button2
 				dialog = Gtk::Dialog.new(title, nil, Gtk::Dialog::MODAL, button1, button2)
 			else
 				dialog = Gtk::Dialog.new(title, nil, Gtk::Dialog::MODAL, button1)
@@ -167,6 +167,18 @@ module Knj
 			objects = {}
 			
 			paras.each do |item|
+				if !item["type"]
+					if item["name"][0..2] == "txt"
+						item["type"] = "text"
+					elsif item["name"][0..2] == "sel"
+						item["type"] = "select"
+					elsif item["name"][0..2] == "che"
+						item["type"] = "check"
+					else
+						raise "Could not figure out type for: " + item["name"]
+					end
+				end
+				
 				if item["type"] == "text" or item["type"] == "password"
 					label = Gtk::Label.new(item["title"])
 					label.xalign = 0
@@ -209,6 +221,8 @@ module Knj
 						"type" => "text",
 						"object" => cb
 					}
+				else
+					raise "Unknown type: " + item["type"]
 				end
 				
 				

@@ -29,7 +29,7 @@ module Knj
 		end
 		
 		def fileExists(filepath)
-			result = self.shellCMD("ls " + Strings.UnixSafe(filepath))
+			result = self.exec("ls " + Strings.UnixSafe(filepath)).strip
 			
 			if result == filepath
 				return true

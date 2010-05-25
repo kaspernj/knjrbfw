@@ -1,8 +1,7 @@
 module Knj
 	module Strings
 		def self.UnixSafe(tha_string)
-			tha_string = tha_string.gsub(" ", "\ ").gsub("&", "\&")
-			return tha_string
+			return tha_string.to_s.gsub(" ", "\ ").gsub("&", "\&")
 		end
 		
 		def self.searchstring(string)
