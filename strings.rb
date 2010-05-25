@@ -4,6 +4,10 @@ module Knj
 			return tha_string.to_s.gsub(" ", "\ ").gsub("&", "\&")
 		end
 		
+		def self.unixsafe(string)
+			return Strings.UnixSafe(string)
+		end
+		
 		def self.searchstring(string)
 			words = []
 			string = string.to_s
