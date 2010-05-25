@@ -39,7 +39,7 @@ module Knj
 					end
 					
 					if docall
-						Php::call_user_func(callback["callback"], paras)
+						Php.call_user_func(callback["callback"], paras)
 					end
 				end
 			end

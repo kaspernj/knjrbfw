@@ -28,7 +28,7 @@ module Knj
 					
 					if (menuitem["connect"])
 						newitem.signal_connect("activate") do
-							Knj::Php::call_user_func(menuitem["connect"])
+							Knj::Php.call_user_func(menuitem["connect"])
 						end
 					else
 						newitem.signal_connect("activate") do

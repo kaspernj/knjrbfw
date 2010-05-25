@@ -152,9 +152,9 @@ module Knj
 				class_str = object.class.to_s
 				
 				if class_str == "Gtk::Label" or class_str == "Gtk::Button"
-					object.label = GetText::gettext(object.label)
+					object.label = GetText.gettext(object.label)
 				elsif class_str == "Gtk::Window"
-					object.title = GetText::gettext(object.title)
+					object.title = GetText.gettext(object.title)
 				end
 			end
 		end
@@ -269,7 +269,7 @@ end
 module Gtk
 	class Builder
 		def translate
-			return Knj::Gtk2::translate(self)
+			return Knj::Gtk2.translate(self)
 		end
 	end
 end

@@ -4,7 +4,7 @@ module Knj
 		def self.is_numeric(n) Float n rescue false end
 		
 		def call_user_func(*paras)
-			Knj::Php::call_user_func(*paras)
+			Knj::Php.call_user_func(*paras)
 		end
 		
 		def self.call_user_func(*paras)
@@ -96,7 +96,7 @@ module Knj
 		end
 		
 		def print_r(argument, ret = false, count = 1)
-			return Php::print_r(argument, ret, count)
+			return Php.print_r(argument, ret, count)
 		end
 		
 		def date(date_format, date_unixt = nil)
@@ -137,7 +137,7 @@ module Knj
 		end
 		
 		def ucwords(string)
-			return Knj::Php::ucwords(string)
+			return Knj::Php.ucwords(string)
 		end
 		
 		def self.ucwords(string)
@@ -196,6 +196,10 @@ module Knj
 		end
 		
 		def nl2br(string)
+			return Php.nl2br(string)
+		end
+		
+		def self.nl2br(string)
 			return string.to_s.gsub("\n", "<br />\n")
 		end
 		
@@ -266,7 +270,7 @@ module Knj
 		end
 		
 		def html_entity_decode(string)
-			string = CGI::unescapeHTML(string.to_s)
+			string = CGI.unescapeHTML(string.to_s)
 			string = string.gsub("&oslash;", "ø").gsub("&aelig;", "æ").gsub("&aring;", "å")
 			
 			return string

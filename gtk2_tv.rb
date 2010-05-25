@@ -65,14 +65,14 @@ end
 
 class Gtk::TreeView
 	def sel
-		return Knj::Gtk2::Tv::sel(self)
+		return Knj::Gtk2::Tv.sel(self)
 	end
 	
 	def append(data)
-		return Knj::Gtk2::Tv::append(self, data)
+		return Knj::Gtk2::Tv.append(self, data)
 	end
 	
 	def init(cols)
-		return Knj::Gtk2::Tv::init(self, cols)
+		return Knj::Gtk2::Tv.init(self, cols)
 	end
 end
