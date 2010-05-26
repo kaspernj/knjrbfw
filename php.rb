@@ -99,7 +99,7 @@ module Knj
 			return Php.print_r(argument, ret, count)
 		end
 		
-		def date(date_format, date_unixt = nil)
+		def self.date(date_format, date_unixt = nil)
 			if date_unixt == nil
 				date_unixt = Time.now.to_i
 			end
@@ -115,6 +115,10 @@ module Knj
 			date_format = date_format.gsub("s", "%02d" % date_object.sec)
 			
 			return date_format
+		end
+		
+		def date(date_format, date_unixt = nil)
+			return Php.date(date_format, date_unixt)
 		end
 		
 		def gtext(string)
@@ -177,8 +181,12 @@ module Knj
 			return string
 		end
 		
-		def md5(string)
+		def self.md5(string)
 			return Digest::MD5.hexdigest(string.to_s)
+		end
+		
+		def md5(string)
+			return Php.md5(string)
 		end
 		
 		def header(headerstr)
