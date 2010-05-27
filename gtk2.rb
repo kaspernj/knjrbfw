@@ -5,7 +5,11 @@ module Knj
 		autoload :StatusWindow, "knj/gtk2_statuswindow"
 		autoload :Tv, "knj/gtk2_tv"
 		
-		def msgbox(paras, type = "warning", title = "Warning")
+		def msgbox(p1, p2 = "warning", p3 = "Warning")
+			return Knj::Gtk2.msgbox(p1, p2, p3)
+		end
+		
+		def self.msgbox(paras, type = "warning", title = "Warning")
 			if paras.is_a?(Array)
 				msg = paras[0]
 				title = paras[2]
