@@ -38,7 +38,7 @@ module Knj
 			end
 			
 			def destroy
-				if @window != nil
+				if @window
 					@window.destroy
 				end
 				
