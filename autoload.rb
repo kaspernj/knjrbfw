@@ -35,6 +35,7 @@ autoload :SQLite3, "sqlite3"
 autoload :Ping, "ping"
 autoload :SOAP, "knj/autoload/soap"
 autoload :TCPSocket, "socket"
+autoload :TCPServer, "socket"
 
 module Net
 	autoload :IMAP, "net/imap"

@@ -1,7 +1,7 @@
 module Knj
 	module Strings
 		def self.UnixSafe(tha_string)
-			return tha_string.to_s.gsub(" ", "\ ").gsub("&", "\&")
+			return tha_string.to_s.gsub(" ", "\\ ").gsub("&", "\&").gsub("(", "\\(").gsub(")", "\\)")
 		end
 		
 		def self.unixsafe(string)
