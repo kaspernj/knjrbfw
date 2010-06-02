@@ -8,10 +8,13 @@ module Knj
 				"smtp_passwd" => nil,
 				"smtp_domain" => ENV["HOSTNAME"]
 			}
-			@paras = paras
 			
 			paras.each do |key, value|
 				@paras[key] = value
+			end
+			
+			if @paras["send"]
+				self.send
 			end
 		end
 		
