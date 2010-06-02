@@ -106,7 +106,7 @@ module Knj
 		def select(tablename, arr_terms = nil, args = nil)
 			sql = "SELECT * FROM "
 			sql += @conn.escape_table
-			sql += tablename
+			sql += tablename.to_s
 			sql += @conn.escape_table
 			
 			if (arr_terms != nil)

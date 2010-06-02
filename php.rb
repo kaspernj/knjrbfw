@@ -213,7 +213,7 @@ module Knj
 			return File.read(filepath)
 		end
 		
-		def strtotime(date_string, cur = nil)
+		def self.strtotime(date_string, cur = nil)
 			if !cur
 				cur = Time.new
 			else
