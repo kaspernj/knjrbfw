@@ -51,5 +51,13 @@ module Knj
 			
 			return false
 		end
+		
+		def self.chdir_file(filepath)
+			if File.symlink?(filepath)
+				Dir.chdir(File.dirname(File.readlink(filepath)))
+			else
+				Dir.chdir(File.dirname(filepath))
+			end
+		end
 	end
 end

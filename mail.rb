@@ -54,6 +54,7 @@ module Knj
 			mail = TMail::Mail.new
 			mail.to = @paras["to"]
 			mail.subject = @paras["subject"]
+			mail.date = Time.new
 			
 			if (@paras["from"])
 				mail.from = @paras["from"]

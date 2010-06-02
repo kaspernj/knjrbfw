@@ -2,47 +2,44 @@ module Knj
 	class SSHRobot
 		def initialize(args)
 			@args = args
+			
+			if !@args.has_key?("port")
+				@args["port"] = 22
+			end
 		end
 		
-		def getSession
-			require "net/ssh"
-			
-			if (!@session)
-				if (@args["port"])
-					@session = Net::SSH.start(@args["host"], @args["port"].to_i, @args["user"], @args["passwd"])
-				else
-					@session = Net::SSH.start(@args["host"], @args["user"], @args["passwd"])
-				end
+		def session
+			if !@session
+				@session = Net::SSH.start(@args["host"], @args["user"], :password => @args["passwd"], :port => @args["port"].to_i)
 			end
 			
 			return @session
 		end
 		
-		def getShell
-			return getSession.shell.sync
+		def shell
+			return self.session.shell.sync
 		end
 		
 		def getSFTP
-			require "net/sftp"
-			@sftp = Net::SFTP.start(@args["host"], @args["user"], @args["passwd"])
+			@sftp = Net::SFTP.start(@args["host"], @args["user"], @args["passwd"], :port => @args["port"].to_i)
 		end
 		
 		def shellCMD(command)
-			shell = self.getShell
-			result = shell.exec(command)
-			cmdres = result["stdout"].slice(0..-2)
-			return cmdres
+			return self.session.exec!(command)
 		end
 		
 		def fileExists(filepath)
-			require "knjrbfw/libstrings.rb"
-			result = self.shellCMD("ls " + Strings.UnixSafe(filepath))
+			result = self.exec("ls " + Strings.UnixSafe(filepath)).strip
 			
-			if (result == filepath)
+			if result == filepath
 				return true
 			else
 				return false
 			end
 		end
+		
+		alias getSession session
+		alias getShell shell
+		alias exec shellCMD
 	end
 end
