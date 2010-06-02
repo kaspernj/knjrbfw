@@ -16,6 +16,8 @@ module Knj
 	autoload :Os, $knjpath + "os"
 	autoload :Gtk2, $knjpath + "gtk2"
 	autoload :Php, $knjpath + "php"
+	autoload :Sysuser, $knjpath + "sysuser"
+	autoload :Errors, $knjpath + "errors"
 end
 
 #ruby objects.
@@ -26,14 +28,22 @@ autoload :Erubis, "erubis"
 autoload :FileUtils, "fileutils"
 autoload :GetText, "gettext"
 autoload :Gtk, "gtk2"
+autoload :GladeXML, "libglade2"
 autoload :Mysql, "mysql"
 autoload :ParseDate, "parsedate"
 autoload :SQLite3, "sqlite3"
+autoload :Ping, "ping"
+autoload :SOAP, "knj/autoload/soap"
+autoload :TCPSocket, "socket"
+autoload :TCPServer, "socket"
 
 module Net
 	autoload :IMAP, "net/imap"
 	autoload :SMTP, "net/smtp"
 	autoload :HTTP, "net/http"
+	autoload :POP3, "net/pop"
+	autoload :POP, "net/pop"
+	autoload :SSH, "net/ssh"
 end
 
 module TMail
