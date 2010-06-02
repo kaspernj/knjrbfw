@@ -18,7 +18,7 @@ module Knj
 			if Php.is_numeric(time)
 				time = Time.at(time.to_i)
 			elsif time.is_a?(String)
-				time = Time.at(strtotime(time))
+				time = Time.at(Php.strtotime(time))
 			end
 			
 			str = ""

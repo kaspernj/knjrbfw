@@ -249,19 +249,25 @@ module Knj
 				mathval = match[1]
 				
 				if timestr == "years" or timestr == "year"
-					cur += ((number.to_i * 3600) * 24) * 365
+					add = ((number.to_i * 3600) * 24) * 365
 				elsif timestr == "months" or timestr == "month"
-					cur += ((number.to_i * 3600) * 24) * 30
+					add = ((number.to_i * 3600) * 24) * 30
 				elsif timestr == "weeks" or timestr == "week"
-					cur += (number.to_i * 3600) * 24 * 7
+					add = (number.to_i * 3600) * 24 * 7
 				elsif timestr == "days" or timestr == "day"
-					cur += (number.to_i * 3600) * 24
+					add = (number.to_i * 3600) * 24
 				elsif timestr == "hours" or timestr == "hour"
-					cur += number.to_i * 3600
+					add = number.to_i * 3600
 				elsif timestr == "minutes" or timestr == "minute" or timestr == "min" or timestr == "mints"
-					cur += number.to_i * 60
+					add = number.to_i * 60
 				elsif timestr == "seconds" or timestr == "second" or timestr == "sec" or timestr == "secs"
-					cur += number.to_i
+					add = number.to_i
+				end
+				
+				if mathval == "+"
+					cur += add
+				elsif mathval == "-"
+					cur -= add
 				end
 			end
 			
