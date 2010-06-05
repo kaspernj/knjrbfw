@@ -5,6 +5,7 @@ module Knj
 		
 		def cgi; return @cgi; end
 		def session; return @session; end
+		def data; return @data; end
 		
 		def initialize(paras = {})
 			@paras = paras
