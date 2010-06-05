@@ -5,6 +5,7 @@ module Knj
 		
 		def cgi; return @cgi; end
 		def session; return @session; end
+		def data; return @data; end
 		
 		def initialize(paras = {})
 			@paras = paras
@@ -99,12 +100,15 @@ module Knj
 			
 			@get = {}
 			if @cgi.query_string
-				urldecode(@cgi.query_string).split("&").each do |value|
+				urldecode(@cgi.query_string.to_s).split("&").each do |value|
 					pos = value.index("=")
-					name = value[0..pos-1]
-					valuestr = value.slice(pos+1..-1)
 					
-					Web.parse_name(@get, name, valuestr)
+					if pos != nil
+						name = value[0..pos-1]
+						valuestr = value.slice(pos+1..-1)
+						
+						Web.parse_name(@get, name, valuestr)
+					end
 				end
 			end
 			
