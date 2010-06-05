@@ -247,6 +247,7 @@ module Knj
 				timestr = match[3]
 				number = match[2].to_i
 				mathval = match[1]
+				add = nil
 				
 				if timestr == "years" or timestr == "year"
 					add = ((number.to_i * 3600) * 24) * 365
