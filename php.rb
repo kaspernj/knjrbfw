@@ -188,6 +188,10 @@ module Knj
 			end
 		end
 		
+		def header(str)
+			return Knj::Php.header(str)
+		end
+		
 		def self.nl2br(string)
 			return string.to_s.gsub("\n", "<br />\n")
 		end
