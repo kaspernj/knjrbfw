@@ -1,5 +1,8 @@
 module Knj
 	class Web
+		include Knj::Php
+		include Knj
+		
 		def cgi; return @cgi; end
 		def session; return @session; end
 		def data; return @data; end
@@ -61,7 +64,7 @@ module Knj
 							isstring = false
 							do_files = true
 							cont = pair[1][0].string
-							Knj::Php.file_put_contents(tmpname, cont.to_s)
+							file_put_contents(tmpname, cont.to_s)
 							
 							if cont.length > 0
 								stringparse = {
@@ -97,7 +100,7 @@ module Knj
 			
 			@get = {}
 			if @cgi.query_string
-				Knj::Php.urldecode(@cgi.query_string.to_s).split("&").each do |value|
+				urldecode(@cgi.query_string.to_s).split("&").each do |value|
 					pos = value.index("=")
 					
 					if pos != nil
@@ -136,7 +139,7 @@ module Knj
 				
 				@data = @db.single("sessions", "id" => @db.last_id)
 				session_id = @paras["id"] + "_" + @data["id"]
-				Php.setcookie(@paras["id"], @data["id"])
+				setcookie(@paras["id"], @data["id"])
 			end
 			
 			require "cgi/session"
@@ -348,7 +351,7 @@ module Knj
 					
 					path = paras["path"].gsub("%value%", value).untaint
 					if File.exists?(path)
-						html += "<img src=\"image.php?picture=#{urlencode(path).html}&smartsize=100&edgesize=25\" alt=\"Image\" />"
+						html += "<img src=\"image.php?picture=#{Php.urlencode(path).html}&smartsize=100&edgesize=25\" alt=\"Image\" />"
 						
 						if paras["dellink"]
 							dellink = paras["dellink"].gsub("%value%", value)
