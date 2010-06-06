@@ -130,7 +130,7 @@ module Knj
 				obs = self.list(classname)
 			end
 			
-			if class_exists("Dictionary")
+			if Php.class_exists("Dictionary")
 				list = Dictionary.new
 			else
 				list = Hash.new
