@@ -1,6 +1,5 @@
 module Knj
 	module Php
-		def is_numeric(n) Float n rescue false end
 		def self.is_numeric(n) Float n rescue false end
 		
 		def self.call_user_func(*paras)
@@ -206,18 +205,17 @@ module Knj
 		end
 		
 		def self.file_put_contents(filepath, content)
-			filepath.untaint
-			File.open(filepath, "w") do |file|
+			File.open(filepath.untaint, "w") do |file|
 				file.write content
 			end
 		end
 		
 		def self.file_get_contents(filepath)
-			return File.read(filepath)
+			return File.read(filepath.untaint)
 		end
 		
 		def self.file_exists(filepath)
-			if File.exists(filepath.untaint)
+			if File.exists?(filepath.to_s.untaint)
 				return true
 			end
 			
@@ -383,5 +381,12 @@ module Knj
 		def self.explode(expl, strexp)
 			return strexp.to_s.split(expl)
 		end
+		
+		Knj::Php.singleton_methods.each do |methodname|
+			define_method methodname.to_sym do |*paras|
+				return Knj::Php.send(methodname, *paras)
+			end
+		end
 	end
 end
+

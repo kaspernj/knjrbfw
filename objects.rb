@@ -170,10 +170,16 @@ module Knj
 			if !@objects.has_key?(object.class.to_s)
 				raise "Could not find object class in cache."
 			elsif !@objects[object.class.to_s][object[@paras["col_id"]].to_i]
+				print "Class: " + object.class.to_s + "\n"
+				print "ID: " + object.id + "\n"
+				
+				Php.print_r(@objects[object.class.to_s])
+				
+				exit
 				raise "Could not find object ID in cache."
+			else
+				@objects[object.class.to_s].delete(object)
 			end
-			
-			@objects[object.class.to_s].delete(object)
 		end
 		
 		def delete(object)
