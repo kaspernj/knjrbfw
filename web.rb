@@ -1,8 +1,5 @@
 module Knj
 	class Web
-		include Knj::Php
-		include Knj
-		
 		def cgi; return @cgi; end
 		def session; return @session; end
 		def data; return @data; end
@@ -64,7 +61,7 @@ module Knj
 							isstring = false
 							do_files = true
 							cont = pair[1][0].string
-							file_put_contents(tmpname, cont.to_s)
+							Knj::Php.file_put_contents(tmpname, cont.to_s)
 							
 							if cont.length > 0
 								stringparse = {
@@ -100,7 +97,7 @@ module Knj
 			
 			@get = {}
 			if @cgi.query_string
-				urldecode(@cgi.query_string.to_s).split("&").each do |value|
+				Knj::Php.urldecode(@cgi.query_string.to_s).split("&").each do |value|
 					pos = value.index("=")
 					
 					if pos != nil
@@ -139,7 +136,7 @@ module Knj
 				
 				@data = @db.single("sessions", "id" => @db.last_id)
 				session_id = @paras["id"] + "_" + @data["id"]
-				setcookie(@paras["id"], @data["id"])
+				Php.setcookie(@paras["id"], @data["id"])
 			end
 			
 			require "cgi/session"
