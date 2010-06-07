@@ -277,7 +277,7 @@ module Knj
 			end
 			
 			if value and paras.has_key?("value_func") and paras["value_func"]
-				value = call_user_func(paras["value_func"], value)
+				value = Php.call_user_func(paras["value_func"], value)
 			end
 			
 			if !paras["id"]
