@@ -49,7 +49,7 @@ module Knj
 				end
 				
 				sql += @conn.escape_col
-				sql += pair[0]
+				sql += pair[0].to_s
 				sql += @conn.escape_col
 			end
 			

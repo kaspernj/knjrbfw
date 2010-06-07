@@ -30,5 +30,17 @@ module Knj
 			
 			return words
 		end
+		
+		def self.is_email?(str)
+			if str.match(/^\S+@\S+.\S+$/)
+				return true
+			end
+			
+			return false
+		end
+		
+		def self.js_safe(str)
+			return Php.htmlspecialchars(str.gsub("\r", "").gsub("\n", "\\n"));
+		end
 	end
 end

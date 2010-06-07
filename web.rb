@@ -286,6 +286,8 @@ module Knj
 			
 			if !paras["type"] and paras["opts"]
 				paras["type"] = "select"
+			elsif paras["name"][0..2] == "che"
+				paras["type"] = "checkbox"
 			elsif !paras["type"]
 				paras["type"] = "text"
 			end
@@ -365,6 +367,10 @@ module Knj
 				end
 				
 				html += "</tr>"
+			end
+			
+			if paras["descr"]
+				html += "<tr><td colspan=\"2\" class=\"tdd\">" + paras["descr"] + "</td></tr>"
 			end
 			
 			return html
