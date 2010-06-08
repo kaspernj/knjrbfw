@@ -5,6 +5,7 @@ module Knj
 		
 		def cgi; return @cgi; end
 		def session; return @session; end
+		def data; return @data; end
 		
 		def initialize(paras = {})
 			@paras = paras
@@ -99,12 +100,15 @@ module Knj
 			
 			@get = {}
 			if @cgi.query_string
-				urldecode(@cgi.query_string).split("&").each do |value|
+				urldecode(@cgi.query_string.to_s).split("&").each do |value|
 					pos = value.index("=")
-					name = value[0..pos-1]
-					valuestr = value.slice(pos+1..-1)
 					
-					Web.parse_name(@get, name, valuestr)
+					if pos != nil
+						name = value[0..pos-1]
+						valuestr = value.slice(pos+1..-1)
+						
+						Web.parse_name(@get, name, valuestr)
+					end
 				end
 			end
 			
@@ -273,7 +277,7 @@ module Knj
 			end
 			
 			if value and paras.has_key?("value_func") and paras["value_func"]
-				value = call_user_func(paras["value_func"], value)
+				value = Php.call_user_func(paras["value_func"], value)
 			end
 			
 			if !paras["id"]
@@ -282,6 +286,8 @@ module Knj
 			
 			if !paras["type"] and paras["opts"]
 				paras["type"] = "select"
+			elsif paras["name"][0..2] == "che"
+				paras["type"] = "checkbox"
 			elsif !paras["type"]
 				paras["type"] = "text"
 			end
@@ -347,7 +353,7 @@ module Knj
 					
 					path = paras["path"].gsub("%value%", value).untaint
 					if File.exists?(path)
-						html += "<img src=\"image.php?picture=#{urlencode(path).html}&smartsize=100&edgesize=25\" alt=\"Image\" />"
+						html += "<img src=\"image.php?picture=#{Php.urlencode(path).html}&smartsize=100&edgesize=25\" alt=\"Image\" />"
 						
 						if paras["dellink"]
 							dellink = paras["dellink"].gsub("%value%", value)
@@ -361,6 +367,10 @@ module Knj
 				end
 				
 				html += "</tr>"
+			end
+			
+			if paras["descr"]
+				html += "<tr><td colspan=\"2\" class=\"tdd\">" + paras["descr"] + "</td></tr>"
 			end
 			
 			return html

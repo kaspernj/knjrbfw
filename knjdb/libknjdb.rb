@@ -49,7 +49,7 @@ module Knj
 				end
 				
 				sql += @conn.escape_col
-				sql += pair[0]
+				sql += pair[0].to_s
 				sql += @conn.escape_col
 			end
 			
@@ -108,7 +108,7 @@ module Knj
 		def select(tablename, arr_terms = nil, args = nil)
 			sql = "SELECT * FROM "
 			sql += @conn.escape_table
-			sql += tablename
+			sql += tablename.to_s
 			sql += @conn.escape_table
 			
 			if (arr_terms != nil)

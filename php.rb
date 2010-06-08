@@ -1,11 +1,6 @@
 module Knj
 	module Php
-		def is_numeric(n) Float n rescue false end
 		def self.is_numeric(n) Float n rescue false end
-		
-		def call_user_func(*paras)
-			Knj::Php.call_user_func(*paras)
-		end
 		
 		def self.call_user_func(*paras)
 			if paras[0].is_a?(String)
@@ -95,10 +90,6 @@ module Knj
 			end
 		end
 		
-		def print_r(argument, ret = false, count = 1)
-			return Php.print_r(argument, ret, count)
-		end
-		
 		def self.date(date_format, date_unixt = nil)
 			if date_unixt == nil
 				date_unixt = Time.now.to_i
@@ -117,17 +108,15 @@ module Knj
 			return date_format
 		end
 		
-		def date(date_format, date_unixt = nil)
-			return Php.date(date_format, date_unixt)
-		end
-		
-		def gtext(string)
+		def self.gtext(string)
 			return GetText._(string)
 		end
 		
-		alias gettext gtext
+		def self.gettext(string)
+			return GetText._(string)
+		end
 		
-		def number_format(number, precision = 2, seperator = ".", delimiter = ",")
+		def self.number_format(number, precision = 2, seperator = ".", delimiter = ",")
 			if number.is_a?(Float)
 				number = number.to_f
 			end
@@ -140,7 +129,7 @@ module Knj
 			return number
 		end
 		
-		def ucwords(string)
+		def self.ucwords(string)
 			return Knj::Php.ucwords(string)
 		end
 		
@@ -148,11 +137,11 @@ module Knj
 			return string.to_s.split(" ").select {|w| w.capitalize! || w }.join(" ")
 		end
 		
-		def htmlspecialchars(string)
+		def self.htmlspecialchars(string)
 			return CGI.escapeHTML(string)
 		end
 		
-		def isset(var)
+		def self.isset(var)
 			if var == nil or var == false
 				return false
 			end
@@ -160,7 +149,7 @@ module Knj
 			return true
 		end
 		
-		def strpos(haystack, needle)
+		def self.strpos(haystack, needle)
 			if !haystack
 				return false
 			end
@@ -172,7 +161,7 @@ module Knj
 			return haystack.index(needle)
 		end
 		
-		def substr(string, from, to = -1)
+		def self.substr(string, from, to = -1)
 			string = string.to_s.slice(from.to_i, to.to_i)
 			
 			ic = Iconv.new("UTF-8//IGNORE", "UTF-8")
@@ -185,11 +174,7 @@ module Knj
 			return Digest::MD5.hexdigest(string.to_s)
 		end
 		
-		def md5(string)
-			return Php.md5(string)
-		end
-		
-		def header(headerstr)
+		def self.header(headerstr)
 			match = headerstr.to_s.match(/(.*): (.*)/)
 			
 			if !match
@@ -203,34 +188,41 @@ module Knj
 			end
 		end
 		
-		def nl2br(string)
-			return Php.nl2br(string)
+		def header(str)
+			return Knj::Php.header(str)
 		end
 		
 		def self.nl2br(string)
 			return string.to_s.gsub("\n", "<br />\n")
 		end
 		
-		def urldecode(string)
+		def self.urldecode(string)
 			return CGI.unescape(string)
 		end
 		
-		def urlencode(string)
+		def self.urlencode(string)
 			return CGI.escape(string.to_s)
 		end
 		
-		def file_put_contents(filepath, content)
-			filepath.untaint
-			File.open(filepath, "w") do |file|
+		def self.file_put_contents(filepath, content)
+			File.open(filepath.untaint, "w") do |file|
 				file.write content
 			end
 		end
 		
-		def file_get_contents(filepath)
-			return File.read(filepath)
+		def self.file_get_contents(filepath)
+			return File.read(filepath.untaint)
 		end
 		
-		def strtotime(date_string, cur = nil)
+		def self.file_exists(filepath)
+			if File.exists?(filepath.to_s.untaint)
+				return true
+			end
+			
+			return false
+		end
+		
+		def self.strtotime(date_string, cur = nil)
 			if !cur
 				cur = Time.new
 			else
@@ -247,28 +239,35 @@ module Knj
 				timestr = match[3]
 				number = match[2].to_i
 				mathval = match[1]
+				add = nil
 				
 				if timestr == "years" or timestr == "year"
-					cur += ((number.to_i * 3600) * 24) * 365
+					add = ((number.to_i * 3600) * 24) * 365
 				elsif timestr == "months" or timestr == "month"
-					cur += ((number.to_i * 3600) * 24) * 30
+					add = ((number.to_i * 3600) * 24) * 30
 				elsif timestr == "weeks" or timestr == "week"
-					cur += (number.to_i * 3600) * 24 * 7
+					add = (number.to_i * 3600) * 24 * 7
 				elsif timestr == "days" or timestr == "day"
-					cur += (number.to_i * 3600) * 24
+					add = (number.to_i * 3600) * 24
 				elsif timestr == "hours" or timestr == "hour"
-					cur += number.to_i * 3600
+					add = number.to_i * 3600
 				elsif timestr == "minutes" or timestr == "minute" or timestr == "min" or timestr == "mints"
-					cur += number.to_i * 60
+					add = number.to_i * 60
 				elsif timestr == "seconds" or timestr == "second" or timestr == "sec" or timestr == "secs"
-					cur += number.to_i
+					add = number.to_i
+				end
+				
+				if mathval == "+"
+					cur += add
+				elsif mathval == "-"
+					cur -= add
 				end
 			end
 			
 			return cur.to_i
 		end
 		
-		def class_exists(classname)
+		def self.class_exists(classname)
 			begin
 				Kernel.const_get(classname)
 				return true
@@ -277,14 +276,14 @@ module Knj
 			end
 		end
 		
-		def html_entity_decode(string)
+		def self.html_entity_decode(string)
 			string = CGI.unescapeHTML(string.to_s)
 			string = string.gsub("&oslash;", "ø").gsub("&aelig;", "æ").gsub("&aring;", "å")
 			
 			return string
 		end
 		
-		def strip_tags(htmlstr)
+		def self.strip_tags(htmlstr)
 			htmlstr.scan(/(<([\/A-z]+).*?>)/) do |match|
 				htmlstr = htmlstr.gsub(match[0], "")
 			end
@@ -292,12 +291,12 @@ module Knj
 			return htmlstr
 		end
 		
-		def die(msg)
+		def self.die(msg)
 			print msg
 			exit
 		end
 		
-		def fopen(filename, mode)
+		def self.fopen(filename, mode)
 			begin
 				return File.open(filename, mode)
 			rescue Exception
@@ -305,7 +304,7 @@ module Knj
 			end
 		end
 		
-		def fwrite(fp, str)
+		def self.fwrite(fp, str)
 			begin
 				fp.print str
 			rescue Exception
@@ -315,22 +314,33 @@ module Knj
 			return true
 		end
 		
-		def fread(fp, length = 4096)
+		def self.fputs(fp, str)
+			begin
+				fp.print str
+			rescue Exception
+				return false
+			end
+			
+			return true
+		end
+		
+		def self.fread(fp, length = 4096)
 			return fp.read(length)
 		end
 		
-		alias fgets fread
-		alias fputs fwrite
+		def self.fgets(fp, length = 4096)
+			return fp.read(length)
+		end
 		
-		def fclose(fp)
+		def self.fclose(fp)
 			fp.close
 		end
 		
-		def move_uploaded_file(tmp_path, new_path)
+		def self.move_uploaded_file(tmp_path, new_path)
 			FileUtils.mv(tmp_path.untaint, new_path.untaint)
 		end
 		
-		def utf8_encode(str)
+		def self.utf8_encode(str)
 			begin
 				return Iconv.conv("iso-8859-1", "utf-8", str.to_s)
 			rescue
@@ -338,7 +348,7 @@ module Knj
 			end
 		end
 		
-		def utf8_decode(str)
+		def self.utf8_decode(str)
 			begin
 				return Iconv.conv("utf-8", "iso-8859-1", str.to_s)
 			rescue
@@ -346,7 +356,7 @@ module Knj
 			end
 		end
 		
-		def setcookie(cname, cvalue, expire = nil, domain = nil)
+		def self.setcookie(cname, cvalue, expire = nil, domain = nil)
 			paras = {
 				"name" => cname,
 				"value" => cvalue
@@ -368,8 +378,15 @@ module Knj
 			end
 		end
 		
-		def explode(expl, strexp)
+		def self.explode(expl, strexp)
 			return strexp.to_s.split(expl)
+		end
+		
+		Knj::Php.singleton_methods.each do |methodname|
+			define_method methodname.to_sym do |*paras|
+				return Knj::Php.send(methodname, *paras)
+			end
 		end
 	end
 end
+
