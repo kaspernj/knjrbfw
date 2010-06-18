@@ -18,6 +18,7 @@ module Knj
 	autoload :Php, $knjpath + "php"
 	autoload :Sysuser, $knjpath + "sysuser"
 	autoload :Errors, $knjpath + "errors"
+	autoload :Notify, $knjpath + "notify"
 end
 
 #ruby objects.
