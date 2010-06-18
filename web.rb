@@ -441,8 +441,10 @@ module Knj
 				return "gecko"
 			elsif agent.index("msie") != nil
 				return "msie"
+			elsif agent.index("w3c") != nil
+				return "bot"
 			else
-				print agent
+				print "Unknown agent: " + agent
 			end
 		end
 	end
