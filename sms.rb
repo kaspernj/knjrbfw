@@ -17,6 +17,7 @@ module Knj
 		def send_sms(number, msg)
 			if @type == "bibob"
 				if !@soap
+					require "webrick/https"
 					@soap = SOAP::WSDLDriverFactory.new("https://www.bibob.dk/SmsSender.asmx?WSDL").create_rpc_driver
 				end
 				

@@ -155,9 +155,9 @@ module Knj
 			builderob.objects.each do |object|
 				class_str = object.class.to_s
 				
-				if class_str == "Gtk::Label" or class_str == "Gtk::Button"
+				if object.is_a?(Gtk::Label) or object.is_a?(Gtk::Button)
 					object.label = GetText.gettext(object.label)
-				elsif class_str == "Gtk::Window"
+				elsif object.is_a?(Gtk::Window)
 					object.title = GetText.gettext(object.title)
 				end
 			end

@@ -15,7 +15,7 @@ module Knj
 				end
 				
 				if items.is_a?(Array)
-					items = Knj::ArrayExt.hash(items)
+					items = Knj::ArrayExt.dict(items)
 				end
 				
 				items.each do |signal, menuitem|

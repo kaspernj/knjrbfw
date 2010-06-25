@@ -25,5 +25,14 @@ module Knj
 			
 			return ret
 		end
+		
+		def self.dict(arr)
+			ret = Dictionary.new
+			arr.each do |item|
+				ret[ret.length.to_s] = item
+			end
+			
+			return ret
+		end
 	end
 end
