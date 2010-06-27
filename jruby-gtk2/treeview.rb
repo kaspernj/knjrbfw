@@ -1,3 +1,5 @@
+Gtk.events << ["TreeView", "row_activated", org.gnome.gtk.TreeView::RowActivated, :onRowActivated, nil]
+
 module Gtk
 	class TreeView
 		def set_model(newmodel)
@@ -17,23 +19,44 @@ module Gtk
 		def model
 			return @knj_model
 		end
+		
+		def columns
+			return TreeViewColumns.new(self)
+		end
+	end
+	
+	class TreeViewColumns < Array
+		def initialize(treeview)
+			@treeview = treeview
+			@treeview.ob.columns.each do |column|
+				Gtk.takeob = column
+				self << Gtk::TreeViewColumn.new(nil, nil)
+			end
+		end
 	end
 	
 	class TreeViewColumn
 		def initialize(title, renderer, last_args = {})
-			if $knj_jruby_gtk_takeob
-				@ob = $knj_jruby_gtk_takeob
-				$knj_jruby_gtk_takeob = nil
-			else
-				@ob = $knj_jruby_gtk_last_treeview.ob.append_column
-				@ob.title = title
-			end
+			@treeview = $knj_jruby_gtk_last_treeview
 			
-			$knj_jruby_gtk_last_treeview_column = self
-			renderer.init(self)
-			colstring = $knj_jruby_gtk_last_liststore.dcol[$knj_jruby_gtk_last_treeview.columns.length - 1]
-			renderer.text = colstring
+			if Gtk.takeob
+				@ob = Gtk.takeob
+				Gtk.takeob = nil
+			else
+				@ob = @treeview.ob.append_column
+				@ob.title = title
+				$knj_jruby_gtk_last_treeview_column = self
+				renderer.init(self)
+				colstring = @treeview.model.dcol[@treeview.columns.length - 1]
+				renderer.text = colstring
+			end
 		end
+		
+		def set_visible(newval)
+			@treeview.remove_column(@ob)
+		end
+		
+		alias visible= set_visible
 	end
 	
 	class TreeIter

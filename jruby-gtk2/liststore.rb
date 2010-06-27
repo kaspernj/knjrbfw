@@ -5,14 +5,14 @@ module Gtk
 		def tv; return @knj_tv; end
 		
 		def initialize(*args)
-			if $knj_jruby_gtk_takeob
-				@ob = $knj_jruby_gtk_takeob
-				$knj_jruby_gtk_takeob = nil
+			if Gtk.takeob
+				@ob = Gtk.takeob
+				Gtk.takeob = nil
 			else
 				splitted = self.class.to_s.split("::")
 				classname =  splitted[splitted.length - 1]
 				
-				class_spawn = eval("org.gnome.gtk." + classname)
+				class_spawn = Gtk.evalob("org.gnome.gtk." + classname)
 				if !class_spawn
 					raise "Could not find class: " + classname
 				end
@@ -34,7 +34,7 @@ module Gtk
 		end
 		
 		def append
-			$knj_jruby_gtk_takeob = @ob.appendRow
+			Gtk.takeob = @ob.appendRow
 			iter = Gtk::TreeIter.new
 			iter.model = self
 			
@@ -48,7 +48,7 @@ module Gtk
 		def get_iter(selection)
 			iter = @ob.get_iter(selection)
 			
-			$knj_jruby_gtk_takeob = iter
+			Gtk.takeob = iter
 			retob = Gtk::TreeIter.new
 			retob.model = self
 			

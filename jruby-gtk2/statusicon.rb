@@ -1,3 +1,6 @@
+Gtk.events << ["StatusIcon", "activate", org.gnome.gtk.StatusIcon::Activate, :onActivate, nil]
+Gtk.events << ["StatusIcon", "popup-menu", org.gnome.gtk.StatusIcon::PopupMenu, :onPopupMenu, nil]
+
 module Gtk
 	class StatusIcon
 		def pixbuf=(newpixbuf)
@@ -5,6 +8,3 @@ module Gtk
 		end
 	end
 end
-
-Gtk.events << ["StatusIcon", "activate", org.gnome.gtk.StatusIcon::Activate, :onActivate, nil]
-Gtk.events << ["StatusIcon", "popup-menu", org.gnome.gtk.StatusIcon::PopupMenu, :onPopupMenu, nil]

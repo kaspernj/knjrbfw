@@ -4,7 +4,7 @@ require "/usr/share/java/gtk.jar"
 org.gnome.gtk.Gtk.init(nil)
 
 @all = {
-	"Gtk" => ["Window", "HBox", "VBox", "Label", "Button", "ListStore", "TreeView", "TreeViewColumn", "CellRendererText", "DataColumnString", "TreeIter", "StatusIcon"],
+	"Gtk" => ["Window", "HBox", "VBox", "Label", "Button", "ListStore", "TreeView", "TreeViewColumn", "CellRendererText", "DataColumnString", "TreeIter", "StatusIcon", "Entry", "ProgressBar"],
 	"Gdk" => ["Pixbuf"]
 }
 @containers = {
@@ -16,10 +16,22 @@ org.gnome.gtk.Gtk.init(nil)
 
 module Gtk
 	@events = [
-		["Window", "destroy", org.gnome.gtk.Window::DeleteEvent, :onDeleteEvent, false],
 		["Button", "clicked", org.gnome.gtk.Button::Clicked, :onClicked, nil]
 	]
+	
 	def self.events; return @events; end
+	def self.takeob=(takeob); @takeob = takeob; end
+	def self.takeob; return @takeob; end
+	
+	#Cache eval'ed objects to get it done faster.
+	@evalobs = {}
+	def self.evalob(evalobstr)
+		if !@evalobs.has_key?(evalobstr)
+			@evalobs[evalobstr] = eval(evalobstr)
+		end
+		
+		return @evalobs[evalobstr]
+	end
 end
 
 module Gdk; end
@@ -31,24 +43,23 @@ module Gdk; end
 				def ob=(ob); @ob = ob; end
 				
 				def initialize(spawn_object = true)
-					if $knj_jruby_gtk_takeob
-						@ob = $knj_jruby_gtk_takeob
-						$knj_jruby_gtk_takeob = nil
+					if Gtk.takeob
+						@ob = Gtk.takeob
+						Gtk.takeob = nil
 					else
 						splitted = self.class.to_s.split("::")
-						classname =  splitted[splitted.length - 1]
-						javaname = "org.gnome." + splitted[0].downcase + "." + classname
-						@ob = eval(javaname).new
+						javaname = "org.gnome." + splitted.first.downcase + "." + splitted.last
+						@ob = Gtk.evalob(javaname).new
 					end
 				end
 				
-				def connect(event, &block)
+				def signal_connect(event, &block)
 					if !block_given?
 						raise "No block was given."
 					end
 					
 					splitted = self.class.to_s.split("::")
-					constant = splitted[splitted.length - 1]
+					constant = splitted.last
 					defreturn = nil
 					class_inc = nil
 					funcname = nil
@@ -105,6 +116,8 @@ module Gdk; end
 					if @ob.respond_to?(paras[0])
 						return @ob.send(paras[0], *newparas)
 					end
+					
+					raise "No such method on #{self.class.name}:  #{paras[0]}"
 				end
 			end
 		)
@@ -115,13 +128,12 @@ end
 	classes.each do |classname|
 		Kernel.const_get(parentclass).const_get(classname).class_eval do
 			def initialize(newtitle = nil)
-				if $knj_jruby_gtk_takeob
-					@ob = $knj_jruby_gtk_takeob
-					$knj_jruby_gtk_takeob = nil
+				if Gtk.takeob
+					@ob = Gtk.takeob
+					Gtk.takeob = nil
 				else
 					splitted = self.class.to_s.split("::")
-					classname =  splitted[splitted.length - 1]
-					@ob = eval("org.gnome.gtk." + classname).new
+					@ob = Gtk.evalob("org.gnome.gtk." + splitted.last).new
 				end
 				
 				if newtitle
@@ -144,6 +156,10 @@ end
 			def add(widget)
 				return @ob.add(widget.ob)
 			end
+			
+			def pack_start(widget, arg1, arg2)
+				return @ob.pack_start(widget.ob, arg1, arg2, 0)
+			end
 		end
 	end
 end
@@ -151,14 +167,27 @@ end
 module Gtk
 	class CellRendererText
 		def initialize
-			if $knj_jruby_gtk_takeob
-				@ob = $knj_jruby_gtk_takeob
-				$knj_jruby_gtk_takeob = nil
+			if Gtk.takeob
+				@ob = Gtk.takeob
+				Gtk.takeob = nil
 			end
 		end
 		
 		def init(tcol)
 			@ob = org.gnome.gtk.CellRendererText.new(tcol.ob)
+		end
+	end
+	
+	class VBox
+		def initialize
+			if Gtk.takeob
+				@ob = Gtk.takeob
+				Gtk.takeob = nil
+			else
+				splitted = self.class.to_s.split("::")
+				javaname = "org.gnome." + splitted.first.downcase + "." + splitted.last
+				@ob = Gtk.evalob(javaname).new(false, 0)
+			end
 		end
 	end
 	
@@ -182,14 +211,21 @@ end
 module GLib
 	class Timeout
 		def self.add(time, &block)
-			require "timeout"
-			Timeout.timeout(time) do
-				block.call
+			Thread.new(time, block) do |time, block|
+				begin
+					sleep(time / 1000)
+					print "hmm\n"
+					block.call
+				rescue Exception => e
+					puts e.inspect
+					puts e.backtrace
+				end
 			end
 		end
 	end
 end
 
-require File.dirname(__FILE__) + "/treeview"
-require File.dirname(__FILE__) + "/liststore"
-require File.dirname(__FILE__) + "/statusicon"
+files = ["treeview", "liststore", "statusicon", "progressbar", "window"]
+files.each do |file|
+	require File.dirname(__FILE__) + "/" + file
+end

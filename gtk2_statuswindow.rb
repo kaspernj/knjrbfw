@@ -12,7 +12,7 @@ module Knj
 					destroy
 				end
 				
-				if (opts["transient_for"])
+				if opts["transient_for"]
 					@window.transient_for = @opts["transient_for"]
 				end
 				

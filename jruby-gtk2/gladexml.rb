@@ -29,7 +29,7 @@ class GladeXML
 					method = @block.call(func_name)
 					
 					object = self.get_widget(tha_id)
-					object.connect(name) do |*paras|
+					object.signal_connect(name) do |*paras|
 						#Convert arguments to fit the arity-count of the Proc-object (the block, the method or whatever you want to call it).
 						newparas = []
 						0.upto(method.arity - 1) do |number|
@@ -73,11 +73,9 @@ class GladeXML
 		
 		widget = @glade.get_widget(wname)
 		
-		#This is a really ugly hack.
-		$knj_jruby_gtk_takeob = widget
-		
+		Gtk.takeob = widget
 		splitted = widget.class.to_s.split("::")
-		conv_widget = Gtk.const_get(splitted[splitted.length - 1]).new
+		conv_widget = Gtk.const_get(splitted.last).new
 		
 		@obs[wname] = conv_widget
 		
