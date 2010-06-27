@@ -14,7 +14,13 @@ class KnjDB_java_sqlite3
 	def initialize(knjdb_ob)
 		@knjdb = knjdb_ob
 		
-		require @knjdb.opts["sqlite_driver"]
+		if @knjdb.opts["sqlite_driver"]
+			require @knjdb.opts["sqlite_driver"]
+		else
+			require File.dirname(__FILE__) + "/sqlitejdbc-v056.jar"
+		end
+		
+		require "java"
 		import "org.sqlite.JDBC"
 		@conn = java.sql.DriverManager::getConnection("jdbc:sqlite:" + @knjdb.opts["path"])
 		@stat = @conn.createStatement
@@ -24,7 +30,7 @@ class KnjDB_java_sqlite3
 		begin
 			return KnjDB_java_sqlite3_result.new(@stat.executeQuery(string))
 		rescue java.sql.SQLException => e
-			if (e.message == "java.sql.SQLException: query does not return ResultSet")
+			if e.message == "java.sql.SQLException: query does not return ResultSet"
 				#ignore it.
 			else
 				raise e
@@ -55,15 +61,15 @@ class KnjDB_java_sqlite3_result
 		@rs = rs
 		@index = 0
 		
-		if (rs)
+		if rs
 			@metadata = rs.getMetaData
 			@columns_count = @metadata.getColumnCount
 		end
 	end
 	
 	def fetch
-		if (!@rs.next)
-			return false;
+		if !@rs.next
+			return false
 		end
 		
 		tha_return = {}

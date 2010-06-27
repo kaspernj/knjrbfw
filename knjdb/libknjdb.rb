@@ -18,7 +18,11 @@ module Knj
 			@opts = {}
 			
 			arr_opts.each do |pair|
-				@opts[pair[0]] = pair[1];
+				@opts[pair[0]] = pair[1]
+			end
+			
+			if @opts["type"] == "sqlite3" and RUBY_PLATFORM == "java"
+				@opts["type"] = "java_sqlite3"
 			end
 			
 			self.connect()

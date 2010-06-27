@@ -28,8 +28,6 @@ autoload :Digest, "digest"
 autoload :Erubis, "erubis"
 autoload :FileUtils, "fileutils"
 autoload :GetText, "gettext"
-autoload :Gtk, "gtk2"
-autoload :GladeXML, "libglade2"
 autoload :Mysql, "mysql"
 autoload :ParseDate, "parsedate"
 autoload :SQLite3, "sqlite3"
@@ -37,6 +35,16 @@ autoload :Ping, "ping"
 autoload :SOAP, "knj/autoload/soap"
 autoload :TCPSocket, "socket"
 autoload :TCPServer, "socket"
+
+if RUBY_PLATFORM == "java"
+	autoload :Gtk, "knj/jruby-gtk2/gtk2"
+	autoload :Gdk, "knj/jruby-gtk2/gtk2"
+	autoload :GladeXML, "knj/jruby-gtk2/gladexml"
+else
+	autoload :Gtk, "gtk2"
+	autoload :Gdk, "gtk2"
+	autoload :GladeXML, "libglade2"
+end
 
 module Net
 	autoload :IMAP, "net/imap"

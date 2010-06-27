@@ -1,22 +1,44 @@
 require "java"
 require "/usr/share/java/gtk.jar"
 
-import org.gnome.gtk.Gtk
-Gtk.init(nil)
+org.gnome.gtk.Gtk.init(nil)
 
-class Gtk
-	@all = ["Window", "HBox", "VBox", "Label", "Button"]
-	@containers = ["Window", "HBox", "VBox"]
-	@titles = ["Window", "Button", "Label"]
-	
-	@all.each do |classname|
-		self.const_set(classname, Class.new do
+@all = {
+	"Gtk" => ["Window", "HBox", "VBox", "Label", "Button", "ListStore", "TreeView", "TreeViewColumn", "CellRendererText", "DataColumnString", "TreeIter", "StatusIcon"],
+	"Gdk" => ["Pixbuf"]
+}
+@containers = {
+	"Gtk" => ["Window", "HBox", "VBox"]
+}
+@titles = {
+	"Gtk" => ["Window", "Button", "Label"]
+}
+
+module Gtk
+	@events = [
+		["Window", "destroy", org.gnome.gtk.Window::DeleteEvent, :onDeleteEvent, false],
+		["Button", "clicked", org.gnome.gtk.Button::Clicked, :onClicked, nil]
+	]
+	def self.events; return @events; end
+end
+
+module Gdk; end
+
+@all.each do |parentclass, classes|
+	classes.each do |classname|
+		Kernel.const_get(parentclass).const_set(classname, Class.new do
 				def ob; return @ob; end
 				def ob=(ob); @ob = ob; end
 				
 				def initialize(spawn_object = true)
-					if spawn_object
-						@ob = eval("org.gnome.gtk." + classname).new
+					if $knj_jruby_gtk_takeob
+						@ob = $knj_jruby_gtk_takeob
+						$knj_jruby_gtk_takeob = nil
+					else
+						splitted = self.class.to_s.split("::")
+						classname =  splitted[splitted.length - 1]
+						javaname = "org.gnome." + splitted[0].downcase + "." + classname
+						@ob = eval(javaname).new
 					end
 				end
 				
@@ -25,18 +47,24 @@ class Gtk
 						raise "No block was given."
 					end
 					
-					constant = self.class.to_s.split("::")[3]
+					splitted = self.class.to_s.split("::")
+					constant = splitted[splitted.length - 1]
+					defreturn = nil
+					class_inc = nil
+					funcname = nil
 					defreturn = nil
 					
-					if constant == "Window" and event == "destroy"
-						class_inc = org.gnome.gtk.Window::DeleteEvent
-						funcname = :onDeleteEvent
-						defreturn = false
-					elsif constant == "Button" and event == "clicked"
-						class_inc = org.gnome.gtk.Button::Clicked
-						funcname = :onClicked
-					else
-						raise "No eventstring for class '" + constant + "' and event '" + event + "'"
+					Gtk.events.each do |eventarr|
+						if constant == eventarr[0] and event == eventarr[1]
+							class_inc = eventarr[2]
+							funcname = eventarr[3]
+							defreturn = eventarr[4]
+							break
+						end
+					end
+					
+					if !class_inc or !funcname
+						raise "No event for class '#{constant}' and event '#{event}'"
 					end
 					
 					eventclass = Class.new do
@@ -81,12 +109,20 @@ class Gtk
 			end
 		)
 	end
-	
-	@titles.each do |classname|
-		self.const_get(classname).class_eval do
+end
+
+@titles.each do |parentclass, classes|
+	classes.each do |classname|
+		Kernel.const_get(parentclass).const_get(classname).class_eval do
 			def initialize(newtitle = nil)
-				classname =  self.class.to_s.split("::")[3]
-				@ob = eval("org.gnome.gtk." + classname).new
+				if $knj_jruby_gtk_takeob
+					@ob = $knj_jruby_gtk_takeob
+					$knj_jruby_gtk_takeob = nil
+				else
+					splitted = self.class.to_s.split("::")
+					classname =  splitted[splitted.length - 1]
+					@ob = eval("org.gnome.gtk." + classname).new
+				end
 				
 				if newtitle
 					if @ob.respond_to?("label=")
@@ -100,12 +136,60 @@ class Gtk
 			end
 		end
 	end
-	
-	@containers.each do |classname|
-		self.const_get(classname).class_eval do
+end
+
+@containers.each do |parentclass, classes|
+	classes.each do |classname|
+		Kernel.const_get(parentclass).const_get(classname).class_eval do
 			def add(widget)
 				return @ob.add(widget.ob)
 			end
 		end
 	end
 end
+
+module Gtk
+	class CellRendererText
+		def initialize
+			if $knj_jruby_gtk_takeob
+				@ob = $knj_jruby_gtk_takeob
+				$knj_jruby_gtk_takeob = nil
+			end
+		end
+		
+		def init(tcol)
+			@ob = org.gnome.gtk.CellRendererText.new(tcol.ob)
+		end
+	end
+	
+	def self.main
+		org.gnome.gtk.Gtk.main
+	end
+	
+	def self.main_quit
+		org.gnome.gtk.Gtk.main_quit
+	end
+end
+
+module Gdk
+	class Pixbuf
+		def initialize(filename)
+			@ob = org.gnome.gdk.Pixbuf.new(filename)
+		end
+	end
+end
+
+module GLib
+	class Timeout
+		def self.add(time, &block)
+			require "timeout"
+			Timeout.timeout(time) do
+				block.call
+			end
+		end
+	end
+end
+
+require File.dirname(__FILE__) + "/treeview"
+require File.dirname(__FILE__) + "/liststore"
+require File.dirname(__FILE__) + "/statusicon"

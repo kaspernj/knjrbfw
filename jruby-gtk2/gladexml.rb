@@ -1,5 +1,7 @@
 class GladeXML
 	def initialize(filename, &block)
+		@obs = {}
+		
 		require "xmlsimple"
 		
 		cont = File.read(filename)
@@ -55,7 +57,7 @@ class GladeXML
 				if class_str == "GtkWindow"
 					return item[1][0]["id"]
 				end
-			elsif item.class.to_s == "Array"|| item.class.to_s == "Hash"
+			elsif item.is_a?(Array) or item.is_a?(Hash)
 				ret = self.find_window(item)
 				if ret
 					return ret
@@ -65,10 +67,19 @@ class GladeXML
 	end
 	
 	def get_widget(wname)
+		if @obs[wname]
+			return @obs[wname]
+		end
+		
 		widget = @glade.get_widget(wname)
 		
-		conv_widget = Gtk.const_get(widget.class.to_s.split("::")[2]).new(false)
-		conv_widget.ob = widget
+		#This is a really ugly hack.
+		$knj_jruby_gtk_takeob = widget
+		
+		splitted = widget.class.to_s.split("::")
+		conv_widget = Gtk.const_get(splitted[splitted.length - 1]).new
+		
+		@obs[wname] = conv_widget
 		
 		return conv_widget
 	end

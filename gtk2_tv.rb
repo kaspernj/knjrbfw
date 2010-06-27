@@ -2,24 +2,13 @@ module Knj
 	module Gtk2
 		module Tv
 			def self.init(tv, columns)
-				list_store = nil
-				eval_string = "list_store = Gtk::ListStore.new("
-				
-				first = true
+				args = []
 				columns.each do |pair|
-					if (first == true)
-						first = false
-					else
-						eval_string += ", "
-					end
-					
-					eval_string += "String"
+					args << String
 				end
 				
-				eval_string += ");"
-				eval(eval_string)
-				
-				tv.set_model(list_store)
+				list_store = Gtk::ListStore.new(*args)
+				tv.model = list_store
 				
 				count = 0
 				columns.each do |col_title|
@@ -34,16 +23,16 @@ module Knj
 				iter = tv.model.append
 				
 				count = 0
-				data.each{ |value|
+				data.each do |value|
 					iter[count] = value
 					count += 1
-				}
+				end
 			end
 			
 			def self.sel(tv)
 				selected = tv.selection.selected_rows
 				
-				if (!tv.model or selected.size <= 0)
+				if !tv.model or selected.size <= 0
 					return nil
 				end
 				
@@ -52,10 +41,10 @@ module Knj
 				columns = tv.columns
 				
 				count = 0
-				columns.each{|column|
+				columns.each do |column|
 					returnval[count] = iter[count]
 					count += 1
-				}
+				end
 				
 				return returnval
 			end
