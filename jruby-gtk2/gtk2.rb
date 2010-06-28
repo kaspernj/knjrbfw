@@ -4,8 +4,8 @@ require "/usr/share/java/gtk.jar"
 org.gnome.gtk.Gtk.init(nil)
 
 @all = {
-	"Gtk" => ["Window", "HBox", "VBox", "Label", "Button", "ListStore", "TreeView", "TreeViewColumn", "CellRendererText", "DataColumnString", "TreeIter", "StatusIcon", "Entry", "ProgressBar"],
-	"Gdk" => ["Pixbuf"]
+	"Gtk" => ["Window", "HBox", "VBox", "Label", "Button", "ListStore", "TreeView", "TreeViewColumn", "CellRendererText", "DataColumnString", "TreeIter", "StatusIcon", "Entry", "ProgressBar", "Menu", "MenuItem"],
+	"Gdk" => ["Pixbuf", "Event", "EventButton"]
 }
 @containers = {
 	"Gtk" => ["Window", "HBox", "VBox"]
@@ -13,10 +13,16 @@ org.gnome.gtk.Gtk.init(nil)
 @titles = {
 	"Gtk" => ["Window", "Button", "Label"]
 }
+@constants = {
+	"Gdk" => {
+		"Event" => ["BUTTON_PRESS", org.gnome.gdk.EventType::BUTTON_PRESS]
+	}
+}
 
 module Gtk
 	@events = [
-		["Button", "clicked", org.gnome.gtk.Button::Clicked, :onClicked, nil]
+		["Button", "clicked", org.gnome.gtk.Button::Clicked, :onClicked, nil],
+		["MenuItem", "activate", org.gnome.gtk.MenuItem::Activate, :onActivate, nil]
 	]
 	
 	def self.events; return @events; end
@@ -109,6 +115,11 @@ module Gdk; end
 						if first
 							first = false
 						else
+							splitted = para.class.to_s.split("::")
+							if splitted.first == "Gtk"
+								para = para.ob
+							end
+							
 							newparas << para
 						end
 					end
@@ -164,6 +175,12 @@ end
 	end
 end
 
+@constants.each do |parentclass, classes|
+	classes.each do |classname, data|
+		Kernel.const_get(parentclass).const_get(classname).const_set(data[0], data[1])
+	end
+end
+
 module Gtk
 	class CellRendererText
 		def initialize
@@ -214,7 +231,6 @@ module GLib
 			Thread.new(time, block) do |time, block|
 				begin
 					sleep(time / 1000)
-					print "hmm\n"
 					block.call
 				rescue Exception => e
 					puts e.inspect
@@ -225,7 +241,7 @@ module GLib
 	end
 end
 
-files = ["treeview", "liststore", "statusicon", "progressbar", "window"]
+files = ["treeview", "liststore", "statusicon", "progressbar", "window", "menu", "eventbutton", "builder"]
 files.each do |file|
 	require File.dirname(__FILE__) + "/" + file
 end

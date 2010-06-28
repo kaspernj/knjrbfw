@@ -1,4 +1,4 @@
-require "knj/jruby-gtk2/gtk2.rb"
+require "knj/autoload"
 
 button = Gtk::Button.new("Test")
 button.signal_connect("clicked") do

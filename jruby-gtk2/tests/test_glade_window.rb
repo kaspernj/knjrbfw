@@ -1,22 +1,7 @@
 #!/usr/bin/jruby
 
-print "Script started\n"
-
-require "knj/php"
-
-print "PHP loaded.\n"
-
-require "knj/jruby-gtk2/gtk2"
-
-print "jruby-gtk2 loaded.\n"
-
-require "knj/jruby-gtk2/gladexml"
-
-print "Glade loaded.\n"
-
+require "knj/autoload"
 require "knj/gtk2_tv"
-
-print "Knj-Gtk2-tv loaded.\n"
 
 class WinAppEdit
 	def initialize
