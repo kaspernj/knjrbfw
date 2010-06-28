@@ -1,19 +1,29 @@
 class GladeXML
+	def block=(newblock); @block = newblock; end
+	def data; return @data; end
+	
 	def initialize(filename, &block)
 		@obs = {}
 		
 		require "xmlsimple"
 		
-		cont = File.read(filename)
-		data = XmlSimple.xml_in(cont)
-		
-		window_name = self.find_window(data)
-		
-		@glade = org.gnome.glade.Glade::parse(filename, window_name)
+		if filename.index("interface>") == nil
+			cont = File.read(filename)
+			@data = XmlSimple.xml_in(cont)
+			window_name = self.find_window(data)
+			@glade = org.gnome.glade.Glade::parse(filename, window_name)
+		else
+			cont = filename
+			@data = XmlSimple.xml_in(cont)
+			window_name = self.find_window(data)
+			Knj::Php.file_put_contents("temp.glade", cont)
+			@glade = org.gnome.glade.Glade::parse("temp.glade", window_name)
+			FileUtils.rm("temp.glade")
+		end
 		
 		if block_given?
 			@block = block
-			self.auto_connect(data)
+			self.auto_connect(@data)
 		end
 	end
 	
