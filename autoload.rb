@@ -50,11 +50,8 @@ module Net
 	autoload :IMAP, "net/imap"
 	autoload :SMTP, "net/smtp"
 	autoload :HTTP, "net/http"
-<<<<<<< HEAD:autoload.rb
-=======
 	autoload :POP3, "net/pop"
 	autoload :POP, "net/pop"
->>>>>>> c7bc7cd4ba18bd62a7a3f9d390c7678e58778b36:autoload.rb
 	autoload :SSH, "net/ssh"
 end
 
