@@ -3,40 +3,33 @@ module Knj
 		def initialize(args)
 			@args = args
 			
-			if !@args["port"]
+			if !@args.has_key?("port")
 				@args["port"] = 22
 			end
 		end
 		
-		def getSession
+		def session
 			if !@session
-				if @args["port"]
-					@session = Net::SSH.start(@args["host"], @args["port"].to_i, @args["user"], @args["passwd"])
-				else
-					@session = Net::SSH.start(@args["host"], @args["user"], @args["passwd"])
-				end
+				@session = Net::SSH.start(@args["host"], @args["user"], :password => @args["passwd"], :port => @args["port"].to_i)
 			end
 			
 			return @session
 		end
 		
-		def getShell
-			return getSession.shell.sync
+		def shell
+			return self.session.shell.sync
 		end
 		
-		def getSFTP
-			@sftp = Net::SFTP.start(@args["host"], @args["user"], @args["passwd"])
+		def sftp
+			@sftp = Net::SFTP.start(@args["host"], @args["user"], @args["passwd"], :port => @args["port"].to_i)
 		end
 		
 		def shellCMD(command)
-			shell = self.getShell
-			result = shell.exec(command)
-			cmdres = result["stdout"].slice(0..-2)
-			return cmdres
+			return self.session.exec!(command)
 		end
 		
 		def fileExists(filepath)
-			result = self.shellCMD("ls " + Knj::Strings.UnixSafe(filepath))
+			result = self.exec("ls " + Strings.UnixSafe(filepath)).strip
 			
 			if result == filepath
 				return true
@@ -65,8 +58,8 @@ module Knj
 			end
 		end
 		
-		alias session getSession
 		alias shell getShell
 		alias sftp getSFTP
+		alias exec shellCMD
 	end
 end

@@ -8,10 +8,13 @@ module Knj
 				"smtp_passwd" => nil,
 				"smtp_domain" => ENV["HOSTNAME"]
 			}
-			@paras = paras
 			
 			paras.each do |key, value|
 				@paras[key] = value
+			end
+			
+			if @paras["send"]
+				self.send
 			end
 		end
 		
@@ -32,41 +35,50 @@ module Knj
 		end
 		
 		def to=(value)
-			@paras["to"] = value
+			@paras["to"] = value.untaint
 		end
 		
 		def send
-			if (!@paras["to"])
+			if !@paras["to"]
 				raise "No email has been defined to send to."
 			end
 			
-			if (!@paras["subject"])
+			if !@paras["subject"]
 				raise "No subject has been defined."
 			end
 			
-			if (!@paras["text"] and !@paras["html"])
+			if !@paras["text"] and !@paras["html"]
 				raise "No content has been defined."
 			end
 			
 			mail = TMail::Mail.new
 			mail.to = @paras["to"]
 			mail.subject = @paras["subject"]
+			mail.date = Time.new
 			
-			if (@paras["from"])
+			if @paras["from"]
 				mail.from = @paras["from"]
 			end
 			
-			if (@paras["html"])
+			if @paras["html"]
 				mail.set_content_type("text", "html")
 				mail.body = @paras["html"]
-			elsif (@paras["text"])
+			elsif @paras["text"]
 				mail.body = @paras["text"]
 			end
 			
 			smtp_start = Net::SMTP.new(@paras["smtp_host"], @paras["smtp_port"])
 			
-			if (@paras["ssl"])
+			if @paras["ssl"]
 				smtp_start.enable_ssl
+			end
+			
+			if !@paras["smtp_domain"]
+				if @paras["smtp_host"]
+					@paras["smtp_domain"] = @paras["smtp_host"]
+				else
+					raise "SMTP domain not given."
+				end
 			end
 			
 			smtp_start.start(@paras["smtp_domain"], @paras["smtp_user"], @paras["smtp_passwd"]) do |smtp|

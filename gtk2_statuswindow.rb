@@ -6,9 +6,13 @@ module Knj
 				
 				@window = Gtk::Window.new("Status")
 				@window.modal = true
+				@window.border_width = 8
 				@window.set_frame_dimensions(3, 3, 3, 3)
+				@window.signal_connect("destroy") do
+					destroy
+				end
 				
-				if (opts["transient_for"])
+				if opts["transient_for"]
 					@window.transient_for = @opts["transient_for"]
 				end
 				
@@ -34,7 +38,10 @@ module Knj
 			end
 			
 			def destroy
-				@window.destroy
+				if @window
+					@window.destroy
+				end
+				
 				@window = nil
 				@vbox = nil
 				@pbar = nil

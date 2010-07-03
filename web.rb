@@ -5,6 +5,7 @@ module Knj
 		
 		def cgi; return @cgi; end
 		def session; return @session; end
+		def data; return @data; end
 		
 		def initialize(paras = {})
 			@paras = paras
@@ -27,8 +28,10 @@ module Knj
 			$_CGI = @cgi
 			
 			@server = {
+				"HTTP_HOST" => Apache.request.hostname,
 				"HTTP_USER_AGENT" => Apache.request.headers_in["User-Agent"],
-				"REMOTE_ADDR" => Apache.request.remote_host(1)
+				"REMOTE_ADDR" => Apache.request.remote_host(1),
+				"REQUEST_URI" => Apache.request.unparsed_uri
 			}
 			
 			@files = {}
@@ -80,13 +83,13 @@ module Knj
 					if stringparse
 						if !do_files
 							if isstring
-								Web::parse_name(@post, varname, stringparse)
+								Web.parse_name(@post, varname, stringparse)
 							else
 								@post[varname] = stringparse
 							end
 						else
 							if isstring
-								Web::parse_name(@files, varname, stringparse)
+								Web.parse_name(@files, varname, stringparse)
 							else
 								@files[varname] = stringparse
 							end
@@ -97,14 +100,15 @@ module Knj
 			
 			@get = {}
 			if @cgi.query_string
-				urldecode(@cgi.query_string).split("&").each do |value|
-					valuearr = value.split("=")
+				urldecode(@cgi.query_string.to_s).split("&").each do |value|
+					pos = value.index("=")
 					
-					if valuearr[1]
-						valuearr[1] = CGI.unescape(valuearr[1])
+					if pos != nil
+						name = value[0..pos-1]
+						valuestr = value.slice(pos+1..-1)
+						
+						Web.parse_name(@get, name, valuestr)
 					end
-					
-					Web::parse_name(@get, valuearr[0], valuearr[1])
 				end
 			end
 			
@@ -120,7 +124,7 @@ module Knj
 					if @data["user_agent"] != @server["HTTP_USER_AGENT"] or @data["ip"] != @server["REMOTE_ADDR"]
 						@data = nil
 					else
-						@db.update("sessions", {"date_active" => Datestamp::dbstr}, {"id" => @data["id"]})
+						@db.update("sessions", {"date_active" => Datestamp.dbstr}, {"id" => @data["id"]})
 						session_id = @paras["id"] + "_" + @data["id"]
 					end
 				end
@@ -128,7 +132,7 @@ module Knj
 			
 			if !@data or !session_id
 				@db.insert("sessions",
-					"date_start" => Datestamp::dbstr, "date_active" => Datestamp::dbstr,
+					"date_start" => Datestamp.dbstr, "date_active" => Datestamp.dbstr,
 					"user_agent" => @server["HTTP_USER_AGENT"],
 					"ip" => @server["REMOTE_ADDR"]
 				)
@@ -177,7 +181,7 @@ module Knj
 							seton[name][match[1]] = {}
 						end
 						
-						Web::parse_name_second(seton[name][match[1]], restname, value)
+						Web.parse_name_second(seton[name][match[1]], restname, value)
 					else
 						seton[name][match[1]] = value
 					end
@@ -203,7 +207,7 @@ module Knj
 						seton[name] = {}
 					end
 					
-					Web::parse_name_second(seton[name], restname, value)
+					Web.parse_name_second(seton[name], restname, value)
 				else
 					seton[name] = value
 				end
@@ -230,7 +234,7 @@ module Knj
 		
 		def self.require_eruby(filepath)
 			cont = File.read(filepath).untaint
-			parse = Erubis::Eruby.new(cont)
+			parse = Erubis.Eruby.new(cont)
 			eval(parse.src.to_s)
 		end
 		
@@ -273,14 +277,18 @@ module Knj
 			end
 			
 			if value and paras.has_key?("value_func") and paras["value_func"]
-				value = call_user_func(paras["value_func"], value)
+				value = Php.call_user_func(paras["value_func"], value)
 			end
 			
 			if !paras["id"]
 				paras["id"] = paras["name"]
 			end
 			
-			if !paras["type"]
+			if !paras["type"] and paras["opts"]
+				paras["type"] = "select"
+			elsif paras["name"][0..2] == "che"
+				paras["type"] = "checkbox"
+			elsif !paras["type"]
 				paras["type"] = "text"
 			end
 			
@@ -336,7 +344,7 @@ module Knj
 					end
 					
 					html += ">"
-					html += Web::opts(paras["opts"], value, paras["opts_paras"])
+					html += Web.opts(paras["opts"], value, paras["opts_paras"])
 					html += "</select>"
 				elsif paras["type"] == "imageupload"
 					html += "<table class=\"designtable\"><tr><td style=\"width: 100%;\">"
@@ -345,7 +353,7 @@ module Knj
 					
 					path = paras["path"].gsub("%value%", value).untaint
 					if File.exists?(path)
-						html += "<img src=\"image.php?picture=#{urlencode(path).html}&smartsize=100&edgesize=25\" alt=\"Image\" />"
+						html += "<img src=\"image.php?picture=#{Php.urlencode(path).html}&smartsize=100&edgesize=25\" alt=\"Image\" />"
 						
 						if paras["dellink"]
 							dellink = paras["dellink"].gsub("%value%", value)
@@ -359,6 +367,10 @@ module Knj
 				end
 				
 				html += "</tr>"
+			end
+			
+			if paras["descr"]
+				html += "<tr><td colspan=\"2\" class=\"tdd\">" + paras["descr"] + "</td></tr>"
 			end
 			
 			return html
@@ -429,23 +441,25 @@ module Knj
 				return "gecko"
 			elsif agent.index("msie") != nil
 				return "msie"
+			elsif agent.index("w3c") != nil
+				return "bot"
 			else
-				print agent
+				print "Unknown agent: " + agent
 			end
 		end
 	end
 end
 
 def alert(string)
-	return Knj::Web::alert(string)
+	return Knj.Web.alert(string)
 end
 
 def redirect(string)
-	return Knj::Web::redirect(string)
+	return Knj.Web.redirect(string)
 end
 
 def jsback(string)
-	return Knj::Web::back
+	return Knj.Web.back
 end
 
 class String

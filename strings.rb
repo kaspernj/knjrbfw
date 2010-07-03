@@ -1,8 +1,11 @@
 module Knj
 	module Strings
 		def self.UnixSafe(tha_string)
-			tha_string = tha_string.gsub(" ", "\ ").gsub("&", "\&")
-			return tha_string
+			return tha_string.to_s.gsub(" ", "\\ ").gsub("&", "\&").gsub("(", "\\(").gsub(")", "\\)").gsub('"', '\"').gsub("\n", "\"\n\"")
+		end
+		
+		def self.unixsafe(string)
+			return Strings.UnixSafe(string)
 		end
 		
 		def self.searchstring(string)
@@ -26,6 +29,18 @@ module Knj
 			end
 			
 			return words
+		end
+		
+		def self.is_email?(str)
+			if str.match(/^\S+@\S+.\S+$/)
+				return true
+			end
+			
+			return false
+		end
+		
+		def self.js_safe(str)
+			return Php.htmlspecialchars(str.gsub("\r", "").gsub("\n", "\\n"));
 		end
 	end
 end

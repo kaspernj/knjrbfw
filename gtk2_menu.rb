@@ -8,12 +8,27 @@ module Knj
 				@signal = ""
 				
 				count = 0
-				@paras["items"].each do |signal, menuitem|
+				if @paras["items"].respond_to?("reverse")
+					items = @paras["items"].reverse
+				else
+					items = @paras["items"]
+				end
+				
+				if items.is_a?(Array)
+					items = Knj::ArrayExt.dict(items)
+				end
+				
+				items.each do |signal, menuitem|
+					if menuitem.is_a?(Array)
+						old_mi = menuitem
+						menuitem = {"text" => menuitem[0], "connect" => menuitem[1]}
+					end
+					
 					newitem = Gtk::MenuItem.new(menuitem["text"])
 					
 					if (menuitem["connect"])
 						newitem.signal_connect("activate") do
-							Knj::Php::call_user_func(menuitem["connect"])
+							Knj::Php.call_user_func(menuitem["connect"])
 						end
 					else
 						newitem.signal_connect("activate") do

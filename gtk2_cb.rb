@@ -2,24 +2,11 @@ module Knj
 	module Gtk2
 		module Cb
 			def self.init(paras)
-				ls = Gtk::ListStore.new(String, String)
-				cr = Gtk::CellRendererText.new
-				
-				paras["items"].each do |string|
-					iter = ls.append
-					iter[0] = string
-				end
-				
-				paras["cb"].pack_start(cr, true)
-				paras["cb"].add_attribute(cr, "text", 0)
-				paras["cb"].model = ls
+				return paras["cb"].init(paras["items"])
 			end
 			
 			def self.sel(cb)
-				return {
-					"active" => cb.active,
-					"text" => cb.active_iter[0]
-				}
+				return cb.sel
 			end
 		end
 	end
@@ -27,23 +14,72 @@ end
 
 class Gtk::ComboBox
 	def init(items)
-		return Knj::Gtk2::Cb::init(
-			"cb" => self,
-			"items" => items
-		)
+		@knj = {
+			"items" => []
+		}
+		
+		ls = Gtk::ListStore.new(String, String)
+		cr = Gtk::CellRendererText.new
+		
+		if items.is_a?(Array)
+			items.each do |appendob|
+				iter = ls.append
+				
+				if appendob.is_a?(String)
+					iter[0] = appendob
+				elsif appendob.respond_to?("is_knj?")
+					iter[0] = appendob.title
+					@knj["items"] << {
+						"iter" => iter,
+						"object" => appendob
+					}
+				end
+			end
+		else
+			raise "Unsupported type: " + items.class.to_s
+		end
+		
+		self.pack_start(cr, true)
+		self.add_attribute(cr, "text", 0)
+		self.model = ls
+		self.active = 0
 	end
 	
 	def sel
-		return Knj::Gtk2::Cb::sel(self)
+		iter = self.active_iter
+		
+		if @knj["items"].length > 0
+			@knj["items"].each do |item|
+				if item["iter"] == iter
+					return item["object"]
+				end
+			end
+			
+			return false
+		else
+			return {
+				"active" => self.active,
+				"text" => iter[0]
+			}
+		end
 	end
 	
-	def sel=(textval)
-		self.model.each do |model, path, iter|
-			text = self.model.get_value(iter, 0)
-			
-			if text == textval
-				self.active_iter = iter
-				return nil
+	def sel=(actob)
+		if actob.respond_to?("is_knj?")
+			@knj["items"].each do |item|
+				if item["object"].id == actob.id
+					self.active_iter = item["iter"]
+					return nil
+				end
+			end
+		else
+			self.model.each do |model, path, iter|
+				text = self.model.get_value(iter, 0)
+				
+				if text == actob
+					self.active_iter = iter
+					return nil
+				end
 			end
 		end
 		

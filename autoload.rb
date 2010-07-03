@@ -16,6 +16,9 @@ module Knj
 	autoload :Os, $knjpath + "os"
 	autoload :Gtk2, $knjpath + "gtk2"
 	autoload :Php, $knjpath + "php"
+	autoload :Sysuser, $knjpath + "sysuser"
+	autoload :Errors, $knjpath + "errors"
+	autoload :Notify, $knjpath + "notify"
 end
 
 #ruby objects.
@@ -25,15 +28,33 @@ autoload :Digest, "digest"
 autoload :Erubis, "erubis"
 autoload :FileUtils, "fileutils"
 autoload :GetText, "gettext"
-autoload :Gtk, "gtk2"
 autoload :Mysql, "mysql"
 autoload :ParseDate, "parsedate"
 autoload :SQLite3, "sqlite3"
+autoload :Ping, "ping"
+autoload :SOAP, "knj/autoload/soap"
+autoload :TCPSocket, "socket"
+autoload :TCPServer, "socket"
+
+if RUBY_PLATFORM == "java"
+	autoload :Gtk, "knj/jruby-gtk2/gtk2"
+	autoload :Gdk, "knj/jruby-gtk2/gtk2"
+	autoload :GladeXML, "knj/jruby-gtk2/gladexml"
+else
+	autoload :Gtk, "gtk2"
+	autoload :Gdk, "gtk2"
+	autoload :GladeXML, "libglade2"
+end
 
 module Net
 	autoload :IMAP, "net/imap"
 	autoload :SMTP, "net/smtp"
 	autoload :HTTP, "net/http"
+<<<<<<< HEAD:autoload.rb
+=======
+	autoload :POP3, "net/pop"
+	autoload :POP, "net/pop"
+>>>>>>> c7bc7cd4ba18bd62a7a3f9d390c7678e58778b36:autoload.rb
 	autoload :SSH, "net/ssh"
 end
 
