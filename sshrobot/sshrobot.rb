@@ -58,8 +58,8 @@ module Knj
 			end
 		end
 		
-		alias :getShell :shell
-		alias :getSFTP :sftp
-		alias :shellCMD :exec
+		alias getShell shell
+		alias getSFTP sftp
+		alias shellCMD exec
 	end
 end
