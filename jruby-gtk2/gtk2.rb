@@ -4,7 +4,10 @@ require "/usr/share/java/gtk.jar"
 org.gnome.gtk.Gtk.init(nil)
 
 @all = {
-	"Gtk" => ["Window", "HBox", "VBox", "Label", "Button", "ListStore", "TreeView", "TreeViewColumn", "CellRendererText", "DataColumnString", "TreeIter", "StatusIcon", "Entry", "ProgressBar", "Menu", "MenuItem"],
+	"Gtk" => ["Window", "HBox", "VBox", "Label", "Button", "ListStore", "TreeView", "TreeViewColumn",
+					"CellRendererText", "DataColumnString", "TreeIter", "StatusIcon", "Entry", "ProgressBar",
+					"Menu", "MenuItem", "ComboBox", "FileChooserButton"
+	],
 	"Gdk" => ["Pixbuf", "Event", "EventButton"]
 }
 @containers = {
@@ -22,7 +25,8 @@ org.gnome.gtk.Gtk.init(nil)
 module Gtk
 	@events = [
 		["Button", "clicked", org.gnome.gtk.Button::Clicked, :onClicked, nil],
-		["MenuItem", "activate", org.gnome.gtk.MenuItem::Activate, :onActivate, nil]
+		["MenuItem", "activate", org.gnome.gtk.MenuItem::Activate, :onActivate, nil],
+		["Entry", "activate", org.gnome.gtk.Entry::Activate, :onActivate, nil]
 	]
 	
 	def self.events; return @events; end
@@ -168,7 +172,7 @@ end
 				return @ob.add(widget.ob)
 			end
 			
-			def pack_start(widget, arg1, arg2)
+			def pack_start(widget, arg1, arg2 = false)
 				return @ob.pack_start(widget.ob, arg1, arg2, 0)
 			end
 		end
@@ -241,7 +245,7 @@ module GLib
 	end
 end
 
-files = ["treeview", "liststore", "statusicon", "progressbar", "window", "menu", "eventbutton", "builder"]
+files = ["treeview", "liststore", "statusicon", "progressbar", "window", "menu", "eventbutton", "builder", "gladexml", "combobox"]
 files.each do |file|
 	require File.dirname(__FILE__) + "/" + file
 end

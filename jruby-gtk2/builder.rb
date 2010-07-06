@@ -7,7 +7,9 @@ class Gtk::Builder
 		cont = File.read(filename).gsub("<interface>", "<glade-interface>").gsub("</interface>", "</glade-interface>")
 		cont = cont.gsub("<object", "<widget").gsub("</object>", "</widget>")
 		cont = cont.gsub("<requires lib=\"gtk+\" version=\"2.16\"\/>", "")
+		cont = cont.gsub("<requires lib=\"gtk+\" version=\"2.14\"\/>", "")
 		cont = cont.gsub("<child type=\"label\">", "<child>")
+		cont = cont.gsub("<child type=\"tab\">", "<child>")
 		
 		@glade = GladeXML.new(cont)
 	end

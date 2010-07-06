@@ -10,7 +10,7 @@ module Knj
 			return resp["data"]
 		end
 		
-		def initialize(opts)
+		def initialize(opts = {})
 			@opts = opts
 			@cookies = {}
 			@useragent = "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.0.1) Gecko/20060111 Firefox/1.5.0.1"
@@ -23,13 +23,13 @@ module Knj
 		def connect
 			require "net/http"
 			
-			if (@opts["ssl"])
+			if @opts["ssl"]
 				require "net/https"
 			end
 			
-			if (@opts["port"])
+			if @opts["port"]
 				port = @opts["port"]
-			elsif (@opts["ssl"])
+			elsif @opts["ssl"]
 				port = 443
 			else
 				port = 80
@@ -37,7 +37,7 @@ module Knj
 			
 			@http = Net::HTTP.new(@opts["host"], port)
 			
-			if (@opts["ssl"])
+			if @opts["ssl"]
 				@http.use_ssl = true
 			end
 		end
@@ -45,7 +45,7 @@ module Knj
 		def cookiestr
 			cookiestr = ""
 			@cookies.each do |key, value|
-				if (cookiestr != "")
+				if cookiestr != ""
 					cookiestr += "; "
 				end
 				
@@ -60,11 +60,11 @@ module Knj
 				"User-Agent" => @useragent,
 			}
 			
-			if (@lasturl)
+			if @lasturl
 				tha_headers["Referer"] = @lasturl
 			end
 			
-			if (cookiestr != "")
+			if cookiestr != ""
 				tha_headers["Cookie"] = self.cookiestr
 			end
 			
@@ -72,7 +72,7 @@ module Knj
 		end
 		
 		def setcookie(set_data)
-			if (set_data and set_data.length > 0)
+			if set_data and set_data.length > 0
 				set_data.split(", ").each do |cookiestr|
 					cookiedata = cookiestr.split(";")[0].split("=")
 					@cookies[cookiedata[0]] = cookiedata[1]
@@ -95,7 +95,7 @@ module Knj
 			
 			postdata = ""
 			posthash.each do |key, value|
-				if (postdata != "")
+				if postdata != ""
 					postdata += "&"
 				end
 				
@@ -116,6 +116,14 @@ module Knj
 			postdata = ""
 			
 			files.each do |file|
+				if file.is_a?(String)
+					file = {
+						"pname" => "fileupload",
+						"fname" => File.basename(file),
+						"path" => file
+					}
+				end
+				
 				postdata += "--#{boundary}\r\n"
 				postdata += "Content-Disposition: form-data; name=\"#{file["pname"]}\"; filename=\"#{file["fname"]}\"\r\n"
 				postdata += "Content-Type: text/plain\r\n"

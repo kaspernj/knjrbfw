@@ -39,7 +39,7 @@ autoload :TCPServer, "socket"
 if RUBY_PLATFORM == "java"
 	autoload :Gtk, "knj/jruby-gtk2/gtk2"
 	autoload :Gdk, "knj/jruby-gtk2/gtk2"
-	autoload :GladeXML, "knj/jruby-gtk2/gladexml"
+	autoload :GladeXML, "knj/jruby-gtk2/gtk2"
 else
 	autoload :Gtk, "gtk2"
 	autoload :Gdk, "gtk2"

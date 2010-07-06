@@ -65,11 +65,14 @@ class GladeXML
 				class_str = item[1][0]["class"]
 				
 				if class_str == "GtkWindow"
-					return item[1][0]["id"]
+					ret = item[1][0]["id"]
+					if ret.is_a?(String)
+						return ret
+					end
 				end
 			elsif item.is_a?(Array) or item.is_a?(Hash)
 				ret = self.find_window(item)
-				if ret
+				if ret.is_a?(String)
 					return ret
 				end
 			end
