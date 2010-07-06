@@ -40,6 +40,10 @@ if RUBY_PLATFORM == "java"
 	autoload :Gtk, "knj/jruby-gtk2/gtk2"
 	autoload :Gdk, "knj/jruby-gtk2/gtk2"
 	autoload :GladeXML, "knj/jruby-gtk2/gtk2"
+elsif RUBY_PLATFORM.index("mswin32") != nil
+	autoload :Gtk, "knj/ironruby-gtk2/gtk2"
+	autoload :Gdk, "knj/ironruby-gtk2/gtk2gtk2"
+	autoload :GladeXML, "knj/ironruby-gtk2/gtk2"
 else
 	autoload :Gtk, "gtk2"
 	autoload :Gdk, "gtk2"

@@ -1,5 +1,5 @@
 require "java"
-require "/usr/share/java/gtk.jar"
+require File.dirname(__FILE__) + "/gtk-4.0.jar"
 
 org.gnome.gtk.Gtk.init(nil)
 
