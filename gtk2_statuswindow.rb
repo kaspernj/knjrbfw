@@ -1,7 +1,7 @@
 module Knj
 	module Gtk2
 		class StatusWindow
-			def initialize(opts)
+			def initialize(opts = {})
 				@opts = opts
 				
 				@window = Gtk::Window.new("Status")
