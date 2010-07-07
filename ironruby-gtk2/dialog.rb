@@ -16,6 +16,20 @@ class Gtk::Dialog
 			@ob = RealGtk.const_get(splitted.last).new(*paras)
 		end
 		
+		if paras.length > 3
+			3.upto(paras.length) do |count|
+				data = paras[count]
+				
+				if data.is_a?(Array)
+					@ob.method(:add_button).overload(System::String, RealGtk::ResponseType).call(data[0], data[1])
+				elsif data.is_a?(NilClass)
+					#do nothing.
+				else
+					#raise "Unhandeled data: #{data.class.to_s}"
+				end
+			end
+		end
+		
 		if !@ob
 			raise "Object was not spawned: #{self.class.to_s}"
 		end

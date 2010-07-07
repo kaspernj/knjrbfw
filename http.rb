@@ -42,6 +42,12 @@ module Knj
 			end
 		end
 		
+		def check_connected
+			if !@http
+				self.connect
+			end
+		end
+		
 		def cookiestr
 			cookiestr = ""
 			@cookies.each do |key, value|
@@ -56,9 +62,7 @@ module Knj
 		end
 		
 		def headers
-			tha_headers = {
-				"User-Agent" => @useragent,
-			}
+			tha_headers = {"User-Agent" => @useragent}
 			
 			if @lasturl
 				tha_headers["Referer"] = @lasturl
@@ -81,7 +85,9 @@ module Knj
 		end
 		
 		def get(addr)
-			resp, data = @http.get2(addr, self.headers)
+			check_connected
+			
+			resp, data = @http.get(addr, self.headers)
 			self.setcookie(resp.response["set-cookie"])
 			
 			return {
@@ -91,6 +97,7 @@ module Knj
 		end
 		
 		def post(addr, posthash, files = [])
+			check_connected
 			require "cgi"
 			
 			postdata = ""
@@ -112,6 +119,8 @@ module Knj
 		end
 		
 		def post_file(addr, files)
+			check_connected
+			
 			boundary = "HJyakstdASDTuyatdtasdtASDTASDasduyAS"
 			postdata = ""
 			

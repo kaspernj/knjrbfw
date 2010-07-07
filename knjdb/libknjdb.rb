@@ -1,7 +1,7 @@
 module Knj
 	class Db
 		def initialize(opts)
-			if (opts != nil)
+			if opts != nil
 				self.setOpts(opts)
 			end
 		end
@@ -23,9 +23,11 @@ module Knj
 			
 			if @opts["type"] == "sqlite3" and RUBY_PLATFORM == "java"
 				@opts["type"] = "java_sqlite3"
+			elsif @opts["type"] == "sqlite3" and RUBY_PLATFORM.index("mswin32") != nil
+				@opts["type"] = "sqlite3_ironruby"
 			end
 			
-			self.connect()
+			self.connect
 		end
 		
 		def connect
@@ -46,7 +48,7 @@ module Knj
 			
 			first = true
 			arr_insert.each do |pair|
-				if (first)
+				if first
 					first = false
 				else
 					sql += ", "
@@ -61,7 +63,7 @@ module Knj
 			
 			first = true
 			arr_insert.each do |pair|
-				if (first)
+				if first
 					first = false
 				else
 					sql += ", "
@@ -86,7 +88,7 @@ module Knj
 			
 			first = true;
 			arr_update.each do |pair|
-				if (first)
+				if first
 					first = false
 				else
 					sql += ", "
@@ -115,18 +117,18 @@ module Knj
 			sql += tablename.to_s
 			sql += @conn.escape_table
 			
-			if (arr_terms != nil)
+			if arr_terms != nil
 				sql += " WHERE "
 				sql += self.makeWhere(arr_terms)
 			end
 			
-			if (args != nil)
-				if (args["orderby"])
+			if args != nil
+				if args["orderby"]
 					sql += " ORDER BY "
 					sql += args["orderby"]
 				end
 				
-				if (args["limit"])
+				if args["limit"]
 					sql += " LIMIT " + args["limit"].to_s
 				end
 			end
@@ -150,7 +152,7 @@ module Knj
 			sql += tablename
 			sql += @conn.escape_table
 			
-			if (arr_terms != nil)
+			if arr_terms != nil
 				sql += " WHERE "
 				sql += self.makeWhere(arr_terms)
 			end
@@ -163,7 +165,7 @@ module Knj
 			
 			first = true
 			arr_terms.each do |pair|
-				if (first)
+				if first
 					first = false
 				else
 					sql += " AND "

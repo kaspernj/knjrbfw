@@ -30,8 +30,6 @@ end
 
 Gtk.all.each do |parentclass, classes|
 	classes.each do |classname|
-		print "Defining #{parentclass}::#{classname}\n"
-		
 		Kernel.const_get(parentclass).const_set(classname, Class.new do
 				attr_reader :ob
 				attr_writer :ob
@@ -89,7 +87,6 @@ Gtk.all.each do |parentclass, classes|
 					end
 					
 					if @ob.respond_to?(paras[0])
-						print "Sending #{paras[0]} to #{self.class.to_s}\n"
 						return @ob.send(paras[0], *newparas)
 					end
 					
