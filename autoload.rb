@@ -43,7 +43,7 @@ if RUBY_PLATFORM == "java"
 elsif RUBY_PLATFORM.index("mswin32") != nil
 	autoload :GetText, "knj/gettext_fallback"
 	autoload :Gtk, "knj/ironruby-gtk2/gtk2"
-	autoload :Gdk, "knj/ironruby-gtk2/gtk2gtk2"
+	autoload :Gdk, "knj/ironruby-gtk2/gtk2"
 	autoload :GladeXML, "knj/ironruby-gtk2/gtk2"
 else
 	autoload :GetText, "gettext"
