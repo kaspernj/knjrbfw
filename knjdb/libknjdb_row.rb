@@ -64,6 +64,10 @@ module Knj
 			@data = nil
 		end
 		
+		def has_key?(key)
+			return @data.has_key?(key)
+		end
+		
 		def [](key)
 			if !key
 				raise "No valid key given."
