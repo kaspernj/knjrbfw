@@ -17,6 +17,7 @@ module Knj
 	autoload :Gtk2, $knjpath + "gtk2"
 	autoload :Php, $knjpath + "php"
 	autoload :Sysuser, $knjpath + "sysuser"
+	autoload :Thread, $knjpath + "thread"
 	autoload :Errors, $knjpath + "errors"
 	autoload :Notify, $knjpath + "notify"
 end

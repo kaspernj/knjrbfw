@@ -77,7 +77,7 @@ module Knj
 		end
 		
 		def []=(key, value)
-			self.update({key => value})
+			self.update(key => value)
 			self.reload
 		end
 		

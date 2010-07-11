@@ -4,7 +4,7 @@ module Knj
 			@callbacks = {}
 			@paras = paras
 			
-			if (!@paras["col_id"])
+			if !@paras["col_id"]
 				@paras["col_id"] = "id"
 			end
 			
@@ -46,13 +46,16 @@ module Knj
 		end
 		
 		def requireclass(classname)
-			filename = @paras["class_path"] + "/class_" + classname.downcase + ".rb"
-			
-			if (!File.exists?(filename))
-				raise "Class file could not be found: " + filename
+			if !Php.class_exists(classname)
+				filename = @paras["class_path"] + "/class_" + classname.downcase + ".rb"
+				filename_req = @paras["class_path"] + "/class_" + classname.downcase
+				
+				if !File.exists?(filename)
+					raise "Class file could not be found: " + filename
+				end
+				
+				require(filename_req)
 			end
-			
-			require(filename)
 		end
 		
 		def get(classname, data)
@@ -64,11 +67,11 @@ module Knj
 				raise "Unknown data: " + data.class.to_s
 			end
 			
-			if (!@objects[classname])
+			if !@objects[classname]
 				@objects[classname] = []
 			end
 			
-			if (!@objects[classname][id])
+			if !@objects[classname][id]
 				self.requireclass(classname)
 				@objects[classname][id] = Kernel.const_get(classname).new(data)
 			end
@@ -99,7 +102,7 @@ module Knj
 			if paras["addnew"]
 				html += "<option"
 				
-				if (!paras["selected"])
+				if !paras["selected"]
 					html += " selected=\"selected\""
 				end
 				
@@ -157,12 +160,20 @@ module Knj
 			return list
 		end
 		
+		def list_bysql(classname, sql)
+			ret = []
+			q_obs = @paras["db"].query(sql)
+			while d_obs = q_obs.fetch
+				ret << self.get(classname, d_obs)
+			end
+			
+			return ret
+		end
+		
 		def add(classname, data)
 			self.requireclass(classname)
 			retob = Kernel.const_get(classname).add(data)
-			
 			self.call("object" => retob, "signal" => "add")
-			
 			return retob
 		end
 		
