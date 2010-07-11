@@ -5,8 +5,17 @@ module Knj
 			
 			opts.each do |pair|
 				if (pair[0] == "type")
-					if (pair[1] == "bibob" || pair[1] == "cbb")
+					if (pair[1] == "bibob" or pair[1] == "cbb" or pair[1] == "smsd_db")
 						@type = pair[1]
+						
+						if @type == "smsd_db"
+							@db = Knj::Db.new(@opts["knjdb_args"])
+							Thread.new(@db) do |db|
+								print "smsd_db ping!!\n"
+								db.query("SELECT * FROM outbox WHERE id = 0") #ping!
+								sleep 15
+							end
+						end
 					else
 						raise "Not supported: " + pair[1].to_s
 					end
@@ -34,6 +43,12 @@ module Knj
 				if result.sendMessageResult.errorString.to_s != "Ingen fejl."
 					raise "Could not send SMS: (" + result.sendMessageResult.errorCode.to_s + "): " + result.sendMessageResult.errorString.to_s
 				end
+			elsif @type == "smsd_db"
+				@db.insert("outbox", {
+					"number" => number,
+					"text" => msg,
+					"insertdate" => Php.date("Y-m-d H:i:s")
+				})
 			else
 				raise "Not supported: " + @type
 			end

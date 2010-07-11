@@ -6,7 +6,7 @@ module Knj
 			if paras[0].is_a?(String)
 				send_paras = [paras[0].to_sym]
 				
-				if (paras[1])
+				if paras[1]
 					send_paras << paras[1]
 				end
 				
@@ -14,7 +14,7 @@ module Knj
 			elsif paras[0].is_a?(Array)
 				send_paras = [paras[0][1].to_sym]
 				
-				if (paras[1])
+				if paras[1]
 					send_paras << paras[1]
 				end
 				
@@ -380,6 +380,34 @@ module Knj
 		
 		def self.explode(expl, strexp)
 			return strexp.to_s.split(expl)
+		end
+		
+		def self.dirname(filename)
+			File.dirname(filename)
+		end
+		
+		def self.chdir(dirname)
+			Dir.chdir(dirname)
+		end
+		
+		def include_once(filename)
+			require filename
+		end
+		
+		def require_once(filename)
+			require filename
+		end
+		
+		def echo(string)
+			print string
+		end
+		
+		def msgbox(title, msg, type)
+			Knj::Gtk2.msgbox(msg, type, title)
+		end
+		
+		def count(array)
+			return array.length
 		end
 		
 		Knj::Php.singleton_methods.each do |methodname|

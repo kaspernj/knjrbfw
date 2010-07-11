@@ -26,13 +26,15 @@ module Knj
 					
 					newitem = Gtk::MenuItem.new(menuitem["text"])
 					
-					if (menuitem["connect"])
+					if menuitem["connect"]
 						newitem.signal_connect("activate") do
+							print "hmm\n"
 							Knj::Php.call_user_func(menuitem["connect"])
 						end
 					else
 						newitem.signal_connect("activate") do
-							on_menuitem_activate()
+							print "hmm\n"
+							on_menuitem_activate
 						end
 					end
 					

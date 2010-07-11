@@ -14,8 +14,14 @@ class KnjDB_mysql
 	def initialize(knjdb_ob)
 		@knjdb = knjdb_ob
 		
+		if knjdb_ob.opts.has_key?("port")
+			port = knjdb_ob.opts["port"].to_i
+		else
+			port = 3306
+		end
+		
 		require "mysql"
-		@conn = Mysql.real_connect(knjdb_ob.opts["host"], knjdb_ob.opts["user"], knjdb_ob.opts["pass"], knjdb_ob.opts["db"])
+		@conn = Mysql.real_connect(knjdb_ob.opts["host"], knjdb_ob.opts["user"], knjdb_ob.opts["pass"], knjdb_ob.opts["db"], port)
 	end
 	
 	def query(string)

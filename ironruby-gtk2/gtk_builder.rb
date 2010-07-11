@@ -24,4 +24,8 @@ class Gtk::Builder
 	end
 	
 	alias get_object []
+	
+	def objects
+		return []
+	end
 end

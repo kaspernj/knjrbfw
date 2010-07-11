@@ -24,7 +24,7 @@ module Knj
 			@sftp = Net::SFTP.start(@args["host"], @args["user"], @args["passwd"], :port => @args["port"].to_i)
 		end
 		
-		def shellCMD(command)
+		def exec(command)
 			return self.session.exec!(command)
 		end
 		
@@ -58,8 +58,8 @@ module Knj
 			end
 		end
 		
-		alias shell getShell
-		alias sftp getSFTP
-		alias exec shellCMD
+		alias getShell shell
+		alias getSFTP sftp
+		alias shellCMD exec
 	end
 end

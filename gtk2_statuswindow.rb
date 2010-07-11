@@ -1,7 +1,7 @@
 module Knj
 	module Gtk2
 		class StatusWindow
-			def initialize(opts)
+			def initialize(opts = {})
 				@opts = opts
 				
 				@window = Gtk::Window.new("Status")
@@ -30,11 +30,24 @@ module Knj
 			end
 			
 			def label=(newlabel)
-				@label.label = newlabel
+				if @label
+					@label.label = newlabel
+				end
+			end
+			
+			def setStatus(perc, newlabel, temp = nil)
+				if !perc
+					perc = 0
+				end
+				
+				self.percent = perc
+				self.label = newlabel.to_s
 			end
 			
 			def percent=(newperc)
-				@pbar.fraction = newperc
+				if @pbar
+					@pbar.fraction = newperc
+				end
 			end
 			
 			def destroy
@@ -48,6 +61,8 @@ module Knj
 				@label = nil
 				@opts = nil
 			end
+			
+			alias closeWindow destroy
 		end
 	end
 end

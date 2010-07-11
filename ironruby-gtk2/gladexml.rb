@@ -11,13 +11,13 @@ class GladeXML
 			cont = File.read(filename)
 			@data = XmlSimple.xml_in(cont)
 			window_name = self.find_window(data)
-			@glade = org.gnome.glade.Glade::parse(filename, window_name)
+			@glade = Glade::XML.new(filename, window_name, nil)
 		else
 			cont = filename
 			@data = XmlSimple.xml_in(cont)
 			window_name = self.find_window(data)
 			Knj::Php.file_put_contents("temp.glade", cont)
-			@glade = org.gnome.glade.Glade::parse("temp.glade", window_name)
+			@glade = Glade::XML.new("temp.glade", window_name, nil)
 			FileUtils.rm("temp.glade")
 		end
 		
@@ -84,12 +84,11 @@ class GladeXML
 			return @obs[wname]
 		end
 		
-		widget = @glade.get_widget(wname)
-		
+		widget = @glade[wname]
 		Gtk.takeob = widget
+		
 		splitted = widget.class.to_s.split("::")
 		conv_widget = Gtk.const_get(splitted.last).new
-		
 		@obs[wname] = conv_widget
 		
 		return conv_widget
