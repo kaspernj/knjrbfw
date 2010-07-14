@@ -11,11 +11,15 @@ module Knj
 			@objects = {}
 		end
 		
-		def connect(paras)
+		def connect(paras, &block)
 			if !paras["object"]
 				raise "No object given."
 			elsif !paras.has_key?("signal") and !paras.has_key?("signals")
 				raise "No signals given."
+			end
+			
+			if block_given?
+				paras["block"] = block
 			end
 			
 			if !@callbacks[paras["object"]]
@@ -39,7 +43,13 @@ module Knj
 					end
 					
 					if docall
-						Php.call_user_func(callback["callback"], paras)
+						if callback["block"]
+							callback["block"].call
+						elsif callback["callback"]
+							Php.call_user_func(callback["callback"], paras)
+						else
+							raise "No valid callback given."
+						end
 					end
 				end
 			end

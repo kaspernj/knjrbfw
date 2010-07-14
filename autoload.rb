@@ -35,6 +35,7 @@ autoload :Ping, "ping"
 autoload :SOAP, "knj/autoload/soap"
 autoload :TCPSocket, "socket"
 autoload :TCPServer, "socket"
+autoload :XmlSimple, "xmlsimple"
 
 if RUBY_PLATFORM == "java"
 	autoload :GetText, "gettext"
