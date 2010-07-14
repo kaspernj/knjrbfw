@@ -232,7 +232,11 @@ module Knj
 			date_string = date_string.to_s.downcase
 			
 			if date_string.match(/[0-9]+-[0-9]+-[0-9]+/i)
-				return Time.local(*ParseDate.parsedate(date_string)).to_i
+				begin
+					return Time.local(*ParseDate.parsedate(date_string)).to_i
+				rescue
+					return 0
+				end
 			end
 			
 			date_string.scan(/((\+|-)([0-9]+) (\S+))/) do |match|
@@ -288,7 +292,7 @@ module Knj
 				htmlstr = htmlstr.gsub(match[0], "")
 			end
 			
-			return htmlstr
+			return htmlstr.gsub("&nbsp;", " ")
 		end
 		
 		def self.die(msg)

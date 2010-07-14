@@ -78,7 +78,7 @@ module Knj
 			end
 			
 			if !@objects[classname]
-				@objects[classname] = []
+				@objects[classname] = {}
 			end
 			
 			if !@objects[classname][id]
@@ -191,6 +191,7 @@ module Knj
 			if !@objects.has_key?(object.class.to_s)
 				raise "Could not find object class in cache."
 			elsif !@objects[object.class.to_s][object[@paras["col_id"]].to_i]
+				print "Could not unset object from cache.\n"
 				print "Class: " + object.class.to_s + "\n"
 				print "ID: " + object.id + "\n"
 				

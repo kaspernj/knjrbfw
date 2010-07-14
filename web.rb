@@ -381,18 +381,25 @@ module Knj
 				return ""
 			end
 			
+			if curvalue.is_a?(Knj::Db_row)
+				curvalue = curvalue.id
+			end
+			
 			html = ""
+			if !curvalue
+				addsel = " selected=\"selected\""
+			end
 			
 			if opts_paras and opts_paras["add"]
-				html += "<option value=\"\">#{_("Add new")}</option>"
+				html += "<option#{addsel} value=\"\">#{_("Add new")}</option>"
 			end
 			
 			if opts_paras and opts_paras["choose"]
-				html += "<option value=\"\">#{_("Choose")}</option>"
+				html += "<option#{addsel} value=\"\">#{_("Choose")}</option>"
 			end
 			
 			if opts_paras and opts_paras["none"]
-				html += "<option value=\"\">#{_("None")}</option>"
+				html += "<option#{addsel} value=\"\">#{_("None")}</option>"
 			end
 			
 			if opthash.class.to_s == "Dictionary"
