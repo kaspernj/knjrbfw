@@ -16,6 +16,10 @@ module Knj
 				@paras["objects"] = $objects
 			end
 			
+			if !@paras["objects"] and $ob and $ob.class.to_s == "Knj::Objects"
+				@paras["objects"] = $ob
+			end
+			
 			@db = @paras["db"]
 			
 			if !@paras["col_id"]

@@ -8,6 +8,10 @@ module Knj
 				@paras["col_id"] = "id"
 			end
 			
+			if !@paras["class_pre"]
+				@paras["class_pre"] = "class_"
+			end
+			
 			@objects = {}
 		end
 		
@@ -57,8 +61,12 @@ module Knj
 		
 		def requireclass(classname)
 			if !Php.class_exists(classname)
-				filename = @paras["class_path"] + "/class_" + classname.downcase + ".rb"
-				filename_req = @paras["class_path"] + "/class_" + classname.downcase
+				if !@paras["class_path"]
+					raise "No class path given."
+				end
+				
+				filename = @paras["class_path"] + "/#{@paras["class_pre"]}#{classname.downcase}.rb"
+				filename_req = @paras["class_path"] + "/#{@paras["class_pre"]}#{classname.downcase}"
 				
 				if !File.exists?(filename)
 					raise "Class file could not be found: " + filename

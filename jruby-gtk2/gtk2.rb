@@ -6,7 +6,7 @@ org.gnome.gtk.Gtk.init(nil)
 @all = {
 	"Gtk" => ["Window", "HBox", "VBox", "Label", "Button", "ListStore", "TreeView", "TreeViewColumn",
 					"CellRendererText", "DataColumnString", "TreeIter", "StatusIcon", "Entry", "ProgressBar",
-					"Menu", "MenuItem", "ComboBox", "FileChooserButton"
+					"Menu", "MenuItem", "CheckButton", "ComboBox", "FileChooserButton"
 	],
 	"Gdk" => ["Pixbuf", "Event", "EventButton"]
 }
@@ -245,7 +245,7 @@ module GLib
 	end
 end
 
-files = ["treeview", "liststore", "statusicon", "progressbar", "window", "menu", "eventbutton", "builder", "gladexml", "combobox"]
+files = ["checkbutton", "combobox", "treeview", "liststore", "statusicon", "progressbar", "window", "menu", "eventbutton", "builder", "gladexml"]
 files.each do |file|
 	require File.dirname(__FILE__) + "/" + file
 end

@@ -1,5 +1,15 @@
 module Knj
 	class Datestamp
+		def self.in(time = Time.new)
+			if Php.is_numeric(time)
+				time = Time.at(time.to_i)
+			elsif time.is_a?(String)
+				time = Time.local(*ParseDate.parsedate(time))
+			end
+			
+			return time
+		end
+		
 		def self.dbstr(time = Time.new)
 			if Php.is_numeric(time)
 				time = Time.at(time.to_i)
