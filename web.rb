@@ -272,7 +272,9 @@ module Knj
 				end
 			end
 			
-			if value.is_a?(NilClass)
+			if value.is_a?(NilClass) and paras["value_default"]
+				value = paras["value_default"]
+			elsif value.is_a?(NilClass)
 				value = ""
 			end
 			
@@ -295,7 +297,7 @@ module Knj
 			html = ""
 			
 			if paras["type"] == "checkbox"
-				if value.is_a?(String) and value == "1"
+				if value.is_a?(String) and value == "1" or value.to_s == "1"
 					checked = " checked"
 				else
 					checked = ""

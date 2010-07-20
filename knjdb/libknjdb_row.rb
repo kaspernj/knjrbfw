@@ -26,6 +26,10 @@ module Knj
 				@paras["col_id"] = "id"
 			end
 			
+			if !@paras["table"]
+				raise "No table given."
+			end
+			
 			if @paras["data"] and (@paras["data"].is_a?(Integer) or @paras["data"].is_a?(Fixnum) or @paras["data"].is_a?(String))
 				@data = {@paras["col_id"] => @paras["data"].to_s}
 				self.reload
