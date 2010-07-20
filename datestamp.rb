@@ -1,10 +1,16 @@
 module Knj
 	class Datestamp
 		def self.dbstr(time = Time.new)
+			if !time
+				time = Time.new
+			end
+			
 			if Php.is_numeric(time)
 				time = Time.at(time.to_i)
 			elsif time.is_a?(String)
 				time = Time.local(*ParseDate.parsedate(time))
+			else
+				raise "Could not figure out given argument: #{time.class.name}"
 			end
 			
 			return "%04d" % time.year.to_s + "-" + "%02d" % time.month.to_s + "-" + "%02d" % time.day.to_s + " " + "%02d" % time.hour.to_s + ":" + "%02d" % time.min.to_s + ":" + "%02d" % time.sec.to_s
@@ -32,6 +38,18 @@ module Knj
 			end
 			
 			return str
+		end
+		
+		def self.in(timestr)
+			
+		end
+		
+		def self.is_nullstamp?(datestamp)
+			if datestamp.is_a?(String) and datestamp == "0000-00-00 00:00:00"
+				return true
+			end
+			
+			return false
 		end
 	end
 end

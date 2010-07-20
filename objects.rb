@@ -79,7 +79,7 @@ module Knj
 			return @objects[classname][id]
 		end
 		
-		def list(classname, paras = {})
+		def list(classname, paras = {}, &block)
 			self.requireclass(classname)
 			classob = Kernel.const_get(classname)
 			
@@ -87,7 +87,16 @@ module Knj
 				raise "list-function has not been implemented for " + classname
 			end
 			
-			return classob.list(paras)
+			if block_given?
+				objects_return = classob.list(paras, &block)
+				if objects_return
+					objects_return.each do |object|
+						block.call(object)
+					end
+				end
+			else
+				return classob.list(paras)
+			end
 		end
 		
 		def list_opts(classname, paras = {})
@@ -160,14 +169,20 @@ module Knj
 			return list
 		end
 		
-		def list_bysql(classname, sql)
+		def list_bysql(classname, sql, &block)
 			ret = []
 			q_obs = @paras["db"].query(sql)
 			while d_obs = q_obs.fetch
-				ret << self.get(classname, d_obs)
+				if block_given?
+					block.call(self.get(classname, d_obs))
+				else
+					ret << self.get(classname, d_obs)
+				end
 			end
 			
-			return ret
+			if !block_given?
+				return ret
+			end
 		end
 		
 		def add(classname, data)
