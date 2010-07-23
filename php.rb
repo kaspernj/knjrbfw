@@ -42,7 +42,7 @@ module Knj
 						i += 1
 					end
 					
-					retstr += "[" + pair[0] + "] => "
+					retstr += "[" + pair[0].to_s + "] => "
 					retstr += print_r(pair[1], true, count + 1).to_s
 				end
 				

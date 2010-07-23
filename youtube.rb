@@ -27,7 +27,10 @@ class Knj::YouTube
 			break if !status
 			
 			page += 1
-			#break
+			
+			if data["pages"] and page > data["pages"].to_i
+				break
+			end
 		end
 		
 		return ret_arr

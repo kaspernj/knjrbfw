@@ -21,6 +21,7 @@ module Knj
 	autoload :Sysuser, $knjpath + "sysuser"
 	autoload :Thread, $knjpath + "thread"
 	autoload :Unix_proc, $knjpath + "unix_proc"
+	autoload :YouTube, $knjpath + "youtube"
 end
 
 #ruby objects.
