@@ -37,7 +37,7 @@ autoload :Ping, "ping"
 autoload :SOAP, $knjpath + "autoload/soap"
 autoload :TCPSocket, "socket"
 autoload :TCPServer, "socket"
-autoload :JSON, $knjpath + "autoload/json"
+autoload :JSON, $knjpath + "autoload/json_autoload"
 
 if RUBY_PLATFORM == "java"
 	autoload :GetText, "gettext"

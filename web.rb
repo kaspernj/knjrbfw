@@ -239,12 +239,12 @@ module Knj
 		end
 		
 		def self.alert(string)
-			html = "<script type=\"text/javascript\">alert(\"" + string + "\");</script>"
+			html = "<script type=\"text/javascript\">alert(\"#{Knj::Strings.js_safe(string.to_s)}\");</script>"
 			print html
 		end
 		
 		def self.redirect(string)
-			html = "<script type=\"text/javascript\">location.href=\"" + string + "\";</script>"
+			html = "<script type=\"text/javascript\">location.href=\"#{string}\";</script>"
 			print html
 			exit
 		end
