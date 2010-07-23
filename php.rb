@@ -176,15 +176,25 @@ module Knj
 		
 		def self.header(headerstr)
 			match = headerstr.to_s.match(/(.*): (.*)/)
-			
-			if !match
-				raise "Couldnt parse header."
+			if match
+				key = match[1]
+				value = match[2]
+			else
+				#HTTP/1.1 404 Not Found
+				
+				match_status = headerstr.to_s.match(/^HTTP\/[0-9\.]+ ([0-9]+) (.+)$/)
+				if match_status
+					key = "Status"
+					value = match_status[1] + " " + match_status[2]
+				else
+					raise "Couldnt parse header."
+				end
 			end
 			
-			Apache.request.headers_out[match[1]] = match[2]
+			Apache.request.headers_out[key] = value
 			
 			if $cgi.is_a?(CGI)
-				$cgi.header(match[1] => match[2])
+				$cgi.header(key => value)
 			end
 		end
 		

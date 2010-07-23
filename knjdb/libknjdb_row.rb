@@ -44,7 +44,7 @@ module Knj
 			last_id = self.id
 			@data = @db.single(@paras["table"], {@paras["col_id"] => self.id})
 			if !@data
-				raise "Could not find any data for the object with ID: '" + last_id + "' in the table '" + @paras["table"] + "'."
+				raise Knj::Errors::NotFound.new("Could not find any data for the object with ID: '" + last_id + "' in the table '" + @paras["table"] + "'.")
 			end
 		end
 		
