@@ -60,7 +60,7 @@ module Knj
 						end
 					elsif pair[1][0].is_a?(StringIO)
 						if varname[0..3] == "file"
-							tmpname = @paras["tmp"] + "/knj_web_upload_" + Time.now.to_f.to_s + "_" + rand(1000).to_s.untaint
+							tmpname = @paras["tmp"] + "/knj_web_upload_#{Time.now.to_f.to_s}_#{rand(1000).to_s.untaint}"
 							isstring = false
 							do_files = true
 							cont = pair[1][0].string
@@ -294,6 +294,12 @@ module Knj
 				paras["type"] = "text"
 			end
 			
+			if paras.has_key?("disabled") and paras["disabled"]
+				disabled = "disabled "
+			else
+				disabled = ""
+			end
+			
 			html = ""
 			
 			if paras["type"] == "checkbox"
@@ -365,14 +371,14 @@ module Knj
 					
 					html += "</td></tr></table>"
 				else
-					html += "<input type=\"" + paras["type"].html + "\" class=\"input_" + paras["type"].html + "\" id=\"" + paras["id"].html + "\" name=\"" + paras["name"].html + "\" value=\"" + value.html + "\" />"
+					html += "<input #{disabled}type=\"#{paras["type"].html}\" class=\"input_#{paras["type"].html}\" id=\"#{paras["id"].html}\" name=\"#{paras["name"].html}\" value=\"#{value.html}\" />"
 				end
 				
 				html += "</tr>"
 			end
 			
 			if paras["descr"]
-				html += "<tr><td colspan=\"2\" class=\"tdd\">" + paras["descr"] + "</td></tr>"
+				html += "<tr><td colspan=\"2\" class=\"tdd\">#{paras["descr"]}</td></tr>"
 			end
 			
 			return html
