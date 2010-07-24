@@ -40,7 +40,7 @@ module Knj
 		end
 		
 		def self.js_safe(str)
-			return Php.htmlspecialchars(str.gsub("\r", "").gsub("\n", "\\n"));
+			return str.gsub("\r", "").gsub("\n", "\\n").gsub('"', '\"');
 		end
 	end
 end
