@@ -31,11 +31,10 @@ class ERuby
 	def self.import(filename)
 		pwd = Dir.pwd
 		Dir.chdir(File.dirname(filename))
-		#content = File.read(File.basename(filename))
-		
 		cachename = File.dirname(Knj::Os::realpath(__FILE__)) + "/cache/#{filename.gsub("/", "_")}.cache"
 		eruby = KnjEruby.load_file(File.basename(filename), {:cachename => cachename})
 		print eruby.evaluate
+		Dir.chdir(pwd)
 	end
 end
 
