@@ -1,7 +1,7 @@
 module Knj
 	class Web
-		include Knj::Php
 		include Knj
+		include Php
 		
 		def cgi; return @cgi; end
 		def session; return @session; end
@@ -22,17 +22,29 @@ module Knj
 			if @paras["cgi"]
 				@cgi = @paras["cgi"]
 			else
-				@cgi = CGI.new("html4")
+				@cgi = CGI.new
 			end
 			
 			$_CGI = @cgi
 			
-			@server = {
-				"HTTP_HOST" => Apache.request.hostname,
-				"HTTP_USER_AGENT" => Apache.request.headers_in["User-Agent"],
-				"REMOTE_ADDR" => Apache.request.remote_host(1),
-				"REQUEST_URI" => Apache.request.unparsed_uri
-			}
+			if $_CGI
+				@server = {
+					"SERVER_NAME" => ENV["SERVER_NAME"],
+					"HTTP_HOST" => ENV["HTTP_HOST"],
+					"HTTP_USER_AGENT" => ENV["HTTP_USER_AGENT"],
+					"REMOVE_ADDR" => ENV["REMOTE_ADDR"],
+					"REQUEST_URI" => ENV["QUERY_STRING"]
+				}
+			elsif Php.class_exists("Apache")
+				@server = {
+					"HTTP_HOST" => Apache.request.hostname,
+					"HTTP_USER_AGENT" => Apache.request.headers_in["User-Agent"],
+					"REMOTE_ADDR" => Apache.request.remote_host(1),
+					"REQUEST_URI" => Apache.request.unparsed_uri
+				}
+			else
+				@server = {}
+			end
 			
 			@files = {}
 			@post = {}
@@ -43,7 +55,7 @@ module Knj
 					varname = pair[0]
 					stringparse = nil
 					
-					if pair[1][0].is_a?(Tempfile)
+					if pair[1][0].class.name == "Tempfile"
 						if varname[0..3] == "file"
 							isstring = false
 							do_files = true
@@ -60,11 +72,11 @@ module Knj
 						end
 					elsif pair[1][0].is_a?(StringIO)
 						if varname[0..3] == "file"
-							tmpname = @paras["tmp"] + "/knj_web_upload_" + Time.now.to_f.to_s + "_" + rand(1000).to_s.untaint
+							tmpname = @paras["tmp"] + "/knj_web_upload_#{Time.now.to_f.to_s}_#{rand(1000).to_s.untaint}"
 							isstring = false
 							do_files = true
 							cont = pair[1][0].string
-							file_put_contents(tmpname, cont.to_s)
+							Php.file_put_contents(tmpname, cont.to_s)
 							
 							if cont.length > 0
 								stringparse = {
@@ -100,7 +112,7 @@ module Knj
 			
 			@get = {}
 			if @cgi.query_string
-				urldecode(@cgi.query_string.to_s).split("&").each do |value|
+				Php.urldecode(@cgi.query_string.to_s).split("&").each do |value|
 					pos = value.index("=")
 					
 					if pos != nil
@@ -132,14 +144,15 @@ module Knj
 			
 			if !@data or !session_id
 				@db.insert("sessions",
-					"date_start" => Datestamp.dbstr, "date_active" => Datestamp.dbstr,
+					"date_start" => Datestamp.dbstr,
+					"date_active" => Datestamp.dbstr,
 					"user_agent" => @server["HTTP_USER_AGENT"],
 					"ip" => @server["REMOTE_ADDR"]
 				)
 				
 				@data = @db.single("sessions", "id" => @db.last_id)
 				session_id = @paras["id"] + "_" + @data["id"]
-				setcookie(@paras["id"], @data["id"])
+				Php.setcookie(@paras["id"], @data["id"])
 			end
 			
 			require "cgi/session"
@@ -244,8 +257,12 @@ module Knj
 		end
 		
 		def self.redirect(string)
-			html = "<script type=\"text/javascript\">location.href=\"#{string}\";</script>"
-			print html
+			#Header way
+			Php.header("Location: #{string}")
+			
+			#Javascript way.
+			#html = "<script type=\"text/javascript\">location.href=\"#{string}\";</script>"
+			#print html
 			exit
 		end
 		
@@ -294,6 +311,12 @@ module Knj
 				paras["type"] = "text"
 			end
 			
+			if paras.has_key?("disabled") and paras["disabled"]
+				disabled = "disabled "
+			else
+				disabled = ""
+			end
+			
 			html = ""
 			
 			if paras["type"] == "checkbox"
@@ -309,8 +332,8 @@ module Knj
 				
 				html += "<tr>"
 				html += "<td colspan=\"2\" class=\"tdcheck\">"
-				html += "<input type=\"checkbox\" class=\"input_checkbox\" id=\"" + paras["id"].html + "\" name=\"" + paras["name"].html + "\"" + checked + " />"
-				html += "<label for=\"" + paras["id"].html + "\">" + paras["title"].html + "</label>"
+				html += "<input type=\"checkbox\" class=\"input_checkbox\" id=\"#{paras["id"].html}\" name=\"#{paras["name"].html}\"#{checked} />"
+				html += "<label for=\"#{paras["id"].html}\">#{paras["title"].html}</label>"
 				html += "</td>"
 				html += "</tr>"
 			else
@@ -327,7 +350,7 @@ module Knj
 						styleadd = ""
 					end
 					
-					html += "<textarea#{styleadd} class=\"input_textarea\" name=\"" + paras["name"].html + "\" id=\"" + paras["id"].html + "\">" + value + "</textarea>"
+					html += "<textarea#{styleadd} class=\"input_textarea\" name=\"#{paras["name"].html}\" id=\"#{paras["id"].html}\">#{value}</textarea>"
 				elsif paras["type"] == "fckeditor"
 					if !paras["height"]
 						paras["height"] = 400
@@ -365,14 +388,14 @@ module Knj
 					
 					html += "</td></tr></table>"
 				else
-					html += "<input type=\"" + paras["type"].html + "\" class=\"input_" + paras["type"].html + "\" id=\"" + paras["id"].html + "\" name=\"" + paras["name"].html + "\" value=\"" + value.html + "\" />"
+					html += "<input #{disabled}type=\"#{paras["type"].html}\" class=\"input_#{paras["type"].html}\" id=\"#{paras["id"].html}\" name=\"#{paras["name"].html}\" value=\"#{value.html}\" />"
 				end
 				
 				html += "</tr>"
 			end
 			
 			if paras["descr"]
-				html += "<tr><td colspan=\"2\" class=\"tdd\">" + paras["descr"] + "</td></tr>"
+				html += "<tr><td colspan=\"2\" class=\"tdd\">#{paras["descr"]}</td></tr>"
 			end
 			
 			return html
@@ -442,7 +465,7 @@ module Knj
 		end
 		
 		def self.rendering_engine
-			agent = $_SERVER["HTTP_USER_AGENT"].downcase
+			agent = $_SERVER["HTTP_USER_AGENT"].to_s.downcase
 			
 			if agent.index("webkit") != nil
 				return "webkit"
@@ -453,7 +476,8 @@ module Knj
 			elsif agent.index("w3c") != nil
 				return "bot"
 			else
-				print "Unknown agent: " + agent
+				#print "Unknown agent: #{agent}"
+				return false
 			end
 		end
 	end

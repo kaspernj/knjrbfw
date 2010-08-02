@@ -76,7 +76,7 @@ module Knj
 				end
 				
 				retstr += "}\n"
-			elsif argument.is_a?(String) or argument.is_a?(Integer) or argument.is_a?(Fixnum)
+			elsif argument.is_a?(String) or argument.is_a?(Integer) or argument.is_a?(Fixnum) or argument.is_a?(Float)
 				retstr += argument.to_s + "\n"
 			else
 				#print argument.to_s, "\n"
@@ -191,10 +191,21 @@ module Knj
 				end
 			end
 			
-			Apache.request.headers_out[key] = value
+			sent = false
 			
-			if $cgi.is_a?(CGI)
+			if Php.class_exists("Apache")
+				sent = true
+				Apache.request.headers_out[key] = value
+			end
+			
+			if $knj_eruby
+				$knj_eruby.header(key, value)
+			elsif $cgi.is_a?(CGI)
+				sent = true
 				$cgi.header(key => value)
+			elsif $_CGI.is_a?(CGI)
+				sent = true
+				$_CGI.header(key => value)
 			end
 		end
 		
@@ -377,15 +388,17 @@ module Knj
 			}
 			
 			if expire
-				paras["expires"] = Time.at(expire)
+				#paras["expires"] = Time.at(expire)
 			end
 			
 			if domain
-				paras["domain"] = domain
+				#paras["domain"] = domain
 			end
 			
 			cookie = CGI::Cookie.new(paras)
-			$_CGI.out("cookie" => cookie){""}
+			Php.header("Set-Cookie: #{cookie.to_s}")
+			
+			#$_CGI.out("cookie" => cookie){""}
 			
 			if $_COOKIE
 				$_COOKIE[cname] = cvalue
