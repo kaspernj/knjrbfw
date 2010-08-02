@@ -384,21 +384,20 @@ module Knj
 		def self.setcookie(cname, cvalue, expire = nil, domain = nil)
 			paras = {
 				"name" => cname,
-				"value" => cvalue
+				"value" => cvalue,
+				"path" => "/"
 			}
 			
 			if expire
-				#paras["expires"] = Time.at(expire)
+				paras["expires"] = Time.at(expire)
 			end
 			
 			if domain
-				#paras["domain"] = domain
+				paras["domain"] = domain
 			end
 			
 			cookie = CGI::Cookie.new(paras)
 			Php.header("Set-Cookie: #{cookie.to_s}")
-			
-			#$_CGI.out("cookie" => cookie){""}
 			
 			if $_COOKIE
 				$_COOKIE[cname] = cvalue
