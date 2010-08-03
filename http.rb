@@ -1,5 +1,7 @@
 module Knj
 	class Http
+		attr_reader :cookies
+		
 		def self.isgdlink(url)
 			http = Knj::Http.new(
 				"host" => "is.gd"
@@ -21,8 +23,6 @@ module Knj
 		end
 		
 		def connect
-			require "net/http"
-			
 			if @opts["ssl"]
 				require "net/https"
 			end
@@ -98,7 +98,6 @@ module Knj
 		
 		def post(addr, posthash, files = [])
 			check_connected
-			require "cgi"
 			
 			postdata = ""
 			posthash.each do |key, value|
