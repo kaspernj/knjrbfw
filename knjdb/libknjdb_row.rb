@@ -36,7 +36,7 @@ module Knj
 				@data[@paras["col_id"]] = @paras["id"]
 				self.reload
 			else
-				raise "Invalid data: " + @paras["data"].to_s + " (" + @paras["data"].class.to_s + ")"
+				raise Knj::Errors::InvalidData.new("Invalid data: " + @paras["data"].to_s + " (" + @paras["data"].class.to_s + ")")
 			end
 		end
 		

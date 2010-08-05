@@ -252,17 +252,21 @@ module Knj
 		end
 		
 		def self.alert(string)
+			@alert_sent = true
 			html = "<script type=\"text/javascript\">alert(\"#{Knj::Strings.js_safe(string.to_s)}\");</script>"
 			print html
 		end
 		
 		def self.redirect(string)
 			#Header way
-			Php.header("Location: #{string}")
+			if !@alert_sent
+				Php.header("Location: #{string}")
+			else
+				#Javascript way.
+				html = "<script type=\"text/javascript\">location.href=\"#{string}\";</script>"
+				print html
+			end
 			
-			#Javascript way.
-			#html = "<script type=\"text/javascript\">location.href=\"#{string}\";</script>"
-			#print html
 			exit
 		end
 		
