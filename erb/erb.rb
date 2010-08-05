@@ -16,10 +16,12 @@ require "erubis"
 
 class KnjEruby < Erubis::Eruby
 	include Erubis::StdoutEnhancer
+	
 	@headers = [
 		["Content-Type", "text/html; charset=utf-8"]
 	]
 	@filepath = File.dirname(Knj::Os::realpath(__FILE__))
+	@connects = {}
 	
 	def self.print_headers
 		header_str = ""
@@ -37,6 +39,15 @@ class KnjEruby < Erubis::Eruby
 	
 	def self.filepath
 		return @filepath
+	end
+	
+	def self.connect(signal, &block)
+		@connects[signal] = [] if !@connects[signal]
+		@connects[signal] << block
+	end
+	
+	def self.connects
+		return @connects
 	end
 end
 
@@ -82,6 +93,31 @@ rescue Exception => e
 	if tmp_out
 		tmp_out.rewind
 		print tmp_out.read
+	end
+	
+	begin
+		if KnjEruby.connects["error"]
+			KnjEruby.connects["error"].each do |block|
+				block.call(e)
+			end
+		end
+	rescue SystemExit => e
+		exit
+	rescue Exception => e
+		#An error occurred while trying to run the on-error-block - show this as an normal error.
+		print "\n\n<pre>\n\n"
+		print "<b>#{e.class.name.html}: #{e.message.html}</b>\n\n"
+		
+		#Lets hide all the stuff in what is not the users files to make it easier to debug.
+		bt = e.backtrace
+		to = bt.length - 9
+		bt = bt[0..to]
+		
+		bt.reverse.each do |line|
+			print line.html + "\n"
+		end
+		
+		print "</pre>"
 	end
 	
 	print "\n\n<pre>\n\n"
