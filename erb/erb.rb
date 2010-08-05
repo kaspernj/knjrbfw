@@ -9,6 +9,7 @@ class KnjEruby < Erubis::Eruby
 	@headers = [
 		["Content-Type", "text/html; charset=utf-8"]
 	]
+	@filepath = File.dirname(Knj::Os::realpath(__FILE__))
 	
 	def self.print_headers
 		header_str = ""
@@ -23,15 +24,21 @@ class KnjEruby < Erubis::Eruby
 	def self.header(key, value)
 		@headers << [key, value]
 	end
+	
+	def self.filepath
+		return @filepath
+	end
 end
 
 $knj_eruby = KnjEruby
 
 class ERuby
 	def self.import(filename)
+		filename = File.expand_path(filename)
+		
 		pwd = Dir.pwd
 		Dir.chdir(File.dirname(filename))
-		cachename = File.dirname(Knj::Os::realpath(__FILE__)) + "/cache/#{filename.gsub("/", "_")}.cache"
+		cachename = "#{KnjEruby.filepath}/cache/#{filename.gsub("/", "_").gsub(".", "_")}.cache"
 		eruby = KnjEruby.load_file(File.basename(filename), {:cachename => cachename})
 		print eruby.evaluate
 		Dir.chdir(pwd)
@@ -68,9 +75,14 @@ rescue Exception => e
 	end
 	
 	print "\n\n<pre>\n\n"
-	print "#{e.class.name.html}: #{e.message.html}\n\n"
+	print "<b>#{e.class.name.html}: #{e.message.html}</b>\n\n"
 	
-	e.backtrace.each do |line|
+	#Lets hide all the stuff in what is not the users files to make it easier to debug.
+	bt = e.backtrace
+	to = bt.length - 9
+	bt = bt[0..to]
+	
+	bt.reverse.each do |line|
 		print line.html + "\n"
 	end
 end
