@@ -1,7 +1,17 @@
 #!/usr/bin/env ruby
 
-require "knj/autoload"
-require "knj/web"
+def File::realpath(path)
+	if File.symlink?(path)
+		return self.realpath(File.readlink(path))
+	end
+	
+	return path
+end
+
+knjdir = File.dirname(File.realpath(__FILE__)) + "/../"
+
+require knjdir + "autoload"
+require knjdir + "web"
 require "erubis"
 
 class KnjEruby < Erubis::Eruby
