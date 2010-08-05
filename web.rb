@@ -136,7 +136,7 @@ module Knj
 					if @data["user_agent"] != @server["HTTP_USER_AGENT"] or @data["ip"] != @server["REMOTE_ADDR"]
 						@data = nil
 					else
-						@db.update("sessions", {"date_active" => Datestamp.dbstr}, {"id" => @data["id"]})
+						@db.update("sessions", {"last_url" => @server["REQUEST_URI"].to_s, "date_active" => Datestamp.dbstr}, {"id" => @data["id"]})
 						session_id = @paras["id"] + "_" + @data["id"]
 					end
 				end
@@ -147,7 +147,8 @@ module Knj
 					"date_start" => Datestamp.dbstr,
 					"date_active" => Datestamp.dbstr,
 					"user_agent" => @server["HTTP_USER_AGENT"],
-					"ip" => @server["REMOTE_ADDR"]
+					"ip" => @server["REMOTE_ADDR"],
+					"last_url" => @server["REQUEST_URI"].to_s
 				)
 				
 				@data = @db.single("sessions", "id" => @db.last_id)
