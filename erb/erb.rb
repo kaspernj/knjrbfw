@@ -33,6 +33,16 @@ class KnjEruby < Erubis::Eruby
 		print header_str
 	end
 	
+	def self.has_status_header?
+		@headers.each do |header|
+			if header[0] == "Status"
+				return true
+			end
+		end
+		
+		return false
+	end
+	
 	def self.header(key, value)
 		@headers << [key, value]
 	end
@@ -84,6 +94,8 @@ rescue SystemExit => e
 	
 	tmp_out.rewind
 	print tmp_out.read
+	
+	KnjEruby.print_headers
 	
 	exit
 rescue Exception => e

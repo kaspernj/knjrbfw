@@ -258,21 +258,29 @@ module Knj
 		end
 		
 		def self.redirect(string)
+			do_header = true
+			
 			#Header way
-			if !@alert_sent
+			if @alert_sent
+				do_header = false
+			end
+			
+			if $knj_eruby and $knj_eruby.has_status_header?
+				do_header = false
+			end
+			
+			if do_header
 				Php.header("Location: #{string}")
 			else
 				#Javascript way.
-				html = "<script type=\"text/javascript\">location.href=\"#{string}\";</script>"
-				print html
+				print "<script type=\"text/javascript\">location.href=\"#{string}\";</script>"
 			end
 			
 			exit
 		end
 		
 		def self.back
-			html = "<script type=\"text/javascript\">history.back(-1);</script>"
-			print html
+			print "<script type=\"text/javascript\">history.back(-1);</script>"
 			exit
 		end
 		
