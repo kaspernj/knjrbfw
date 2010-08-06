@@ -259,7 +259,7 @@ module Knj
 			print html
 		end
 		
-		def self.redirect(string)
+		def self.redirect(string, args = {})
 			do_js = true
 			
 			#Header way
@@ -269,6 +269,12 @@ module Knj
 			
 			if $knj_eruby and $knj_eruby.has_status_header?
 				do_js = true
+			end
+			
+			if args[:perm]
+				Php.header("Status: 301 Moved Permanently")
+			else
+				Php.header("Status: 303 See Other")
 			end
 			
 			Php.header("Location: #{string}")
