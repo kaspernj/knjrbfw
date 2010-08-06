@@ -33,7 +33,8 @@ module Knj
 					"HTTP_HOST" => ENV["HTTP_HOST"],
 					"HTTP_USER_AGENT" => ENV["HTTP_USER_AGENT"],
 					"REMOTE_ADDR" => ENV["REMOTE_ADDR"],
-					"REQUEST_URI" => ENV["QUERY_STRING"]
+					"REQUEST_URI" => ENV["REQUEST_URI"],
+					"REQUEST_METHOD" => ENV["REQUEST_METHOD"]
 				}
 			elsif Php.class_exists("Apache")
 				@server = {
