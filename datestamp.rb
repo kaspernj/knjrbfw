@@ -1,6 +1,6 @@
 module Knj
 	class Datestamp
-		def self.dbstr(time = Time.new)
+		def self.dbstr(time = nil)
 			if !time
 				time = Time.new
 			end
@@ -17,10 +17,18 @@ module Knj
 		end
 		
 		def self.from_dbstr(date_string)
+			if Datestamp.is_nullstamp?(date_string)
+				return 0
+			end
+			
 			return Time.local(*ParseDate.parsedate(date_string))
 		end
 		
-		def self.out(time = Time.new, paras = {})
+		def self.out(time = nil, paras = {})
+			if !time
+				time = Time.new
+			end
+			
 			if Php.is_numeric(time)
 				time = Time.at(time.to_i)
 			elsif time.is_a?(String)

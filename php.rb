@@ -416,24 +416,36 @@ module Knj
 			Dir.chdir(dirname)
 		end
 		
-		def include_once(filename)
+		def self.include_once(filename)
 			require filename
 		end
 		
-		def require_once(filename)
+		def self.require_once(filename)
 			require filename
 		end
 		
-		def echo(string)
+		def self.echo(string)
 			print string
 		end
 		
-		def msgbox(title, msg, type)
+		def self.msgbox(title, msg, type)
 			Knj::Gtk2.msgbox(msg, type, title)
 		end
 		
-		def count(array)
+		def self.count(array)
 			return array.length
+		end
+		
+		def self.json_encode(obj)
+			return JSON.generate(obj)
+		end
+		
+		def self.json_decode(data)
+			return JSON.parse(data)
+		end
+		
+		def self.time
+			return Time.new.to_i
 		end
 		
 		Knj::Php.singleton_methods.each do |methodname|

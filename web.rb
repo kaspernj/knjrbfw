@@ -28,14 +28,10 @@ module Knj
 			$_CGI = @cgi
 			
 			if $_CGI and ENV["HTTP_HOST"] and ENV["REMOTE_ADDR"]
-				@server = {
-					"SERVER_NAME" => ENV["SERVER_NAME"],
-					"HTTP_HOST" => ENV["HTTP_HOST"],
-					"HTTP_USER_AGENT" => ENV["HTTP_USER_AGENT"],
-					"REMOTE_ADDR" => ENV["REMOTE_ADDR"],
-					"REQUEST_URI" => ENV["REQUEST_URI"],
-					"REQUEST_METHOD" => ENV["REQUEST_METHOD"]
-				}
+				@server = {}
+				ENV.each do |key, value|
+					@server[key] = value
+				end
 			elsif Php.class_exists("Apache")
 				@server = {
 					"HTTP_HOST" => Apache.request.hostname,

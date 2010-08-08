@@ -42,5 +42,25 @@ module Knj
 		def self.js_safe(str)
 			return str.gsub("\r", "").gsub("\n", "\\n").gsub('"', '\"');
 		end
+		
+		def self.yn_str(value, str_yes, str_no)
+			if Php.is_numeric(value)
+				value = value.to_i
+			end
+			
+			if value.is_a?(Integer)
+				if value == 0
+					return str_no
+				else
+					return str_yes
+				end
+			end
+			
+			if !value
+				return str_no
+			end
+			
+			return str_yes
+		end
 	end
 end
