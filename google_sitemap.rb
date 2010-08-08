@@ -18,11 +18,15 @@ class Knj::Google_sitemap
 		lm = el.add_element("lastmod")
 		lm.text = lastmod_value
 		
-		cf = el.add_element("changefreq")
-		cf.text = cf_value
+		if cf_value
+			cf = el.add_element("changefreq")
+			cf.text = cf_value
+		end
 		
-		priority = el.add_element("priority")
-		priority.text = priority_value
+		if priority_value
+			priority = el.add_element("priority")
+			priority.text = priority_value
+		end
 		
 		@doc.root << el
 	end
