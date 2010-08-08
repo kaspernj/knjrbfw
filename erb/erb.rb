@@ -95,8 +95,6 @@ rescue SystemExit => e
 	tmp_out.rewind
 	print tmp_out.read
 	
-	KnjEruby.print_headers
-	
 	exit
 rescue Exception => e
 	$stdout = STDOUT
