@@ -1,4 +1,6 @@
 class Knj::Google_sitemap
+	attr_reader :doc
+	
 	def initialize
 		@doc = REXML::Document.new
 		@doc << REXML::XMLDecl.new("1.0", "UTF-8")
@@ -27,5 +29,14 @@ class Knj::Google_sitemap
 	
 	def to_xml
 		return @doc.to_s
+	end
+	
+	def to_s
+		return @doc.to_s
+	end
+	
+	def write
+		writer = REXML::Formatters::Pretty.new(5)
+		writer.write(@doc, $stdout)
 	end
 end
