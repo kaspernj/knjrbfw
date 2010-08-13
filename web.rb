@@ -259,21 +259,15 @@ module Knj
 			do_js = true
 			
 			#Header way
-			if @alert_sent
-				do_js = true
+			if !@alert_sent
+				if args[:perm]
+					Php.header("Status: 301 Moved Permanently")
+				else
+					Php.header("Status: 303 See Other")
+				end
+				
+				Php.header("Location: #{string}")
 			end
-			
-			if $knj_eruby and $knj_eruby.has_status_header?
-				do_js = true
-			end
-			
-			if args[:perm]
-				Php.header("Status: 301 Moved Permanently")
-			else
-				Php.header("Status: 303 See Other")
-			end
-			
-			Php.header("Location: #{string}")
 			
 			if do_js
 				print "<script type=\"text/javascript\">location.href=\"#{string}\";</script>"

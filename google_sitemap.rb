@@ -2,6 +2,9 @@ class Knj::Google_sitemap
 	attr_reader :doc
 	
 	def initialize
+		#used for Time.iso8601.
+		require "time"
+		
 		@doc = REXML::Document.new
 		@doc << REXML::XMLDecl.new("1.0", "UTF-8")
 		
@@ -15,8 +18,12 @@ class Knj::Google_sitemap
 		loc = el.add_element("loc")
 		loc.text = url_value
 		
+		if !lastmod_value or lastmod_value.to_i == 0
+			raise sprintf("Invalid date: %1$s, url: %2$s", lastmod_value.to_s, url_value)
+		end
+		
 		lm = el.add_element("lastmod")
-		lm.text = lastmod_value
+		lm.text = lastmod_value.iso8601
 		
 		if cf_value
 			cf = el.add_element("changefreq")
