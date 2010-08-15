@@ -108,5 +108,18 @@ module Knj
 		def each(&paras)
 			return @data.each(&paras)
 		end
+		
+		def method_missing(*args)
+			func_name = args[0].to_s
+			if match = func_name.match(/^(\S+)\?$/) and @data.has_key?(match[1])
+				if @data[match[1]] == "1" or @data[match[1]] == "yes"
+					return true
+				elsif @data[match[1]] == "0" or @data[match[1]] == "no"
+					return false
+				end
+			end
+			
+			raise sprintf("No such method: %s", func_name)
+		end
 	end
 end

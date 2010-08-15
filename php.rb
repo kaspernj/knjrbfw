@@ -235,6 +235,10 @@ module Knj
 			return File.read(filepath.untaint)
 		end
 		
+		def self.unlink(filepath)
+			FileUtils.rm(filepath)
+		end
+		
 		def self.file_exists(filepath)
 			if File.exists?(filepath.to_s.untaint)
 				return true
