@@ -35,7 +35,15 @@ module Knj
 				port = 80
 			end
 			
+			if !@opts["host"]
+				raise "Invalid host: " + @opts["host"].to_s
+			end
+			
 			@http = Net::HTTP.new(@opts["host"], port)
+			
+			if @opts["debug"]
+				@http.set_debug_output($stderr)
+			end
 			
 			if @opts["ssl"]
 				@http.use_ssl = true

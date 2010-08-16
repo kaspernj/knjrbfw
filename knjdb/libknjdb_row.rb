@@ -98,11 +98,17 @@ module Knj
 		end
 		
 		def title
-			if !@paras["col_title"]
-				raise "'col_title' has not been set for the class: '" + self.class.to_s + "'."
+			if @paras["col_title"]
+				return @data[@paras["col_title"]]
 			end
 			
-			return @data[@paras["col_title"]]
+			if @data.has_key?("title")
+				return @data["title"]
+			elsif @data.has_key?("name")
+				return @data["name"]
+			end
+			
+			raise "'col_title' has not been set for the class: '" + self.class.to_s + "'."
 		end
 		
 		def each(&paras)

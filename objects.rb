@@ -119,17 +119,13 @@ module Knj
 			end
 			
 			obs.each do |object|
-				if !object.paras["col_title"]
-					raise "'col_title' has not been set for the class: '" + object.class.to_s + "'."
-				end
-				
 				html += "<option value=\"" + CGI.escapeHTML(object[@paras["col_id"]]) + "\""
 				
 				if paras["selected"] and paras["selected"][@paras["col_id"]] == object[@paras["col_id"]]
 					html += " selected=\"selected\""
 				end
 				
-				html += ">" + CGI.escapeHTML(object[object.paras["col_title"]]) + "</option>"
+				html += ">" + CGI.escapeHTML(object.title) + "</option>"
 			end
 			
 			return html
@@ -159,11 +155,7 @@ module Knj
 			end
 			
 			obs.each do |object|
-				if !object.paras["col_title"]
-					raise "'col_title' has not been set for the class: '#{object.class.to_s}'."
-				end
-				
-				list[object[@paras["col_id"]]] = object[object.paras["col_title"]]
+				list[object[@paras["col_id"]]] = object.title
 			end
 			
 			return list
