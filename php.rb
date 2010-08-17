@@ -452,6 +452,17 @@ module Knj
 			return Time.new.to_i
 		end
 		
+		def self.microtime(get_as_float = false)
+			microtime = Time.now.to_f
+			
+			if get_as_float
+				return microtime
+			end
+			
+			splitted = microtime.to_s.split(",")
+			return "#{splitted[0]} #{splitted[1]}"
+		end
+		
 		Knj::Php.singleton_methods.each do |methodname|
 			define_method methodname.to_sym do |*paras|
 				return Knj::Php.send(methodname, *paras)
