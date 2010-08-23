@@ -17,6 +17,8 @@ module Knj
 	autoload :Os, $knjpath + "os"
 	autoload :Gtk2, $knjpath + "gtk2"
 	autoload :Php, $knjpath + "php"
+	autoload :Rand, $knjpath + "rand"
+	autoload :RSVGBIN, $knjpath + "rsvgbin"
 	autoload :Strings, $knjpath + "strings"
 	autoload :SSHRobot, $knjpath + "sshrobot/sshrobot"
 	autoload :Sysuser, $knjpath + "sysuser"
@@ -77,7 +79,7 @@ module TMail
 end
 
 #facets
-autoload :Dictionary, "facets/dictionary.rb"
+autoload :Dictionary, "facets/dictionary"
 
 #gems
 autoload :Twitter, $knjpath + "autoload/twitter"

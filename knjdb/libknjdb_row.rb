@@ -2,54 +2,60 @@ module Knj
 	class Db_row
 		def paras; return @paras; end
 		def db; return @db; end
-		def objects; return @paras["objects"]; end
+		def objects; return @paras[:objects]; end
 		def is_knj?; return true; end
 		
 		def initialize(paras)
 			@paras = paras
-			
-			if !@paras["db"] and $db and $db.class.to_s == "Knj::Db"
-				@paras["db"] = $db
+			@paras.each do |key, value|
+				if !key.is_a?(Symbol)
+					@paras[key.to_sym] = value
+					@paras.delete(key)
+				end
 			end
 			
-			if !@paras["objects"] and $objects and $objects.class.to_s == "Knj::Objects"
-				@paras["objects"] = $objects
+			if !@paras[:db] and $db and $db.class.to_s == "Knj::Db"
+				@paras[:db] = $db
 			end
 			
-			@db = @paras["db"]
-			
-			if !@paras["col_id"]
-				@paras["col_id"] = "id"
+			if !@paras[:objects] and $objects and $objects.class.to_s == "Knj::Objects"
+				@paras[:objects] = $objects
 			end
 			
-			if !@paras["table"]
+			@db = @paras[:db]
+			
+			if !@paras[:col_id]
+				@paras[:col_id] = "id"
+			end
+			
+			if !@paras[:table]
 				raise "No table given."
 			end
 			
-			if @paras["data"] and (@paras["data"].is_a?(Integer) or @paras["data"].is_a?(Fixnum) or @paras["data"].is_a?(String))
-				@data = {@paras["col_id"] => @paras["data"].to_s}
+			if @paras[:data] and (@paras[:data].is_a?(Integer) or @paras[:data].is_a?(Fixnum) or @paras[:data].is_a?(String))
+				@data = {@paras[:col_id] => @paras[:data].to_s}
 				self.reload
-			elsif @paras["data"] and @paras["data"].is_a?(Hash)
-				@data = @paras["data"]
-			elsif @paras["id"]
+			elsif @paras[:data] and @paras[:data].is_a?(Hash)
+				@data = @paras[:data]
+			elsif @paras[:id]
 				@data = {}
-				@data[@paras["col_id"]] = @paras["id"]
+				@data[@paras[:col_id]] = @paras[:id]
 				self.reload
 			else
-				raise Knj::Errors::InvalidData.new("Invalid data: " + @paras["data"].to_s + " (" + @paras["data"].class.to_s + ")")
+				raise Knj::Errors::InvalidData.new("Invalid data: " + @paras[:data].to_s + " (" + @paras[:data].class.to_s + ")")
 			end
 		end
 		
 		def reload
 			last_id = self.id
-			@data = @db.single(@paras["table"], {@paras["col_id"] => self.id})
+			@data = @db.single(@paras[:table], {@paras[:col_id] => self.id})
 			if !@data
-				raise Knj::Errors::NotFound.new("Could not find any data for the object with ID: '" + last_id + "' in the table '" + @paras["table"] + "'.")
+				raise Knj::Errors::NotFound.new("Could not find any data for the object with ID: '" + last_id + "' in the table '" + @paras[:table] + "'.")
 			end
 		end
 		
 		def update(newdata)
-			@db.update(@paras["table"], newdata, {@paras["col_id"] => self.id})
+			@db.update(@paras[:table], newdata, {@paras[:col_id] => self.id})
 			self.reload
 			
 			if self.objects
@@ -58,7 +64,7 @@ module Knj
 		end
 		
 		def delete
-			@db.delete(@paras["table"], {@paras["col_id"] => self.id})
+			@db.delete(@paras[:table], {@paras[:col_id] => self.id})
 			self.destroy
 		end
 		
@@ -94,12 +100,12 @@ module Knj
 		end
 		
 		def id
-			return @data[@paras["col_id"]]
+			return @data[@paras[:col_id]]
 		end
 		
 		def title
-			if @paras["col_title"]
-				return @data[@paras["col_title"]]
+			if @paras[:col_title]
+				return @data[@paras[:col_title]]
 			end
 			
 			if @data.has_key?("title")

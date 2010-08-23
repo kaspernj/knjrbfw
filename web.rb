@@ -9,20 +9,32 @@ module Knj
 		
 		def initialize(paras = {})
 			@paras = paras
-			@db = @paras["db"]
+			
+			if @paras[:db]
+				@db = @paras[:db]
+			elsif @paras["db"]
+				@db = @paras["db"]
+			end
 			
 			if !@paras["tmp"]
 				@paras["tmp"] = "/tmp"
 			end
 			
-			if !@paras["id"]
+			if @paras["id"]
+				@paras[:id] = @paras["id"]
+				@paras.delete("id")
+			end
+			
+			if !@paras[:id]
 				raise "No ID was given."
 			end
 			
 			if @paras["cgi"]
 				@cgi = @paras["cgi"]
 			else
-				@cgi = CGI.new
+				if ENV["HTTP_HOST"] or $knj_eruby or Php.class_exists("Apache")
+					@cgi = CGI.new
+				end
 			end
 			
 			$_CGI = @cgi
@@ -45,7 +57,7 @@ module Knj
 			
 			@files = {}
 			@post = {}
-			if @cgi.request_method == "POST"
+			if @cgi and @cgi.request_method == "POST"
 				@cgi.params.each do |pair|
 					do_files = false
 					isstring = true
@@ -108,7 +120,7 @@ module Knj
 			end
 			
 			@get = {}
-			if @cgi.query_string
+			if @cgi and @cgi.query_string
 				Php.urldecode(@cgi.query_string.to_s).split("&").each do |value|
 					pos = value.index("=")
 					
@@ -122,19 +134,21 @@ module Knj
 			end
 			
 			@cookie = {}
-			@cgi.cookies.each do |key, value|
-				@cookie[key] = value[0]
+			if @cgi
+				@cgi.cookies.each do |key, value|
+					@cookie[key] = value[0]
+				end
 			end
 			
-			if @cookie[@paras["id"]]
-				@data = $db.single("sessions", "id" => @cookie[@paras["id"]])
+			if @cookie[@paras[:id]]
+				@data = $db.single("sessions", "id" => @cookie[@paras[:id]])
 				
 				if @data
 					if @data["user_agent"] != @server["HTTP_USER_AGENT"] or @data["ip"] != @server["REMOTE_ADDR"]
 						@data = nil
 					else
 						@db.update("sessions", {"last_url" => @server["REQUEST_URI"].to_s, "date_active" => Datestamp.dbstr}, {"id" => @data["id"]})
-						session_id = @paras["id"] + "_" + @data["id"]
+						session_id = @paras[:id] + "_" + @data["id"]
 					end
 				end
 			end
@@ -149,8 +163,8 @@ module Knj
 				)
 				
 				@data = @db.single("sessions", "id" => @db.last_id)
-				session_id = @paras["id"] + "_" + @data["id"]
-				Php.setcookie(@paras["id"], @data["id"])
+				session_id = @paras[:id] + "_" + @data["id"]
+				Php.setcookie(@paras[:id], @data["id"])
 			end
 			
 			require "cgi/session"
@@ -160,7 +174,7 @@ module Knj
 				@session.close
 			end
 			
-			if @paras["globals"]
+			if @paras[:globals] or @paras["globals"]
 				self.global_params
 			end
 		end
@@ -290,37 +304,44 @@ module Knj
 		end
 		
 		def self.input(paras)
-			if paras["value"]
-				if paras["value"].is_a?(Array) and !paras["value"][0].is_a?(NilClass)
-					value = paras["value"][0][paras["value"][1]]
-				elsif paras["value"].is_a?(String) or paras["value"].is_a?(Integer)
-					value = paras["value"].to_s
+			paras.each do |key, value|
+				if !key.is_a?(Symbol)
+					paras[key.to_sym] = value
+					paras.delete(key)
 				end
 			end
 			
-			if value.is_a?(NilClass) and paras["value_default"]
-				value = paras["value_default"]
+			if paras[:value]
+				if paras[:value].is_a?(Array) and !paras[:value][0].is_a?(NilClass)
+					value = paras[:value][0][paras[:value][1]]
+				elsif paras[:value].is_a?(String) or paras[:value].is_a?(Integer)
+					value = paras[:value].to_s
+				end
+			end
+			
+			if value.is_a?(NilClass) and paras[:value_default]
+				value = paras[:value_default]
 			elsif value.is_a?(NilClass)
 				value = ""
 			end
 			
-			if value and paras.has_key?("value_func") and paras["value_func"]
-				value = Php.call_user_func(paras["value_func"], value)
+			if value and paras.has_key?("value_func") and paras[:value_func]
+				value = Php.call_user_func(paras[:value_func], value)
 			end
 			
-			if !paras["id"]
-				paras["id"] = paras["name"]
+			if !paras[:id]
+				paras[:id] = paras[:name]
 			end
 			
-			if !paras["type"] and paras["opts"]
-				paras["type"] = "select"
-			elsif paras["name"][0..2] == "che"
-				paras["type"] = "checkbox"
-			elsif !paras["type"]
-				paras["type"] = "text"
+			if !paras[:type] and paras[:opts]
+				paras[:type] = "select"
+			elsif paras[:name] and paras[:name][0..2] == "che"
+				paras[:type] = "checkbox"
+			elsif !paras[:type]
+				paras[:type] = "text"
 			end
 			
-			if paras.has_key?("disabled") and paras["disabled"]
+			if paras.has_key?("disabled") and paras[:disabled]
 				disabled = "disabled "
 			else
 				disabled = ""
@@ -328,83 +349,85 @@ module Knj
 			
 			html = ""
 			
-			if paras["type"] == "checkbox"
+			if paras[:type] == "checkbox"
 				if value.is_a?(String) and value == "1" or value.to_s == "1"
 					checked = " checked"
 				else
 					checked = ""
 				end
 				
-				if paras.has_key?("value_active")
-					checked += " value=\"#{paras["value_active"]}\""
+				if paras.has_key?(:value_active)
+					checked += " value=\"#{paras[:value_active]}\""
 				end
 				
 				html += "<tr>"
 				html += "<td colspan=\"2\" class=\"tdcheck\">"
-				html += "<input type=\"checkbox\" class=\"input_checkbox\" id=\"#{paras["id"].html}\" name=\"#{paras["name"].html}\"#{checked} />"
-				html += "<label for=\"#{paras["id"].html}\">#{paras["title"].html}</label>"
+				html += "<input type=\"checkbox\" class=\"input_checkbox\" id=\"#{paras[:id].html}\" name=\"#{paras[:name].html}\"#{checked} />"
+				html += "<label for=\"#{paras[:id].html}\">#{paras[:title].html}</label>"
 				html += "</td>"
 				html += "</tr>"
 			else
 				html += "<tr>"
 				html += "<td class=\"tdt\">"
-				html += paras["title"].html
+				html += paras[:title].html
 				html += "</td>"
 				html += "<td class=\"tdc\">"
 				
-				if paras["type"] == "textarea"
-					if paras.has_key?("height")
-						styleadd = " style=\"height: #{paras["height"].html}px;\""
+				if paras[:type] == "textarea"
+					if paras.has_key?(:height)
+						styleadd = " style=\"height: #{paras[:height].html}px;\""
 					else
 						styleadd = ""
 					end
 					
-					html += "<textarea#{styleadd} class=\"input_textarea\" name=\"#{paras["name"].html}\" id=\"#{paras["id"].html}\">#{value}</textarea>"
-				elsif paras["type"] == "fckeditor"
-					if !paras["height"]
-						paras["height"] = 400
+					html += "<textarea#{styleadd} class=\"input_textarea\" name=\"#{paras[:name].html}\" id=\"#{paras[:id].html}\">#{value}</textarea>"
+				elsif paras[:type] == "fckeditor"
+					if !paras[:height]
+						paras[:height] = 400
 					end
 					
 					require "/usr/share/fckeditor/fckeditor.rb"
-					fck = FCKeditor.new(paras["name"])
-					fck.Height = paras["height"].to_i
+					fck = FCKeditor.new(paras[:name])
+					fck.Height = paras[:height].to_i
 					fck.Value = value
 					html += fck.CreateHtml
-				elsif paras["type"] == "select"
-					html += "<select name=\"#{paras["name"].html}\" id=\"#{paras["id"].html}\" class=\"input_select\""
+				elsif paras[:type] == "select"
+					html += "<select name=\"#{paras[:name].html}\" id=\"#{paras[:id].html}\" class=\"input_select\""
 					
-					if paras["onchange"]
-						html += " onchange=\"#{paras["onchange"]}\""
+					if paras[:onchange]
+						html += " onchange=\"#{paras[:onchange]}\""
 					end
 					
 					html += ">"
-					html += Web.opts(paras["opts"], value, paras["opts_paras"])
+					html += Web.opts(paras[:opts], value, paras[:opts_paras])
 					html += "</select>"
-				elsif paras["type"] == "imageupload"
+				elsif paras[:type] == "imageupload"
 					html += "<table class=\"designtable\"><tr><td style=\"width: 100%;\">"
-					html += "<input type=\"file\" name=\"#{paras["name"].html}\" class=\"input_file\" />"
+					html += "<input type=\"file\" name=\"#{paras[:name].html}\" class=\"input_file\" />"
 					html += "</td><td style=\"padding-left: 5px;\">"
 					
-					path = paras["path"].gsub("%value%", value).untaint
+					path = paras[:path].gsub("%value%", value).untaint
 					if File.exists?(path)
 						html += "<img src=\"image.php?picture=#{Php.urlencode(path).html}&smartsize=100&edgesize=25\" alt=\"Image\" />"
 						
-						if paras["dellink"]
-							dellink = paras["dellink"].gsub("%value%", value)
+						if paras[:dellink]
+							dellink = paras[:dellink].gsub("%value%", value)
 							html += "<div style=\"text-align: center;\">(<a href=\"javascript: if (confirm('#{_("Do you want to delete the image?")}')){location.href='#{dellink}';}\">#{_("delete")}</a>)</div>"
 						end
 					end
 					
 					html += "</td></tr></table>"
+				elsif paras[:type] == "textshow"
+					html += "#{value}</td></tr>"
 				else
-					html += "<input #{disabled}type=\"#{paras["type"].html}\" class=\"input_#{paras["type"].html}\" id=\"#{paras["id"].html}\" name=\"#{paras["name"].html}\" value=\"#{value.html}\" />"
+					html += "<input #{disabled}type=\"#{paras[:type].html}\" class=\"input_#{paras[:type].html}\" id=\"#{paras[:id].html}\" name=\"#{paras[:name].html}\" value=\"#{value.html}\" />"
 				end
 				
 				html += "</tr>"
 			end
 			
-			if paras["descr"]
-				html += "<tr><td colspan=\"2\" class=\"tdd\">#{paras["descr"]}</td></tr>"
+			if paras[:descr]
+				html += "<tr><td colspan=\"2\" class=\"tdd\">#{paras[:descr]}</td></tr>"
 			end
 			
 			return html

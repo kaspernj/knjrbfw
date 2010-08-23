@@ -3,9 +3,15 @@ module Knj
 		def initialize(paras)
 			@callbacks = {}
 			@paras = paras
+			@paras.each do |key, value|
+				if !key.is_a?(Symbol)
+					@paras[key.to_sym] = value
+					@paras.delete(key)
+				end
+			end
 			
-			if !@paras["col_id"]
-				@paras["col_id"] = "id"
+			if !@paras[:col_id]
+				@paras[:col_id] = "id"
 			end
 			
 			@objects = {}
@@ -46,9 +52,11 @@ module Knj
 		end
 		
 		def requireclass(classname)
+			classname = classname.to_s
+			
 			if !Php.class_exists(classname)
-				filename = @paras["class_path"] + "/class_" + classname.downcase + ".rb"
-				filename_req = @paras["class_path"] + "/class_" + classname.downcase
+				filename = @paras[:class_path] + "/class_" + classname.downcase + ".rb"
+				filename_req = @paras[:class_path] + "/class_" + classname.downcase
 				
 				if !File.exists?(filename)
 					raise "Class file could not be found: " + filename
@@ -59,8 +67,10 @@ module Knj
 		end
 		
 		def get(classname, data)
-			if data.is_a?(Hash) and data[@paras["col_id"]]
-				id = data[@paras["col_id"]].to_i
+			classname = classname.to_s
+			
+			if data.is_a?(Hash) and data[@paras[:col_id]]
+				id = data[@paras[:col_id]].to_i
 			elsif data.is_a?(Integer) or data.is_a?(String) or data.is_a?(Fixnum)
 				id = data.to_i
 			else
@@ -80,6 +90,7 @@ module Knj
 		end
 		
 		def list(classname, paras = {}, &block)
+			classname = classname.to_s
 			self.requireclass(classname)
 			classob = Kernel.const_get(classname)
 			
@@ -119,9 +130,9 @@ module Knj
 			end
 			
 			obs.each do |object|
-				html += "<option value=\"" + CGI.escapeHTML(object[@paras["col_id"]]) + "\""
+				html += "<option value=\"" + CGI.escapeHTML(object[@paras[:col_id]]) + "\""
 				
-				if paras["selected"] and paras["selected"][@paras["col_id"]] == object[@paras["col_id"]]
+				if paras["selected"] and paras["selected"][@paras[:col_id]] == object[@paras[:col_id]]
 					html += " selected=\"selected\""
 				end
 				
@@ -155,7 +166,7 @@ module Knj
 			end
 			
 			obs.each do |object|
-				list[object[@paras["col_id"]]] = object.title
+				list[object[@paras[:col_id]]] = object.title
 			end
 			
 			return list
@@ -163,7 +174,7 @@ module Knj
 		
 		def list_bysql(classname, sql, &block)
 			ret = []
-			q_obs = @paras["db"].query(sql)
+			q_obs = @paras[:db].query(sql)
 			while d_obs = q_obs.fetch
 				if block_given?
 					block.call(self.get(classname, d_obs))
@@ -187,7 +198,7 @@ module Knj
 		def unset(object)
 			if !@objects.has_key?(object.class.to_s)
 				raise "Could not find object class in cache."
-			elsif !@objects[object.class.to_s][object[@paras["col_id"]].to_i]
+			elsif !@objects[object.class.to_s][object[@paras[:col_id]].to_i]
 				print "Could not unset object from cache.\n"
 				print "Class: " + object.class.to_s + "\n"
 				print "ID: " + object.id + "\n"

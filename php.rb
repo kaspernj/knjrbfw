@@ -33,7 +33,7 @@ module Knj
 				superstr = supercl.to_s
 			end
 			
-			if argument.is_a?(Hash) or supercl.is_a?(Hash) or cstr == "SQLite3::ResultSet::HashWithTypes" or cstr == "CGI" or cstr == "Knj::Db_row" or cstr == "Apache::Table" or superstr == "Knj::Db_row"
+			if argument.is_a?(Hash) or supercl.is_a?(Hash) or cstr == "SQLite3::ResultSet::HashWithTypes" or cstr == "CGI" or cstr == "Knj::Db_row" or cstr == "Apache::Table" or superstr == "Knj::Db_row" or cstr == "Dictionary"
 				retstr += argument.class.to_s + "{\n"
 				argument.each do |pair|
 					i = 0
@@ -88,24 +88,6 @@ module Knj
 			else
 				print retstr
 			end
-		end
-		
-		def self.date(date_format, date_unixt = nil)
-			if date_unixt == nil
-				date_unixt = Time.now.to_i
-			end
-			
-			date_object = Time.at(date_unixt.to_i)
-			
-			date_format = date_format.gsub("d", "%02d" % date_object.mday)
-			date_format = date_format.gsub("m", "%02d" % date_object.mon)
-			date_format = date_format.gsub("y", "%02d" % date_object.year.to_s[2,2].to_i)
-			date_format = date_format.gsub("Y", "%04d" % date_object.year)
-			date_format = date_format.gsub("H", "%02d" % date_object.hour)
-			date_format = date_format.gsub("i", "%02d" % date_object.min)
-			date_format = date_format.gsub("s", "%02d" % date_object.sec)
-			
-			return date_format
 		end
 		
 		def self.gtext(string)
@@ -461,6 +443,55 @@ module Knj
 			
 			splitted = microtime.to_s.split(",")
 			return "#{splitted[0]} #{splitted[1]}"
+		end
+		
+		def self.mktime(hour = nil, min = nil, sec = nil, date = nil, month = nil, year = nil, is_dst = -1)
+			cur_time = Time.new
+			
+			if hour == nil
+				hour = cur_time.hour
+			end
+			
+			if min == nil
+				min = cur_time.min
+			end
+			
+			if sec == nil
+				sec = cur_time.sec
+			end
+			
+			if date == nil
+				date = cur_time.date
+			end
+			
+			if month == nil
+				month = cur_time.month
+			end
+			
+			if year == nil
+				year = cur_time.year
+			end
+			
+			new_time = Datestamp.from_dbstr("#{year.to_s}-#{month.to_s}-#{date.to_s} #{hour.to_s}:#{min.to_s}:#{sec.to_s}")
+			return new_time.to_i
+		end
+		
+		def self.date(date_format, date_unixt = nil)
+			if date_unixt == nil
+				date_unixt = Time.now.to_i
+			end
+			
+			date_object = Time.at(date_unixt.to_i)
+			
+			date_format = date_format.gsub("d", "%02d" % date_object.mday)
+			date_format = date_format.gsub("m", "%02d" % date_object.mon)
+			date_format = date_format.gsub("y", "%02d" % date_object.year.to_s[2,2].to_i)
+			date_format = date_format.gsub("Y", "%04d" % date_object.year)
+			date_format = date_format.gsub("H", "%02d" % date_object.hour)
+			date_format = date_format.gsub("i", "%02d" % date_object.min)
+			date_format = date_format.gsub("s", "%02d" % date_object.sec)
+			
+			return date_format
 		end
 		
 		Knj::Php.singleton_methods.each do |methodname|

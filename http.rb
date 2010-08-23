@@ -7,7 +7,7 @@ module Knj
 				"host" => "is.gd"
 			)
 			http.connect
-			resp = http.get("api.php?longurl=" + url)
+			resp = http.get("/api.php?longurl=" + url)
 			
 			return resp["data"]
 		end
