@@ -42,7 +42,13 @@ module Knj
 						i += 1
 					end
 					
-					retstr += "[" + pair[0].to_s + "] => "
+					if pair[0].is_a?(Symbol)
+						keystr = ":#{pair[0].to_s}"
+					else
+						keystr = pair[0].to_s
+					end
+					
+					retstr += "[#{keystr}] => "
 					retstr += print_r(pair[1], true, count + 1).to_s
 				end
 				

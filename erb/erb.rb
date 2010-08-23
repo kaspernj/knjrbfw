@@ -120,10 +120,10 @@ rescue Exception => e
 		
 		#Lets hide all the stuff in what is not the users files to make it easier to debug.
 		bt = e.backtrace
-		to = bt.length - 9
-		bt = bt[0..to]
+		#to = bt.length - 9
+		#bt = bt[0..to]
 		
-		bt.reverse.each do |line|
+		bt.each do |line|
 			print line.html + "\n"
 		end
 		

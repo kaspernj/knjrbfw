@@ -11,7 +11,7 @@ module Knj
 			end
 			
 			if !@paras[:col_id]
-				@paras[:col_id] = "id"
+				@paras[:col_id] = :id
 			end
 			
 			@objects = {}
@@ -55,11 +55,11 @@ module Knj
 			classname = classname.to_s
 			
 			if !Php.class_exists(classname)
-				filename = @paras[:class_path] + "/class_" + classname.downcase + ".rb"
-				filename_req = @paras[:class_path] + "/class_" + classname.downcase
+				filename = @paras[:class_path] + "/class_#{classname.downcase}.rb"
+				filename_req = @paras[:class_path] + "/class_#{classname.downcase}"
 				
 				if !File.exists?(filename)
-					raise "Class file could not be found: " + filename
+					raise "Class file could not be found: #{filename}."
 				end
 				
 				require(filename_req)
@@ -67,14 +67,16 @@ module Knj
 		end
 		
 		def get(classname, data)
-			classname = classname.to_s
+			classname = classname.to_sym
 			
-			if data.is_a?(Hash) and data[@paras[:col_id]]
-				id = data[@paras[:col_id]].to_i
+			if data.is_a?(Hash) and data[@paras[:col_id].to_sym]
+				id = data[@paras[:col_id].to_sym].to_i
+			elsif data.is_a?(Hash) and data[@paras[:col_id].to_s]
+				id = data[@paras[:col_id].to_s].to_i
 			elsif data.is_a?(Integer) or data.is_a?(String) or data.is_a?(Fixnum)
 				id = data.to_i
 			else
-				raise Knj::Errors::InvalidData.new("Unknown data: " + data.class.to_s)
+				raise Knj::Errors::InvalidData.new("Unknown data: #{data.class.to_s}.")
 			end
 			
 			if !@objects[classname]
@@ -90,7 +92,7 @@ module Knj
 		end
 		
 		def list(classname, paras = {}, &block)
-			classname = classname.to_s
+			classname = classname.to_sym
 			self.requireclass(classname)
 			classob = Kernel.const_get(classname)
 			
@@ -111,6 +113,8 @@ module Knj
 		end
 		
 		def list_opts(classname, paras = {})
+			classname = classname.to_sym
+			
 			if paras["list_paras"]
 				obs = self.list(classname, paras["list_paras"])
 			else
@@ -126,7 +130,7 @@ module Knj
 					html += " selected=\"selected\""
 				end
 				
-				html += " value=\"\">" + gettext("Add new") + "</option>"
+				html += " value=\"\">#{_("Add new")}</option>"
 			end
 			
 			obs.each do |object|
@@ -143,6 +147,8 @@ module Knj
 		end
 		
 		def list_optshash(classname, paras = {})
+			classname = classname.to_sym
+			
 			if paras["list_paras"]
 				obs = self.list(classname, paras["list_paras"])
 			else
@@ -173,6 +179,8 @@ module Knj
 		end
 		
 		def list_bysql(classname, sql, &block)
+			classname = classname.to_sym
+			
 			ret = []
 			q_obs = @paras[:db].query(sql)
 			while d_obs = q_obs.fetch
@@ -189,6 +197,7 @@ module Knj
 		end
 		
 		def add(classname, data)
+			classname = classname.to_sym
 			self.requireclass(classname)
 			retob = Kernel.const_get(classname).add(data)
 			self.call("object" => retob, "signal" => "add")
@@ -196,19 +205,19 @@ module Knj
 		end
 		
 		def unset(object)
-			if !@objects.has_key?(object.class.to_s)
+			if !@objects.has_key?(object.class.to_s.to_sym)
 				raise "Could not find object class in cache."
-			elsif !@objects[object.class.to_s][object[@paras[:col_id]].to_i]
+			elsif !@objects[object.class.to_s.to_sym][object[@paras[:col_id]].to_i]
 				print "Could not unset object from cache.\n"
-				print "Class: " + object.class.to_s + "\n"
-				print "ID: " + object.id + "\n"
+				print "Class: #{object.class.to_s}.\n"
+				print "ID: #{object.id}.\n"
 				
 				Php.print_r(@objects[object.class.to_s])
 				
 				exit
 				raise "Could not find object ID in cache."
 			else
-				@objects[object.class.to_s].delete(object)
+				@objects[object.class.to_s.to_sym].delete(object)
 			end
 		end
 		

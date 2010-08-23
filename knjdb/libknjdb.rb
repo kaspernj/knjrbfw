@@ -6,9 +6,7 @@ module Knj
 			end
 		end
 		
-		def opts
-			return @opts
-		end
+		attr_reader :opts
 		
 		def col_table
 			return "`"
@@ -82,7 +80,7 @@ module Knj
 		def update(tablename, arr_update, arr_terms = {})
 			sql = "UPDATE "
 			sql += @conn.escape_col
-			sql += tablename
+			sql += tablename.to_s
 			sql += @conn.escape_col
 			sql += " SET "
 			
@@ -149,7 +147,7 @@ module Knj
 		def delete(tablename, arr_terms)
 			sql = "DELETE FROM "
 			sql += @conn.escape_table
-			sql += tablename
+			sql += tablename.to_s
 			sql += @conn.escape_table
 			
 			if arr_terms != nil

@@ -144,11 +144,11 @@ module Knj
 				@data = $db.single("sessions", "id" => @cookie[@paras[:id]])
 				
 				if @data
-					if @data["user_agent"] != @server["HTTP_USER_AGENT"] or @data["ip"] != @server["REMOTE_ADDR"]
+					if @data[:user_agent] != @server["HTTP_USER_AGENT"] or @data[:ip] != @server["REMOTE_ADDR"]
 						@data = nil
 					else
-						@db.update("sessions", {"last_url" => @server["REQUEST_URI"].to_s, "date_active" => Datestamp.dbstr}, {"id" => @data["id"]})
-						session_id = @paras[:id] + "_" + @data["id"]
+						@db.update("sessions", {"last_url" => @server["REQUEST_URI"].to_s, "date_active" => Datestamp.dbstr}, {"id" => @data[:id]})
+						session_id = @paras[:id] + "_" + @data[:id]
 					end
 				end
 			end
@@ -163,8 +163,8 @@ module Knj
 				)
 				
 				@data = @db.single("sessions", "id" => @db.last_id)
-				session_id = @paras[:id] + "_" + @data["id"]
-				Php.setcookie(@paras[:id], @data["id"])
+				session_id = @paras[:id] + "_" + @data[:id]
+				Php.setcookie(@paras[:id], @data[:id])
 			end
 			
 			require "cgi/session"

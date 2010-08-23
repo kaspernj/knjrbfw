@@ -20,7 +20,6 @@ class KnjDB_mysql
 			port = 3306
 		end
 		
-		require "mysql"
 		@conn = Mysql.real_connect(knjdb_ob.opts["host"], knjdb_ob.opts["user"], knjdb_ob.opts["pass"], knjdb_ob.opts["db"], port)
 	end
 	
@@ -45,9 +44,38 @@ end
 class KnjDB_mysql_result
 	def initialize(result)
 		@result = result
+		if @result
+			@keys = []
+			keys = @result.fetch_fields
+			keys.each do |key|
+				@keys << key.name.to_sym
+			end
+		end
 	end
 	
 	def fetch
+		if $db and $db.opts["return_keys"] == "symbols"
+			return self.fetch_hash_symbols
+		end
+		
+		return self.fetch_hash_strings
+	end
+	
+	def fetch_hash_strings
 		return @result.fetch_hash
+	end
+	
+	def fetch_hash_symbols
+		fetched = @result.fetch_row
+		return false if !fetched
+		
+		ret = {}
+		count = 0
+		@keys.each do |key|
+			ret[key] = fetched[count]
+			count += 1
+		end
+		
+		return ret
 	end
 end
