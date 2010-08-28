@@ -16,6 +16,8 @@ class Knj::Retry
 						if count <= 1
 							doraise = e
 						end
+						
+						sleep(args[:wait]) if args[:wait] and !doraise
 					end
 				else
 					block.call
@@ -31,6 +33,8 @@ class Knj::Retry
 				elsif args.has_key?(:errors) and args[:errors].index(e.class) != nil
 					#given error was in the :errors-array - do nothing. Maybe later it should be logged and returned in a stats-hash or something? - knj
 				end
+				
+				sleep(args[:wait]) if args[:wait] and !doraise
 			end
 			
 			if doraise

@@ -3,13 +3,16 @@
 Dir.chdir(File.dirname(__FILE__))
 require "../autoload"
 
-Knj::Retry.try
-
+count = 0
 Knj::Retry.try(
 	:exit => true,
-	:errors => [Knj::Errors::NotFound],
+	:errors => [Knj::Errors::NotFound, RuntimeError],
 	:timeout => 1,
-	:tries => 1
+	:tries => 2,
+	:wait => 2
 ) do
-	sleep 2
+	count += 1
+	
+	print "Test: #{count.to_s}\n"
+	raise "Test"
 end
