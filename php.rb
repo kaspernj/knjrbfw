@@ -110,15 +110,38 @@ module Knj
 			end
 			
 			number = sprintf("%." + precision.to_s + "f", number)
-			number = number.gsub(%r{([0-9]{3}(?=([0-9])))}, "\\1,")
+			
+			#thanks for jmoses wrote some of tsep-code: http://snippets.dzone.com/posts/show/693
+			st = number.reverse
+			r = ""
+			max = if st[-1].chr == '-'
+				st.size - 1
+			else
+				st.size
+			end
+			
+			if st.to_i == st.to_f
+				1.upto(st.size) do |i|
+					r << st[i-1].chr
+					r << ',' if i%3 == 0 and i < max
+				end
+			else
+				start = nil
+				1.upto(st.size) do |i|
+					r << st[i-1].chr
+					start = 0 if r[-1].chr == '.' and not start
+					if start
+						r << ',' if start % 3 == 0 and start != 0  and i < max
+						start += 1
+					end
+				end
+			end
+			
+			number = r.reverse
 			number = number.gsub(",", "comma").gsub(".", "dot")
 			number = number.gsub("comma", delimiter).gsub("dot", seperator)
 			
 			return number
-		end
-		
-		def self.ucwords(string)
-			return Knj::Php.ucwords(string)
 		end
 		
 		def self.ucwords(string)
@@ -195,10 +218,6 @@ module Knj
 				sent = true
 				$_CGI.header(key => value)
 			end
-		end
-		
-		def header(str)
-			return Knj::Php.header(str)
 		end
 		
 		def self.nl2br(string)
