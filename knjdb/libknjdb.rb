@@ -40,7 +40,7 @@ module Knj
 		def insert(tablename, arr_insert)
 			sql = "INSERT INTO "
 			sql += @conn.escape_table
-			sql += tablename
+			sql += tablename.to_s
 			sql += @conn.escape_table
 			sql += " ("
 			
