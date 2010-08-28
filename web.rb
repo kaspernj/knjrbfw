@@ -9,28 +9,27 @@ module Knj
 		
 		def initialize(paras = {})
 			@paras = paras
+			@paras.each do |key, value|
+				if !key.is_a?(Symbol)
+					@paras[key.to_sym] = value
+					@paras.delete(key)
+				end
+			end
 			
 			if @paras[:db]
 				@db = @paras[:db]
-			elsif @paras["db"]
-				@db = @paras["db"]
 			end
 			
-			if !@paras["tmp"]
-				@paras["tmp"] = "/tmp"
-			end
-			
-			if @paras["id"]
-				@paras[:id] = @paras["id"]
-				@paras.delete("id")
+			if !@paras[:tmp]
+				@paras[:tmp] = "/tmp"
 			end
 			
 			if !@paras[:id]
 				raise "No ID was given."
 			end
 			
-			if @paras["cgi"]
-				@cgi = @paras["cgi"]
+			if @paras[:cgi]
+				@cgi = @paras[:cgi]
 			else
 				if ENV["HTTP_HOST"] or $knj_eruby or Php.class_exists("Apache")
 					@cgi = CGI.new
@@ -81,7 +80,7 @@ module Knj
 						end
 					elsif pair[1][0].is_a?(StringIO)
 						if varname[0..3] == "file"
-							tmpname = @paras["tmp"] + "/knj_web_upload_#{Time.now.to_f.to_s}_#{rand(1000).to_s.untaint}"
+							tmpname = @paras[:tmp] + "/knj_web_upload_#{Time.now.to_f.to_s}_#{rand(1000).to_s.untaint}"
 							isstring = false
 							do_files = true
 							cont = pair[1][0].string
@@ -154,12 +153,12 @@ module Knj
 			end
 			
 			if !@data or !session_id
-				@db.insert("sessions",
-					"date_start" => Datestamp.dbstr,
-					"date_active" => Datestamp.dbstr,
-					"user_agent" => @server["HTTP_USER_AGENT"],
-					"ip" => @server["REMOTE_ADDR"],
-					"last_url" => @server["REQUEST_URI"].to_s
+				@db.insert(:sessions,
+					:date_start => Datestamp.dbstr,
+					:date_active => Datestamp.dbstr,
+					:user_agent => @server["HTTP_USER_AGENT"],
+					:ip => @server["REMOTE_ADDR"],
+					:last_url => @server["REQUEST_URI"].to_s
 				)
 				
 				@data = @db.single("sessions", "id" => @db.last_id)
@@ -169,12 +168,12 @@ module Knj
 			
 			require "cgi/session"
 			require "cgi/session/pstore"
-			@session = CGI::Session.new(@session, "database_manager" => CGI::Session::PStore, "session_id" => session_id, "session_path" => @paras["tmp"])
+			@session = CGI::Session.new(@session, "database_manager" => CGI::Session::PStore, "session_id" => session_id, "session_path" => @paras[:tmp])
 			Kernel.at_exit do
 				@session.close
 			end
 			
-			if @paras[:globals] or @paras["globals"]
+			if @paras[:globals] or @paras[:globals]
 				self.global_params
 			end
 		end
@@ -265,7 +264,7 @@ module Knj
 		
 		def self.alert(string)
 			@alert_sent = true
-			html = "<script type=\"text/javascript\">alert(\"#{Knj::Strings.js_safe(string.to_s)}\");</script>"
+			html = "<script type=\"text/javascript\">alert(\"#{Strings.js_safe(string.to_s)}\");</script>"
 			print html
 		end
 		
@@ -325,7 +324,7 @@ module Knj
 				value = ""
 			end
 			
-			if value and paras.has_key?("value_func") and paras[:value_func]
+			if value and paras.has_key?(:value_func) and paras[:value_func]
 				value = Php.call_user_func(paras[:value_func], value)
 			end
 			
@@ -341,7 +340,7 @@ module Knj
 				paras[:type] = "text"
 			end
 			
-			if paras.has_key?("disabled") and paras[:disabled]
+			if paras.has_key?(:disabled) and paras[:disabled]
 				disabled = "disabled "
 			else
 				disabled = ""
@@ -434,6 +433,14 @@ module Knj
 		end
 		
 		def self.opts(opthash, curvalue = nil, opts_paras = {})
+			opts_paras = {} if !opts_paras
+			opts_paras.each do |key, value|
+				if !key.is_a?(Symbol)
+					opts_paras[key.to_sym] = value
+					opts_paras.delete(key)
+				end
+			end
+			
 			if !opthash
 				return ""
 			end
@@ -447,15 +454,15 @@ module Knj
 				addsel = " selected=\"selected\""
 			end
 			
-			if opts_paras and opts_paras["add"]
+			if opts_paras and opts_paras[:add]
 				html += "<option#{addsel} value=\"\">#{_("Add new")}</option>"
 			end
 			
-			if opts_paras and opts_paras["choose"]
+			if opts_paras and opts_paras[:choose]
 				html += "<option#{addsel} value=\"\">#{_("Choose")}</option>"
 			end
 			
-			if opts_paras and opts_paras["none"]
+			if opts_paras and opts_paras[:none]
 				html += "<option#{addsel} value=\"\">#{_("None")}</option>"
 			end
 			
