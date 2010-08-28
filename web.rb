@@ -8,13 +8,7 @@ module Knj
 		def data; return @data; end
 		
 		def initialize(paras = {})
-			@paras = paras
-			@paras.each do |key, value|
-				if !key.is_a?(Symbol)
-					@paras[key.to_sym] = value
-					@paras.delete(key)
-				end
-			end
+			@paras = ArrayExt.hash_sym(paras)
 			
 			if @paras[:db]
 				@db = @paras[:db]
@@ -140,7 +134,7 @@ module Knj
 			end
 			
 			if @cookie[@paras[:id]]
-				@data = $db.single("sessions", "id" => @cookie[@paras[:id]])
+				@data = ArrayExt.hash_sym($db.single("sessions", "id" => @cookie[@paras[:id]]))
 				
 				if @data
 					if @data[:user_agent] != @server["HTTP_USER_AGENT"] or @data[:ip] != @server["REMOTE_ADDR"]
@@ -161,7 +155,7 @@ module Knj
 					:last_url => @server["REQUEST_URI"].to_s
 				)
 				
-				@data = @db.single("sessions", "id" => @db.last_id)
+				@data = ArrayExt.hash_sym(@db.single(:sessions, :id => @db.last_id))
 				session_id = @paras[:id] + "_" + @data[:id]
 				Php.setcookie(@paras[:id], @data[:id])
 			end
@@ -303,12 +297,7 @@ module Knj
 		end
 		
 		def self.input(paras)
-			paras.each do |key, value|
-				if !key.is_a?(Symbol)
-					paras[key.to_sym] = value
-					paras.delete(key)
-				end
-			end
+			ArrayExt.hash_sym(paras)
 			
 			if paras[:value]
 				if paras[:value].is_a?(Array) and !paras[:value][0].is_a?(NilClass)
@@ -326,6 +315,10 @@ module Knj
 			
 			if value and paras.has_key?(:value_func) and paras[:value_func]
 				value = Php.call_user_func(paras[:value_func], value)
+			end
+			
+			if paras[:values]
+				value = paras[:values]
 			end
 			
 			if !paras[:id]
@@ -397,6 +390,14 @@ module Knj
 						html += " onchange=\"#{paras[:onchange]}\""
 					end
 					
+					if paras[:multiple]
+						html += " multiple"
+					end
+					
+					if paras[:size]
+						html += " size=\"#{paras[:size].to_s}\""
+					end
+					
 					html += ">"
 					html += Web.opts(paras[:opts], value, paras[:opts_paras])
 					html += "</select>"
@@ -466,21 +467,13 @@ module Knj
 				html += "<option#{addsel} value=\"\">#{_("None")}</option>"
 			end
 			
-			if opthash.class.to_s == "Dictionary"
+			if opthash.is_a?(Hash) or opthash.class.to_s == "Dictionary"
 				opthash.each do |key, value|
 					html += "<option"
 					
-					if curvalue.to_s == key.to_s
+					if curvalue.is_a?(Array) and curvalue.index(key) != nil
 						html += " selected=\"selected\""
-					end
-					
-					html += " value=\"#{key.html}\">#{value.html}</option>"
-				end
-			elsif opthash.is_a?(Hash)
-				opthash.each do |key, value|
-					html += "<option"
-					
-					if curvalue.to_s == key.to_s
+					elsif curvalue.to_s == key.to_s
 						html += " selected=\"selected\""
 					end
 					

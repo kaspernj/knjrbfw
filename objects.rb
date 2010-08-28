@@ -2,13 +2,7 @@ module Knj
 	class Objects
 		def initialize(paras)
 			@callbacks = {}
-			@paras = paras
-			@paras.each do |key, value|
-				if !key.is_a?(Symbol)
-					@paras[key.to_sym] = value
-					@paras.delete(key)
-				end
-			end
+			@paras = ArrayExt.hash_sym(paras)
 			
 			if !@paras[:col_id]
 				@paras[:col_id] = :id
@@ -113,20 +107,21 @@ module Knj
 		end
 		
 		def list_opts(classname, paras = {})
+			ArrayExt.hash_sym(paras)
 			classname = classname.to_sym
 			
-			if paras["list_paras"]
-				obs = self.list(classname, paras["list_paras"])
+			if paras[:list_paras]
+				obs = self.list(classname, paras[:list_paras])
 			else
 				obs = self.list(classname)
 			end
 			
 			html = ""
 			
-			if paras["addnew"]
+			if paras[:addnew]
 				html += "<option"
 				
-				if !paras["selected"]
+				if !paras[:selected]
 					html += " selected=\"selected\""
 				end
 				
@@ -134,23 +129,24 @@ module Knj
 			end
 			
 			obs.each do |object|
-				html += "<option value=\"" + CGI.escapeHTML(object[@paras[:col_id]]) + "\""
+				html += "<option value=\"#{object.id.html}\""
 				
-				if paras["selected"] and paras["selected"][@paras[:col_id]] == object[@paras[:col_id]]
+				if paras[:selected] and paras[:selected][@paras[:col_id]] == object.id
 					html += " selected=\"selected\""
 				end
 				
-				html += ">" + CGI.escapeHTML(object.title) + "</option>"
+				html += ">#{object.title.html}</option>"
 			end
 			
 			return html
 		end
 		
 		def list_optshash(classname, paras = {})
+			ArrayExt.hash_sym(paras)
 			classname = classname.to_sym
 			
-			if paras["list_paras"]
-				obs = self.list(classname, paras["list_paras"])
+			if paras[:list_paras]
+				obs = self.list(classname, paras[:list_paras])
 			else
 				obs = self.list(classname)
 			end
@@ -161,18 +157,18 @@ module Knj
 				list = Hash.new
 			end
 			
-			if paras["addnew"]
+			if paras[:addnew]
 				list["0"] = _("Add new")
-			elsif paras["choose"]
+			elsif paras[:choose]
 				list["0"] = _("Choose") + ":"
-			elsif paras["all"]
+			elsif paras[:all]
 				list["0"] = _("All")
-			elsif paras["none"]
+			elsif paras[:none]
 				list["0"] = _("None")
 			end
 			
 			obs.each do |object|
-				list[object[@paras[:col_id]]] = object.title
+				list[object.id] = object.title
 			end
 			
 			return list

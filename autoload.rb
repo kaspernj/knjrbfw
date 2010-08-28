@@ -30,6 +30,7 @@ end
 
 #ruby objects.
 autoload :CGI, "cgi"
+autoload :CSV, "csv"
 autoload :Date, "date"
 autoload :Digest, "digest"
 autoload :Erubis, "erubis"
