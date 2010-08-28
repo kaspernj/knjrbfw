@@ -28,7 +28,9 @@ module Knj
 			return Time.local(*ParseDate.parsedate(date_string))
 		end
 		
-		def self.out(time = nil, paras = {})
+		def self.out(time = nil, args = {})
+			ArrayExt.hash_sym(args)
+			
 			if !time
 				time = Time.new
 			end
@@ -41,11 +43,11 @@ module Knj
 			
 			str = ""
 			
-			if !paras.has_key?("date") or (paras[:date] == true or paras["date"] == true)
+			if !args.has_key?(:date) or args[:date] == true
 				str += "%02d" % time.day.to_s + "/" + "%02d" % time.month.to_s + " " + "%04d" % time.year.to_s
 			end
 			 
-			if (!paras.has_key?("time") and !paras.has_key?(:time)) or (paras[:time] == true or paras["time"] == true)
+			if !args.has_key?(:time) or args[:time] == true
 				str += " " + "%02d" % time.hour.to_s + ":" + "%02d" % time.min.to_s
 			end
 			

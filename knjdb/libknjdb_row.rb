@@ -96,11 +96,15 @@ module Knj
 				raise "No valid key given."
 			end
 			
-			if !@data.has_key?(key.to_sym)
-				raise "No such key: #{key.to_s}."
+			if @data.has_key?(key)
+				return @data[key]
+			elsif @data.has_key?(key.to_sym)
+				return @data[key.to_sym]
+			elsif @data.has_key?(key.to_s)
+				return @data[key.to_s]
 			end
 			
-			return @data[key.to_sym]
+			raise "No such key: #{key.to_s}."
 		end
 		
 		def []=(key, value)
@@ -136,7 +140,7 @@ module Knj
 		
 		def method_missing(*args)
 			func_name = args[0].to_s
-			if match = func_name.match(/^(\S+)\?$/) and @data.has_key?(match[1])
+			if match = func_name.match(/^(\S+)\?$/) and @data.has_key?(match[1].to_sym)
 				if @data[match[1].to_sym] == "1" or @data[match[1].to_sym] == "yes"
 					return true
 				elsif @data[match[1].to_sym] == "0" or @data[match[1].to_sym] == "no"
