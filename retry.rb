@@ -29,7 +29,7 @@ class Knj::Retry
 				elsif count <= 1 or (args.has_key?(:errors) and args[:errors].index(e.class) == nil)
 					doraise = e
 				elsif args.has_key?(:errors) and args[:errors].index(e.class) != nil
-					print "Caught given given error: #{e.class}\n"
+					#given error was in the :errors-array - do nothing. Maybe later it should be logged and returned in a stats-hash or something? - knj
 				end
 			end
 			
