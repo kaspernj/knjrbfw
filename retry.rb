@@ -1,5 +1,7 @@
 class Knj::Retry
 	def self.try(args = {}, &block)
+		raise "No block was given." if !block_given?
+		
 		args[:tries] = 3 if !args[:tries]
 		
 		args[:tries].to_i.downto(1) do |count|
@@ -20,7 +22,9 @@ class Knj::Retry
 					break
 				end
 			rescue Exception => e
-				if e.class == SystemExit and (!args.has_key?(:exit) or args[:exit])
+				if e.class == Interrupt
+					raise e
+				elsif e.class == SystemExit and (!args.has_key?(:exit) or args[:exit])
 					exit
 				elsif count <= 1 or (args.has_key?(:errors) and args[:errors].index(e.class) == nil)
 					doraise = e
