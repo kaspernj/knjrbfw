@@ -288,11 +288,19 @@ module Knj
 			exit
 		end
 		
-		def self.checkval(value, offval)
-			if !value
-				return offval
+		def self.checkval(value, val1, val2 = nil)
+			if val2 != nil
+				if !value or value == ""
+					return val2
+				else
+					return val1
+				end
 			else
-				return value
+				if !value or value == ""
+					return val1
+				else
+					return value
+				end
 			end
 		end
 		
@@ -306,6 +314,8 @@ module Knj
 					value = paras[:value].to_s
 				end
 			end
+			
+			paras[:value_default] = paras[:default] if paras[:default]
 			
 			if value.is_a?(NilClass) and paras[:value_default]
 				value = paras[:value_default]
