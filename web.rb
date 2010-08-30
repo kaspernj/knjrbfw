@@ -133,8 +133,8 @@ module Knj
 				end
 			end
 			
-			if @cookie[@paras[:id]]
-				@data = ArrayExt.hash_sym($db.single("sessions", "id" => @cookie[@paras[:id]]))
+			if @cookie[@paras[:id]] and (sdata = $db.single(:sessions, :id => @cookie[@paras[:id]]))
+				@data = ArrayExt.hash_sym(sdata)
 				
 				if @data
 					if @data[:user_agent] != @server["HTTP_USER_AGENT"] or @data[:ip] != @server["REMOTE_ADDR"]
