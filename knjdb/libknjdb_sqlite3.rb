@@ -13,7 +13,7 @@ class KnjDB_sqlite3
 	
 	def initialize(knjdb_ob)
 		@knjdb = knjdb_ob
-		@conn = SQLite3::Database.open(@knjdb.opts["path"])
+		@conn = SQLite3::Database.open(@knjdb.opts[:path])
 		@conn.results_as_hash = true
 		@conn.type_translation = false
 	end

@@ -81,6 +81,7 @@ module Knj
 							
 							if cont.length > 0
 								stringparse = {
+									"name" => pair[1][0].original_filename,
 									"tmp_name" => tmpname,
 									"size" => cont.length,
 									"error" => 0
@@ -257,8 +258,7 @@ module Knj
 		
 		def self.alert(string)
 			@alert_sent = true
-			html = "<script type=\"text/javascript\">alert(\"#{Strings.js_safe(string.to_s)}\");</script>"
-			print html
+			print "<script type=\"text/javascript\">alert(\"#{Strings.js_safe(string.to_s)}\");</script>"
 		end
 		
 		def self.redirect(string, args = {})
@@ -338,6 +338,8 @@ module Knj
 				paras[:type] = "select"
 			elsif paras[:name] and paras[:name][0..2] == "che"
 				paras[:type] = "checkbox"
+			elsif !paras[:type] and paras[:name][0..3] == "file"
+				paras[:type] = "file"
 			elsif !paras[:type]
 				paras[:type] = "text"
 			end
@@ -428,8 +430,10 @@ module Knj
 					html += "</td></tr></table>"
 				elsif paras[:type] == "textshow"
 					html += "#{value}</td></tr>"
+				elsif paras[:type] == "file"
+					html += "<input type=\"file\" name=\"#{paras[:name].html}\" class=\"input_file\" /></td>"
 				else
-					html += "<input #{disabled}type=\"#{paras[:type].html}\" class=\"input_#{paras[:type].html}\" id=\"#{paras[:id].html}\" name=\"#{paras[:name].html}\" value=\"#{value.html}\" />"
+					html += "<input #{disabled}type=\"#{paras[:type].html}\" class=\"input_#{paras[:type].html}\" id=\"#{paras[:id].html}\" name=\"#{paras[:name].html}\" value=\"#{value.html}\" /></td>"
 				end
 				
 				html += "</tr>"
