@@ -8,6 +8,10 @@ module Knj
 				@paras[:col_id] = :id
 			end
 			
+			if !@paras[:db]
+				raise "No DB given."
+			end
+			
 			@objects = {}
 		end
 		

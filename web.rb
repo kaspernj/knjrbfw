@@ -18,9 +18,8 @@ module Knj
 				@paras[:tmp] = "/tmp"
 			end
 			
-			if !@paras[:id]
-				raise "No ID was given."
-			end
+			raise "No ID was given." if !@paras[:id]
+			raise "No DB was given." if !@paras[:db]
 			
 			if @paras[:cgi]
 				@cgi = @paras[:cgi]
