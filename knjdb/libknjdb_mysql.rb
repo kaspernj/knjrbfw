@@ -14,13 +14,13 @@ class KnjDB_mysql
 	def initialize(knjdb_ob)
 		@knjdb = knjdb_ob
 		
-		if knjdb_ob.opts.has_key?("port")
-			port = knjdb_ob.opts["port"].to_i
+		if knjdb_ob.opts.has_key?(:port)
+			port = knjdb_ob.opts[:port].to_i
 		else
 			port = 3306
 		end
 		
-		@conn = Mysql.real_connect(knjdb_ob.opts["host"], knjdb_ob.opts["user"], knjdb_ob.opts["pass"], knjdb_ob.opts["db"], port)
+		@conn = Mysql.real_connect(knjdb_ob.opts[:host], knjdb_ob.opts[:user], knjdb_ob.opts[:pass], knjdb_ob.opts[:db], port)
 	end
 	
 	def query(string)
@@ -54,7 +54,7 @@ class KnjDB_mysql_result
 	end
 	
 	def fetch
-		if $db and $db.opts["return_keys"] == "symbols"
+		if $db and $db.opts[:return_keys] == "symbols"
 			return self.fetch_hash_symbols
 		end
 		
