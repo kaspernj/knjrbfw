@@ -9,8 +9,10 @@ module Knj
 				"smtp_domain" => ENV["HOSTNAME"]
 			}
 			
-			paras.each do |key, value|
-				@paras[key] = value
+			if paras.is_a?(Hash)
+				paras.each do |key, value|
+					@paras[key] = value
+				end
 			end
 			
 			if @paras["send"]

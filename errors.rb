@@ -1,5 +1,5 @@
-module Knj
-	module Errors
-		class Notice < StandardError; end
-	end
+module Knj::Errors
+	class Notice < StandardError; end
+	class NotFound < StandardError; end
+	class InvalidData < StandardError; end
 end

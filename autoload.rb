@@ -11,31 +11,44 @@ module Knj
 	autoload :Notify, $knjpath + "notify"
 	autoload :Web, $knjpath + "web"
 	autoload :Datestamp, $knjpath + "datestamp"
+	autoload :Google_sitemap, $knjpath + "google_sitemap"
 	autoload :Http, $knjpath + "http"
 	autoload :Sms, $knjpath + "sms"
 	autoload :Os, $knjpath + "os"
 	autoload :Gtk2, $knjpath + "gtk2"
 	autoload :Php, $knjpath + "php"
+	autoload :Rand, $knjpath + "rand"
+	autoload :Retry, $knjpath + "retry"
+	autoload :RSVGBIN, $knjpath + "rsvgbin"
 	autoload :Strings, $knjpath + "strings"
 	autoload :SSHRobot, $knjpath + "sshrobot/sshrobot"
 	autoload :Sysuser, $knjpath + "sysuser"
 	autoload :Thread, $knjpath + "thread"
 	autoload :Unix_proc, $knjpath + "unix_proc"
+	autoload :YouTube, $knjpath + "youtube"
 end
 
 #ruby objects.
 autoload :CGI, "cgi"
+autoload :CSV, "csv"
 autoload :Date, "date"
 autoload :Digest, "digest"
 autoload :Erubis, "erubis"
+autoload :FCGI, "fcgi"
 autoload :FileUtils, "fileutils"
+autoload :JSON, $knjpath + "autoload/json_autoload"
+autoload :GD2, $knjpath + "autoload/gd2"
 autoload :Mysql, "mysql"
 autoload :ParseDate, "parsedate"
 autoload :SQLite3, "sqlite3"
 autoload :Ping, "ping"
-autoload :SOAP, "knj/autoload/soap"
+autoload :REXML, $knjpath + "autoload/rexml"
+autoload :StringIO, "stringio"
+autoload :SOAP, $knjpath + "autoload/soap"
+autoload :Timeout, "timeout"
 autoload :TCPSocket, "socket"
 autoload :TCPServer, "socket"
+autoload :URI, "uri"
 autoload :XmlSimple, "xmlsimple"
 
 if RUBY_PLATFORM == "java"
@@ -69,9 +82,10 @@ module TMail
 end
 
 #facets
-autoload :Dictionary, "facets/dictionary.rb"
+autoload :Dictionary, "facets/dictionary"
 
 #gems
 autoload :Twitter, $knjpath + "autoload/twitter"
 autoload :Facebooker, $knjpath + "autoload/facebooker"
 autoload :Cinch, $knjpath + "autoload/cinch"
+autoload :ActiveSupport, $knjpath + "autoload/activesupport"

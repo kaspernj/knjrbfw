@@ -59,5 +59,13 @@ module Knj
 				Dir.chdir(File.dirname(filepath))
 			end
 		end
+		
+		def self.realpath(path)
+			if File.symlink?(path)
+				return self.realpath(File.readlink(path))
+			end
+			
+			return path
+		end
 	end
 end

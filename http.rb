@@ -1,11 +1,13 @@
 module Knj
 	class Http
+		attr_reader :cookies
+		
 		def self.isgdlink(url)
 			http = Knj::Http.new(
 				"host" => "is.gd"
 			)
 			http.connect
-			resp = http.get("api.php?longurl=" + url)
+			resp = http.get("/api.php?longurl=" + url)
 			
 			return resp["data"]
 		end
@@ -21,8 +23,6 @@ module Knj
 		end
 		
 		def connect
-			require "net/http"
-			
 			if @opts["ssl"]
 				require "net/https"
 			end
@@ -35,7 +35,15 @@ module Knj
 				port = 80
 			end
 			
+			if !@opts["host"]
+				raise "Invalid host: " + @opts["host"].to_s
+			end
+			
 			@http = Net::HTTP.new(@opts["host"], port)
+			
+			if @opts["debug"]
+				@http.set_debug_output($stderr)
+			end
 			
 			if @opts["ssl"]
 				@http.use_ssl = true
@@ -98,7 +106,6 @@ module Knj
 		
 		def post(addr, posthash, files = [])
 			check_connected
-			require "cgi"
 			
 			postdata = ""
 			posthash.each do |key, value|

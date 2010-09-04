@@ -33,7 +33,7 @@ module Knj
 				superstr = supercl.to_s
 			end
 			
-			if argument.is_a?(Hash) or supercl.is_a?(Hash) or cstr == "SQLite3::ResultSet::HashWithTypes" or cstr == "CGI" or cstr == "Knj::Db_row" or cstr == "Apache::Table" or superstr == "Knj::Db_row"
+			if argument.is_a?(Hash) or supercl.is_a?(Hash) or cstr == "SQLite3::ResultSet::HashWithTypes" or cstr == "CGI" or cstr == "Knj::Db_row" or cstr == "Apache::Table" or superstr == "Knj::Db_row" or cstr == "Dictionary"
 				retstr += argument.class.to_s + "{\n"
 				argument.each do |pair|
 					i = 0
@@ -42,7 +42,13 @@ module Knj
 						i += 1
 					end
 					
-					retstr += "[" + pair[0] + "] => "
+					if pair[0].is_a?(Symbol)
+						keystr = ":#{pair[0].to_s}"
+					else
+						keystr = pair[0].to_s
+					end
+					
+					retstr += "[#{keystr}] => "
 					retstr += print_r(pair[1], true, count + 1).to_s
 				end
 				
@@ -76,8 +82,10 @@ module Knj
 				end
 				
 				retstr += "}\n"
-			elsif argument.is_a?(String) or argument.is_a?(Integer) or argument.is_a?(Fixnum)
+			elsif argument.is_a?(String) or argument.is_a?(Integer) or argument.is_a?(Fixnum) or argument.is_a?(Float)
 				retstr += argument.to_s + "\n"
+			elsif argument.is_a?(Exception)
+				retstr += "#\{#{argument.class.to_s}: #{argument.message}}\n"
 			else
 				#print argument.to_s, "\n"
 				retstr += "Unknown class: " + cstr + "\n"
@@ -88,24 +96,6 @@ module Knj
 			else
 				print retstr
 			end
-		end
-		
-		def self.date(date_format, date_unixt = nil)
-			if date_unixt == nil
-				date_unixt = Time.now.to_i
-			end
-			
-			date_object = Time.at(date_unixt.to_i)
-			
-			date_format = date_format.gsub("d", "%02d" % date_object.mday)
-			date_format = date_format.gsub("m", "%02d" % date_object.mon)
-			date_format = date_format.gsub("y", "%02d" % date_object.year.to_s[2,2].to_i)
-			date_format = date_format.gsub("Y", "%04d" % date_object.year)
-			date_format = date_format.gsub("H", "%02d" % date_object.hour)
-			date_format = date_format.gsub("i", "%02d" % date_object.min)
-			date_format = date_format.gsub("s", "%02d" % date_object.sec)
-			
-			return date_format
 		end
 		
 		def self.gtext(string)
@@ -122,15 +112,38 @@ module Knj
 			end
 			
 			number = sprintf("%." + precision.to_s + "f", number)
-			number = number.gsub(%r{([0-9]{3}(?=([0-9])))}, "\\1,")
+			
+			#thanks for jmoses wrote some of tsep-code: http://snippets.dzone.com/posts/show/693
+			st = number.reverse
+			r = ""
+			max = if st[-1].chr == '-'
+				st.size - 1
+			else
+				st.size
+			end
+			
+			if st.to_i == st.to_f
+				1.upto(st.size) do |i|
+					r << st[i-1].chr
+					r << ',' if i%3 == 0 and i < max
+				end
+			else
+				start = nil
+				1.upto(st.size) do |i|
+					r << st[i-1].chr
+					start = 0 if r[-1].chr == '.' and not start
+					if start
+						r << ',' if start % 3 == 0 and start != 0  and i < max
+						start += 1
+					end
+				end
+			end
+			
+			number = r.reverse
 			number = number.gsub(",", "comma").gsub(".", "dot")
 			number = number.gsub("comma", delimiter).gsub("dot", seperator)
 			
 			return number
-		end
-		
-		def self.ucwords(string)
-			return Knj::Php.ucwords(string)
 		end
 		
 		def self.ucwords(string)
@@ -176,20 +189,37 @@ module Knj
 		
 		def self.header(headerstr)
 			match = headerstr.to_s.match(/(.*): (.*)/)
-			
-			if !match
-				raise "Couldnt parse header."
+			if match
+				key = match[1]
+				value = match[2]
+			else
+				#HTTP/1.1 404 Not Found
+				
+				match_status = headerstr.to_s.match(/^HTTP\/[0-9\.]+ ([0-9]+) (.+)$/)
+				if match_status
+					key = "Status"
+					value = match_status[1] + " " + match_status[2]
+				else
+					raise "Couldnt parse header."
+				end
 			end
 			
-			Apache.request.headers_out[match[1]] = match[2]
+			sent = false
 			
-			if $cgi.is_a?(CGI)
-				$cgi.header(match[1] => match[2])
+			if Php.class_exists("Apache")
+				sent = true
+				Apache.request.headers_out[key] = value
 			end
-		end
-		
-		def header(str)
-			return Knj::Php.header(str)
+			
+			if $knj_eruby
+				$knj_eruby.header(key, value)
+			elsif $cgi.is_a?(CGI)
+				sent = true
+				$cgi.header(key => value)
+			elsif $_CGI.is_a?(CGI)
+				sent = true
+				$_CGI.header(key => value)
+			end
 		end
 		
 		def self.nl2br(string)
@@ -212,6 +242,10 @@ module Knj
 		
 		def self.file_get_contents(filepath)
 			return File.read(filepath.untaint)
+		end
+		
+		def self.unlink(filepath)
+			FileUtils.rm(filepath)
 		end
 		
 		def self.file_exists(filepath)
@@ -282,7 +316,7 @@ module Knj
 		
 		def self.html_entity_decode(string)
 			string = CGI.unescapeHTML(string.to_s)
-			string = string.gsub("&oslash;", "ø").gsub("&aelig;", "æ").gsub("&aring;", "å")
+			string = string.gsub("&oslash;", "ø").gsub("&aelig;", "æ").gsub("&aring;", "å").gsub("&euro;", "€")
 			
 			return string
 		end
@@ -363,7 +397,8 @@ module Knj
 		def self.setcookie(cname, cvalue, expire = nil, domain = nil)
 			paras = {
 				"name" => cname,
-				"value" => cvalue
+				"value" => cvalue,
+				"path" => "/"
 			}
 			
 			if expire
@@ -375,7 +410,7 @@ module Knj
 			end
 			
 			cookie = CGI::Cookie.new(paras)
-			$_CGI.out("cookie" => cookie){""}
+			Php.header("Set-Cookie: #{cookie.to_s}")
 			
 			if $_COOKIE
 				$_COOKIE[cname] = cvalue
@@ -394,24 +429,96 @@ module Knj
 			Dir.chdir(dirname)
 		end
 		
-		def include_once(filename)
+		def self.include_once(filename)
 			require filename
 		end
 		
-		def require_once(filename)
+		def self.require_once(filename)
 			require filename
 		end
 		
-		def echo(string)
+		def self.echo(string)
 			print string
 		end
 		
-		def msgbox(title, msg, type)
+		def self.msgbox(title, msg, type)
 			Knj::Gtk2.msgbox(msg, type, title)
 		end
 		
-		def count(array)
+		def self.count(array)
 			return array.length
+		end
+		
+		def self.json_encode(obj)
+			return JSON.generate(obj)
+		end
+		
+		def self.json_decode(data)
+			return JSON.parse(data)
+		end
+		
+		def self.time
+			return Time.new.to_i
+		end
+		
+		def self.microtime(get_as_float = false)
+			microtime = Time.now.to_f
+			
+			if get_as_float
+				return microtime
+			end
+			
+			splitted = microtime.to_s.split(",")
+			return "#{splitted[0]} #{splitted[1]}"
+		end
+		
+		def self.mktime(hour = nil, min = nil, sec = nil, date = nil, month = nil, year = nil, is_dst = -1)
+			cur_time = Time.new
+			
+			if hour == nil
+				hour = cur_time.hour
+			end
+			
+			if min == nil
+				min = cur_time.min
+			end
+			
+			if sec == nil
+				sec = cur_time.sec
+			end
+			
+			if date == nil
+				date = cur_time.date
+			end
+			
+			if month == nil
+				month = cur_time.month
+			end
+			
+			if year == nil
+				year = cur_time.year
+			end
+			
+			new_time = Datestamp.from_dbstr("#{year.to_s}-#{month.to_s}-#{date.to_s} #{hour.to_s}:#{min.to_s}:#{sec.to_s}")
+			return new_time.to_i
+		end
+		
+		def self.date(date_format, date_unixt = nil)
+			if date_unixt == nil
+				date_unixt = Time.now.to_i
+			end
+			
+			date_object = Time.at(date_unixt.to_i)
+			
+			date_format = date_format.gsub("d", "%02d" % date_object.mday)
+			date_format = date_format.gsub("m", "%02d" % date_object.mon)
+			date_format = date_format.gsub("y", "%02d" % date_object.year.to_s[2,2].to_i)
+			date_format = date_format.gsub("Y", "%04d" % date_object.year)
+			date_format = date_format.gsub("H", "%02d" % date_object.hour)
+			date_format = date_format.gsub("i", "%02d" % date_object.min)
+			date_format = date_format.gsub("s", "%02d" % date_object.sec)
+			
+			return date_format
 		end
 		
 		Knj::Php.singleton_methods.each do |methodname|

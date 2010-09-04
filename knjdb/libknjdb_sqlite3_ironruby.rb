@@ -16,7 +16,7 @@ class KnjDB_sqlite3_ironruby
 	
 	def initialize(knjdb_ob)
 		@knjdb = knjdb_ob
-		@conn = Mono::Data::SqliteClient::SqliteConnection.new("URI=file:" + @knjdb.opts["path"] + ",version=3")
+		@conn = Mono::Data::SqliteClient::SqliteConnection.new("URI=file:" + @knjdb.opts[:path] + ",version=3")
 		@conn.Open
 	end
 	
