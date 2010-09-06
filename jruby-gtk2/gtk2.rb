@@ -59,7 +59,13 @@ module Gdk; end
 					else
 						splitted = self.class.to_s.split("::")
 						javaname = "org.gnome." + splitted.first.downcase + "." + splitted.last
-						@ob = Gtk.evalob(javaname).new
+						
+						begin
+							@ob = Gtk.evalob(javaname).new
+						rescue Exception => e
+							print "Could not spawn object: #{javaname}\n"
+							raise e
+						end
 					end
 				end
 				
@@ -245,7 +251,7 @@ module GLib
 	end
 end
 
-files = ["checkbutton", "combobox", "treeview", "liststore", "statusicon", "progressbar", "window", "menu", "eventbutton", "builder", "gladexml"]
+files = ["builder", "checkbutton", "combobox", "eventbutton", "hbox", "liststore", "gladexml", "statusicon", "progressbar", "window", "menu", "treeview"]
 files.each do |file|
 	require File.dirname(__FILE__) + "/" + file
 end
