@@ -4,7 +4,7 @@ require File.dirname(__FILE__) + "/gtk-4.0.jar"
 org.gnome.gtk.Gtk.init(nil)
 
 @all = {
-	"Gtk" => ["Window", "HBox", "VBox", "Label", "Button", "ListStore", "TreeView", "TreeViewColumn",
+	"Gtk" => ["Dialog", "Window", "HBox", "IconSize", "Image", "VBox", "Label", "Button", "ListStore", "TreeView", "TreeViewColumn",
 					"CellRendererText", "DataColumnString", "TreeIter", "StatusIcon", "Entry", "ProgressBar",
 					"Menu", "MenuItem", "CheckButton", "ComboBox", "FileChooserButton"
 	],
@@ -34,9 +34,18 @@ module Gtk
 	def self.takeob; return @takeob; end
 	
 	#Cache eval'ed objects to get it done faster.
-	@evalobs = {}
+	@evalobs = {
+		"org.gnome.gtk.Button" => org.gnome.gtk.Button,
+		"org.gnome.gtk.Dialog" => org.gnome.gtk.Dialog,
+		"org.gnome.gtk.HBox" => org.gnome.gtk.HBox,
+		"org.gnome.gtk.Image" => org.gnome.gtk.Image,
+		"org.gnome.gtk.Label" => org.gnome.gtk.Label,
+		"org.gnome.gtk.ListStore" => org.gnome.gtk.ListStore,
+		"org.gnome.gtk.Window" => org.gnome.gtk.Window
+	}
 	def self.evalob(evalobstr)
 		if !@evalobs.has_key?(evalobstr)
+			print "Not statically written: #{evalobstr}\n"
 			@evalobs[evalobstr] = eval(evalobstr)
 		end
 		
@@ -101,9 +110,16 @@ module Gdk; end
 						define_method funcname do |*args|
 							#First argument is always the widget - make it a converted widget instead.
 							cname = args[0].class.to_s.split("::")[2]
-							widget = Gtk.const_get(cname).new(false)
-							widget.ob = args[0]
-							args[0] = widget
+							
+							begin
+								Gtk.takeob = args[0]
+								widget = Gtk.const_get(cname).new(false)
+								widget.ob = args[0]
+								args[0] = widget
+							rescue Exception => e
+								print "Could not spawn widget: #{cname}\n"
+								raise e
+							end
 							
 							ret = block.call(*args)
 							
@@ -178,7 +194,7 @@ end
 				return @ob.add(widget.ob)
 			end
 			
-			def pack_start(widget, arg1, arg2 = false)
+			def pack_start(widget, arg1 = false, arg2 = false)
 				return @ob.pack_start(widget.ob, arg1, arg2, 0)
 			end
 		end
@@ -251,7 +267,7 @@ module GLib
 	end
 end
 
-files = ["builder", "checkbutton", "combobox", "eventbutton", "hbox", "liststore", "gladexml", "statusicon", "progressbar", "window", "menu", "treeview"]
+files = ["builder", "checkbutton", "combobox", "dialog", "eventbutton", "hbox", "iconsize", "image", "liststore", "gladexml", "menu", "progressbar", "statusicon", "stock", "treeview", "window"]
 files.each do |file|
 	require File.dirname(__FILE__) + "/" + file
 end
