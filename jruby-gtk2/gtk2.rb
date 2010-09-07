@@ -58,8 +58,7 @@ module Gdk; end
 @all.each do |parentclass, classes|
 	classes.each do |classname|
 		Kernel.const_get(parentclass).const_set(classname, Class.new do
-				def ob; return @ob; end
-				def ob=(ob); @ob = ob; end
+				attr_accessor :ob
 				
 				def initialize(spawn_object = true)
 					if Gtk.takeob
@@ -208,32 +207,6 @@ end
 end
 
 module Gtk
-	class CellRendererText
-		def initialize
-			if Gtk.takeob
-				@ob = Gtk.takeob
-				Gtk.takeob = nil
-			end
-		end
-		
-		def init(tcol)
-			@ob = org.gnome.gtk.CellRendererText.new(tcol.ob)
-		end
-	end
-	
-	class VBox
-		def initialize
-			if Gtk.takeob
-				@ob = Gtk.takeob
-				Gtk.takeob = nil
-			else
-				splitted = self.class.to_s.split("::")
-				javaname = "org.gnome." + splitted.first.downcase + "." + splitted.last
-				@ob = Gtk.evalob(javaname).new(false, 0)
-			end
-		end
-	end
-	
 	def self.main
 		org.gnome.gtk.Gtk.main
 	end
@@ -267,7 +240,7 @@ module GLib
 	end
 end
 
-files = ["builder", "checkbutton", "combobox", "dialog", "eventbutton", "hbox", "iconsize", "image", "liststore", "gladexml", "menu", "progressbar", "statusicon", "stock", "treeview", "window"]
+files = ["builder", "cellrenderertext", "checkbutton", "combobox", "dialog", "eventbutton", "hbox", "iconsize", "image", "liststore", "gladexml", "menu", "progressbar", "statusicon", "stock", "treeview", "vbox", "window"]
 files.each do |file|
 	require File.dirname(__FILE__) + "/" + file
 end

@@ -1,11 +1,9 @@
 class GladeXML
-	def block=(newblock); @block = newblock; end
-	def data; return @data; end
+	attr_accessor :block
+	attr_reader :data
 	
 	def initialize(filename, &block)
 		@obs = {}
-		
-		require "xmlsimple"
 		
 		if filename.index("interface>") == nil
 			cont = File.read(filename)
@@ -39,7 +37,6 @@ class GladeXML
 					method = @block.call(func_name)
 					
 					object = self.get_widget(tha_id)
-					print "Connecting #{name}\n"
 					object.signal_connect(name) do |*paras|
 						#Convert arguments to fit the arity-count of the Proc-object (the block, the method or whatever you want to call it).
 						newparas = []
