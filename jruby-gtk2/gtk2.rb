@@ -4,7 +4,7 @@ require File.dirname(__FILE__) + "/gtk-4.0.jar"
 org.gnome.gtk.Gtk.init(nil)
 
 @all = {
-	"Gtk" => ["Dialog", "Window", "HBox", "IconSize", "Image", "VBox", "Label", "Button", "ListStore", "TreeView", "TreeViewColumn",
+	"Gtk" => ["Dialog", "Window", "HBox", "IconSize", "Image", "VBox", "Label", "Button", "ListStore", "TreeView", "TreeViewColumn", "TreeSelection",
 					"CellRendererText", "DataColumnString", "TreeIter", "StatusIcon", "Entry", "ProgressBar",
 					"Menu", "MenuItem", "CheckButton", "ComboBox", "FileChooserButton"
 	],

@@ -39,6 +39,7 @@ class GladeXML
 					method = @block.call(func_name)
 					
 					object = self.get_widget(tha_id)
+					print "Connecting #{name}\n"
 					object.signal_connect(name) do |*paras|
 						#Convert arguments to fit the arity-count of the Proc-object (the block, the method or whatever you want to call it).
 						newparas = []
