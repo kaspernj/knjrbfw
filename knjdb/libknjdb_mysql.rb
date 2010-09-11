@@ -23,8 +23,22 @@ class KnjDB_mysql
 		@conn = Mysql.real_connect(knjdb_ob.opts["host"], knjdb_ob.opts["user"], knjdb_ob.opts["pass"], knjdb_ob.opts["db"], port)
 	end
 	
+	def reconnect
+		@conn = Mysql.real_connect(knjdb_ob.opts["host"], knjdb_ob.opts["user"], knjdb_ob.opts["pass"], knjdb_ob.opts["db"], port)
+	end
+	
 	def query(string)
-		return KnjDB_mysql_result.new(@conn.query(string))
+		begin
+			return KnjDB_mysql_result.new(@conn.query(string))
+		rescue Mysql::Error => e
+			if e.message == "MySQL server has gone away"
+				print "Reconnect!\n"
+				self.reconnect
+				return KnjDB_mysql_result.new(@conn.query(string))
+			else
+				raise e
+			end
+		end
 	end
 	
 	def escape(string)
