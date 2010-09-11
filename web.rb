@@ -303,6 +303,15 @@ module Knj
 			end
 		end
 		
+		def self.inputs(arr)
+			html = ""
+			arr.each do |args|
+				html += self.input(args)
+			end
+			
+			return html
+		end
+		
 		def self.input(paras)
 			ArrayExt.hash_sym(paras)
 			
@@ -336,9 +345,9 @@ module Knj
 			
 			if !paras[:type] and paras[:opts]
 				paras[:type] = "select"
-			elsif paras[:name] and paras[:name][0..2] == "che"
+			elsif paras[:name] and paras[:name].to_s[0..2] == "che"
 				paras[:type] = "checkbox"
-			elsif !paras[:type] and paras[:name][0..3] == "file"
+			elsif !paras[:type] and paras[:name].to_s[0..3] == "file"
 				paras[:type] = "file"
 			elsif !paras[:type]
 				paras[:type] = "text"
@@ -547,6 +556,16 @@ class String
 	
 	def sql
 		return $db.escape(self)
+	end
+end
+
+class Symbol
+	def html
+		return self.to_s.html
+	end
+	
+	def sql
+		return self.to_s.sql
 	end
 end
 
