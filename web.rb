@@ -1,16 +1,16 @@
 class Knj::Web
 	attr_reader :session, :cgi, :data
 	
-	def initialize(paras = {})
-		@paras = ArrayExt.hash_sym(paras)
-		@db = @paras[:db] if @paras[:db] 
-		@paras[:tmp] = "/tmp" if !@paras[:tmp]
+	def initialize(args = {})
+		@args = ArrayExt.hash_sym(args)
+		@db = @args[:db] if @args[:db] 
+		@args[:tmp] = "/tmp" if !@args[:tmp]
 		
-		raise "No ID was given." if !@paras[:id]
-		raise "No DB was given." if !@paras[:db]
+		raise "No ID was given." if !@args[:id]
+		raise "No DB was given." if !@args[:db]
 		
-		if @paras[:cgi]
-			@cgi = @paras[:cgi]
+		if @args[:cgi]
+			@cgi = @args[:cgi]
 		elsif $_CGI
 			@cgi = $_CGI
 		else
@@ -53,8 +53,8 @@ class Knj::Web
 		end
 	end
 	
-	def read_cgi(paras = {})
-		paras.each do |key, value|
+	def read_cgi(args = {})
+		args.each do |key, value|
 			if key == :cgi
 				@cgi = value
 			else
@@ -109,7 +109,7 @@ class Knj::Web
 					end
 				elsif pair[1][0].is_a?(StringIO)
 					if varname[0..3] == "file"
-						tmpname = @paras[:tmp] + "/knj_web_upload_#{Time.now.to_f.to_s}_#{rand(1000).to_s.untaint}"
+						tmpname = @args[:tmp] + "/knj_web_upload_#{Time.now.to_f.to_s}_#{rand(1000).to_s.untaint}"
 						isstring = false
 						do_files = true
 						cont = pair[1][0].string
@@ -169,11 +169,9 @@ class Knj::Web
 			end
 		end
 		
-		if @paras[:globals] or @paras[:globals]
-			self.global_params
-		end
+		self.global_params if @args[:globals]
 		
-		if @cookie[@paras[:id]] and (sdata = $db.single(:sessions, :id => @cookie[@paras[:id]]))
+		if @cookie[@args[:id]] and (sdata = $db.single(:sessions, :id => @cookie[@args[:id]]))
 			@data = ArrayExt.hash_sym(sdata)
 			
 			if @data
@@ -181,7 +179,7 @@ class Knj::Web
 					@data = nil
 				else
 					@db.update(:sessions, {"last_url" => @server["REQUEST_URI"].to_s, "date_active" => Datestamp.dbstr}, {"id" => @data[:id]})
-					session_id = @paras[:id] + "_" + @data[:id]
+					session_id = @args[:id] + "_" + @data[:id]
 				end
 			end
 		end
@@ -196,13 +194,13 @@ class Knj::Web
 			)
 			
 			@data = ArrayExt.hash_sym(@db.single(:sessions, :id => @db.last_id))
-			session_id = @paras[:id] + "_" + @data[:id]
-			Php.setcookie(@paras[:id], @data[:id])
+			session_id = @args[:id] + "_" + @data[:id]
+			Php.setcookie(@args[:id], @data[:id])
 		end
 		
 		require "cgi/session"
 		require "cgi/session/pstore"
-		@session = CGI::Session.new(@session, "database_manager" => CGI::Session::PStore, "session_id" => session_id, "session_path" => @paras[:tmp])
+		@session = CGI::Session.new(@session, "database_manager" => CGI::Session::PStore, "session_id" => session_id, "session_path" => @args[:tmp])
 	end
 	
 	def [](key)
@@ -223,9 +221,7 @@ class Knj::Web
 				valuefrom = namepos + match[1].length + 2
 				restname = varname.slice(valuefrom..-1)
 				
-				if !seton[name]
-					seton[name] = {}
-				end
+				seton[name] = {} if !seton[name]
 				
 				if restname and restname.index("[") != nil
 					if !seton[name][match[1]]
@@ -280,7 +276,7 @@ class Knj::Web
 		@post = nil
 		@get = nil
 		@session = nil
-		@paras = nil
+		@args = nil
 	end
 	
 	def self.require_eruby(filepath)
@@ -309,10 +305,7 @@ class Knj::Web
 			Php.header("Location: #{string}")
 		end
 		
-		if do_js
-			print "<script type=\"text/javascript\">location.href=\"#{string}\";</script>"
-		end
-		
+		print "<script type=\"text/javascript\">location.href=\"#{string}\";</script>" if do_js
 		exit
 	end
 	
@@ -337,46 +330,41 @@ class Knj::Web
 		end
 	end
 	
-	def self.input(paras)
-		ArrayExt.hash_sym(paras)
+	def self.input(args)
+		ArrayExt.hash_sym(args)
 		
-		if paras[:value]
-			if paras[:value].is_a?(Array) and !paras[:value][0].is_a?(NilClass)
-				value = paras[:value][0][paras[:value][1]]
-			elsif paras[:value].is_a?(String) or paras[:value].is_a?(Integer)
-				value = paras[:value].to_s
+		if args[:value]
+			if args[:value].is_a?(Array) and !args[:value][0].is_a?(NilClass)
+				value = args[:value][0][args[:value][1]]
+			elsif args[:value].is_a?(String) or args[:value].is_a?(Integer)
+				value = args[:value].to_s
 			end
 		end
 		
-		paras[:value_default] = paras[:default] if paras[:default]
+		args[:value_default] = args[:default] if args[:default]
 		
-		if value.is_a?(NilClass) and paras[:value_default]
-			value = paras[:value_default]
+		if value.is_a?(NilClass) and args[:value_default]
+			value = args[:value_default]
 		elsif value.is_a?(NilClass)
 			value = ""
 		end
 		
-		if value and paras.has_key?(:value_func) and paras[:value_func]
-			value = Php.call_user_func(paras[:value_func], value)
+		if value and args.has_key?(:value_func) and args[:value_func]
+			value = Php.call_user_func(args[:value_func], value)
 		end
 		
-		if paras[:values]
-			value = paras[:values]
+		value = args[:values] if args[:values]
+		args[:id] = args[:name] if !args[:id]
+		
+		if !args[:type] and args[:opts]
+			args[:type] = "select"
+		elsif args[:name] and args[:name][0..2] == "che"
+			args[:type] = "checkbox"
+		elsif !args[:type]
+			args[:type] = "text"
 		end
 		
-		if !paras[:id]
-			paras[:id] = paras[:name]
-		end
-		
-		if !paras[:type] and paras[:opts]
-			paras[:type] = "select"
-		elsif paras[:name] and paras[:name][0..2] == "che"
-			paras[:type] = "checkbox"
-		elsif !paras[:type]
-			paras[:type] = "text"
-		end
-		
-		if paras.has_key?(:disabled) and paras[:disabled]
+		if args.has_key?(:disabled) and args[:disabled]
 			disabled = "disabled "
 		else
 			disabled = ""
@@ -384,104 +372,89 @@ class Knj::Web
 		
 		html = ""
 		
-		if paras[:type] == "checkbox"
+		if args[:type] == "checkbox"
 			if value.is_a?(String) and value == "1" or value.to_s == "1"
 				checked = " checked"
 			else
 				checked = ""
 			end
 			
-			if paras.has_key?(:value_active)
-				checked += " value=\"#{paras[:value_active]}\""
+			if args.has_key?(:value_active)
+				checked += " value=\"#{args[:value_active]}\""
 			end
 			
 			html += "<tr>"
 			html += "<td colspan=\"2\" class=\"tdcheck\">"
-			html += "<input type=\"checkbox\" class=\"input_checkbox\" id=\"#{paras[:id].html}\" name=\"#{paras[:name].html}\"#{checked} />"
-			html += "<label for=\"#{paras[:id].html}\">#{paras[:title].html}</label>"
+			html += "<input type=\"checkbox\" class=\"input_checkbox\" id=\"#{args[:id].html}\" name=\"#{args[:name].html}\"#{checked} />"
+			html += "<label for=\"#{args[:id].html}\">#{args[:title].html}</label>"
 			html += "</td>"
 			html += "</tr>"
 		else
 			html += "<tr>"
 			html += "<td class=\"tdt\">"
-			html += paras[:title].html
+			html += args[:title].html
 			html += "</td>"
 			html += "<td class=\"tdc\">"
 			
-			if paras[:type] == "textarea"
-				if paras.has_key?(:height)
-					styleadd = " style=\"height: #{paras[:height].html}px;\""
+			if args[:type] == "textarea"
+				if args.has_key?(:height)
+					styleadd = " style=\"height: #{args[:height].html}px;\""
 				else
 					styleadd = ""
 				end
 				
-				html += "<textarea#{styleadd} class=\"input_textarea\" name=\"#{paras[:name].html}\" id=\"#{paras[:id].html}\">#{value}</textarea>"
-			elsif paras[:type] == "fckeditor"
-				if !paras[:height]
-					paras[:height] = 400
-				end
+				html += "<textarea#{styleadd} class=\"input_textarea\" name=\"#{args[:name].html}\" id=\"#{args[:id].html}\">#{value}</textarea>"
+			elsif args[:type] == "fckeditor"
+				args[:height] = 400 if !args[:height]
 				
 				require "/usr/share/fckeditor/fckeditor.rb"
-				fck = FCKeditor.new(paras[:name])
-				fck.Height = paras[:height].to_i
+				fck = FCKeditor.new(args[:name])
+				fck.Height = args[:height].to_i
 				fck.Value = value
 				html += fck.CreateHtml
-			elsif paras[:type] == "select"
-				html += "<select name=\"#{paras[:name].html}\" id=\"#{paras[:id].html}\" class=\"input_select\""
-				
-				if paras[:onchange]
-					html += " onchange=\"#{paras[:onchange]}\""
-				end
-				
-				if paras[:multiple]
-					html += " multiple"
-				end
-				
-				if paras[:size]
-					html += " size=\"#{paras[:size].to_s}\""
-				end
-				
+			elsif args[:type] == "select"
+				html += "<select name=\"#{args[:name].html}\" id=\"#{args[:id].html}\" class=\"input_select\""
+				html += " onchange=\"#{args[:onchange]}\"" if args[:onchange]
+				html += " multiple" if args[:multiple]
+				html += " size=\"#{args[:size].to_s}\"" if args[:size]
 				html += ">"
-				html += Web.opts(paras[:opts], value, paras[:opts_paras])
+				html += Web.opts(args[:opts], value, args[:opts_args])
 				html += "</select>"
-			elsif paras[:type] == "imageupload"
+			elsif args[:type] == "imageupload"
 				html += "<table class=\"designtable\"><tr><td style=\"width: 100%;\">"
-				html += "<input type=\"file\" name=\"#{paras[:name].html}\" class=\"input_file\" />"
+				html += "<input type=\"file\" name=\"#{args[:name].html}\" class=\"input_file\" />"
 				html += "</td><td style=\"padding-left: 5px;\">"
 				
-				path = paras[:path].gsub("%value%", value).untaint
+				path = args[:path].gsub("%value%", value).untaint
 				if File.exists?(path)
 					html += "<img src=\"image.php?picture=#{Php.urlencode(path).html}&smartsize=100&edgesize=25\" alt=\"Image\" />"
 					
-					if paras[:dellink]
-						dellink = paras[:dellink].gsub("%value%", value)
+					if args[:dellink]
+						dellink = args[:dellink].gsub("%value%", value)
 						html += "<div style=\"text-align: center;\">(<a href=\"javascript: if (confirm('#{_("Do you want to delete the image?")}')){location.href='#{dellink}';}\">#{_("delete")}</a>)</div>"
 					end
 				end
 				
 				html += "</td></tr></table>"
-			elsif paras[:type] == "textshow"
+			elsif args[:type] == "textshow"
 				html += "#{value}</td></tr>"
 			else
-				html += "<input #{disabled}type=\"#{paras[:type].html}\" class=\"input_#{paras[:type].html}\" id=\"#{paras[:id].html}\" name=\"#{paras[:name].html}\" value=\"#{value.html}\" />"
+				html += "<input #{disabled}type=\"#{args[:type].html}\" class=\"input_#{args[:type].html}\" id=\"#{args[:id].html}\" name=\"#{args[:name].html}\" value=\"#{value.html}\" />"
 			end
 			
 			html += "</tr>"
 		end
 		
-		if paras[:descr]
-			html += "<tr><td colspan=\"2\" class=\"tdd\">#{paras[:descr]}</td></tr>"
-		end
-		
+		html += "<tr><td colspan=\"2\" class=\"tdd\">#{args[:descr]}</td></tr>" if args[:descr]
 		return html
 	end
 	
-	def self.opts(opthash, curvalue = nil, opts_paras = {})
-		opts_paras = {} if !opts_paras
-		opts_paras.each do |key, value|
+	def self.opts(opthash, curvalue = nil, opts_args = {})
+		opts_args = {} if !opts_args
+		opts_args.each do |key, value|
 			if !key.is_a?(Symbol)
-				opts_paras[key.to_sym] = value
-				opts_paras.delete(key)
+				opts_args[key.to_sym] = value
+				opts_args.delete(key)
 			end
 		end
 		
@@ -491,17 +464,9 @@ class Knj::Web
 		html = ""
 		addsel = " selected=\"selected\"" if !curvalue
 		
-		if opts_paras and opts_paras[:add]
-			html += "<option#{addsel} value=\"\">#{_("Add new")}</option>"
-		end
-		
-		if opts_paras and opts_paras[:choose]
-			html += "<option#{addsel} value=\"\">#{_("Choose")}</option>"
-		end
-		
-		if opts_paras and opts_paras[:none]
-			html += "<option#{addsel} value=\"\">#{_("None")}</option>"
-		end
+		html += "<option#{addsel} value=\"\">#{_("Add new")}</option>" if opts_args and opts_args[:add]
+		html += "<option#{addsel} value=\"\">#{_("Choose")}</option>" if opts_args and opts_args[:choose]
+		html += "<option#{addsel} value=\"\">#{_("None")}</option>" if opts_args and opts_args[:none]
 		
 		if opthash.is_a?(Hash) or opthash.class.to_s == "Dictionary"
 			opthash.each do |key, value|
@@ -519,11 +484,7 @@ class Knj::Web
 			opthash.each do |key|
 				if opthash[key.to_i] != nil
 					html += "<option"
-					
-					if curvalue.to_i == key.to_i
-						html += " selected=\"selected\""
-					end
-					
+					html += " selected=\"selected\"" if curvalue.to_i == key.to_i
 					html += " value=\"#{key.to_s}\">#{opthash[key.to_i].to_s}</option>"
 				end
 			end

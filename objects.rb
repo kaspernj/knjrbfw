@@ -30,9 +30,7 @@ class Knj::Objects
 			raise "No signals given."
 		end
 		
-		if block_given?
-			args["block"] = block
-		end
+		args["block"] = block if block_given?
 		
 		if !@callbacks[args["object"]]
 			@callbacks[args["object"]] = {}
@@ -73,11 +71,7 @@ class Knj::Objects
 		if !Php.class_exists(classname)
 			filename = @args["class_path"] + "/#{@args[:class_pre]}#{classname.downcase}.rb"
 			filename_req = @args["class_path"] + "/#{@args[:class_pre]}#{classname.downcase}"
-			
-			if !File.exists?(filename)
-				raise "Class file could not be found: #{filename}."
-			end
-			
+			raise "Class file could not be found: #{filename}." if !File.exists?(filename)
 			require(filename_req)
 		end
 	end
@@ -92,12 +86,10 @@ class Knj::Objects
 		elsif data.is_a?(Integer) or data.is_a?(String) or data.is_a?(Fixnum)
 			id = data.to_i
 		else
-			raise Knj::Errors::InvalidData.new("Unknown data: #{data.class.to_s}.")
+			raise Errors::InvalidData.new("Unknown data: #{data.class.to_s}.")
 		end
 		
-		if !@objects[classname]
-			@objects[classname] = {}
-		end
+		@objects[classname] = {} if !@objects[classname]
 		
 		if !@objects[classname][id]
 			self.requireclass(classname)
@@ -112,9 +104,7 @@ class Knj::Objects
 		self.requireclass(classname)
 		classob = Kernel.const_get(classname)
 		
-		if !classob.respond_to?("list")
-			raise "list-function has not been implemented for " + classname
-		end
+		raise "list-function has not been implemented for #{classname}" if !classob.respond_to?("list")
 		
 		if block_given?
 			objects_return = classob.list(args, &block)
@@ -142,21 +132,13 @@ class Knj::Objects
 		
 		if args[:addnew]
 			html += "<option"
-			
-			if !args[:selected]
-				html += " selected=\"selected\""
-			end
-			
+			html += " selected=\"selected\"" if !args[:selected]
 			html += " value=\"\">#{_("Add new")}</option>"
 		end
 		
 		obs.each do |object|
 			html += "<option value=\"#{object.id.html}\""
-			
-			if args[:selected] and args[:selected][@args[:col_id]] == object.id
-				html += " selected=\"selected\""
-			end
-			
+			html += " selected=\"selected\"" if args[:selected] and args[:selected][@args[:col_id]] == object.id
 			html += ">#{object.title.html}</option>"
 		end
 		
@@ -241,10 +223,8 @@ class Knj::Objects
 	
 	def delete(object)
 		self.call("object" => object, "signal" => "delete_before")
-		
 		self.unset(object)
 		object.delete
-		
 		self.call("object" => object, "signal" => "delete")
 	end
 end
