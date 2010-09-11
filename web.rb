@@ -117,6 +117,7 @@ class Knj::Web
 						
 						if cont.length > 0
 							stringparse = {
+								"name" => pair[1][0].original_filename,
 								"tmp_name" => tmpname,
 								"size" => cont.length,
 								"error" => 0

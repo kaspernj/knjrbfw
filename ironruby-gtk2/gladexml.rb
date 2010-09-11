@@ -5,18 +5,16 @@ class GladeXML
 	def initialize(filename, &block)
 		@obs = {}
 		
-		require "xmlsimple"
-		
 		if filename.index("interface>") == nil
-			cont = File.read(filename)
-			@data = XmlSimple.xml_in(cont)
+			@cont = File.read(filename)
+			@data = XmlSimple.xml_in(@cont)
 			window_name = self.find_window(data)
 			@glade = Glade::XML.new(filename, window_name, nil)
 		else
-			cont = filename
-			@data = XmlSimple.xml_in(cont)
+			@cont = filename
+			@data = XmlSimple.xml_in(@cont)
 			window_name = self.find_window(data)
-			Knj::Php.file_put_contents("temp.glade", cont)
+			Knj::Php.file_put_contents("temp.glade", @cont)
 			@glade = Glade::XML.new("temp.glade", window_name, nil)
 			FileUtils.rm("temp.glade")
 		end
@@ -60,6 +58,12 @@ class GladeXML
 	end
 	
 	def find_window(data)
+		match = @cont.match(/<(object|widget) class="GtkWindow" id="(.+?)">/)
+		if match
+			print "GladeXML: Window-name matched from content - dont do slow XML-go-through.\n"
+			return match[2]
+		end
+		
 		data.each do |item|
 			if item[0] == "widget"
 				class_str = item[1][0]["class"]

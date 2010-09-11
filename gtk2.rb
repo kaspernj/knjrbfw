@@ -163,7 +163,7 @@ module Knj
 			end
 		end
 		
-		def form(paras)
+		def self.form(paras)
 			table = Gtk::Table.new(paras.length, 2)
 			table.row_spacings = 4
 			table.column_spacings = 4
@@ -172,7 +172,7 @@ module Knj
 			
 			paras.each do |item|
 				if !item["type"]
-					if item["name"][0..2] == "txt"
+					if item["name"][0..2] == "txt" or item["name"][0..2] == "tex"
 						item["type"] = "text"
 					elsif item["name"][0..2] == "sel"
 						item["type"] = "select"
@@ -239,7 +239,7 @@ module Knj
 			}
 		end
 		
-		def form_setval(object, val)
+		def self.form_setval(object, val)
 			if object.is_a?(Gtk::Entry)
 				object.text = val.to_s
 			elsif object.is_a?(Gtk::CheckButton)
@@ -253,7 +253,7 @@ module Knj
 			end
 		end
 		
-		def form_getval(object)
+		def self.form_getval(object)
 			if object.is_a?(Gtk::Entry)
 				return object.text
 			elsif object.is_a?(Gtk::CheckButton)
@@ -265,6 +265,8 @@ module Knj
 			elsif object.is_a?(Gtk::ComboBox)
 				sel = object.sel
 				return sel["text"]
+			else
+				raise "Unknown object: #{object.class.name}"
 			end
 		end
 	end

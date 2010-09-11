@@ -1,4 +1,5 @@
 Gtk.events << ["TreeView", "row_activated", org.gnome.gtk.TreeView::RowActivated, :onRowActivated, nil]
+Gtk.events << ["TreeSelection", "changed", org.gnome.gtk.TreeSelection::Changed, :onChanged, nil]
 
 class Gtk::TreeView
 	def set_model(newmodel)
@@ -22,6 +23,15 @@ class Gtk::TreeView
 	def columns
 		return TreeViewColumns.new(self)
 	end
+	
+	def selection
+		if !@tsel
+			Gtk.takeob = @ob.selection
+			@tsel = Gtk::TreeSelection.new
+		end
+		
+		return @tsel
+	end
 end
 
 class TreeViewColumns < Array
@@ -30,6 +40,21 @@ class TreeViewColumns < Array
 		@treeview.ob.columns.each do |column|
 			Gtk.takeob = column
 			self << Gtk::TreeViewColumn.new(nil, nil)
+		end
+	end
+end
+
+class Gtk::TreeSelection
+	def initialize(val1 = nil)
+		if Gtk.takeob
+			@ob = Gtk.takeob
+			Gtk.takeob = nil
+		else
+			@ob = @treeview.ob.append_column
+			@ob.title = title
+			renderer.init(self)
+			colstring = @treeview.model.dcol[@treeview.columns.length - 1]
+			renderer.text = colstring
 		end
 	end
 end

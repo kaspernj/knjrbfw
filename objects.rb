@@ -1,16 +1,10 @@
 class Knj::Objects
-	def initialize(paras)
+	def initialize(args)
 		@callbacks = {}
-		@paras = ArrayExt.hash_sym(paras)
-		
-		if !@paras[:col_id]
-			@paras[:col_id] = :id
-		end
-		
-		if !@paras[:db]
-			raise "No DB given."
-		end
-		
+		@args = ArrayExt.hash_sym(args)
+		@args[:col_id] = :id if !@args[:col_id]
+		raise "No DB given." if !@args[:db]
+		@args[:class_pre] = "class_" if !@args[:class_pre]
 		@objects = {}
 	end
 	
@@ -29,35 +23,45 @@ class Knj::Objects
 		@objects = {}
 	end
 	
-	def connect(paras)
-		if !paras["object"]
+	def connect(args)
+		if !args["object"]
 			raise "No object given."
-		elsif !paras.has_key?("signal") and !paras.has_key?("signals")
+		elsif !args.has_key?("signal") and !args.has_key?("signals")
 			raise "No signals given."
 		end
 		
-		if !@callbacks[paras["object"]]
-			@callbacks[paras["object"]] = {}
+		if block_given?
+			args["block"] = block
 		end
 		
-		@callbacks[paras["object"]][@callbacks[paras["object"]].length.to_s] = paras
+		if !@callbacks[args["object"]]
+			@callbacks[args["object"]] = {}
+		end
+		
+		@callbacks[args["object"]][@callbacks[args["object"]].length.to_s] = args
 	end
 	
-	def call(paras)
-		classstr = paras["object"].class.to_s
+	def call(args)
+		classstr = args["object"].class.to_s
 		
 		if @callbacks[classstr]
 			@callbacks[classstr].each do |callback_key, callback|
 				docall = false
 				
-				if callback.has_key?("signal") and paras.has_key?("signal") and callback["signal"] == paras["signal"]
+				if callback.has_key?("signal") and args.has_key?("signal") and callback["signal"] == args["signal"]
 					docall = true
-				elsif callback["signals"] and paras["signal"] and callback["signals"].index(paras["signal"]) != nil
+				elsif callback["signals"] and args["signal"] and callback["signals"].index(args["signal"]) != nil
 					docall = true
 				end
 				
 				if docall
-					Php.call_user_func(callback["callback"], paras)
+					if callback["block"]
+						callback["block"].call
+					elsif callback["callback"]
+						Php.call_user_func(callback["callback"], args)
+					else
+						raise "No valid callback given."
+					end
 				end
 			end
 		end
@@ -67,8 +71,8 @@ class Knj::Objects
 		classname = classname.to_s
 		
 		if !Php.class_exists(classname)
-			filename = @paras[:class_path] + "/class_#{classname.downcase}.rb"
-			filename_req = @paras[:class_path] + "/class_#{classname.downcase}"
+			filename = @args["class_path"] + "/#{@args[:class_pre]}#{classname.downcase}.rb"
+			filename_req = @args["class_path"] + "/#{@args[:class_pre]}#{classname.downcase}"
 			
 			if !File.exists?(filename)
 				raise "Class file could not be found: #{filename}."
@@ -81,10 +85,10 @@ class Knj::Objects
 	def get(classname, data)
 		classname = classname.to_sym
 		
-		if data.is_a?(Hash) and data[@paras[:col_id].to_sym]
-			id = data[@paras[:col_id].to_sym].to_i
-		elsif data.is_a?(Hash) and data[@paras[:col_id].to_s]
-			id = data[@paras[:col_id].to_s].to_i
+		if data.is_a?(Hash) and data[@args[:col_id].to_sym]
+			id = data[@args[:col_id].to_sym].to_i
+		elsif data.is_a?(Hash) and data[@args[:col_id].to_s]
+			id = data[@args[:col_id].to_s].to_i
 		elsif data.is_a?(Integer) or data.is_a?(String) or data.is_a?(Fixnum)
 			id = data.to_i
 		else
@@ -103,7 +107,7 @@ class Knj::Objects
 		return @objects[classname][id]
 	end
 	
-	def list(classname, paras = {}, &block)
+	def list(classname, args = {}, &block)
 		classname = classname.to_sym
 		self.requireclass(classname)
 		classob = Kernel.const_get(classname)
@@ -113,33 +117,33 @@ class Knj::Objects
 		end
 		
 		if block_given?
-			objects_return = classob.list(paras, &block)
+			objects_return = classob.list(args, &block)
 			if objects_return
 				objects_return.each do |object|
 					block.call(object)
 				end
 			end
 		else
-			return classob.list(paras)
+			return classob.list(args)
 		end
 	end
 	
-	def list_opts(classname, paras = {})
-		ArrayExt.hash_sym(paras)
+	def list_opts(classname, args = {})
+		ArrayExt.hash_sym(args)
 		classname = classname.to_sym
 		
-		if paras[:list_paras]
-			obs = self.list(classname, paras[:list_paras])
+		if args[:list_args]
+			obs = self.list(classname, args[:list_args])
 		else
 			obs = self.list(classname)
 		end
 		
 		html = ""
 		
-		if paras[:addnew]
+		if args[:addnew]
 			html += "<option"
 			
-			if !paras[:selected]
+			if !args[:selected]
 				html += " selected=\"selected\""
 			end
 			
@@ -149,7 +153,7 @@ class Knj::Objects
 		obs.each do |object|
 			html += "<option value=\"#{object.id.html}\""
 			
-			if paras[:selected] and paras[:selected][@paras[:col_id]] == object.id
+			if args[:selected] and args[:selected][@args[:col_id]] == object.id
 				html += " selected=\"selected\""
 			end
 			
@@ -159,12 +163,12 @@ class Knj::Objects
 		return html
 	end
 	
-	def list_optshash(classname, paras = {})
-		ArrayExt.hash_sym(paras)
+	def list_optshash(classname, args = {})
+		ArrayExt.hash_sym(args)
 		classname = classname.to_sym
 		
-		if paras[:list_paras]
-			obs = self.list(classname, paras[:list_paras])
+		if args[:list_args]
+			obs = self.list(classname, args[:list_args])
 		else
 			obs = self.list(classname)
 		end
@@ -175,13 +179,13 @@ class Knj::Objects
 			list = Hash.new
 		end
 		
-		if paras[:addnew]
+		if args[:addnew]
 			list["0"] = _("Add new")
-		elsif paras[:choose]
+		elsif args[:choose]
 			list["0"] = _("Choose") + ":"
-		elsif paras[:all]
+		elsif args[:all]
 			list["0"] = _("All")
-		elsif paras[:none]
+		elsif args[:none]
 			list["0"] = _("None")
 		end
 		
@@ -196,7 +200,7 @@ class Knj::Objects
 		classname = classname.to_sym
 		
 		ret = []
-		q_obs = @paras[:db].query(sql)
+		q_obs = @args[:db].query(sql)
 		while d_obs = q_obs.fetch
 			if block_given?
 				block.call(self.get(classname, d_obs))
@@ -221,7 +225,7 @@ class Knj::Objects
 	def unset(object)
 		if !@objects.has_key?(object.class.to_s.to_sym)
 			raise "Could not find object class in cache."
-		elsif !@objects[object.class.to_s.to_sym][object[@paras[:col_id]].to_i]
+		elsif !@objects[object.class.to_s.to_sym][object[@args[:col_id]].to_i]
 			print "Could not unset object from cache.\n"
 			print "Class: #{object.class.to_s}.\n"
 			print "ID: #{object.id}.\n"

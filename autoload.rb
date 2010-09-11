@@ -63,8 +63,8 @@ elsif RUBY_PLATFORM.index("mswin32") != nil
 	autoload :GladeXML, "knj/ironruby-gtk2/gtk2"
 else
 	autoload :GetText, "gettext"
-	autoload :Gtk, "gtk2"
-	autoload :Gdk, "gtk2"
+	autoload :Gtk, $knjpath + "autoload/gtk2"
+	autoload :Gdk, $knjpath + "autoload/gtk2"
 	autoload :GladeXML, "libglade2"
 end
 
@@ -88,3 +88,4 @@ autoload :Dictionary, "facets/dictionary"
 autoload :Twitter, $knjpath + "autoload/twitter"
 autoload :Facebooker, $knjpath + "autoload/facebooker"
 autoload :Cinch, $knjpath + "autoload/cinch"
+autoload :ActiveSupport, $knjpath + "autoload/activesupport"
