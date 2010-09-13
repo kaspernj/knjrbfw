@@ -1,0 +1,3 @@
+class Gtk::CheckButton
+	#nothing here yet... once there were something here... but that was a long long time ago...
+end

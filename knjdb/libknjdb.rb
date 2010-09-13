@@ -28,6 +28,8 @@ class Knj::Db
 	end
 	
 	def connect
+		raise "No type given." if !@opts[:type]
+		
 		require(File.dirname(__FILE__) + "/libknjdb_" + @opts[:type] + ".rb")
 		@conn = Kernel.const_get("KnjDB_" + @opts[:type]).new(self)
 	end

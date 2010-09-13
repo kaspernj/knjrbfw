@@ -1,14 +1,10 @@
-module Knj
-	module Gtk2
-		module Cb
-			def self.init(paras)
-				return paras["cb"].init(paras["items"])
-			end
-			
-			def self.sel(cb)
-				return cb.sel
-			end
-		end
+module Knj::Gtk2::Cb
+	def self.init(paras)
+		return paras["cb"].init(paras["items"])
+	end
+	
+	def self.sel(cb)
+		return cb.sel
 	end
 end
 

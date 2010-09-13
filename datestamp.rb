@@ -1,5 +1,15 @@
 module Knj
 	class Datestamp
+		def self.in(time = Time.new)
+			if Php.is_numeric(time)
+				time = Time.at(time.to_i)
+			elsif time.is_a?(String)
+				time = Time.local(*ParseDate.parsedate(time))
+			end
+			
+			return time
+		end
+		
 		def self.dbstr(time = nil)
 			if !time
 				time = Time.new
@@ -31,9 +41,7 @@ module Knj
 		def self.out(time = nil, args = {})
 			ArrayExt.hash_sym(args)
 			
-			if !time
-				time = Time.new
-			end
+			time = Time.new if !time
 			
 			if Php.is_numeric(time)
 				time = Time.at(time.to_i)
@@ -71,22 +79,14 @@ module Knj
 			end
 			
 			datestr = ""
-			if date and month and year
-				datestr = "#{year}-#{month}-#{date}"
-			end
-			
-			if hour and minute
-				datestr += " #{hour}:#{minute}"
-			end
+			datestr = "#{year}-#{month}-#{date}" if date and month and year
+			datestr += " #{hour}:#{minute}" if hour and minute
 			
 			return Datestamp.from_dbstr(datestr)
 		end
 		
 		def self.is_nullstamp?(datestamp)
-			if datestamp.is_a?(String) and datestamp == "0000-00-00 00:00:00"
-				return true
-			end
-			
+			return true if datestamp.is_a?(String) and datestamp == "0000-00-00 00:00:00"
 			return false
 		end
 	end

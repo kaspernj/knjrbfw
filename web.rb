@@ -1,538 +1,527 @@
-module Knj
-	class Web
-		include Knj
-		include Php
+class Knj::Web
+	attr_reader :session, :cgi, :data
+	
+	def initialize(args = {})
+		@args = ArrayExt.hash_sym(args)
+		@db = @args[:db] if @args[:db] 
+		@args[:tmp] = "/tmp" if !@args[:tmp]
 		
-		def cgi; return @cgi; end
-		def session; return @session; end
-		def data; return @data; end
+		raise "No ID was given." if !@args[:id]
+		raise "No DB was given." if !@args[:db]
 		
-		def initialize(paras = {})
-			@paras = ArrayExt.hash_sym(paras)
-			
-			if @paras[:db]
-				@db = @paras[:db]
+		if @args[:cgi]
+			@cgi = @args[:cgi]
+		elsif $_CGI
+			@cgi = $_CGI
+		else
+			if ENV["HTTP_HOST"] or $knj_eruby or Php.class_exists("Apache")
+				@cgi = CGI.new
 			end
-			
-			if !@paras[:tmp]
-				@paras[:tmp] = "/tmp"
-			end
-			
-			raise "No ID was given." if !@paras[:id]
-			raise "No DB was given." if !@paras[:db]
-			
-			if @paras[:cgi]
-				@cgi = @paras[:cgi]
-			else
-				if ENV["HTTP_HOST"] or $knj_eruby or Php.class_exists("Apache")
-					@cgi = CGI.new
-				end
-			end
-			
-			$_CGI = @cgi
-			
-			if $_CGI and ENV["HTTP_HOST"] and ENV["REMOTE_ADDR"]
-				@server = {}
-				ENV.each do |key, value|
-					@server[key] = value
-				end
-			elsif Php.class_exists("Apache")
-				@server = {
-					"HTTP_HOST" => Apache.request.hostname,
-					"HTTP_USER_AGENT" => Apache.request.headers_in["User-Agent"],
-					"REMOTE_ADDR" => Apache.request.remote_host(1),
-					"REQUEST_URI" => Apache.request.unparsed_uri
-				}
-			else
-				@server = {}
-			end
-			
-			@files = {}
-			@post = {}
-			if @cgi and @cgi.request_method == "POST"
-				@cgi.params.each do |pair|
-					do_files = false
-					isstring = true
-					varname = pair[0]
-					stringparse = nil
-					
-					if pair[1][0].class.name == "Tempfile"
-						if varname[0..3] == "file"
-							isstring = false
-							do_files = true
-							
-							if pair[1][0].size > 0
-								stringparse = {
-									"tmp_name" => pair[1][0].path,
-									"size" => pair[1][0].size,
-									"error" => 0
-								}
-							end
-						else
-							stringparse = File.read(pair[1][0].path)
-						end
-					elsif pair[1][0].is_a?(StringIO)
-						if varname[0..3] == "file"
-							tmpname = @paras[:tmp] + "/knj_web_upload_#{Time.now.to_f.to_s}_#{rand(1000).to_s.untaint}"
-							isstring = false
-							do_files = true
-							cont = pair[1][0].string
-							Php.file_put_contents(tmpname, cont.to_s)
-							
-							if cont.length > 0
-								stringparse = {
-									"name" => pair[1][0].original_filename,
-									"tmp_name" => tmpname,
-									"size" => cont.length,
-									"error" => 0
-								}
-							end
-						else
-							stringparse = pair[1][0].string
-						end
-					else
-						stringparse = pair[1][0]
-					end
-					
-					if stringparse
-						if !do_files
-							if isstring
-								Web.parse_name(@post, varname, stringparse)
-							else
-								@post[varname] = stringparse
-							end
-						else
-							if isstring
-								Web.parse_name(@files, varname, stringparse)
-							else
-								@files[varname] = stringparse
-							end
-						end
-					end
-				end
-			end
-			
-			@get = {}
-			if @cgi and @cgi.query_string
-				Php.urldecode(@cgi.query_string.to_s).split("&").each do |value|
-					pos = value.index("=")
-					
-					if pos != nil
-						name = value[0..pos-1]
-						valuestr = value.slice(pos+1..-1)
-						
-						Web.parse_name(@get, name, valuestr)
-					end
-				end
-			end
-			
-			@cookie = {}
-			if @cgi
-				@cgi.cookies.each do |key, value|
-					@cookie[key] = value[0]
-				end
-			end
-			
-			if @cookie[@paras[:id]] and (sdata = $db.single(:sessions, :id => @cookie[@paras[:id]]))
-				@data = ArrayExt.hash_sym(sdata)
+		end
+		
+		$_CGI = @cgi if !$_CGI
+		self.read_cgi
+		
+		if $_FCGI
+			KnjEruby.connect("exit") do
+				@session.close
 				
-				if @data
-					if @data[:user_agent] != @server["HTTP_USER_AGENT"] or @data[:ip] != @server["REMOTE_ADDR"]
-						@data = nil
-					else
-						@db.update("sessions", {"last_url" => @server["REQUEST_URI"].to_s, "date_active" => Datestamp.dbstr}, {"id" => @data[:id]})
-						session_id = @paras[:id] + "_" + @data[:id]
-					end
-				end
-			end
-			
-			if !@data or !session_id
-				@db.insert(:sessions,
-					:date_start => Datestamp.dbstr,
-					:date_active => Datestamp.dbstr,
-					:user_agent => @server["HTTP_USER_AGENT"],
-					:ip => @server["REMOTE_ADDR"],
-					:last_url => @server["REQUEST_URI"].to_s
-				)
+				@post = nil
+				@get = nil
+				@server = nil
+				@cookie = nil
 				
-				@data = ArrayExt.hash_sym(@db.single(:sessions, :id => @db.last_id))
-				session_id = @paras[:id] + "_" + @data[:id]
-				Php.setcookie(@paras[:id], @data[:id])
+				$_POST = nil
+				$_GET = nil
+				$_SERVER = nil
+				$_COOKIE = nil
 			end
-			
-			require "cgi/session"
-			require "cgi/session/pstore"
-			@session = CGI::Session.new(@session, "database_manager" => CGI::Session::PStore, "session_id" => session_id, "session_path" => @paras[:tmp])
+		else
 			Kernel.at_exit do
 				@session.close
+				
+				@post = nil
+				@get = nil
+				@server = nil
+				@cookie = nil
+				
+				$_POST = nil
+				$_GET = nil
+				$_SERVER = nil
+				$_COOKIE = nil
 			end
-			
-			if @paras[:globals] or @paras[:globals]
-				self.global_params
+		end
+	end
+	
+	def read_cgi(args = {})
+		args.each do |key, value|
+			if key == :cgi
+				@cgi = value
+			else
+				raise "No such key: #{key.to_s}"
 			end
 		end
 		
-		def [](key)
-			return @session[key]
+		if $_FCGI_COUNT and $_FCGI and $_CGI
+			@server = {}
+			$_CGI.env_table.each do |key, value|
+				@server[key] = value
+			end
+		elsif $_CGI and ENV["HTTP_HOST"] and ENV["REMOTE_ADDR"]
+			@server = {}
+			ENV.each do |key, value|
+				@server[key] = value
+			end
+		elsif Php.class_exists("Apache")
+			@server = {
+				"HTTP_HOST" => Apache.request.hostname,
+				"HTTP_USER_AGENT" => Apache.request.headers_in["User-Agent"],
+				"REMOTE_ADDR" => Apache.request.remote_host(1),
+				"REQUEST_URI" => Apache.request.unparsed_uri
+			}
+		else
+			@server = {}
 		end
 		
-		def []=(key, value)
-			return @session[key] = value
-		end
-		
-		def self.parse_name(seton, varname, value)
-			if varname and varname.index("[") != nil
-				match = varname.match(/\[(.*?)\]/)
-				if match
-					namepos = varname.index(match[0])
-					name = varname.slice(0..namepos - 1)
-					
-					valuefrom = namepos + match[1].length + 2
-					restname = varname.slice(valuefrom..-1)
-					
-					if !seton[name]
-						seton[name] = {}
-					end
-					
-					if restname and restname.index("[") != nil
-						if !seton[name][match[1]]
-							seton[name][match[1]] = {}
-						end
+		@files = {}
+		@post = {}
+		if @cgi and @cgi.request_method == "POST"
+			@cgi.params.each do |pair|
+				do_files = false
+				isstring = true
+				varname = pair[0]
+				stringparse = nil
+				
+				if pair[1][0].class.name == "Tempfile"
+					if varname[0..3] == "file"
+						isstring = false
+						do_files = true
 						
-						Web.parse_name_second(seton[name][match[1]], restname, value)
+						if pair[1][0].size > 0
+							stringparse = {
+								"tmp_name" => pair[1][0].path,
+								"size" => pair[1][0].size,
+								"error" => 0
+							}
+						end
 					else
-						seton[name][match[1]] = value
+						stringparse = File.read(pair[1][0].path)
+					end
+				elsif pair[1][0].is_a?(StringIO)
+					if varname[0..3] == "file"
+						tmpname = @args[:tmp] + "/knj_web_upload_#{Time.now.to_f.to_s}_#{rand(1000).to_s.untaint}"
+						isstring = false
+						do_files = true
+						cont = pair[1][0].string
+						Php.file_put_contents(tmpname, cont.to_s)
+						
+						if cont.length > 0
+							stringparse = {
+								"name" => pair[1][0].original_filename,
+								"tmp_name" => tmpname,
+								"size" => cont.length,
+								"error" => 0
+							}
+						end
+					else
+						stringparse = pair[1][0].string
 					end
 				else
-					seton[varname][match[1]] = value
+					stringparse = pair[1][0]
 				end
-			else
-				seton[varname] = value
+				
+				if stringparse
+					if !do_files
+						if isstring
+							Web.parse_name(@post, varname, stringparse)
+						else
+							@post[varname] = stringparse
+						end
+					else
+						if isstring
+							Web.parse_name(@files, varname, stringparse)
+						else
+							@files[varname] = stringparse
+						end
+					end
+				end
 			end
 		end
 		
-		def self.parse_name_second(seton, varname, value)
+		@get = {}
+		if @cgi and @cgi.query_string
+			Php.urldecode(@cgi.query_string.to_s).split("&").each do |value|
+				pos = value.index("=")
+				
+				if pos != nil
+					name = value[0..pos-1]
+					valuestr = value.slice(pos+1..-1)
+					
+					Web.parse_name(@get, name, valuestr)
+				end
+			end
+		end
+		
+		@cookie = {}
+		if @cgi
+			@cgi.cookies.each do |key, value|
+				@cookie[key] = value[0]
+			end
+		end
+		
+		self.global_params if @args[:globals]
+		
+		if @cookie[@args[:id]] and (sdata = $db.single(:sessions, :id => @cookie[@args[:id]]))
+			@data = ArrayExt.hash_sym(sdata)
+			
+			if @data
+				if @data[:user_agent] != @server["HTTP_USER_AGENT"] or @data[:ip] != @server["REMOTE_ADDR"]
+					@data = nil
+				else
+					@db.update(:sessions, {"last_url" => @server["REQUEST_URI"].to_s, "date_active" => Datestamp.dbstr}, {"id" => @data[:id]})
+					session_id = @args[:id] + "_" + @data[:id]
+				end
+			end
+		end
+		
+		if !@data or !session_id
+			@db.insert(:sessions,
+				:date_start => Datestamp.dbstr,
+				:date_active => Datestamp.dbstr,
+				:user_agent => @server["HTTP_USER_AGENT"],
+				:ip => @server["REMOTE_ADDR"],
+				:last_url => @server["REQUEST_URI"].to_s
+			)
+			
+			@data = ArrayExt.hash_sym(@db.single(:sessions, :id => @db.last_id))
+			session_id = @args[:id] + "_" + @data[:id]
+			Php.setcookie(@args[:id], @data[:id])
+		end
+		
+		require "cgi/session"
+		require "cgi/session/pstore"
+		@session = CGI::Session.new(@session, "database_manager" => CGI::Session::PStore, "session_id" => session_id, "session_path" => @args[:tmp])
+	end
+	
+	def [](key)
+		return @session[key]
+	end
+	
+	def []=(key, value)
+		return @session[key] = value
+	end
+	
+	def self.parse_name(seton, varname, value)
+		if varname and varname.index("[") != nil
 			match = varname.match(/\[(.*?)\]/)
 			if match
 				namepos = varname.index(match[0])
-				name = match[1]
+				name = varname.slice(0..namepos - 1)
 				
 				valuefrom = namepos + match[1].length + 2
 				restname = varname.slice(valuefrom..-1)
 				
+				seton[name] = {} if !seton[name]
+				
 				if restname and restname.index("[") != nil
-					if !seton[name]
-						seton[name] = {}
+					if !seton[name][match[1]]
+						seton[name][match[1]] = {}
 					end
 					
-					Web.parse_name_second(seton[name], restname, value)
+					Web.parse_name_second(seton[name][match[1]], restname, value)
 				else
-					seton[name] = value
+					seton[name][match[1]] = value
 				end
 			else
-				seton[varname] = value
+				seton[varname][match[1]] = value
 			end
+		else
+			seton[varname] = value
 		end
-		
-		def global_params
-			$_POST = @post
-			$_GET = @get
-			$_COOKIE = @cookie
-			$_FILES = @files
-			$_SERVER = @server
-		end
-		
-		def destroy
-			@cgi = nil
-			@post = nil
-			@get = nil
-			@session = nil
-			@paras = nil
-		end
-		
-		def self.require_eruby(filepath)
-			cont = File.read(filepath).untaint
-			parse = Erubis.Eruby.new(cont)
-			eval(parse.src.to_s)
-		end
-		
-		def self.alert(string)
-			@alert_sent = true
-			print "<script type=\"text/javascript\">alert(\"#{Strings.js_safe(string.to_s)}\");</script>"
-		end
-		
-		def self.redirect(string, args = {})
-			do_js = true
+	end
+	
+	def self.parse_name_second(seton, varname, value)
+		match = varname.match(/\[(.*?)\]/)
+		if match
+			namepos = varname.index(match[0])
+			name = match[1]
 			
-			#Header way
-			if !@alert_sent
-				if args[:perm]
-					Php.header("Status: 301 Moved Permanently")
-				else
-					Php.header("Status: 303 See Other")
+			valuefrom = namepos + match[1].length + 2
+			restname = varname.slice(valuefrom..-1)
+			
+			if restname and restname.index("[") != nil
+				if !seton[name]
+					seton[name] = {}
 				end
 				
-				Php.header("Location: #{string}")
-			end
-			
-			if do_js
-				print "<script type=\"text/javascript\">location.href=\"#{string}\";</script>"
-			end
-			
-			exit
-		end
-		
-		def self.back
-			print "<script type=\"text/javascript\">history.back(-1);</script>"
-			exit
-		end
-		
-		def self.checkval(value, val1, val2 = nil)
-			if val2 != nil
-				if !value or value == ""
-					return val2
-				else
-					return val1
-				end
+				Web.parse_name_second(seton[name], restname, value)
 			else
-				if !value or value == ""
-					return val1
-				else
-					return value
-				end
+				seton[name] = value
 			end
+		else
+			seton[varname] = value
 		end
+	end
+	
+	def global_params
+		$_POST = @post
+		$_GET = @get
+		$_COOKIE = @cookie
+		$_FILES = @files
+		$_SERVER = @server
+	end
+	
+	def destroy
+		@cgi = nil
+		@post = nil
+		@get = nil
+		@session = nil
+		@args = nil
+	end
+	
+	def self.require_eruby(filepath)
+		cont = File.read(filepath).untaint
+		parse = Erubis.Eruby.new(cont)
+		eval(parse.src.to_s)
+	end
+	
+	def self.alert(string)
+		@alert_sent = true
+		html = "<script type=\"text/javascript\">alert(\"#{Strings.js_safe(string.to_s)}\");</script>"
+		print html
+	end
+	
+	def self.redirect(string, args = {})
+		do_js = true
 		
-		def self.inputs(arr)
-			html = ""
-			arr.each do |args|
-				html += self.input(args)
-			end
-			
-			return html
-		end
-		
-		def self.input(paras)
-			ArrayExt.hash_sym(paras)
-			
-			if paras[:value]
-				if paras[:value].is_a?(Array) and !paras[:value][0].is_a?(NilClass)
-					value = paras[:value][0][paras[:value][1]]
-				elsif paras[:value].is_a?(String) or paras[:value].is_a?(Integer)
-					value = paras[:value].to_s
-				end
-			end
-			
-			paras[:value_default] = paras[:default] if paras[:default]
-			
-			if value.is_a?(NilClass) and paras[:value_default]
-				value = paras[:value_default]
-			elsif value.is_a?(NilClass)
-				value = ""
-			end
-			
-			if value and paras.has_key?(:value_func) and paras[:value_func]
-				value = Php.call_user_func(paras[:value_func], value)
-			end
-			
-			if paras[:values]
-				value = paras[:values]
-			end
-			
-			if !paras[:id]
-				paras[:id] = paras[:name]
-			end
-			
-			if !paras[:type] and paras[:opts]
-				paras[:type] = "select"
-			elsif paras[:name] and paras[:name].to_s[0..2] == "che"
-				paras[:type] = "checkbox"
-			elsif !paras[:type] and paras[:name].to_s[0..3] == "file"
-				paras[:type] = "file"
-			elsif !paras[:type]
-				paras[:type] = "text"
-			end
-			
-			if paras.has_key?(:disabled) and paras[:disabled]
-				disabled = "disabled "
+		#Header way
+		if !@alert_sent
+			if args[:perm]
+				Php.header("Status: 301 Moved Permanently")
 			else
-				disabled = ""
+				Php.header("Status: 303 See Other")
 			end
 			
-			html = ""
+			Php.header("Location: #{string}")
+		end
+		
+		print "<script type=\"text/javascript\">location.href=\"#{string}\";</script>" if do_js
+		exit
+	end
+	
+	def self.back
+		print "<script type=\"text/javascript\">history.back(-1);</script>"
+		exit
+	end
+	
+	def self.checkval(value, val1, val2 = nil)
+		if val2 != nil
+			if !value or value == ""
+				return val2
+			else
+				return val1
+			end
+		else
+			if !value or value == ""
+				return val1
+			else
+				return value
+			end
+		end
+	end
+	
+	def self.inputs(arr)
+		html = ""
+		arr.each do |args|
+			html += self.input(args)
+		end
+		
+		return html
+	end
+	
+	def self.input(args)
+		ArrayExt.hash_sym(args)
+		
+		if args[:value]
+			if args[:value].is_a?(Array) and !args[:value][0].is_a?(NilClass)
+				value = args[:value][0][args[:value][1]]
+			elsif args[:value].is_a?(String) or args[:value].is_a?(Integer)
+				value = args[:value].to_s
+			end
+		end
+		
+		args[:value_default] = args[:default] if args[:default]
+		
+		if value.is_a?(NilClass) and args[:value_default]
+			value = args[:value_default]
+		elsif value.is_a?(NilClass)
+			value = ""
+		end
+		
+		if value and args.has_key?(:value_func) and args[:value_func]
+			value = Php.call_user_func(args[:value_func], value)
+		end
+		
+		value = args[:values] if args[:values]
+		args[:id] = args[:name] if !args[:id]
+		
+		if !args[:type]
+			if args[:opts]
+				args[:type] = "select"
+			elsif args[:name] and args[:name].to_s[0..2] == "che"
+				args[:type] = "checkbox"
+			elsif args[:name] and args[:name].to_s[0..3] == "file"
+				args[:type] = "file"
+			else
+				args[:type] = "text"
+			end
+		end
+		
+		if args.has_key?(:disabled) and args[:disabled]
+			disabled = "disabled "
+		else
+			disabled = ""
+		end
+		
+		checked = ""
+		checked += " value=\"#{args[:value_active]}\"" if args.has_key?(:value_active)
+		checked += " checked" if value.is_a?(String) and value == "1" or value.to_s == "1"
+		
+		html = ""
+		
+		if args[:type] == "checkbox"
+			html += "<tr>"
+			html += "<td colspan=\"2\" class=\"tdcheck\">"
+			html += "<input type=\"checkbox\" class=\"input_checkbox\" id=\"#{args[:id].html}\" name=\"#{args[:name].html}\"#{checked} />"
+			html += "<label for=\"#{args[:id].html}\">#{args[:title].html}</label>"
+			html += "</td>"
+			html += "</tr>"
+		else
+			html += "<tr>"
+			html += "<td class=\"tdt\">"
+			html += args[:title].html
+			html += "</td>"
+			html += "<td class=\"tdc\">"
 			
-			if paras[:type] == "checkbox"
-				if value.is_a?(String) and value == "1" or value.to_s == "1"
-					checked = " checked"
+			if args[:type] == "textarea"
+				if args.has_key?(:height)
+					styleadd = " style=\"height: #{args[:height].html}px;\""
 				else
-					checked = ""
+					styleadd = ""
 				end
 				
-				if paras.has_key?(:value_active)
-					checked += " value=\"#{paras[:value_active]}\""
-				end
-				
-				html += "<tr>"
-				html += "<td colspan=\"2\" class=\"tdcheck\">"
-				html += "<input type=\"checkbox\" class=\"input_checkbox\" id=\"#{paras[:id].html}\" name=\"#{paras[:name].html}\"#{checked} />"
-				html += "<label for=\"#{paras[:id].html}\">#{paras[:title].html}</label>"
+				html += "<textarea#{styleadd} class=\"input_textarea\" name=\"#{args[:name].html}\" id=\"#{args[:id].html}\">#{value}</textarea>"
 				html += "</td>"
-				html += "</tr>"
-			else
-				html += "<tr>"
-				html += "<td class=\"tdt\">"
-				html += paras[:title].html
-				html += "</td>"
-				html += "<td class=\"tdc\">"
+			elsif args[:type] == "fckeditor"
+				args[:height] = 400 if !args[:height]
 				
-				if paras[:type] == "textarea"
-					if paras.has_key?(:height)
-						styleadd = " style=\"height: #{paras[:height].html}px;\""
-					else
-						styleadd = ""
+				require "/usr/share/fckeditor/fckeditor.rb"
+				fck = FCKeditor.new(args[:name])
+				fck.Height = args[:height].to_i
+				fck.Value = value
+				html += fck.CreateHtml
+				
+				html += "</td>"
+			elsif args[:type] == "select"
+				html += "<select name=\"#{args[:name].html}\" id=\"#{args[:id].html}\" class=\"input_select\""
+				html += " onchange=\"#{args[:onchange]}\"" if args[:onchange]
+				html += " multiple" if args[:multiple]
+				html += " size=\"#{args[:size].to_s}\"" if args[:size]
+				html += ">"
+				html += Web.opts(args[:opts], value, args[:opts_args])
+				html += "</select>"
+				html += "</td>"
+			elsif args[:type] == "imageupload"
+				html += "<table class=\"designtable\"><tr><td style=\"width: 100%;\">"
+				html += "<input type=\"file\" name=\"#{args[:name].html}\" class=\"input_file\" />"
+				html += "</td><td style=\"padding-left: 5px;\">"
+				
+				path = args[:path].gsub("%value%", value).untaint
+				if File.exists?(path)
+					html += "<img src=\"image.php?picture=#{Php.urlencode(path).html}&smartsize=100&edgesize=25\" alt=\"Image\" />"
+					
+					if args[:dellink]
+						dellink = args[:dellink].gsub("%value%", value)
+						html += "<div style=\"text-align: center;\">(<a href=\"javascript: if (confirm('#{_("Do you want to delete the image?")}')){location.href='#{dellink}';}\">#{_("delete")}</a>)</div>"
 					end
-					
-					html += "<textarea#{styleadd} class=\"input_textarea\" name=\"#{paras[:name].html}\" id=\"#{paras[:id].html}\">#{value}</textarea>"
-				elsif paras[:type] == "fckeditor"
-					if !paras[:height]
-						paras[:height] = 400
-					end
-					
-					require "/usr/share/fckeditor/fckeditor.rb"
-					fck = FCKeditor.new(paras[:name])
-					fck.Height = paras[:height].to_i
-					fck.Value = value
-					html += fck.CreateHtml
-				elsif paras[:type] == "select"
-					html += "<select name=\"#{paras[:name].html}\" id=\"#{paras[:id].html}\" class=\"input_select\""
-					
-					if paras[:onchange]
-						html += " onchange=\"#{paras[:onchange]}\""
-					end
-					
-					if paras[:multiple]
-						html += " multiple"
-					end
-					
-					if paras[:size]
-						html += " size=\"#{paras[:size].to_s}\""
-					end
-					
-					html += ">"
-					html += Web.opts(paras[:opts], value, paras[:opts_paras])
-					html += "</select>"
-				elsif paras[:type] == "imageupload"
-					html += "<table class=\"designtable\"><tr><td style=\"width: 100%;\">"
-					html += "<input type=\"file\" name=\"#{paras[:name].html}\" class=\"input_file\" />"
-					html += "</td><td style=\"padding-left: 5px;\">"
-					
-					path = paras[:path].gsub("%value%", value).untaint
-					if File.exists?(path)
-						html += "<img src=\"image.php?picture=#{Php.urlencode(path).html}&smartsize=100&edgesize=25\" alt=\"Image\" />"
-						
-						if paras[:dellink]
-							dellink = paras[:dellink].gsub("%value%", value)
-							html += "<div style=\"text-align: center;\">(<a href=\"javascript: if (confirm('#{_("Do you want to delete the image?")}')){location.href='#{dellink}';}\">#{_("delete")}</a>)</div>"
-						end
-					end
-					
-					html += "</td></tr></table>"
-				elsif paras[:type] == "textshow"
-					html += "#{value}</td></tr>"
-				elsif paras[:type] == "file"
-					html += "<input type=\"file\" name=\"#{paras[:name].html}\" class=\"input_file\" /></td>"
-				else
-					html += "<input #{disabled}type=\"#{paras[:type].html}\" class=\"input_#{paras[:type].html}\" id=\"#{paras[:id].html}\" name=\"#{paras[:name].html}\" value=\"#{value.html}\" /></td>"
 				end
 				
-				html += "</tr>"
+				html += "</td></tr></table>"
+				html += "</td>"
+			elsif args[:type] == "file"
+				html += "<input type=\"#{args[:type]}\" class=\"input_#{args[:type]}\" name=\"#{args[:name].html}\" /></td>"
+			elsif args[:type] == "textshow"
+				html += "#{value}</td>"
+			else
+				html += "<input #{disabled}type=\"#{args[:type].html}\" class=\"input_#{args[:type].html}\" id=\"#{args[:id].html}\" name=\"#{args[:name].html}\" value=\"#{value.html}\" /></td>"
+				html += "</td>"
 			end
 			
-			if paras[:descr]
-				html += "<tr><td colspan=\"2\" class=\"tdd\">#{paras[:descr]}</td></tr>"
-			end
-			
-			return html
+			html += "</tr>"
 		end
 		
-		def self.opts(opthash, curvalue = nil, opts_paras = {})
-			opts_paras = {} if !opts_paras
-			opts_paras.each do |key, value|
-				if !key.is_a?(Symbol)
-					opts_paras[key.to_sym] = value
-					opts_paras.delete(key)
+		html += "<tr><td colspan=\"2\" class=\"tdd\">#{args[:descr]}</td></tr>" if args[:descr]
+		return html
+	end
+	
+	def self.opts(opthash, curvalue = nil, opts_args = {})
+		opts_args = {} if !opts_args
+		opts_args.each do |key, value|
+			if !key.is_a?(Symbol)
+				opts_args[key.to_sym] = value
+				opts_args.delete(key)
+			end
+		end
+		
+		return "" if !opthash
+		curvalue = curvalue.id if curvalue.is_a?(Knj::Db_row)
+		
+		html = ""
+		addsel = " selected=\"selected\"" if !curvalue
+		
+		html += "<option#{addsel} value=\"\">#{_("Add new")}</option>" if opts_args and opts_args[:add]
+		html += "<option#{addsel} value=\"\">#{_("Choose")}</option>" if opts_args and opts_args[:choose]
+		html += "<option#{addsel} value=\"\">#{_("None")}</option>" if opts_args and opts_args[:none]
+		
+		if opthash.is_a?(Hash) or opthash.class.to_s == "Dictionary"
+			opthash.each do |key, value|
+				html += "<option"
+				
+				if curvalue.is_a?(Array) and curvalue.index(key) != nil
+					html += " selected=\"selected\""
+				elsif curvalue.to_s == key.to_s
+					html += " selected=\"selected\""
 				end
+				
+				html += " value=\"#{key.html}\">#{value.html}</option>"
 			end
-			
-			if !opthash
-				return ""
-			end
-			
-			if curvalue.is_a?(Knj::Db_row)
-				curvalue = curvalue.id
-			end
-			
-			html = ""
-			if !curvalue
-				addsel = " selected=\"selected\""
-			end
-			
-			if opts_paras and opts_paras[:add]
-				html += "<option#{addsel} value=\"\">#{_("Add new")}</option>"
-			end
-			
-			if opts_paras and opts_paras[:choose]
-				html += "<option#{addsel} value=\"\">#{_("Choose")}</option>"
-			end
-			
-			if opts_paras and opts_paras[:none]
-				html += "<option#{addsel} value=\"\">#{_("None")}</option>"
-			end
-			
-			if opthash.is_a?(Hash) or opthash.class.to_s == "Dictionary"
-				opthash.each do |key, value|
+		elsif opthash.is_a?(Array)
+			opthash.each do |key|
+				if opthash[key.to_i] != nil
 					html += "<option"
-					
-					if curvalue.is_a?(Array) and curvalue.index(key) != nil
-						html += " selected=\"selected\""
-					elsif curvalue.to_s == key.to_s
-						html += " selected=\"selected\""
-					end
-					
-					html += " value=\"#{key.html}\">#{value.html}</option>"
-				end
-			elsif opthash.is_a?(Array)
-				opthash.each do |key|
-					if opthash[key.to_i] != nil
-						html += "<option"
-						
-						if curvalue.to_i == key.to_i
-							html += " selected=\"selected\""
-						end
-						
-						html += " value=\"#{key.to_s}\">#{opthash[key.to_i].to_s}</option>"
-					end
+					html += " selected=\"selected\"" if curvalue.to_i == key.to_i
+					html += " value=\"#{key.to_s}\">#{opthash[key.to_i].to_s}</option>"
 				end
 			end
-			
-			return html
 		end
 		
-		def self.rendering_engine
-			agent = $_SERVER["HTTP_USER_AGENT"].to_s.downcase
-			
-			if agent.index("webkit") != nil
-				return "webkit"
-			elsif agent.index("gecko") != nil
-				return "gecko"
-			elsif agent.index("msie") != nil
-				return "msie"
-			elsif agent.index("w3c") != nil
-				return "bot"
-			else
-				#print "Unknown agent: #{agent}"
-				return false
-			end
+		return html
+	end
+	
+	def self.rendering_engine
+		agent = $_SERVER["HTTP_USER_AGENT"].to_s.downcase
+		
+		if agent.index("webkit") != nil
+			return "webkit"
+		elsif agent.index("gecko") != nil
+			return "gecko"
+		elsif agent.index("msie") != nil
+			return "msie"
+		elsif agent.index("w3c") != nil
+			return "bot"
+		else
+			#print "Unknown agent: #{agent}"
+			return false
 		end
 	end
 end
