@@ -99,10 +99,13 @@ class Knj::Web
 						
 						if pair[1][0].size > 0
 							stringparse = {
+								"name" => pair[1][0].original_filename,
 								"tmp_name" => pair[1][0].path,
 								"size" => pair[1][0].size,
 								"error" => 0
 							}
+							
+							stringparse["name"] = pair[1][0].original_filename if pair[1][0].respond_to?("original_filename")
 						end
 					else
 						stringparse = File.read(pair[1][0].path)
@@ -117,11 +120,12 @@ class Knj::Web
 						
 						if cont.length > 0
 							stringparse = {
-								"name" => pair[1][0].original_filename,
 								"tmp_name" => tmpname,
 								"size" => cont.length,
 								"error" => 0
 							}
+							
+							stringparse["name"] = pair[1][0].original_filename if pair[1][0].respond_to?("original_filename")
 						end
 					else
 						stringparse = pair[1][0].string
@@ -171,7 +175,7 @@ class Knj::Web
 		
 		self.global_params if @args[:globals]
 		
-		if @cookie[@args[:id]] and (sdata = $db.single(:sessions, :id => @cookie[@args[:id]]))
+		if @cookie[@args[:id]] and (sdata = @args[:db].single(:sessions, :id => @cookie[@args[:id]]))
 			@data = ArrayExt.hash_sym(sdata)
 			
 			if @data
@@ -204,11 +208,11 @@ class Knj::Web
 	end
 	
 	def [](key)
-		return @session[key]
+		return @session[key.to_sym]
 	end
 	
 	def []=(key, value)
-		return @session[key] = value
+		return @session[key.to_sym] = value
 	end
 	
 	def self.parse_name(seton, varname, value)

@@ -133,6 +133,8 @@ class Knj::Db_row
 		raise "'col_title' has not been set for the class: '#{self.class.to_s}'."
 	end
 	
+	alias :name :title
+	
 	def each(&paras)
 		return @data.each(&paras)
 	end

@@ -24,18 +24,10 @@ class Knj::Objects
 	end
 	
 	def connect(args)
-		if !args["object"]
-			raise "No object given."
-		elsif !args.has_key?("signal") and !args.has_key?("signals")
-			raise "No signals given."
-		end
-		
+		raise "No object given." if !args["object"]
+		raise "No signals given." if !args.has_key?("signal") and !args.has_key?("signals")
 		args["block"] = block if block_given?
-		
-		if !@callbacks[args["object"]]
-			@callbacks[args["object"]] = {}
-		end
-		
+		@callbacks[args["object"]] = {} if !@callbacks[args["object"]]
 		@callbacks[args["object"]][@callbacks[args["object"]].length.to_s] = args
 	end
 	

@@ -2,6 +2,8 @@ $knjpath = File.dirname(__FILE__) + "/"
 
 module Knj
 	autoload :ArrayExt, $knjpath + "arrayext"
+	autoload :Datestamp, $knjpath + "datestamp"
+	autoload :Datet, $knjpath + "datet"
 	autoload :Db, $knjpath + "knjdb/libknjdb"
 	autoload :Db_row, $knjpath + "knjdb/libknjdb_row"
 	autoload :Errors, $knjpath + "errors"
@@ -10,7 +12,6 @@ module Knj
 	autoload :Mail, $knjpath + "mail"
 	autoload :Notify, $knjpath + "notify"
 	autoload :Web, $knjpath + "web"
-	autoload :Datestamp, $knjpath + "datestamp"
 	autoload :Google_sitemap, $knjpath + "google_sitemap"
 	autoload :Http, $knjpath + "http"
 	autoload :Sms, $knjpath + "sms"

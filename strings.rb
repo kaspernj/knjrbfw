@@ -29,7 +29,12 @@ module Knj::Strings
 	end
 	
 	def self.is_email?(str)
-		return true if str.match(/^\S+@\S+.\S+$/)
+		return true if str.to_s.match(/^\S+@\S+\.\S+$/)
+		return false
+	end
+	
+	def self.is_phonenumber?(str)
+		return true if str.to_s.match(/^\+\d{2}\d+$/)
 		return false
 	end
 	

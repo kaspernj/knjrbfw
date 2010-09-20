@@ -3,6 +3,7 @@ class ERuby
 		filename = File.expand_path(filename)
 		pwd = Dir.pwd
 		Dir.chdir(File.dirname(filename))
+		
 		cachename = "#{KnjEruby.filepath}/cache/#{filename.gsub("/", "_").gsub(".", "_")}.cache"
 		eruby = KnjEruby.load_file(File.basename(filename), {:cachename => cachename})
 		print eruby.evaluate
