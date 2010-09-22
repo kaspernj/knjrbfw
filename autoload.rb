@@ -28,6 +28,7 @@ module Knj
 	autoload :X11VNC, $knjpath + "x11vnc"
 	autoload :Unix_proc, $knjpath + "unix_proc"
 	autoload :YouTube, $knjpath + "youtube"
+	autoload :Win, $knjpath + "win"
 end
 
 #ruby objects.
@@ -53,6 +54,8 @@ autoload :Timeout, "timeout"
 autoload :TCPSocket, "socket"
 autoload :TCPServer, "socket"
 autoload :URI, "uri"
+autoload :Win32, "win32/registry"
+autoload :WIN32OLE, "win32ole"
 autoload :XmlSimple, "xmlsimple"
 
 if RUBY_PLATFORM == "java"
