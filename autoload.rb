@@ -25,6 +25,7 @@ module Knj
 	autoload :SSHRobot, $knjpath + "sshrobot/sshrobot"
 	autoload :Sysuser, $knjpath + "sysuser"
 	autoload :Thread, $knjpath + "thread"
+	autoload :X11VNC, $knjpath + "x11vnc"
 	autoload :Unix_proc, $knjpath + "unix_proc"
 	autoload :YouTube, $knjpath + "youtube"
 end
@@ -35,6 +36,7 @@ autoload :CSV, "csv"
 autoload :Date, "date"
 autoload :Digest, "digest"
 autoload :Erubis, "erubis"
+autoload :EM, "eventmachine"
 autoload :FCGI, "fcgi"
 autoload :FileUtils, "fileutils"
 autoload :JSON, $knjpath + "autoload/json_autoload"
@@ -66,8 +68,10 @@ elsif RUBY_PLATFORM.index("mswin32") != nil
 else
 	autoload :GetText, "gettext"
 	autoload :Gtk, $knjpath + "autoload/gtk2"
-	autoload :Gdk, $knjpath + "autoload/gtk2"
 	autoload :GladeXML, "libglade2"
+	
+	#this bugs?
+	#autoload :Gdk, $knjpath + "autoload/gtk2"
 end
 
 module Net

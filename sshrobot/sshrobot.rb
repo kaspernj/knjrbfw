@@ -1,15 +1,17 @@
 class Knj::SSHRobot
 	def initialize(args)
-		@args = args
-		@args["port"] = 22 if !@args.has_key?("port")
+		@forwards = []
+		@args = ArrayExt.hash_sym(args)
+		@args[:port] = 22 if !@args.has_key?("port")
 	end
 	
 	def session
-		if !@session
-			@session = Net::SSH.start(@args["host"], @args["user"], :password => @args["passwd"], :port => @args["port"].to_i)
-		end
-		
+		@session = self.session_spawn if !@session
 		return @session
+	end
+	
+	def session_spawn
+		return Net::SSH.start(@args[:host], @args[:user], :password => @args[:passwd], :port => @args[:port].to_i)
 	end
 	
 	def shell
@@ -17,7 +19,7 @@ class Knj::SSHRobot
 	end
 	
 	def sftp
-		@sftp = Net::SFTP.start(@args["host"], @args["user"], @args["passwd"], :port => @args["port"].to_i)
+		@sftp = Net::SFTP.start(@args[:host], @args[:user], @args[:passwd], :port => @args[:port].to_i)
 	end
 	
 	def exec(command)
@@ -35,18 +37,57 @@ class Knj::SSHRobot
 	end
 	
 	def forward(args)
-		args["type"] = "local" if !args["type"]
-		args["session"] = self.session if !args["session"]
-		args["host_local"] = "0.0.0.0" if !args["host_local"]
+		ArrayExt.hash_sym(args)
+		args[:type] = "local" if !args[:type]
+		args[:session] = self.session_spawn if !args[:session]
+		args[:host_local] = "0.0.0.0" if !args[:host_local]
 		
-		if args["type"] == "local"
-			args["session"].forward.local(args["port_local"].to_i, args["host_local"], args["port_remote"], args["host"])
-		else
-			raise "No valid type given."
-		end
+		return SSHRobot::Forward.new(args)
 	end
 	
 	alias getShell shell
 	alias getSFTP sftp
 	alias shellCMD exec
+end
+
+class Knj::SSHRobot::Forward
+	attr_reader :open
+	
+	def initialize(args)
+		@open = true
+		@args = args
+		@thread = Knj::Thread.new do
+			begin
+				#args[:session].logger.sev_threshold = Logger::Severity::DEBUG
+				if args[:type] == "local"
+					@args[:session].forward.local(@args[:host_local], @args[:port_local].to_i, @args[:host], @args[:port_remote].to_i)
+				elsif args[:type] == "remote"
+					@args[:session].forward.remote_to(@args[:port_local], @args[:host], @args[:port_remote], @args[:host_local])
+				else
+					raise "No valid type given."
+				end
+				
+				@args[:session].loop do
+					true
+				end
+			rescue Exception => e
+				puts e.inspect
+				puts e.backtrace
+				
+				@open = false
+			end
+		end
+	end
+	
+	def close
+		if !@args
+			return nil
+		end
+		
+		@args[:session].close
+		@open = false
+		@thread.exit
+		@args = nil
+		@thread = nil
+	end
 end
