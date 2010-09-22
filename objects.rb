@@ -183,9 +183,7 @@ class Knj::Objects
 			end
 		end
 		
-		if !block_given?
-			return ret
-		end
+		return ret if !block_given?
 	end
 	
 	def add(classname, data)

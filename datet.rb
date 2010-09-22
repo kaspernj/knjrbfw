@@ -82,11 +82,26 @@ class Knj::Datet
 	end
 	
 	def day_in_week
-		return @time.strftime("%w").to_i
+		diw = @time.strftime("%w").to_i
+		if diw == 0
+			diw = 6
+		else
+			diw -= 1
+		end
+		
+		return diw
 	end
 	
 	def day_name
 		return @time.strftime("%A")
+	end
+	
+	def month_name
+		return @time.strftime("%B")
+	end
+	
+	def >=(datet)
+		return self.time.to_i >= datet.time.to_i
 	end
 	
 	def stamp(args)
@@ -109,16 +124,48 @@ class Knj::Datet
 		return "%04d" % @time.year.to_s + "-" + "%02d" % @time.month.to_s + "-" + "%02d" % @time.day.to_s + " " + "%02d" % @time.hour.to_s + ":" + "%02d" % @time.min.to_s + ":" + "%02d" % @time.sec.to_s
 	end
 	
+	def self.from_dbstr(date_string)
+		if Datestamp.is_nullstamp?(date_string)
+			return false
+		end
+		
+		return Datet.new(Time.local(*ParseDate.parsedate(date_string)))
+	end
+	
 	def out(args = {})
-		if !args.has_key?(:date) or args[:date] == true
+		str = ""
+		if !args.has_key?(:date) or args[:date]
 			str += "%02d" % @time.day.to_s + "/" + "%02d" % @time.month.to_s + " " + "%04d" % @time.year.to_s
 		end
-			
-		if !args.has_key?(:time) or args[:time] == true
+		
+		if !args.has_key?(:time) or args[:time]
 			str += " " + "%02d" % @time.hour.to_s + ":" + "%02d" % @time.min.to_s
 		end
 		
 		return str
+	end
+	
+	def self.in(timestr)
+		if match = timestr.to_s.match(/^(\d+)\/(\d+) (\d+)/)
+			timestr = timestr.gsub(match[0], "")
+			date = match[1]
+			month = match[2]
+			year = match[3]
+		else
+			raise sprintf(_("Wrong format: %s"), timestr)
+		end
+		
+		if match = timestr.match(/\s*(\d+):(\d+)/)
+			timestr = timestr.gsub(match[0], "")
+			hour = match[1]
+			minute = match[2]
+		end
+		
+		datestr = ""
+		datestr = "#{year}-#{month}-#{date}" if date and month and year
+		datestr += " #{hour}:#{minute}" if hour and minute
+		
+		return Datet.new(Datestamp.from_dbstr(datestr))
 	end
 	
 	def to_s
