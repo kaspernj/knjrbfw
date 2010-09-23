@@ -10,7 +10,23 @@ class Knj::Win::TightVNC
 		exefile = @args[:path] + "/WinVNC.exe"
 		raise "#{exefile} was not found." if !File.exists?(exefile)
 		
-		Knj::Win::Registry.set(:cur_user, 'Software\ORL\WinVNC3', [
+		@wmi = WIN32OLE.connect("winmgmts://")
+		processes = @wmi.ExecQuery("SELECT * FROM win32_process")
+		ended = false
+		for process in processes do
+			if process.Name == "WinVNC.exe"
+				process.Terminate
+				ended = true
+			end
+		end
+		
+		sleep 1 if ended
+		
+		#print Win::Registry.get(:cur_user, 'Software\ORL\WinVNC3', 'Password', :sz).unpack('H*')[0] + "\n"
+		#print ["160e9d46f26586ca"].pack('H*').unpack('H*')[0] + "\n"
+		#exit
+		
+		Win::Registry.set(:cur_user, 'Software\ORL\WinVNC3', [
 			["AutoPortSelect", 1, :dword],
 			["BlankScreen", 0, :dword],
 			["DontSetHooks", 0, :dword],
@@ -36,8 +52,11 @@ class Knj::Win::TightVNC
 			["QuerySetting", 2, :dword],
 			["QueryTimeout", 30, :dword],
 			["RemoveWallpaper", 1, :dword],
-			["SocketConnect", 1, :dword]
+			["SocketConnect", 1, :dword],
+			["Password", ["160e9d46f26586ca"].pack('H*'), :bin],
+			["PasswordViewOnly", ["160e9d46f26586ca"].pack('H*'), :bin]
 		])
+		#password is of this moment only 'kaspernj'.
 		
 		@wmi = WIN32OLE.connect("winmgmts://")
 		processes = @wmi.ExecQuery("SELECT * FROM win32_process")

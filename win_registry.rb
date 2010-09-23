@@ -12,15 +12,16 @@ class Knj::Win::Registry
 	def self.type(in_type)
 		return Win32::Registry::REG_SZ if in_type == :sz
 		return Win32::Registry::REG_DWORD if in_type == :dword
+		return Win32::Registry::REG_BINARY if in_type == :bin
 		return nil if in_type == nil
 		
 		raise "Unknown type: #{in_type}"
 	end
 	
-	def self.get(type, regpath, key)
+	def self.get(type, regpath, key, in_type = nil)
 		hkey = self.const(type)
 		hkey.open(regpath, Win32::Registry::KEY_ALL_ACCESS) do |reg|
-			return reg[key].to_s
+			return reg[key, self.type(in_type)].to_s
 			
 			#reg.each_key do |k, v|
 			#	puts k, v
@@ -50,6 +51,7 @@ class Knj::Win::Registry
 			end
 		else
 			hkey = self.const(type)
+			hkey.create(regpath)
 			hkey.open(regpath, Win32::Registry::KEY_ALL_ACCESS) do |reg|
 				reg[key.to_s, self.type(in_type)] = content.to_s
 			end
