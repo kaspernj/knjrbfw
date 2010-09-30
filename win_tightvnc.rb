@@ -51,10 +51,14 @@ class Knj::Win::TightVNC
 			["QueryAllowNoPass", 0, :dword],
 			["QuerySetting", 2, :dword],
 			["QueryTimeout", 30, :dword],
-			["RemoveWallpaper", 1, :dword],
+			["RemoveWallpaper", 0, :dword],
 			["SocketConnect", 1, :dword],
 			["Password", ["160e9d46f26586ca"].pack('H*'), :bin],
 			["PasswordViewOnly", ["160e9d46f26586ca"].pack('H*'), :bin]
+		])
+		Win::Registry.set(:local_machine, 'Software\ORL\WinVNC3', [
+			["AllowLoopback", 1, :dword],
+			["LoopbackOnly", 0, :dword]
 		])
 		#password is of this moment only 'kaspernj'.
 		
