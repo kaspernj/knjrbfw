@@ -1,4 +1,4 @@
-module Knj::Gtk2::Menu
+class Knj::Gtk2::Menu
 	def initialize(paras)
 		@paras = paras
 		@items = []
@@ -26,12 +26,10 @@ module Knj::Gtk2::Menu
 			
 			if menuitem["connect"]
 				newitem.signal_connect("activate") do
-					print "hmm\n"
 					Knj::Php.call_user_func(menuitem["connect"])
 				end
 			else
 				newitem.signal_connect("activate") do
-					print "hmm\n"
 					on_menuitem_activate
 				end
 			end
