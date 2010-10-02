@@ -29,6 +29,26 @@ class Knj::Datet
 		end
 	end
 	
+	def add_hours(hours = 1)
+		hours = hours.to_i
+		cur_hour = @time.hour
+		next_hour = cur_hour + hours
+		
+		if next_hour >= 24
+			@time = self.add_days(1).stamp(:datet => false, :hour => 0)
+			hours_left = (hours - 1) - (24 - cur_hour)
+			return self.add_hours(hours_left) if hours_left > 0
+		elsif next_hour < 0
+			@time = self.add_days(-1).stamp(:datet => false, :hour => 23)
+			hours_left = hours + cur_hour + 1
+			self.add_hours(hours_left) if hours_left < 0
+		else
+			@time = self.stamp(:datet => false, :hour => next_hour)
+		end
+		
+		return self
+	end
+	
 	def add_days(days = 1)
 		days = days.to_i
 		dim = self.days_in_month
@@ -104,6 +124,27 @@ class Knj::Datet
 		return self.time.to_i >= datet.time.to_i
 	end
 	
+	def add_something(val)
+		val = -val if @addmode == "-"
+		return self.add_hours(val) if @mode == :hours
+		raise "No such mode: #{@mode}"
+	end
+	
+	def -(val)
+		@addmode = "-"
+		self.add_something(val)
+	end
+	
+	def +(val)
+		@addmode = "+"
+		self.add_something(val)
+	end
+	
+	def hours
+		@mode = :hours
+		return self
+	end
+	
 	def stamp(args)
 		vars = {:year => @time.year, :month => @time.month, :day => @time.day, :hour => @time.hour, :min => @time.min, :sec => @time.sec}
 		
@@ -152,7 +193,7 @@ class Knj::Datet
 			month = match[2]
 			year = match[3]
 		else
-			raise sprintf(_("Wrong format: %s"), timestr)
+			raise Errors::InvalidData.new(sprintf(_("Wrong format: %s"), timestr))
 		end
 		
 		if match = timestr.match(/\s*(\d+):(\d+)/)
