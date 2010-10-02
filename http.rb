@@ -80,6 +80,11 @@ class Knj::Http
 		resp, data = @http.get(addr, self.headers)
 		self.setcookie(resp.response["set-cookie"])
 		
+		raise "Could not find that page." if resp.is_a?(Net::HTTPNotFound)
+		
+		#in some cases (like in IronRuby) the data is set like this.
+		data = resp.body if !data
+		
 		return {
 			"response" => resp,
 			"data" => data

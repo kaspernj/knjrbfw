@@ -96,15 +96,15 @@ Gtk.all.each do |parentclass, classes|
 						raise "No iron-event '#{signal}' for '#{self.class.to_s}'"
 					end
 					
-					#print "Connected signal '#{signal}' to '#{self.class.to_s}'\n"
+					print "Connected signal '#{signal}' to '#{self.class.to_s}'\n"
 					
 					if !@ob.respond_to?(ironevent)
-						puts @ob.methods.sort
+						#puts @ob.methods.sort
 						raise "RealGtk::" + classname[1] + " does not respond to: #{ironevent}."
 					end
 					
 					@ob.send(ironevent) do |*args|
-						#print "Called signal '#{signal}' on '#{self.class.to_s}'\n"
+						print "Called signal '#{signal}' on '#{self.class.to_s}'\n"
 						block.call
 					end
 				end
@@ -128,13 +128,13 @@ Gtk.all.each do |parentclass, classes|
 						end
 					end
 					
-					print "Respond to '#{@ob.class.to_s}' -> '#{paras[0].to_s}'\n"
+					#print "Respond to '#{@ob.class.to_s}' -> '#{paras[0].to_s}'\n"
 					if @ob.respond_to?(paras[0].to_s)
-						print "Send '#{@ob.class.to_s}' -> '#{paras[0].to_s}'\n"
+						#print "Send '#{@ob.class.to_s}' -> '#{paras[0].to_s}'\n"
 						return @ob.send(paras[0], *newparas)
 					end
 					
-					puts @ob.methods.sort
+					#puts @ob.methods.sort
 					raise "No such method on #{self.class.name}:  #{paras[0]}"
 				end
 			end

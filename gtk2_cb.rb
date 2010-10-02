@@ -16,6 +16,8 @@ class Gtk::ComboBox
 		
 		ls = Gtk::ListStore.new(String, String)
 		cr = Gtk::CellRendererText.new
+		self.pack_start(cr, false)
+		self.add_attribute(cr, "text", 0)
 		
 		if items.is_a?(Array)
 			items.each do |appendob|
@@ -35,9 +37,8 @@ class Gtk::ComboBox
 			raise "Unsupported type: " + items.class.to_s
 		end
 		
-		self.pack_start(cr, true)
-		self.add_attribute(cr, "text", 0)
 		self.model = ls
+		
 		self.active = 0
 	end
 	

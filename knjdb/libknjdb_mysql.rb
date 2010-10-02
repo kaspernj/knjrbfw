@@ -20,11 +20,11 @@ class KnjDB_mysql
 			port = 3306
 		end
 		
-		@conn = Mysql.real_connect(knjdb_ob.opts[:host], knjdb_ob.opts[:user], knjdb_ob.opts[:pass], knjdb_ob.opts[:db], port)
+		@conn = Mysql.real_connect(@knjdb.opts[:host], @knjdb.opts[:user], @knjdb.opts[:pass], @knjdb.opts[:db], port)
 	end
 	
 	def reconnect
-		@conn = Mysql.real_connect(knjdb_ob.opts["host"], knjdb_ob.opts["user"], knjdb_ob.opts["pass"], knjdb_ob.opts["db"], port)
+		@conn = Mysql.real_connect(@knjdb.opts["host"], @knjdb.opts["user"], @knjdb.opts["pass"], @knjdb.opts["db"], port)
 	end
 	
 	def query(string)
