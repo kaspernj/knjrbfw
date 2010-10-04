@@ -14,15 +14,15 @@ class KnjDB_java_sqlite3
 	def initialize(knjdb_ob)
 		@knjdb = knjdb_ob
 		
-		if @knjdb.opts["sqlite_driver"]
-			require @knjdb.opts["sqlite_driver"]
+		if @knjdb.opts[:sqlite_driver]
+			require @knjdb.opts[:sqlite_driver]
 		else
 			require File.dirname(__FILE__) + "/sqlitejdbc-v056.jar"
 		end
 		
 		require "java"
 		import "org.sqlite.JDBC"
-		@conn = java.sql.DriverManager::getConnection("jdbc:sqlite:" + @knjdb.opts["path"])
+		@conn = java.sql.DriverManager::getConnection("jdbc:sqlite:" + @knjdb.opts[:path])
 		@stat = @conn.createStatement
 	end
 	

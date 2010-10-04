@@ -5,7 +5,8 @@
   <widget class="GtkWindow" id="window">
     <property name="title" translatable="yes">Edit application</property>
     <property name="window_position">center</property>
-    <property name="default_width">400</property>
+    <property name="default_width">640</property>
+    <property name="default_height">480</property>
     <signal name="destroy" handler="on_window_destroy"/>
     <child>
       <widget class="GtkVBox" id="vbox1">
@@ -132,6 +133,7 @@
                           <widget class="GtkTreeView" id="tvTest">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
+                            <signal name="row_activated" handler="on_tvTest_row_activated"/>
                           </widget>
                         </child>
                       </widget>

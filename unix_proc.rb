@@ -52,10 +52,7 @@ class Knj::Unix_proc
 	end
 	
 	def [](key)
-		if !@data.has_key?(key)
-			raise "No such data: #{key}"
-		end
-		
+		raise "No such data: #{key}" if !@data.has_key?(key)
 		return @data[key]
 	end
 end

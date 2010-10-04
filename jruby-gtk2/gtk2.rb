@@ -4,9 +4,9 @@ require File.dirname(__FILE__) + "/gtk-4.0.jar"
 org.gnome.gtk.Gtk.init(nil)
 
 @all = {
-	"Gtk" => ["Window", "HBox", "VBox", "Label", "Button", "ListStore", "TreeView", "TreeViewColumn",
+	"Gtk" => ["Dialog", "Window", "HBox", "IconSize", "Image", "VBox", "Label", "Button", "ListStore", "TreeView", "TreeViewColumn", "TreeSelection",
 					"CellRendererText", "DataColumnString", "TreeIter", "StatusIcon", "Entry", "ProgressBar",
-					"Menu", "MenuItem", "ComboBox", "FileChooserButton"
+					"Menu", "MenuItem", "CheckButton", "ComboBox", "FileChooserButton"
 	],
 	"Gdk" => ["Pixbuf", "Event", "EventButton"]
 }
@@ -34,9 +34,18 @@ module Gtk
 	def self.takeob; return @takeob; end
 	
 	#Cache eval'ed objects to get it done faster.
-	@evalobs = {}
+	@evalobs = {
+		"org.gnome.gtk.Button" => org.gnome.gtk.Button,
+		"org.gnome.gtk.Dialog" => org.gnome.gtk.Dialog,
+		"org.gnome.gtk.HBox" => org.gnome.gtk.HBox,
+		"org.gnome.gtk.Image" => org.gnome.gtk.Image,
+		"org.gnome.gtk.Label" => org.gnome.gtk.Label,
+		"org.gnome.gtk.ListStore" => org.gnome.gtk.ListStore,
+		"org.gnome.gtk.Window" => org.gnome.gtk.Window
+	}
 	def self.evalob(evalobstr)
 		if !@evalobs.has_key?(evalobstr)
+			print "Not statically written: #{evalobstr}\n"
 			@evalobs[evalobstr] = eval(evalobstr)
 		end
 		
@@ -49,8 +58,7 @@ module Gdk; end
 @all.each do |parentclass, classes|
 	classes.each do |classname|
 		Kernel.const_get(parentclass).const_set(classname, Class.new do
-				def ob; return @ob; end
-				def ob=(ob); @ob = ob; end
+				attr_accessor :ob
 				
 				def initialize(spawn_object = true)
 					if Gtk.takeob
@@ -59,7 +67,13 @@ module Gdk; end
 					else
 						splitted = self.class.to_s.split("::")
 						javaname = "org.gnome." + splitted.first.downcase + "." + splitted.last
-						@ob = Gtk.evalob(javaname).new
+						
+						begin
+							@ob = Gtk.evalob(javaname).new
+						rescue Exception => e
+							print "Could not spawn object: #{javaname}\n"
+							raise e
+						end
 					end
 				end
 				
@@ -95,9 +109,16 @@ module Gdk; end
 						define_method funcname do |*args|
 							#First argument is always the widget - make it a converted widget instead.
 							cname = args[0].class.to_s.split("::")[2]
-							widget = Gtk.const_get(cname).new(false)
-							widget.ob = args[0]
-							args[0] = widget
+							
+							begin
+								Gtk.takeob = args[0]
+								widget = Gtk.const_get(cname).new(false)
+								widget.ob = args[0]
+								args[0] = widget
+							rescue Exception => e
+								print "Could not spawn widget: #{cname}\n"
+								raise e
+							end
 							
 							ret = block.call(*args)
 							
@@ -172,7 +193,7 @@ end
 				return @ob.add(widget.ob)
 			end
 			
-			def pack_start(widget, arg1, arg2 = false)
+			def pack_start(widget, arg1 = false, arg2 = false)
 				return @ob.pack_start(widget.ob, arg1, arg2, 0)
 			end
 		end
@@ -186,32 +207,6 @@ end
 end
 
 module Gtk
-	class CellRendererText
-		def initialize
-			if Gtk.takeob
-				@ob = Gtk.takeob
-				Gtk.takeob = nil
-			end
-		end
-		
-		def init(tcol)
-			@ob = org.gnome.gtk.CellRendererText.new(tcol.ob)
-		end
-	end
-	
-	class VBox
-		def initialize
-			if Gtk.takeob
-				@ob = Gtk.takeob
-				Gtk.takeob = nil
-			else
-				splitted = self.class.to_s.split("::")
-				javaname = "org.gnome." + splitted.first.downcase + "." + splitted.last
-				@ob = Gtk.evalob(javaname).new(false, 0)
-			end
-		end
-	end
-	
 	def self.main
 		org.gnome.gtk.Gtk.main
 	end
@@ -245,7 +240,7 @@ module GLib
 	end
 end
 
-files = ["treeview", "liststore", "statusicon", "progressbar", "window", "menu", "eventbutton", "builder", "gladexml", "combobox"]
+files = ["builder", "cellrenderertext", "checkbutton", "combobox", "dialog", "eventbutton", "hbox", "iconsize", "image", "liststore", "gladexml", "menu", "progressbar", "statusicon", "stock", "treeview", "vbox", "window"]
 files.each do |file|
 	require File.dirname(__FILE__) + "/" + file
 end

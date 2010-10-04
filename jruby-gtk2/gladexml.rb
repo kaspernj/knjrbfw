@@ -1,11 +1,9 @@
 class GladeXML
-	def block=(newblock); @block = newblock; end
-	def data; return @data; end
+	attr_accessor :block
+	attr_reader :data
 	
 	def initialize(filename, &block)
 		@obs = {}
-		
-		require "xmlsimple"
 		
 		if filename.index("interface>") == nil
 			cont = File.read(filename)

@@ -2,6 +2,7 @@ require "rexml/rexml"
 
 module REXML
 	autoload :Document, "rexml/document"
+	autoload :ParseException, "rexml/parseexception"
 end
 
 module REXML::Formatters

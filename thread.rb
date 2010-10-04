@@ -1,9 +1,7 @@
 #This class behaves like a normal thread - but it shows error-messages and tracebacks. Normal threads dont do that.
 class Knj::Thread < Thread
 	def initialize(*paras, &block)
-		if !block_given?
-			raise "No block was given."
-		end
+		raise "No block was given." if !block_given?
 		
 		Thread.abort_on_exception = true
 		super(*paras) do

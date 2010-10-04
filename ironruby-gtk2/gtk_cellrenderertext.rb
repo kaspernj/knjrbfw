@@ -1,5 +1,5 @@
 class Gtk::CellRendererText
 	def initialize(*paras)
-		#do nothing.
+		@ob = RealGtk::CellRendererText.new
 	end
 end
