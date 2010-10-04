@@ -1,4 +1,4 @@
-GLib = Module.new do
+module GLib
 	class Timeout
 		def self.add(time, &block)
 			Thread.new(time, block) do |time, block|

@@ -2,6 +2,8 @@ $knjpath = File.dirname(__FILE__) + "/"
 
 module Knj
 	autoload :ArrayExt, $knjpath + "arrayext"
+	autoload :Datestamp, $knjpath + "datestamp"
+	autoload :Datet, $knjpath + "datet"
 	autoload :Db, $knjpath + "knjdb/libknjdb"
 	autoload :Db_row, $knjpath + "knjdb/libknjdb_row"
 	autoload :Errors, $knjpath + "errors"
@@ -10,7 +12,6 @@ module Knj
 	autoload :Mail, $knjpath + "mail"
 	autoload :Notify, $knjpath + "notify"
 	autoload :Web, $knjpath + "web"
-	autoload :Datestamp, $knjpath + "datestamp"
 	autoload :Google_sitemap, $knjpath + "google_sitemap"
 	autoload :Http, $knjpath + "http"
 	autoload :Sms, $knjpath + "sms"
@@ -24,8 +25,10 @@ module Knj
 	autoload :SSHRobot, $knjpath + "sshrobot/sshrobot"
 	autoload :Sysuser, $knjpath + "sysuser"
 	autoload :Thread, $knjpath + "thread"
+	autoload :X11VNC, $knjpath + "x11vnc"
 	autoload :Unix_proc, $knjpath + "unix_proc"
 	autoload :YouTube, $knjpath + "youtube"
+	autoload :Win, $knjpath + "win"
 end
 
 #ruby objects.
@@ -34,22 +37,26 @@ autoload :CSV, "csv"
 autoload :Date, "date"
 autoload :Digest, "digest"
 autoload :Erubis, "erubis"
+autoload :EM, "eventmachine"
 autoload :FCGI, "fcgi"
 autoload :FileUtils, "fileutils"
 autoload :JSON, $knjpath + "autoload/json_autoload"
 autoload :GD2, $knjpath + "autoload/gd2"
 autoload :Mysql, "mysql"
+autoload :OpenSSL, "openssl"
 autoload :ParseDate, "parsedate"
-autoload :SQLite3, "sqlite3"
 autoload :Pathname, "pathname"
 autoload :Ping, "ping"
 autoload :REXML, $knjpath + "autoload/rexml"
 autoload :StringIO, "stringio"
 autoload :SOAP, $knjpath + "autoload/soap"
+autoload :SQLite3, "sqlite3"
 autoload :Timeout, "timeout"
 autoload :TCPSocket, "socket"
 autoload :TCPServer, "socket"
 autoload :URI, "uri"
+autoload :Win32, "win32/registry"
+autoload :WIN32OLE, "win32ole"
 autoload :XmlSimple, "xmlsimple"
 
 if RUBY_PLATFORM == "java"
@@ -65,8 +72,10 @@ elsif RUBY_PLATFORM.index("mswin32") != nil
 else
 	autoload :GetText, "gettext"
 	autoload :Gtk, $knjpath + "autoload/gtk2"
-	autoload :Gdk, $knjpath + "autoload/gtk2"
 	autoload :GladeXML, "libglade2"
+	
+	#this bugs?
+	#autoload :Gdk, $knjpath + "autoload/gtk2"
 end
 
 module Net

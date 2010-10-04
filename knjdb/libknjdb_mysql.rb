@@ -7,17 +7,17 @@ class KnjDB_mysql
 		@escape_col = "`"
 		@escape_val = "'"
 		
-		if knjdb_ob.opts.has_key?(:port)
-			port = knjdb_ob.opts[:port].to_i
+		if @knjdb.opts.has_key?(:port)
+			@port = @knjdb.opts[:port].to_i
 		else
-			port = 3306
+			@port = 3306
 		end
 		
-		@conn = Mysql.real_connect(knjdb_ob.opts[:host], knjdb_ob.opts[:user], knjdb_ob.opts[:pass], knjdb_ob.opts[:db], port)
+		@conn = Mysql.real_connect(@knjdb.opts[:host], @knjdb.opts[:user], @knjdb.opts[:pass], @knjdb.opts[:db], @port)
 	end
 	
 	def reconnect
-		@conn = Mysql.real_connect(knjdb_ob.opts["host"], knjdb_ob.opts["user"], knjdb_ob.opts["pass"], knjdb_ob.opts["db"], port)
+		@conn = Mysql.real_connect(@knjdb.opts["host"], @knjdb.opts["user"], @knjdb.opts["pass"], @knjdb.opts["db"], @port)
 	end
 	
 	def query(string)
