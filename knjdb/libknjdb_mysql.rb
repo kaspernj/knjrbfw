@@ -38,11 +38,14 @@ class KnjDB_mysql
 		return @conn.escape_string(string.to_s)
 	end
 	
-	def escape_col(string)
+	def esc_col(string)
 		string = string.to_s
 		raise "Invalid column-string: #{string}" if string.index(@escape_col) != nil
 		return string
 	end
+	
+	alias :esc_table :esc_col
+	alias :esc :escape
 	
 	def lastID
 		return @conn.insert_id
@@ -67,10 +70,7 @@ class KnjDB_mysql_result
 	end
 	
 	def fetch
-		if $db and $db.opts[:return_keys] == "symbols"
-			return self.fetch_hash_symbols
-		end
-		
+		return self.fetch_hash_symbols if $db and $db.opts[:return_keys] == "symbols"
 		return self.fetch_hash_strings
 	end
 	
