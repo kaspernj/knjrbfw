@@ -1,18 +1,11 @@
 class KnjDB_mysql
-	def escape_table
-		return "`"
-	end
-	
-	def escape_col
-		return "`"
-	end
-	
-	def escape_val
-		return "'"
-	end
+	attr_reader :knjdb, :conn, :escape_table, :escape_col, :escape_val
 	
 	def initialize(knjdb_ob)
 		@knjdb = knjdb_ob
+		@escape_table = "`"
+		@escape_col = "`"
+		@escape_val = "'"
 		
 		if knjdb_ob.opts.has_key?(:port)
 			port = knjdb_ob.opts[:port].to_i
@@ -43,6 +36,12 @@ class KnjDB_mysql
 	
 	def escape(string)
 		return @conn.escape_string(string.to_s)
+	end
+	
+	def escape_col(string)
+		string = string.to_s
+		raise "Invalid column-string: #{string}" if string.index(@escape_col) != nil
+		return string
 	end
 	
 	def lastID

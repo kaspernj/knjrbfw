@@ -20,6 +20,8 @@ class Knj::Db
 		
 		if @opts[:type] == "sqlite3" and RUBY_PLATFORM == "java"
 			@opts[:type] = "java_sqlite3"
+		elsif @opts[:type] == "mysql" and RUBY_PLATFORM == "java"
+			@opts[:type] = "java_mysql"
 		elsif @opts[:type] == "sqlite3" and RUBY_PLATFORM.index("mswin32") != nil
 			@opts[:type] = "sqlite3_ironruby"
 		end
