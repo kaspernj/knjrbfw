@@ -473,6 +473,26 @@ module Knj::Php
 		return date_format
 	end
 	
+	def self.basename(filepath)
+		ret = filepath.to_s.split(".")
+		ret.delete(ret.last)
+		return ret.join(".")
+	end
+	
+	def self.pathinfo(filepath)
+		filepath = filepath.to_s
+		
+		dirname = File.dirname(filepath)
+		dirname = "" if dirname == "."
+		
+		return {
+			"dirname" => dirname,
+			"basename" => self.basename(filepath),
+			"extension" => filepath.split(".").last,
+			"filename" => filepath.split("/").last
+		}
+	end
+	
 	Knj::Php.singleton_methods.each do |methodname|
 		define_method methodname.to_sym do |*paras|
 			return Knj::Php.send(methodname, *paras)
