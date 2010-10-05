@@ -474,7 +474,7 @@ module Knj::Php
 	end
 	
 	def self.basename(filepath)
-		ret = filepath.to_s.split(".")
+		ret = filepath.to_s.split("/").last.split(".")
 		ret.delete(ret.last)
 		return ret.join(".")
 	end
@@ -491,6 +491,14 @@ module Knj::Php
 			"extension" => filepath.split(".").last,
 			"filename" => filepath.split("/").last
 		}
+	end
+	
+	def self.realpath(pname)
+		begin
+			return Pathname.new(pname.to_s).realpath.to_s
+		rescue => e
+			return false
+		end
 	end
 	
 	Knj::Php.singleton_methods.each do |methodname|
