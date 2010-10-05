@@ -88,10 +88,16 @@ class KnjEruby < Erubis::Eruby
 			tmp_out = StringIO.new
 			$stdout = tmp_out
 			ERuby.import(filename)
+			
+			if KnjEruby.connects["exit"]
+				KnjEruby.connects["exit"].each do |block|
+					block.call
+				end
+			end
+			
 			KnjEruby.printcont(tmp_out)
 		rescue SystemExit => e
 			KnjEruby.printcont(tmp_out)
-			exit if !@fcgi
 		rescue Exception => e
 			begin
 				if KnjEruby.connects["error"]
