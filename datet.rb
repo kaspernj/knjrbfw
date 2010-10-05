@@ -120,6 +120,22 @@ class Knj::Datet
 		return @time.strftime("%B")
 	end
 	
+	def year
+		return @time.year
+	end
+	
+	def year=(newyear)
+		@time = self.stamp(:datet => false, :year => newyear)
+	end
+	
+	def month
+		return @time.month
+	end
+	
+	def month=(newmonth)
+		@time = self.stamp(:datet => false, :month => newmonth)
+	end
+	
 	def >=(datet)
 		return self.time.to_i >= datet.time.to_i
 	end
@@ -180,7 +196,7 @@ class Knj::Datet
 		end
 		
 		if !args.has_key?(:time) or args[:time]
-			str += " " + "%02d" % @time.hour.to_s + ":" + "%02d" % @time.min.to_s
+			str += " - " + "%02d" % @time.hour.to_s + ":" + "%02d" % @time.min.to_s
 		end
 		
 		return str
@@ -188,28 +204,56 @@ class Knj::Datet
 	
 	def self.in(timestr)
 		if match = timestr.to_s.match(/^(\d+)\/(\d+) (\d+)/)
+			#MySQL date format
 			timestr = timestr.gsub(match[0], "")
 			date = match[1]
 			month = match[2]
 			year = match[3]
-		else
-			raise Errors::InvalidData.new(sprintf(_("Wrong format: %s"), timestr))
+			
+			if match = timestr.match(/\s*(\d+):(\d+)/)
+				#MySQL datetime format
+				timestr = timestr.gsub(match[0], "")
+				hour = match[1]
+				minute = match[2]
+			end
+			
+			return Datet.new(Time.gm(year, month, date, hour, minute))
+		elsif match = timestr.to_s.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{5})$/)
+			#Datet.code format
+			return Datet.new(Time.gm(match[1], match[2], match[3], match[4], match[5], match[6], match[7]))
 		end
 		
-		if match = timestr.match(/\s*(\d+):(\d+)/)
-			timestr = timestr.gsub(match[0], "")
-			hour = match[1]
-			minute = match[2]
-		end
-		
-		datestr = ""
-		datestr = "#{year}-#{month}-#{date}" if date and month and year
-		datestr += " #{hour}:#{minute}" if hour and minute
-		
-		return Datet.new(Datestamp.from_dbstr(datestr))
+		raise Errors::InvalidData.new(sprintf(_("Wrong format: %s"), timestr))
+	end
+	
+	def self.months_arr
+		return Dictionary[
+			1, _("January"),
+			2, _("February"),
+			3, _("March"),
+			4, _("April"),
+			5, _("May"),
+			6, _("June"),
+			7, _("July"),
+			8, _("August"),
+			9, _("September"),
+			10, _("October"),
+			11, _("November"),
+			12, _("December")
+		]
 	end
 	
 	def to_s
 		return @time.to_s
 	end
+	
+	def code
+		return "#{"%04d" % @time.year}#{"%02d" % @time.month}#{"%02d" % @time.day}#{"%02d" % @time.hour}#{"%02d" % @time.min}#{"%02d" % @time.sec}#{"%05d" % @time.usec}"
+	end
+	
+	def unixt
+		return @time.to_i
+	end
+	
+	alias :to_i :unixt
 end
