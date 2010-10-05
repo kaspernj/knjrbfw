@@ -58,6 +58,7 @@ autoload :URI, "uri"
 autoload :Win32, "win32/registry"
 autoload :WIN32OLE, "win32ole"
 autoload :XmlSimple, "xmlsimple"
+autoload :Zip, "zip/zip"
 
 if RUBY_PLATFORM == "java"
 	autoload :GetText, "gettext"
