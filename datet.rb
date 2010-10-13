@@ -143,6 +143,7 @@ class Knj::Datet
 	def add_something(val)
 		val = -val if @addmode == "-"
 		return self.add_hours(val) if @mode == :hours
+		return self.add_days(val) if @mode == :days
 		raise "No such mode: #{@mode}"
 	end
 	
@@ -161,6 +162,11 @@ class Knj::Datet
 		return self
 	end
 	
+	def days
+		@mode = :days
+		return self
+	end
+	
 	def stamp(args)
 		vars = {:year => @time.year, :month => @time.month, :day => @time.day, :hour => @time.hour, :min => @time.min, :sec => @time.sec}
 		
@@ -172,9 +178,9 @@ class Knj::Datet
 		
 		if !args.has_key?(:datet) or args[:datet]
 			return Datet.new(time)
-		else
-			return time
 		end
+		
+		return time
 	end
 	
 	def dbstr
@@ -191,12 +197,18 @@ class Knj::Datet
 	
 	def out(args = {})
 		str = ""
+		date_shown = false
+		time_shown = false
+		
 		if !args.has_key?(:date) or args[:date]
+			date_shown = true
 			str += "%02d" % @time.day.to_s + "/" + "%02d" % @time.month.to_s + " " + "%04d" % @time.year.to_s
 		end
 		
 		if !args.has_key?(:time) or args[:time]
-			str += " - " + "%02d" % @time.hour.to_s + ":" + "%02d" % @time.min.to_s
+			time_shown = true
+			str += " - " if date_shown
+			str += "%02d" % @time.hour.to_s + ":" + "%02d" % @time.min.to_s
 		end
 		
 		return str
