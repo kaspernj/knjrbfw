@@ -82,7 +82,7 @@ class Knj::Datet
 		
 		dim = self.days_in_month
 		
-		if dim > cur_day
+		if dim < cur_day
 			@time = self.stamp(:datet => false, :day => dim)
 		else
 			@time = self.stamp(:datet => false, :day => cur_day)
@@ -132,6 +132,12 @@ class Knj::Datet
 		return @time.month
 	end
 	
+	def date
+		return @time.day
+	end
+	
+	alias :day :date
+	
 	def month=(newmonth)
 		@time = self.stamp(:datet => false, :month => newmonth)
 	end
@@ -144,6 +150,7 @@ class Knj::Datet
 		val = -val if @addmode == "-"
 		return self.add_hours(val) if @mode == :hours
 		return self.add_days(val) if @mode == :days
+		return self.add_months(val) if @mode == :months
 		raise "No such mode: #{@mode}"
 	end
 	
@@ -164,6 +171,11 @@ class Knj::Datet
 	
 	def days
 		@mode = :days
+		return self
+	end
+	
+	def months
+		@mode = :months
 		return self
 	end
 	
