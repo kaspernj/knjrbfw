@@ -55,4 +55,8 @@ class Knj::Unix_proc
 		raise "No such data: #{key}" if !@data.has_key?(key)
 		return @data[key]
 	end
+	
+	def kill
+		Process.kill(9, @data["pid"].to_i)
+	end
 end
