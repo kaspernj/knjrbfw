@@ -23,7 +23,7 @@ class KnjDB_java_mysql
 			@port = 3306
 		end
 		
-		require File.dirname(__FILE__) + "/mysql-connector-java-5.1.13/mysql-connector-java-5.1.13-bin.jar"
+		require File.dirname(__FILE__) + "/mysql-connector-java-5.1.13-bin.jar"
 		import "com.mysql.jdbc.Driver"
 		self.reconnect
 		self.query("SET SQL_MODE = ''")
