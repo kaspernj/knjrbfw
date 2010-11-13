@@ -314,7 +314,7 @@ class Knj::Web
 	end
 	
 	def self.back
-		print "<script type=\"text/javascript\">history.back(-1);</script>"
+		print "<script type=\"text/javascript\">history.go(-1);</script>"
 		exit
 	end
 	
@@ -371,14 +371,16 @@ class Knj::Web
 		
 		if !args[:type]
 			if args[:opts]
-				args[:type] = "select"
+				args[:type] = :select
 			elsif args[:name] and args[:name].to_s[0..2] == "che"
-				args[:type] = "checkbox"
+				args[:type] = :checkbox
 			elsif args[:name] and args[:name].to_s[0..3] == "file"
-				args[:type] = "file"
+				args[:type] = :file
 			else
-				args[:type] = "text"
+				args[:type] = :text
 			end
+		else
+			args[:type] = args[:type].to_sym
 		end
 		
 		if args.has_key?(:disabled) and args[:disabled]
@@ -387,13 +389,15 @@ class Knj::Web
 			disabled = ""
 		end
 		
+		raise "No name given to the Web::input()-method." if !args[:name] and args[:type] != :info and args[:type] != :textshow
+		
 		checked = ""
 		checked += " value=\"#{args[:value_active]}\"" if args.has_key?(:value_active)
 		checked += " checked" if value.is_a?(String) and value == "1" or value.to_s == "1"
 		
 		html = ""
 		
-		if args[:type] == "checkbox"
+		if args[:type] == :checkbox
 			html += "<tr>"
 			html += "<td colspan=\"2\" class=\"tdcheck\">"
 			html += "<input type=\"checkbox\" class=\"input_checkbox\" id=\"#{args[:id].html}\" name=\"#{args[:name].html}\"#{checked} />"
@@ -407,7 +411,7 @@ class Knj::Web
 			html += "</td>"
 			html += "<td class=\"tdc\">"
 			
-			if args[:type] == "textarea"
+			if args[:type] == :textarea
 				if args.has_key?(:height)
 					styleadd = " style=\"height: #{args[:height].html}px;\""
 				else
@@ -416,17 +420,17 @@ class Knj::Web
 				
 				html += "<textarea#{styleadd} class=\"input_textarea\" name=\"#{args[:name].html}\" id=\"#{args[:id].html}\">#{value}</textarea>"
 				html += "</td>"
-			elsif args[:type] == "fckeditor"
+			elsif args[:type] == :fckeditor
 				args[:height] = 400 if !args[:height]
 				
-				require "/usr/share/fckeditor/fckeditor.rb"
+				require "/usr/share/fckeditor/fckeditor"
 				fck = FCKeditor.new(args[:name])
 				fck.Height = args[:height].to_i
 				fck.Value = value
 				html += fck.CreateHtml
 				
 				html += "</td>"
-			elsif args[:type] == "select"
+			elsif args[:type] == :select
 				html += "<select name=\"#{args[:name].html}\" id=\"#{args[:id].html}\" class=\"input_select\""
 				html += " onchange=\"#{args[:onchange]}\"" if args[:onchange]
 				html += " multiple" if args[:multiple]
@@ -435,7 +439,7 @@ class Knj::Web
 				html += Web.opts(args[:opts], value, args[:opts_args])
 				html += "</select>"
 				html += "</td>"
-			elsif args[:type] == "imageupload"
+			elsif args[:type] == :imageupload
 				html += "<table class=\"designtable\"><tr><td style=\"width: 100%;\">"
 				html += "<input type=\"file\" name=\"#{args[:name].html}\" class=\"input_file\" />"
 				html += "</td><td style=\"padding-left: 5px;\">"
@@ -452,12 +456,12 @@ class Knj::Web
 				
 				html += "</td></tr></table>"
 				html += "</td>"
-			elsif args[:type] == "file"
-				html += "<input type=\"#{args[:type]}\" class=\"input_#{args[:type]}\" name=\"#{args[:name].html}\" /></td>"
-			elsif args[:type] == "textshow"
+			elsif args[:type] == :file
+				html += "<input type=\"#{args[:type].to_s}\" class=\"input_#{args[:type].to_s}\" name=\"#{args[:name].html}\" /></td>"
+			elsif args[:type] == :textshow or args[:type] == :info
 				html += "#{value}</td>"
 			else
-				html += "<input #{disabled}type=\"#{args[:type].html}\" class=\"input_#{args[:type].html}\" id=\"#{args[:id].html}\" name=\"#{args[:name].html}\" value=\"#{value.html}\" /></td>"
+				html += "<input #{disabled}type=\"#{args[:type].to_s.html}\" class=\"input_#{args[:type].html}\" id=\"#{args[:id].html}\" name=\"#{args[:name].html}\" value=\"#{value.html}\" /></td>"
 				html += "</td>"
 			end
 			
