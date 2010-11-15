@@ -22,14 +22,14 @@ class ERuby
 		bytetime = File.mtime(bytepath) if File.exists?(bytepath)
 		
 		if !cacheexists or filetime > cachetime
-			print "Generating cachefile.<br />\n"
+			#print "Generating cachefile.<br />\n"
 			KnjEruby.load_file(File.basename(filename), {:cachename => cachename})
 			cachetime = File.mtime(cachename)
 		end
 		
 		if RUBY_VERSION.slice(0..2) == "1.9" and RubyVM::InstructionSequence.respond_to?(:compile_file)
 			if !File.exists?(bytepath) or cachetime > bytetime
-				print "Generating .rbc file.<br />\n"
+				#print "Generating .rbc file.<br />\n"
 				res = RubyVM::InstructionSequence.compile_file(filename)
 				data = Marshal.dump(res.to_a)
 				File.open(bytepath, "w+") do |fp|
@@ -38,7 +38,7 @@ class ERuby
 			end
 			
 			if RubyVM::InstructionSequence.respond_to?(:load)
-				print "Loading .rbc file.<br />\n"
+				#print "Loading .rbc file.<br />\n"
 				res = Marshal.load(File.read(bytepath))
 				RubyVM::InstructionSequence.load(res).eval
 			else
