@@ -42,9 +42,9 @@ autoload :FCGI, "fcgi"
 autoload :FileUtils, "fileutils"
 autoload :JSON, $knjpath + "autoload/json_autoload"
 autoload :GD2, $knjpath + "autoload/gd2"
-autoload :Mysql, "mysql"
+autoload :Mysql, $knjpath + "autoload/mysql"
 autoload :OpenSSL, "openssl"
-autoload :ParseDate, "parsedate"
+autoload :ParseDate, $knjpath + "autoload/parsedate"
 autoload :Pathname, "pathname"
 autoload :Ping, "ping"
 autoload :REXML, $knjpath + "autoload/rexml"
@@ -93,7 +93,7 @@ module TMail
 end
 
 #facets
-autoload :Dictionary, "facets/dictionary"
+autoload :Dictionary, $knjpath + "autoload/facets_dictionary"
 
 #gems
 autoload :Twitter, $knjpath + "autoload/twitter"

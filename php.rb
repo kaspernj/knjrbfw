@@ -1,3 +1,5 @@
+# coding: utf-8
+
 module Knj::Php
 	def self.is_numeric(n) Float n rescue false end
 	

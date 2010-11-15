@@ -8,24 +8,24 @@ class Knj::Retry
 		
 		args[:tries].to_i.downto(1) do |count|
 			error = nil
+			dobreak = false
 			
 			begin
 				if args[:timeout]
 					begin
 						Timeout.timeout(args[:timeout]) do
 							block.call
+							dobreak = true
 							break
 						end
 					rescue Timeout::Error => e
-						if count <= 1
-							doraise = e
-						end
-						
+						doraise = e if count <= 1
 						error = e
 						sleep(args[:wait]) if args[:wait] and !doraise
 					end
 				else
 					block.call
+					dobreak = true
 					break
 				end
 			rescue Exception => e
@@ -74,6 +74,8 @@ class Knj::Retry
 					:error => error
 				}
 			end
+			
+			break if dobreak
 		end
 		
 		res = true
