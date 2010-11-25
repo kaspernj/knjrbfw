@@ -6,6 +6,7 @@ module Knj
 	autoload :Datet, $knjpath + "datet"
 	autoload :Db, $knjpath + "knjdb/libknjdb"
 	autoload :Db_row, $knjpath + "knjdb/libknjdb_row"
+	autoload :Degulesider, $knjpath + "degulesider"
 	autoload :Errors, $knjpath + "errors"
 	autoload :Objects, $knjpath + "objects"
 	autoload :Opts, $knjpath + "opts"
