@@ -19,7 +19,7 @@ class Knj::Degulesider
 			res = {}
 			
 			if title_match = match[1].match(/<h2><a\s+class="fn".*>(.+)<\/a><\/h2>/)
-				res[:title] = title_match[1]
+				res[:name] = title_match[1]
 			end
 			
 			if phone_match = match[1].match(/<div class="phones"><ul class="linkList"><li>(Mob.|)\s*([\d\s]+)<\/li><\/ul><\/div>/)
