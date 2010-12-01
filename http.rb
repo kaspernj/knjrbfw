@@ -40,9 +40,7 @@ class Knj::Http
 	end
 	
 	def check_connected
-		if !@http
-			self.connect
-		end
+		self.connect if !@http
 	end
 	
 	def cookiestr

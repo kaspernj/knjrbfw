@@ -45,11 +45,16 @@ module Knj::ArrayExt
 	
 	#Converts all keys in the given hash to symbols.
 	def self.hash_sym(hash)
+		adds = {}
 		hash.each do |key, value|
 			if !key.is_a?(Symbol)
-				hash[key.to_sym] = value
+				adds[key.to_sym] = value
 				hash.delete(key)
 			end
+		end
+		
+		adds.each do |key, value|
+			hash[key] = value
 		end
 		
 		return hash

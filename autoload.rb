@@ -6,6 +6,7 @@ module Knj
 	autoload :Datet, $knjpath + "datet"
 	autoload :Db, $knjpath + "knjdb/libknjdb"
 	autoload :Db_row, $knjpath + "knjdb/libknjdb_row"
+	autoload :Degulesider, $knjpath + "degulesider"
 	autoload :Errors, $knjpath + "errors"
 	autoload :Objects, $knjpath + "objects"
 	autoload :Opts, $knjpath + "opts"
@@ -42,9 +43,9 @@ autoload :FCGI, "fcgi"
 autoload :FileUtils, "fileutils"
 autoload :JSON, $knjpath + "autoload/json_autoload"
 autoload :GD2, $knjpath + "autoload/gd2"
-autoload :Mysql, "mysql"
+autoload :Mysql, $knjpath + "autoload/mysql"
 autoload :OpenSSL, "openssl"
-autoload :ParseDate, "parsedate"
+autoload :ParseDate, $knjpath + "autoload/backups/parsedate.rb"
 autoload :Pathname, "pathname"
 autoload :Ping, "ping"
 autoload :REXML, $knjpath + "autoload/rexml"
@@ -94,7 +95,7 @@ module TMail
 end
 
 #facets
-autoload :Dictionary, "facets/dictionary"
+autoload :Dictionary, $knjpath + "autoload/facets_dictionary"
 
 #gems
 autoload :Twitter, $knjpath + "autoload/twitter"

@@ -56,4 +56,10 @@ module Knj::Strings
 		return str_no if !value
 		return str_yes
 	end
+	
+	def self.shorten(str, maxlength)
+		str = str.to_s
+		str = str.slice(0..(maxlength - 1)).strip + "..." if str.length > maxlength
+		return str
+	end
 end
