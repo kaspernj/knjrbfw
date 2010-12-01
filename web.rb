@@ -152,18 +152,11 @@ class Knj::Web
 			end
 		end
 		
-		@get = {}
+		
 		if @cgi and @cgi.query_string
-			Php.urldecode(@cgi.query_string.to_s).split("&").each do |value|
-				pos = value.index("=")
-				
-				if pos != nil
-					name = value[0..pos-1]
-					valuestr = value.slice(pos+1..-1)
-					
-					Web.parse_name(@get, name, valuestr)
-				end
-			end
+			@get = Web.parse_urlquery(@cgi.query_string)
+		else
+			@get = {}
 		end
 		
 		@cookie = {}
@@ -215,26 +208,65 @@ class Knj::Web
 		return @session[key.to_sym] = value
 	end
 	
-	def self.parse_name(seton, varname, value)
+	def self.parse_urlquery(querystr, args = {})
+		get = {}
+		Php.urldecode(querystr).split("&").each do |value|
+			pos = value.index("=")
+			
+			if pos != nil
+				name = value[0..pos-1]
+				name = name.to_sym if args[:syms]
+				valuestr = value.slice(pos+1..-1)
+				Web.parse_name(get, name, valuestr, args)
+			end
+		end
+		
+		return get
+	end
+	
+	def self.parse_secname(seton, secname, args)
+		secname_empty = false
+		if secname.length <= 0
+			secname_empty = true
+			try = 0
+			
+			loop do
+				if !seton.has_key?(try)
+					break
+				else
+					try += 1
+				end
+			end
+			
+			secname = try
+		else
+			secname = secname.to_i if Php.is_numeric(secname)
+		end
+		
+		secname = secname.to_sym if args[:syms] and secname.is_a?(String)
+		
+		return [secname, secname_empty]
+	end
+	
+	def self.parse_name(seton, varname, value, args = {})
 		if varname and varname.index("[") != nil
 			match = varname.match(/\[(.*?)\]/)
 			if match
 				namepos = varname.index(match[0])
 				name = varname.slice(0..namepos - 1)
+				name = name.to_sym if args[:syms]
+				seton[name] = {} if !seton.has_key?(name)
 				
-				valuefrom = namepos + match[1].length + 2
+				secname, secname_empty = Web.parse_secname(seton[name], match[1], args)
+				
+				valuefrom = namepos + secname.to_s.length + 2
 				restname = varname.slice(valuefrom..-1)
 				
-				seton[name] = {} if !seton[name]
-				
 				if restname and restname.index("[") != nil
-					if !seton[name][match[1]]
-						seton[name][match[1]] = {}
-					end
-					
-					Web.parse_name_second(seton[name][match[1]], restname, value)
+					seton[name][secname] = {} if !seton[name].has_key?(secname)
+					Web.parse_name_second(seton[name][secname], restname, value, args)
 				else
-					seton[name][match[1]] = value
+					seton[name][secname] = value
 				end
 			else
 				seton[varname][match[1]] = value
@@ -244,23 +276,21 @@ class Knj::Web
 		end
 	end
 	
-	def self.parse_name_second(seton, varname, value)
+	def self.parse_name_second(seton, varname, value, args = {})
 		match = varname.match(/\[(.*?)\]/)
 		if match
 			namepos = varname.index(match[0])
 			name = match[1]
+			secname, secname_empty = Web.parse_secname(seton, match[1], args)
 			
 			valuefrom = namepos + match[1].length + 2
 			restname = varname.slice(valuefrom..-1)
 			
 			if restname and restname.index("[") != nil
-				if !seton[name]
-					seton[name] = {}
-				end
-				
-				Web.parse_name_second(seton[name], restname, value)
+				seton[secname] = {} if !seton.has_key?(secname)
+				Web.parse_name_second(seton[secname], restname, value, args)
 			else
-				seton[name] = value
+				seton[secname] = value
 			end
 		else
 			seton[varname] = value

@@ -70,20 +70,34 @@ class KnjEruby < Erubis::Eruby
 		@connects[signal] << block
 	end
 	
-	def self.printcont(tmp_out)
+	def self.printcont(tmp_out, args = {})
 		if @fcgi
 			@fcgi.print self.print_headers
 			tmp_out.rewind
 			@fcgi.print tmp_out.read.to_s
 		else
-			$stdout = STDOUT
-			print self.print_headers
+			if args[:io]
+				old_out = $stdout
+				$stdout = args[:io]
+			else
+				$stdout = STDOUT
+			end
+			
+			print self.print_headers if !args.has_key?(:with_headers) and args[:with_headers]
 			tmp_out.rewind
 			print tmp_out.read
 		end
 	end
 	
-	def self.load(filename)
+	def self.load_return(filename, args = {})
+		retio = StringIO.new
+		args[:io] = retio
+		KnjEruby.load(filename, args)
+		retio.rewind
+		return retio.read
+	end
+	
+	def self.load(filename, args = {})
 		begin
 			tmp_out = StringIO.new
 			$stdout = tmp_out
@@ -95,9 +109,9 @@ class KnjEruby < Erubis::Eruby
 				end
 			end
 			
-			KnjEruby.printcont(tmp_out)
+			KnjEruby.printcont(tmp_out, args)
 		rescue SystemExit => e
-			KnjEruby.printcont(tmp_out)
+			KnjEruby.printcont(tmp_out, args)
 		rescue Exception => e
 			begin
 				if KnjEruby.connects["error"]
@@ -137,7 +151,7 @@ class KnjEruby < Erubis::Eruby
 			end
 			
 			if tmp_out
-				KnjEruby.printcont(tmp_out)
+				KnjEruby.printcont(tmp_out, args)
 			end
 		end
 	end

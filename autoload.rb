@@ -57,6 +57,7 @@ autoload :TCPServer, "socket"
 autoload :URI, "uri"
 autoload :Win32, "win32/registry"
 autoload :WIN32OLE, "win32ole"
+autoload :WEBrick, "webrick"
 autoload :XmlSimple, "xmlsimple"
 autoload :Zip, "zip/zip"
 

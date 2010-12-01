@@ -143,7 +143,11 @@ class Knj::Datet
 	end
 	
 	def >=(datet)
-		return self.time.to_i >= datet.time.to_i
+		return @time.to_i >= datet.time.to_i
+	end
+	
+	def ==(datet)
+		return @time.to_i == datet.time.to_i
 	end
 	
 	def add_something(val)
@@ -205,6 +209,10 @@ class Knj::Datet
 		end
 		
 		return Datet.new(Time.local(*ParseDate.parsedate(date_string)))
+	end
+	
+	def self.parse(str)
+		return Datet.from_dbstr(str)
 	end
 	
 	def out(args = {})
