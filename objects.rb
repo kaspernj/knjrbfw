@@ -6,6 +6,10 @@ class Knj::Objects
 		raise "No DB given." if !@args[:db]
 		@args[:class_pre] = "class_" if !@args[:class_pre]
 		@objects = {}
+		
+		@args[:module] = Kernel if !@args[:module]
+		
+		raise "No class path given." if !@args[:class_path]
 	end
 	
 	def count_objects
@@ -64,7 +68,7 @@ class Knj::Objects
 			filename = @args[:class_path] + "/#{@args[:class_pre]}#{classname.downcase}.rb"
 			filename_req = @args[:class_path] + "/#{@args[:class_pre]}#{classname.downcase}"
 			raise "Class file could not be found: #{filename}." if !File.exists?(filename)
-			require(filename_req)
+			require filename_req
 		end
 	end
 	
@@ -85,7 +89,7 @@ class Knj::Objects
 		
 		if !@objects[classname][id]
 			self.requireclass(classname)
-			@objects[classname][id] = Kernel.const_get(classname).new(data)
+			@objects[classname][id] = @args[:module].const_get(classname).new(data)
 		end
 		
 		return @objects[classname][id]
@@ -94,7 +98,7 @@ class Knj::Objects
 	def list(classname, args = {}, &block)
 		classname = classname.to_sym
 		self.requireclass(classname)
-		classob = Kernel.const_get(classname)
+		classob = @args[:module].const_get(classname)
 		
 		raise "list-function has not been implemented for #{classname}" if !classob.respond_to?("list")
 		
@@ -189,7 +193,7 @@ class Knj::Objects
 	def add(classname, data)
 		classname = classname.to_sym
 		self.requireclass(classname)
-		retob = Kernel.const_get(classname).add(data)
+		retob = @args[:module].const_get(classname).add(data)
 		self.call("object" => retob, "signal" => "add")
 		return retob
 	end
