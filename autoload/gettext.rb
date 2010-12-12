@@ -1,6 +1,6 @@
 begin
-	require "mysql"
+	require "gettext"
 rescue LoadError
 	require "rubygems"
-	require "mysql"
+	require "gettext"
 end

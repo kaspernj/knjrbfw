@@ -1,6 +1,6 @@
 begin
-	require "mysql"
+	require "erubis"
 rescue LoadError
 	require "rubygems"
-	require "mysql"
+	require "erubis"
 end

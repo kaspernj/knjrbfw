@@ -3,12 +3,11 @@ class Knj::Objects
 		@callbacks = {}
 		@args = ArrayExt.hash_sym(args)
 		@args[:col_id] = :id if !@args[:col_id]
-		raise "No DB given." if !@args[:db]
 		@args[:class_pre] = "class_" if !@args[:class_pre]
+		@args[:module] = Kernel if !@args[:module]
 		@objects = {}
 		
-		@args[:module] = Kernel if !@args[:module]
-		
+		raise "No DB given." if !@args[:db]
 		raise "No class path given." if !@args[:class_path]
 	end
 	
@@ -62,6 +61,7 @@ class Knj::Objects
 	end
 	
 	def requireclass(classname)
+		return nil if !@args[:require] and @args.has_key?(:require)
 		classname = classname.to_s
 		
 		if !Php.class_exists(classname)
@@ -89,10 +89,32 @@ class Knj::Objects
 		
 		if !@objects[classname][id]
 			self.requireclass(classname)
-			@objects[classname][id] = @args[:module].const_get(classname).new(data)
+			args = [data]
+			args = args | @args[:extra_args] if @args[:extra_args]
+			@objects[classname][id] = @args[:module].const_get(classname).new(*args)
 		end
 		
 		return @objects[classname][id]
+	end
+	
+	def get_by(classname, args = {})
+		classname = classname.to_sym
+		self.requireclass(classname)
+		classob = @args[:module].const_get(classname)
+		
+		raise "list-function has not been implemented for #{classname}" if !classob.respond_to?("list")
+		
+		args[:limit_from] = 0
+		args[:limit_to] = 1
+		
+		realargs = [args]
+		realargs = realargs | @args[:extra_args] if @args[:extra_args]
+		
+		classob.list(*realargs).each do |obj|
+			return obj
+		end
+		
+		return false
 	end
 	
 	def list(classname, args = {}, &block)
@@ -102,15 +124,18 @@ class Knj::Objects
 		
 		raise "list-function has not been implemented for #{classname}" if !classob.respond_to?("list")
 		
+		realargs = [args]
+		realargs = realargs | @args[:extra_args] if @args[:extra_args]
+		
 		if block_given?
-			objects_return = classob.list(args, &block)
+			objects_return = classob.list(*realargs, &block)
 			if objects_return
 				objects_return.each do |object|
 					block.call(object)
 				end
 			end
 		else
-			return classob.list(args)
+			return classob.list(*realargs)
 		end
 	end
 	
@@ -193,17 +218,29 @@ class Knj::Objects
 	def add(classname, data)
 		classname = classname.to_sym
 		self.requireclass(classname)
-		retob = @args[:module].const_get(classname).add(data)
+		
+		args = [data]
+		args = args | @args[:extra_args] if @args[:extra_args]
+		
+		retob = @args[:module].const_get(classname).add(*args)
 		self.call("object" => retob, "signal" => "add")
 		return retob
 	end
 	
 	def unset(object)
-		if !@objects.has_key?(object.class.to_s.to_sym)
-			raise "Could not find object class in cache."
-		elsif !@objects[object.class.to_s.to_sym][object[@args[:col_id]].to_i]
+		classname = object.class.name
+		
+		if @args[:module]
+			classname = classname.gsub(@args[:module].name + "::", "")
+		end
+		
+		classname = classname.to_sym
+		
+		if !@objects.has_key?(classname)
+			raise "Could not find object class in cache: #{object.class.name}."
+		elsif !@objects[classname][object[@args[:col_id]].to_i]
 			print "Could not unset object from cache.\n"
-			print "Class: #{object.class.to_s}.\n"
+			print "Class: #{object.class.name}.\n"
 			print "ID: #{object.id}.\n"
 			
 			Php.print_r(@objects[object.class.to_s])
@@ -211,7 +248,7 @@ class Knj::Objects
 			exit
 			raise "Could not find object ID in cache."
 		else
-			@objects[object.class.to_s.to_sym].delete(object)
+			@objects[classname].delete(object)
 		end
 	end
 	

@@ -13,34 +13,20 @@ class Knj::Db_row
 			end
 		end
 		
-		if !@paras[:db] and $db and $db.class.to_s == "Knj::Db"
-			@paras[:db] = $db
-		end
-		
-		if !@paras[:objects] and $objects and $objects.class.to_s == "Knj::Objects"
-			@paras[:objects] = $objects
-		end
-		
+		@paras[:db] = $db if !@paras[:db] and $db and $db.class.to_s == "Knj::Db"
+		@paras[:objects] = $objects if !@paras[:objects] and $objects and $objects.class.to_s == "Knj::Objects"
 		@db = @paras[:db]
 		
-		if !@paras[:col_id]
-			@paras[:col_id] = :id
-		end
-		
-		if !@paras[:table]
-			raise "No table given."
-		end
+		@paras[:col_id] = :id if !@paras[:col_id]
+		raise "No table given." if !@paras[:table]
 		
 		if @paras[:data] and (@paras[:data].is_a?(Integer) or @paras[:data].is_a?(Fixnum) or @paras[:data].is_a?(String))
 			@data = {@paras[:col_id].to_sym => @paras[:data].to_s}
 			self.reload
 		elsif @paras[:data] and @paras[:data].is_a?(Hash)
-			@data = @paras[:data]
-			@data.each do |key, value|
-				if !key.is_a?(Symbol)
-					@data[key.to_sym] = value
-					@data.delete(key)
-				end
+			@data = {}
+			@paras[:data].each do |key, value|
+				@data[key.to_sym] = value
 			end
 		elsif @paras[:id]
 			@data = {}
@@ -53,16 +39,14 @@ class Knj::Db_row
 	
 	def reload
 		last_id = self.id
-		@data = @db.single(@paras[:table], {@paras[:col_id] => self.id})
-		if !@data
+		data = @db.single(@paras[:table], {@paras[:col_id] => self.id})
+		if !data
 			raise Knj::Errors::NotFound.new("Could not find any data for the object with ID: '#{last_id}' in the table '#{@paras[:table].to_s}'.")
 		end
 		
-		@data.each do |key, value|
-			if !key.is_a?(Symbol)
-				@data[key.to_sym] = value
-				@data.delete(key)
-			end
+		@data = {}
+		data.each do |key, value|
+			@data[key.to_sym] = value
 		end
 	end
 	
@@ -91,9 +75,7 @@ class Knj::Db_row
 	end
 	
 	def [](key)
-		if !key
-			raise "No valid key given."
-		end
+		raise "No valid key given." if !key
 		
 		if @data.has_key?(key)
 			return @data[key]
@@ -135,8 +117,8 @@ class Knj::Db_row
 	
 	alias :name :title
 	
-	def each(&paras)
-		return @data.each(&paras)
+	def each(&args)
+		return @data.each(&args)
 	end
 	
 	def method_missing(*args)

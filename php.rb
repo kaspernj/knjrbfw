@@ -26,7 +26,7 @@ module Knj::Php
 			superstr = supercl.to_s
 		end
 		
-		if argument.is_a?(Hash) or supercl.is_a?(Hash) or cstr == "SQLite3::ResultSet::HashWithTypes" or cstr == "CGI" or cstr == "Knj::Db_row" or cstr == "Apache::Table" or superstr == "Knj::Db_row" or cstr == "Dictionary"
+		if argument.is_a?(Hash) or supercl.is_a?(Hash) or cstr == "Knjappserver::Session_accessor" or cstr == "SQLite3::ResultSet::HashWithTypes" or cstr == "CGI" or cstr == "Knj::Db_row" or cstr == "Apache::Table" or superstr == "Knj::Db_row"
 			retstr += argument.class.to_s + "{\n"
 			argument.each do |pair|
 				i = 0
@@ -43,6 +43,32 @@ module Knj::Php
 				
 				retstr += "[#{keystr}] => "
 				retstr += print_r(pair[1], true, count + 1).to_s
+			end
+			
+			i = 0
+			while(i < count - 1)
+				retstr += "   "
+				i += 1
+			end
+			
+			retstr += "}\n"
+		elsif cstr == "Dictionary"
+			retstr += argument.class.to_s + "{\n"
+			argument.each do |key, val|
+				i = 0
+				while(i < count)
+					retstr += "   "
+					i += 1
+				end
+				
+				if key.is_a?(Symbol)
+					keystr = ":#{key.to_s}"
+				else
+					keystr = key.to_s
+				end
+				
+				retstr += "[#{keystr}] => "
+				retstr += Php.print_r(val, true, count + 1).to_s
 			end
 			
 			i = 0
@@ -75,8 +101,12 @@ module Knj::Php
 			end
 			
 			retstr += "}\n"
+		elsif cstr == "WEBrick::HTTPUtils::FormData"
+			retstr += "{#{argument.class.to_s}}"
 		elsif argument.is_a?(String) or argument.is_a?(Integer) or argument.is_a?(Fixnum) or argument.is_a?(Float)
 			retstr += argument.to_s + "\n"
+		elsif argument.is_a?(Symbol)
+			retstr += ":#{argument.to_s}"
 		elsif argument.is_a?(Exception)
 			retstr += "#\{#{argument.class.to_s}: #{argument.message}}\n"
 		else
