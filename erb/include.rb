@@ -135,7 +135,7 @@ class KnjEruby < Erubis::Eruby
 				$stdout = STDOUT
 			end
 			
-			print self.print_headers if !args.has_key?(:with_headers) and args[:with_headers]
+			print self.print_headers if !args.has_key?(:with_headers) or args[:with_headers]
 			tmp_out.rewind
 			print tmp_out.read
 		end
