@@ -5,12 +5,9 @@ class Knj::Db_row
 	def is_knj?; return true; end
 	
 	def initialize(paras)
-		@paras = paras
-		@paras.each do |key, value|
-			if !key.is_a?(Symbol)
-				@paras[key.to_sym] = value
-				@paras.delete(key)
-			end
+		@paras = {}
+		paras.each do |key, value|
+			@paras[key.to_sym] = value
 		end
 		
 		@paras[:db] = $db if !@paras[:db] and $db and $db.class.to_s == "Knj::Db"

@@ -27,7 +27,7 @@ class ERuby
 			cachetime = File.mtime(cachename)
 		end
 		
-		if RUBY_VERSION.slice(0..2) == "1.9" and RubyVM::InstructionSequence.respond_to?(:compile_file)
+		if RUBY_VERSION.slice(0..4) == "1.9.3" and RubyVM::InstructionSequence.respond_to?(:compile_file)
 			if !File.exists?(bytepath) or cachetime > bytetime
 				#print "Generating .rbc file.<br />\n"
 				res = RubyVM::InstructionSequence.compile_file(filename)

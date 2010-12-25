@@ -45,6 +45,7 @@ autoload :FCGI, "fcgi"
 autoload :FileUtils, "fileutils"
 autoload :JSON, $knjpath + "autoload/json_autoload"
 autoload :GD2, $knjpath + "autoload/gd2"
+autoload :Magick, $knjpath + "autoload/magick"
 autoload :Mysql, $knjpath + "autoload/mysql"
 autoload :OpenSSL, "openssl"
 autoload :OptionParser, "optparse"
@@ -94,7 +95,7 @@ module Net
 end
 
 module TMail
-	autoload :Mail, "tmail"
+	autoload :Mail, $knjpath + "autoload/tmail"
 end
 
 #facets
