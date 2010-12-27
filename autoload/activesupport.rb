@@ -1,2 +1,2 @@
 require "rubygems"
-require "activesupport"
+require "active_support"

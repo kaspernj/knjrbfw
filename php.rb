@@ -410,7 +410,6 @@ module Knj::Php
 			"value" => cvalue,
 			"path" => "/"
 		}
-		
 		paras["expires"] = Time.at(expire) if expire
 		paras["domain"] = domain if domain
 		

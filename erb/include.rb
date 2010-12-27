@@ -143,31 +143,42 @@ class KnjEruby < Erubis::Eruby
 			tmp_out.rewind
 			@fcgi.print tmp_out.read.to_s
 		else
-			if args[:io]
+			if args[:io] and !args[:custom_io]
 				old_out = $stdout
 				$stdout = args[:io]
-			else
+			elsif !args[:custom_io]
 				$stdout = STDOUT
 			end
 			
-			print self.print_headers if !args.has_key?(:with_headers) or args[:with_headers]
-			tmp_out.rewind
-			print tmp_out.read
+			if !args[:custom_io]
+				print self.print_headers if !args.has_key?(:with_headers) or args[:with_headers]
+				tmp_out.rewind
+				print tmp_out.read
+			end
 		end
 	end
 	
 	def self.load_return(filename, args = {})
-		retio = StringIO.new
-		args[:io] = retio
+		if !args[:io]
+			retio = StringIO.new
+			args[:io] = retio
+		end
+		
 		KnjEruby.load(filename, args)
-		retio.rewind
-		return retio.read
+		
+		if !args[:custom_io]
+			retio.rewind
+			return retio.read
+		end
 	end
 	
 	def self.load(filename, args = {})
 		begin
-			tmp_out = StringIO.new
-			$stdout = tmp_out
+			if !args[:custom_io]
+				tmp_out = StringIO.new
+				$stdout = tmp_out
+			end
+			
 			ERuby.import(filename)
 			
 			if KnjEruby.connects["exit"]
@@ -217,9 +228,7 @@ class KnjEruby < Erubis::Eruby
 				print CGI.escapeHTML(line) + "\n"
 			end
 			
-			if tmp_out
-				KnjEruby.printcont(tmp_out, args)
-			end
+			KnjEruby.printcont(tmp_out, args)
 		end
 	end
 end

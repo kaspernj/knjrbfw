@@ -98,7 +98,14 @@ class Knj::Datet
 	end
 	
 	def days_in_month
-		return (Date.new(@time.year, 12, 31) << (12 - @time.month)).day.to_i
+		if @time.respond_to?(:days_in_month)
+			return @time.days_in_month
+		end
+		
+		dateob = Kernel.const_get(:Date).new(@time.year, 12, 31)
+		if dateob.respond_to? "<<"
+			return (dateob << (12 - @time.month)).day.to_i
+		end
 	end
 	
 	def day_in_week
