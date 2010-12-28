@@ -8,10 +8,12 @@ module Knj
 	autoload :Db_row, $knjpath + "knjdb/libknjdb_row"
 	autoload :Degulesider, $knjpath + "degulesider"
 	autoload :Errors, $knjpath + "errors"
+	autoload :Event_filemod, $knjpath + "event_filemod"
 	autoload :Locales, $knjpath + "locales"
 	autoload :Objects, $knjpath + "objects"
 	autoload :Opts, $knjpath + "opts"
 	autoload :Mail, $knjpath + "mail"
+	autoload :Mailobj, $knjpath + "mailobj"
 	autoload :Notify, $knjpath + "notify"
 	autoload :Web, $knjpath + "web"
 	autoload :Google_sitemap, $knjpath + "google_sitemap"
@@ -45,6 +47,7 @@ autoload :FCGI, "fcgi"
 autoload :FileUtils, "fileutils"
 autoload :JSON, $knjpath + "autoload/json_autoload"
 autoload :GD2, $knjpath + "autoload/gd2"
+autoload :Magick, $knjpath + "autoload/magick"
 autoload :Mysql, $knjpath + "autoload/mysql"
 autoload :OpenSSL, "openssl"
 autoload :OptionParser, "optparse"
@@ -94,7 +97,7 @@ module Net
 end
 
 module TMail
-	autoload :Mail, "tmail"
+	autoload :Mail, $knjpath + "autoload/tmail"
 end
 
 #facets

@@ -1,48 +1,63 @@
 $eruby_rbyte = {}
 
 class ERuby
+	def self.load_settings
+		@settings_loaded = true
+		@inseq_cache = false
+		@inseq_rbc = false
+		
+		if RUBY_VERSION.slice(0..2) == "1.9" and RubyVM::InstructionSequence.respond_to?(:compile_file)
+			@inseq_cache = true
+			
+			if RubyVM::InstructionSequence.respond_to?(:load)
+				@inseq_rbc = true
+			end
+		end
+		
+		@inseq_rbc = false #this is not possible yet in Ruby... maybe in 1.9.3?
+	end
+	
 	def self.import(filename)
+		ERuby.load_settings if !@settings_loaded
+		
 		filename = File.expand_path(filename)
 		pwd = Dir.pwd
 		Dir.chdir(File.dirname(filename))
 		
 		fpath = "#{KnjEruby.filepath}/cache/#{filename.gsub("/", "_").gsub(".", "_")}"
-		
 		pi = Knj::Php.pathinfo(filename)
-		bytepath = pi["dirname"] + "/" + pi["basename"] + ".rbc"
-		
 		cachename = fpath + ".cache"
 		
 		filetime = File.mtime(filename)
-		
 		cacheexists = File.exists?(cachename)
-		byteexists = File.exists?(bytepath)
-		
 		cachetime = File.mtime(cachename) if File.exists?(cachename)
-		bytetime = File.mtime(bytepath) if File.exists?(bytepath)
 		
 		if !cacheexists or filetime > cachetime
-			#print "Generating cachefile.<br />\n"
 			KnjEruby.load_file(File.basename(filename), {:cachename => cachename})
 			cachetime = File.mtime(cachename)
+			reload_cache = true
 		end
 		
-		if RUBY_VERSION.slice(0..2) == "1.9" and RubyVM::InstructionSequence.respond_to?(:compile_file)
-			if !File.exists?(bytepath) or cachetime > bytetime
-				#print "Generating .rbc file.<br />\n"
-				res = RubyVM::InstructionSequence.compile_file(filename)
-				data = Marshal.dump(res.to_a)
-				File.open(bytepath, "w+") do |fp|
-					fp.write(data)
+		if @inseq_cache
+			if @inseq_rbc
+				bytepath = pi["dirname"] + "/" + pi["basename"] + ".rbc"
+				byteexists = File.exists?(bytepath)
+				bytetime = File.mtime(bytepath) if File.exists?(bytepath)
+				
+				if !File.exists?(bytepath) or cachetime > bytetime
+					res = RubyVM::InstructionSequence.compile_file(filename)
+					data = Marshal.dump(res.to_a)
+					File.open(bytepath, "w+") do |fp|
+						fp.write(data)
+					end
 				end
 			end
 			
-			if RubyVM::InstructionSequence.respond_to?(:load)
-				#print "Loading .rbc file.<br />\n"
+			if @inseq_rbc
 				res = Marshal.load(File.read(bytepath))
 				RubyVM::InstructionSequence.load(res).eval
 			else
-				if !$eruby_rbyte[cachename]
+				if !$eruby_rbyte[cachename] or reload_cache
 					$eruby_rbyte[cachename] = RubyVM::InstructionSequence.new(File.read(cachename))
 					#$eruby_rbyte[cachename] = RubyVM::InstructionSequence.compile_file(cachename)
 					$eruby_rbyte[cachename].eval
@@ -128,31 +143,42 @@ class KnjEruby < Erubis::Eruby
 			tmp_out.rewind
 			@fcgi.print tmp_out.read.to_s
 		else
-			if args[:io]
+			if args[:io] and !args[:custom_io]
 				old_out = $stdout
 				$stdout = args[:io]
-			else
+			elsif !args[:custom_io]
 				$stdout = STDOUT
 			end
 			
-			print self.print_headers if !args.has_key?(:with_headers) and args[:with_headers]
-			tmp_out.rewind
-			print tmp_out.read
+			if !args[:custom_io]
+				print self.print_headers if !args.has_key?(:with_headers) or args[:with_headers]
+				tmp_out.rewind
+				print tmp_out.read
+			end
 		end
 	end
 	
 	def self.load_return(filename, args = {})
-		retio = StringIO.new
-		args[:io] = retio
+		if !args[:io]
+			retio = StringIO.new
+			args[:io] = retio
+		end
+		
 		KnjEruby.load(filename, args)
-		retio.rewind
-		return retio.read
+		
+		if !args[:custom_io]
+			retio.rewind
+			return retio.read
+		end
 	end
 	
 	def self.load(filename, args = {})
 		begin
-			tmp_out = StringIO.new
-			$stdout = tmp_out
+			if !args[:custom_io]
+				tmp_out = StringIO.new
+				$stdout = tmp_out
+			end
+			
 			ERuby.import(filename)
 			
 			if KnjEruby.connects["exit"]
@@ -202,9 +228,7 @@ class KnjEruby < Erubis::Eruby
 				print CGI.escapeHTML(line) + "\n"
 			end
 			
-			if tmp_out
-				KnjEruby.printcont(tmp_out, args)
-			end
+			KnjEruby.printcont(tmp_out, args)
 		end
 	end
 end

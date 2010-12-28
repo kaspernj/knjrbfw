@@ -547,7 +547,17 @@ class Knj::Web
 	end
 	
 	def self.rendering_engine
-		agent = $_SERVER["HTTP_USER_AGENT"].to_s.downcase
+		begin
+			servervar = _server
+		rescue Exception
+			servervar = $_SERVER
+		end
+		
+		if !servervar
+			raise "Could not figure out meta data."
+		end
+		
+		agent = servervar["HTTP_USER_AGENT"].to_s.downcase
 		
 		if agent.index("webkit") != nil
 			return "webkit"
