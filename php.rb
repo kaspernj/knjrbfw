@@ -166,7 +166,7 @@ module Knj::Php
 		end
 		
 		numberstr = r.to_s.reverse
-		numberstr = numberstr.gsub(",", "comma") #.gsub(".", "dot")
+		numberstr = numberstr.gsub(",", "comma").gsub(".", "dot")
 		numberstr = numberstr.gsub("comma", delimiter).gsub("dot", seperator)
 		
 		return numberstr
