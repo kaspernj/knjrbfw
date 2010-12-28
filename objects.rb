@@ -160,7 +160,11 @@ class Knj::Objects
 		obs.each do |object|
 			html += "<option value=\"#{object.id.html}\""
 			html += " selected=\"selected\"" if args[:selected] and args[:selected][@args[:col_id]] == object.id
-			html += ">#{object.title.html}</option>"
+			begin
+				html += ">#{object.title.html}</option>"
+			rescue Exception => e
+				html += ">[#{_("invalid title")}]</option>"
+			end
 		end
 		
 		return html
