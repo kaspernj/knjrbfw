@@ -5,8 +5,14 @@ class ERuby
 		@settings_loaded = true
 		@inseq_cache = false
 		@inseq_rbc = false
+		@java_compile = false
 		
-		if RUBY_VERSION.slice(0..2) == "1.9" and RubyVM::InstructionSequence.respond_to?(:compile_file)
+		if RUBY_PLATFORM == "java"
+			@java_compile = true
+			@java_factory = javax.script.ScriptEngineManager.new
+			@java_engine = factory.getEngineByName("jruby")
+			@eruby_java_cache = {}
+		elsif RUBY_VERSION.slice(0..2) == "1.9" and RubyVM::InstructionSequence.respond_to?(:compile_file)
 			@inseq_cache = true
 			
 			if RubyVM::InstructionSequence.respond_to?(:load)
@@ -38,7 +44,13 @@ class ERuby
 			reload_cache = true
 		end
 		
-		if @inseq_cache
+		if @java_compile
+			if @eruby_java_cache[cachename] or reload_cache
+				@eruby_java_cache[cachename] = @java_engine.compile(File.read(cachename))
+			end
+			
+			@eruby_java_cache[cachename].eval
+		elsif @inseq_cache
 			if @inseq_rbc
 				bytepath = pi["dirname"] + "/" + pi["basename"] + ".rbc"
 				byteexists = File.exists?(bytepath)
