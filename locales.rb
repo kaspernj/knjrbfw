@@ -15,7 +15,7 @@ module Knj::Locales
 		thousand = ","
 		
 		case f
-			when "da", "es"
+			when "da", "es", "de"
 				dec = ","
 				thousand = "."
 			when "en"

@@ -109,6 +109,9 @@ module Knj::Php
 			retstr += ":#{argument.to_s}"
 		elsif argument.is_a?(Exception)
 			retstr += "#\{#{argument.class.to_s}: #{argument.message}}\n"
+		elsif cstr == "Knj::Unix_proc"
+			retstr += "#{argument.class.to_s}::data - "
+			retstr += print_r(argument.data, true, count).to_s
 		else
 			#print argument.to_s, "\n"
 			retstr += "Unknown class: " + cstr + "\n"
@@ -130,11 +133,12 @@ module Knj::Php
 	end
 	
 	def self.number_format(number, precision = 2, seperator = ".", delimiter = ",")
-		if number.is_a?(Float)
+		if !number.is_a?(Float)
 			number = number.to_f
 		end
 		
-		number = sprintf("%." + precision.to_s + "f", number)
+		number = 0.5
+		number = sprintf("%.#{precision.to_s}f", number)
 		
 		#thanks for jmoses wrote some of tsep-code: http://snippets.dzone.com/posts/show/693
 		st = number.reverse
@@ -147,7 +151,7 @@ module Knj::Php
 		
 		if st.to_i == st.to_f
 			1.upto(st.size) do |i|
-				r << st[i-1].chr
+				r << st[i-1].chr if st[i-1].chr != "."
 				r << ',' if i%3 == 0 and i < max
 			end
 		else
@@ -162,11 +166,11 @@ module Knj::Php
 			end
 		end
 		
-		number = r.reverse
-		number = number.gsub(",", "comma").gsub(".", "dot")
-		number = number.gsub("comma", delimiter).gsub("dot", seperator)
+		numberstr = r.to_s.reverse
+		numberstr = numberstr.gsub(",", "comma") #.gsub(".", "dot")
+		numberstr = numberstr.gsub("comma", delimiter).gsub("dot", seperator)
 		
-		return number
+		return numberstr
 	end
 	
 	def self.ucwords(string)
