@@ -43,6 +43,10 @@ module Knj::Os
 		end
 	end
 	
+	def self.mode
+		Php.print_r(ENV)
+	end
+	
 	def self.class_exist(classstr)
 		if Module.constants.index(classstr) != nil
 			return true
