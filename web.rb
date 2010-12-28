@@ -479,7 +479,7 @@ class Knj::Web
 					html += "<img src=\"image.php?picture=#{Php.urlencode(path).html}&smartsize=100&edgesize=25\" alt=\"Image\" />"
 					
 					if args[:dellink]
-						dellink = args[:dellink].gsub("%value%", value)
+						dellink = args[:dellink].gsub("%value%", value.to_s)
 						html += "<div style=\"text-align: center;\">(<a href=\"javascript: if (confirm('#{_("Do you want to delete the image?")}')){location.href='#{dellink}';}\">#{_("delete")}</a>)</div>"
 					end
 				end
