@@ -1,5 +1,5 @@
 class Knj::Db
-	attr_reader :opts
+	attr_reader :opts, :conn
 	
 	def initialize(opts)
 		self.setOpts(opts) if opts != nil

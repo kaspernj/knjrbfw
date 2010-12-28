@@ -474,7 +474,7 @@ class Knj::Web
 				html += "<input type=\"file\" name=\"#{args[:name].html}\" class=\"input_file\" />"
 				html += "</td><td style=\"padding-left: 5px;\">"
 				
-				path = args[:path].gsub("%value%", value).untaint
+				path = args[:path].gsub("%value%", value.to_s).untaint
 				if File.exists?(path)
 					html += "<img src=\"image.php?picture=#{Php.urlencode(path).html}&smartsize=100&edgesize=25\" alt=\"Image\" />"
 					

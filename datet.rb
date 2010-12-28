@@ -211,6 +211,10 @@ class Knj::Datet
 	end
 	
 	def self.from_dbstr(date_string)
+		if date_string.is_a?(Time)
+			return Datet.new(date_string)
+		end
+		
 		if Datestamp.is_nullstamp?(date_string)
 			return false
 		end
