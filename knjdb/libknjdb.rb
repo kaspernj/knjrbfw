@@ -2,6 +2,7 @@ class Knj::Db
 	attr_reader :opts, :conn
 	
 	def initialize(opts)
+		@conns = {}
 		self.setOpts(opts) if opts != nil
 	end
 	
@@ -14,6 +15,10 @@ class Knj::Db
 		
 		arr_opts.each do |key, val|
 			@opts[key.to_sym] = val
+			
+			if key.to_sym == :threadsafe and val
+				@threadsafe = val
+			end
 		end
 		
 		if @opts[:type] == "sqlite3" and RUBY_PLATFORM == "java"
@@ -28,13 +33,26 @@ class Knj::Db
 	end
 	
 	def connect
+		@conn = self.spawn
+	end
+	
+	def spawn
 		raise "No type given." if !@opts[:type]
 		require(File.dirname(__FILE__) + "/libknjdb_" + @opts[:type] + ".rb")
-		@conn = Kernel.const_get("KnjDB_" + @opts[:type]).new(self)
+		conn = Kernel.const_get("KnjDB_" + @opts[:type]).new(self)
+		
+		@conns[@conns.length] = {
+			:conn => conn,
+			:running => false
+		}
+		
+		return conn
 	end
 	
 	def close
-		@conn.close
+		@conns.each do |conn|
+			conn[:conn].close
+		end
 	end
 	
 	def insert(tablename, arr_insert)
@@ -66,7 +84,7 @@ class Knj::Db
 		
 		sql += ")"
 		
-		@conn.query(sql)
+		self.query(sql)
 	end
 	
 	def update(tablename, arr_update, arr_terms = {})
@@ -150,7 +168,25 @@ class Knj::Db
 	end
 	
 	def query(string)
-		return @conn.query(string)
+		return @conn.query(string) if !@threadsafe
+		
+		retconn = nil
+		@conns.each do |key, conn|
+			next if conn[:running]
+			retconn = conn
+			break
+		end
+		
+		if retconn
+			retconn[:running] = true
+			ret = retconn[:conn].query(string)
+			retconn[:running] = false
+			return ret
+		end
+		
+		#all connections are taken - spawn new and run loop again.
+		self.spawn
+		return self.query(string)
 	end
 	
 	def lastID
