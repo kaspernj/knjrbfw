@@ -137,7 +137,6 @@ module Knj::Php
 			number = number.to_f
 		end
 		
-		number = 0.5
 		number = sprintf("%.#{precision.to_s}f", number)
 		
 		#thanks for jmoses wrote some of tsep-code: http://snippets.dzone.com/posts/show/693
