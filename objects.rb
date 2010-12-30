@@ -322,6 +322,17 @@ class Knj::Objects
 					sql_where += " AND #{table}`#{@args[:db].esc_col(match[1])}` LIKE '%#{@args[:db].esc(str)}%'"
 				end
 				found = true
+			elsif args.has_key?(:cols_bools) and args[:cols_bools].index(key) != nil
+				if val.is_a?(TrueClass) or (val.is_a?(Integer) and val.to_i == 1)
+					realval = "1"
+				elsif val.is_a?(FalseClass) or (val.is_a?(Integer) and val.to_i == 0)
+					realval = "0"
+				else
+					raise "Could not make real value out of class: #{val.class.name}."
+				end
+				
+				sql_where += " AND `#{@args[:db].esc_col(key)}` = '#{@args[:db].esc(realval)}'"
+				found = true
 			end
 			
 			list_args.delete(key) if found

@@ -70,4 +70,22 @@ module Knj::Os
 		
 		return path
 	end
+	
+	def self.shellcmd(cmd)
+		res = {
+			:out => "",
+			:err => ""
+		}
+		
+		Open3.popen3(cmd) do |stdin, stdout, stderr|
+			res[:out] << stdout.read
+			res[:err] << stderr.read
+		end
+		
+		if res[:err].to_s.strip.length > 0
+			raise res[:err]
+		end
+		
+		return res[:out]
+	end
 end

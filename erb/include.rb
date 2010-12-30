@@ -238,7 +238,7 @@ class KnjEruby < Erubis::Eruby
 			to = bt.length - 9
 			bt = bt[0..to]
 			
-			bt.reverse.each do |line|
+			bt.each do |line|
 				print CGI.escapeHTML(line) + "\n"
 			end
 			
