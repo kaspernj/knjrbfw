@@ -535,6 +535,18 @@ module Knj::Php
 		end
 	end
 	
+	# Returns the scripts current memory usage.
+	def self.memory_get_usage
+		# FIXME: This only works on Linux at the moment, since we are doing this by command line - knj.
+		memory_usage = `ps -o rss= -p #{Process.pid}`.to_i * 1024
+		return memory_usage
+	end
+	
+	# Should return the peak usage of the running script, but I have found no way to detect this... Instead returns the currently memory usage.
+	def self.memory_get_peak_usage
+		return self.memory_get_usage
+	end
+	
 	Knj::Php.singleton_methods.each do |methodname|
 		define_method methodname.to_sym do |*paras|
 			return Knj::Php.send(methodname, *paras)

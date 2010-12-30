@@ -1,5 +1,3 @@
-$eruby_rbyte = {}
-
 class ERuby
 	def self.load_settings
 		@settings_loaded = true
@@ -10,9 +8,10 @@ class ERuby
 		if RUBY_PLATFORM == "java"
 			@java_compile = true
 			@java_factory = javax.script.ScriptEngineManager.new
-			@java_engine = factory.getEngineByName("jruby")
+			@java_engine = @java_factory.getEngineByName("jruby")
 			@eruby_java_cache = {}
 		elsif RUBY_VERSION.slice(0..2) == "1.9" and RubyVM::InstructionSequence.respond_to?(:compile_file)
+			@eruby_rbyte = {}
 			@inseq_cache = true
 			
 			if RubyVM::InstructionSequence.respond_to?(:load)
@@ -45,11 +44,13 @@ class ERuby
 		end
 		
 		if @java_compile
-			if @eruby_java_cache[cachename] or reload_cache
-				@eruby_java_cache[cachename] = @java_engine.compile(File.read(cachename))
+			if !@eruby_java_cache[cachename] or reload_cache
+				#@eruby_java_cache[cachename] = @java_engine.compile(File.read(cachename))
+				@eruby_java_cache[cachename] = File.read(cachename)
 			end
 			
-			@eruby_java_cache[cachename].eval
+			#@eruby_java_cache[cachename].eval
+			eval(@eruby_java_cache[cachename])
 		elsif @inseq_cache
 			if @inseq_rbc
 				bytepath = pi["dirname"] + "/" + pi["basename"] + ".rbc"
@@ -69,13 +70,13 @@ class ERuby
 				res = Marshal.load(File.read(bytepath))
 				RubyVM::InstructionSequence.load(res).eval
 			else
-				if !$eruby_rbyte[cachename] or reload_cache
-					$eruby_rbyte[cachename] = RubyVM::InstructionSequence.new(File.read(cachename))
-					#$eruby_rbyte[cachename] = RubyVM::InstructionSequence.compile_file(cachename)
-					$eruby_rbyte[cachename].eval
+				if !@eruby_rbyte[cachename] or reload_cache
+					@eruby_rbyte[cachename] = RubyVM::InstructionSequence.new(File.read(cachename))
+					#@eruby_rbyte[cachename] = RubyVM::InstructionSequence.compile_file(cachename)
+					@eruby_rbyte[cachename].eval
 				else
 					_buf = ""
-					$eruby_rbyte[cachename].eval
+					@eruby_rbyte[cachename].eval
 					if _buf
 						print _buf
 					end
@@ -176,6 +177,7 @@ class KnjEruby < Erubis::Eruby
 			args[:io] = retio
 		end
 		
+		@args = args
 		KnjEruby.load(filename, args)
 		
 		if !args[:custom_io]

@@ -1,4 +1,6 @@
 class Knj::Objects
+	attr_reader :objects
+	
 	def initialize(args)
 		@callbacks = {}
 		@args = ArrayExt.hash_sym(args)
@@ -20,10 +22,6 @@ class Knj::Objects
 		end
 		
 		return count
-	end
-	
-	def clean
-		@objects = {}
 	end
 	
 	def connect(args)
@@ -203,6 +201,7 @@ class Knj::Objects
 		return list
 	end
 	
+	# Returns a list of a specific object by running specific SQL against the database.
 	def list_bysql(classname, sql, &block)
 		classname = classname.to_sym
 		
@@ -219,6 +218,7 @@ class Knj::Objects
 		return ret if !block_given?
 	end
 	
+	# Add a new object to the database and to the cache.
 	def add(classname, data)
 		classname = classname.to_sym
 		self.requireclass(classname)
@@ -231,6 +231,7 @@ class Knj::Objects
 		return retob
 	end
 	
+	# Unset object. Do this if you are sure, that there are no more references left. This will be done automatically when deleting it.
 	def unset(object)
 		classname = object.class.name
 		
@@ -256,10 +257,78 @@ class Knj::Objects
 		end
 	end
 	
+	# Delete an object. Both from the database and from the cache.
 	def delete(object)
 		self.call("object" => object, "signal" => "delete_before")
 		self.unset(object)
 		object.delete
 		self.call("object" => object, "signal" => "delete")
+	end
+	
+	# Try to clean up objects by unsetting everything, start the garbagecollector, get all the remaining objects via ObjectSpace and set them again. Some (if not all) should be cleaned up and our cache should still be safe... dirty but works.
+	def clean(classn)
+		if classn.is_a?(Array)
+			classn.each do |realclassn|
+				self.clean(realclassn)
+			end
+		else
+			if !@objects[classn]
+				return false
+			else
+				@objects[classn] = {}
+				GC.start
+			end
+		end
+	end
+	
+	def clean_all
+		classnames = []
+		@objects.each do |classn, hash_list|
+			classnames << classn
+		end
+		
+		classnames.each do |classn|
+			@objects[classn] = {}
+		end
+		
+		GC.start
+	end
+	
+	def clean_recover
+		@objects.each do |classn, hash_list|
+			classobj = Kernel.const_get(classn)
+			ObjectSpace.each_object(classobj) do |obj|
+				@objects[classn][obj.id] = obj
+			end
+		end
+	end
+	
+	def sqlhelper(list_args, args)
+		sql_where = ""
+		
+		if args[:table]
+			table = "`#{@args[:db].esc_table(args[:table])}`."
+		else
+			table = ""
+		end
+		
+		list_args.each do |key, val|
+			found = false
+			if args.has_key?(:cols_str) and args[:cols_str].index(key) != nil
+				sql_where += " AND #{table}`#{@args[:db].esc_col(key)}` = '#{@args[:db].esc(val)}'"
+				found = true
+			elsif args.has_key?(:cols_str) and match = key.match(/^([A-z_\d]+)_search$/) and args[:cols_str].index(match[1]) != nil
+				Knj::Strings.searchstring(val).each do |str|
+					sql_where += " AND #{table}`#{@args[:db].esc_col(match[1])}` LIKE '%#{@args[:db].esc(str)}%'"
+				end
+				found = true
+			end
+			
+			list_args.delete(key) if found
+		end
+		
+		return {
+			:sql_where => sql_where
+		}
 	end
 end

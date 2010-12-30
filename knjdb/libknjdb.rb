@@ -208,8 +208,4 @@ class Knj::Db
 	def esc_table(str)
 		return @conn.esc_table(str)
 	end
-	
-	def esc(string)
-		return self.escape(string)
-	end
 end
