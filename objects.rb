@@ -312,6 +312,9 @@ class Knj::Objects
 			table = ""
 		end
 		
+		limit_from = nil
+		limit_to = nil
+		
 		list_args.each do |key, val|
 			found = false
 			if args.has_key?(:cols_str) and args[:cols_str].index(key) != nil
@@ -333,13 +336,25 @@ class Knj::Objects
 				
 				sql_where += " AND `#{@args[:db].esc_col(key)}` = '#{@args[:db].esc(realval)}'"
 				found = true
+			elsif key.to_s == "limit_from"
+				limit_from = val.to_i
+				found = true
+			elsif key.to_s == "limit_to"
+				limit_to = val.to_i
+				found = true
 			end
 			
 			list_args.delete(key) if found
 		end
 		
+		sql_limit = false
+		if limit_from and limit_to
+			sql_limit = " LIMIT #{limit_from}, #{limit_to}"
+		end
+		
 		return {
-			:sql_where => sql_where
+			:sql_where => sql_where,
+			:sql_limit => sql_limit
 		}
 	end
 end
