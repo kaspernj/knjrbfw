@@ -342,6 +342,9 @@ class Knj::Objects
 			elsif key.to_s == "limit_to"
 				limit_to = val.to_i
 				found = true
+			elsif key.to_s == "limit"
+				limit_from = 0
+				limit_to = val.to_i
 			end
 			
 			list_args.delete(key) if found
