@@ -565,12 +565,50 @@ class Knj::Web
 			return "gecko"
 		elsif agent.index("msie") != nil
 			return "msie"
-		elsif agent.index("w3c") != nil
+		elsif agent.index("w3c") != nil or agent.index("baiduspider") != nil or agent.index("googlebot") != nil
 			return "bot"
 		else
 			#print "Unknown agent: #{agent}"
 			return false
 		end
+	end
+	
+	def self.browser
+		begin
+			servervar = _server
+		rescue Exception
+			servervar = $_SERVER
+		end
+		
+		if !servervar
+			raise "Could not figure out meta data."
+		end
+		
+		agent = servervar["HTTP_USER_AGENT"].to_s.downcase
+		
+		if match = agent.match(/chrome\/(\d\.\d)/)
+			browser = "chrome"
+			title = "Google Chrome"
+			version = match[1]
+		elsif match = agent.match(/firefox\/(\d\.\d)/)
+			browser = "firefox"
+			title = "Mozilla Firefox"
+			version = match[1]
+		elsif match = agent.macth(/msie\s*(\d\.\d)/)
+			browser = "ie"
+			title = "Microsoft Internet Explorer"
+			version = match[1]
+		else
+			browser = "unknown"
+			title = "(unknown browser)"
+			version = "(unknown version)"
+		end
+		
+		return {
+			"browser" => browser,
+			"title" => title,
+			"version" => version
+		}
 	end
 end
 

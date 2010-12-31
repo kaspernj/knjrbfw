@@ -257,6 +257,22 @@ module Knj::Php
 	end
 	
 	def self.file_get_contents(filepath)
+		filepath = filepath.to_s
+		
+		if http_match = filepath.match(/^http(s|):\/\/(([A-z_\d\.]+)\.([A-z]{2,4}))(\/(.+))$/)
+			args = {
+				"host" => http_match[2]
+			}
+			
+			if http_match[1] == "s"
+				args["ssl"] = true
+			end
+			
+			http = Knj::Http.new(args)
+			data = http.get("/#{http_match[5]}")
+			return data["data"]
+		end
+		
 		return File.read(filepath.untaint)
 	end
 	

@@ -320,11 +320,6 @@ class Knj::Objects
 			if args.has_key?(:cols_str) and args[:cols_str].index(key) != nil
 				sql_where += " AND #{table}`#{@args[:db].esc_col(key)}` = '#{@args[:db].esc(val)}'"
 				found = true
-			elsif args.has_key?(:cols_str) and match = key.match(/^([A-z_\d]+)_search$/) and args[:cols_str].index(match[1]) != nil
-				Knj::Strings.searchstring(val).each do |str|
-					sql_where += " AND #{table}`#{@args[:db].esc_col(match[1])}` LIKE '%#{@args[:db].esc(str)}%'"
-				end
-				found = true
 			elsif args.has_key?(:cols_bools) and args[:cols_bools].index(key) != nil
 				if val.is_a?(TrueClass) or (val.is_a?(Integer) and val.to_i == 1)
 					realval = "1"
@@ -334,7 +329,7 @@ class Knj::Objects
 					raise "Could not make real value out of class: #{val.class.name}."
 				end
 				
-				sql_where += " AND `#{@args[:db].esc_col(key)}` = '#{@args[:db].esc(realval)}'"
+				sql_where += " AND #{table}`#{@args[:db].esc_col(key)}` = '#{@args[:db].esc(realval)}'"
 				found = true
 			elsif key.to_s == "limit_from"
 				limit_from = val.to_i
@@ -345,6 +340,17 @@ class Knj::Objects
 			elsif key.to_s == "limit"
 				limit_from = 0
 				limit_to = val.to_i
+			elsif args.has_key?(:cols_dbrows) and args[:cols_dbrows].index(key.to_s + "_id") != nil
+				sql_where += " AND #{table}`#{@args[:db].esc_col(key.to_s + "_id")}` = '#{@args[:db].esc(val.id.to_s.sql)}'"
+				found = true
+			elsif args.has_key?(:cols_str) and match = key.match(/^([A-z_\d]+)_search$/) and args[:cols_str].index(match[1]) != nil
+				Knj::Strings.searchstring(val).each do |str|
+					sql_where += " AND #{table}`#{@args[:db].esc_col(match[1])}` LIKE '%#{@args[:db].esc(str)}%'"
+				end
+				found = true
+			elsif args.has_key?(:cols_str) and match = key.match(/^([A-z_\d]+)_not$/) and args[:cols_str].index(match[1]) != nil
+				sql_where += " AND #{table}`#{@args[:db].esc_col(match[1])}` != '#{@args[:db].esc(val)}'"
+				found = true
 			end
 			
 			list_args.delete(key) if found

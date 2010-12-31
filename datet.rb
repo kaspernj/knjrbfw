@@ -213,13 +213,15 @@ class Knj::Datet
 	def self.from_dbstr(date_string)
 		if date_string.is_a?(Time)
 			return Datet.new(date_string)
+		elsif date_string.is_a?(Date)
+			return Datet.new(date_string.to_time)
 		end
 		
 		if Datestamp.is_nullstamp?(date_string)
 			return false
 		end
 		
-		return Datet.new(Time.local(*ParseDate.parsedate(date_string)))
+		return Datet.new(Time.local(*ParseDate.parsedate(date_string.to_s)))
 	end
 	
 	def self.parse(str)
@@ -246,6 +248,12 @@ class Knj::Datet
 	end
 	
 	def self.in(timestr)
+		if timestr.is_a?(Time)
+			return Datet.new(timestr)
+		elsif timestr.is_a?(Date)
+			return Datet.new(timestr.to_time)
+		end
+		
 		if match = timestr.to_s.match(/^(\d+)\/(\d+) (\d+)/)
 			#MySQL date format
 			timestr = timestr.gsub(match[0], "")
