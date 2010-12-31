@@ -1,44 +1,53 @@
 class Knj::Db_row
-	attr_reader :paras, :db
+	attr_reader :args
 	
-	def objects; return @paras[:objects]; end
+	def objects; return @args[:objects]; end
 	def is_knj?; return true; end
 	
-	def initialize(paras)
-		@paras = {}
-		paras.each do |key, value|
-			@paras[key.to_sym] = value
+	def initialize(args)
+		@args = {}
+		args.each do |key, value|
+			@args[key.to_sym] = value
 		end
 		
-		@paras[:db] = $db if !@paras[:db] and $db and $db.class.to_s == "Knj::Db"
-		@paras[:objects] = $objects if !@paras[:objects] and $objects and $objects.class.to_s == "Knj::Objects"
-		@db = @paras[:db]
+		@args[:db] = $db if !@args[:db] and $db and $db.class.to_s == "Knj::Db"
+		@args[:objects] = $objects if !@args[:objects] and $objects and $objects.class.to_s == "Knj::Objects"
+		@args[:col_id] = :id if !@args[:col_id]
+		raise "No table given." if !@args[:table]
 		
-		@paras[:col_id] = :id if !@paras[:col_id]
-		raise "No table given." if !@paras[:table]
-		
-		if @paras[:data] and (@paras[:data].is_a?(Integer) or @paras[:data].is_a?(Fixnum) or @paras[:data].is_a?(String))
-			@data = {@paras[:col_id].to_sym => @paras[:data].to_s}
+		if @args[:data] and (@args[:data].is_a?(Integer) or @args[:data].is_a?(Fixnum) or @args[:data].is_a?(String))
+			@data = {@args[:col_id].to_sym => @args[:data].to_s}
 			self.reload
-		elsif @paras[:data] and @paras[:data].is_a?(Hash)
+		elsif @args[:data] and @args[:data].is_a?(Hash)
 			@data = {}
-			@paras[:data].each do |key, value|
+			@args[:data].each do |key, value|
 				@data[key.to_sym] = value
 			end
-		elsif @paras[:id]
+		elsif @args[:id]
 			@data = {}
-			@data[@paras[:col_id].to_sym] = @paras[:id]
+			@data[@args[:col_id].to_sym] = @args[:id]
 			self.reload
 		else
-			raise Knj::Errors::InvalidData.new("Invalid data: #{@paras[:data].to_s} (#{@paras[:data].class.to_s})")
+			raise Knj::Errors::InvalidData.new("Invalid data: #{@args[:data].to_s} (#{@args[:data].class.to_s})")
 		end
+	end
+	
+	def db
+		if !@args[:force_selfdb]
+			curthread = Thread.current
+			if curthread.is_a?(Knj::Thread) and curthread[:knjappserver] and curthread[:knjappserver][:db]
+				return curthread[:knjappserver][:db]
+			end
+		end
+		
+		return @args[:db]
 	end
 	
 	def reload
 		last_id = self.id
-		data = @db.single(@paras[:table], {@paras[:col_id] => self.id})
+		data = self.db.single(@args[:table], {@args[:col_id] => self.id})
 		if !data
-			raise Knj::Errors::NotFound.new("Could not find any data for the object with ID: '#{last_id}' in the table '#{@paras[:table].to_s}'.")
+			raise Knj::Errors::NotFound.new("Could not find any data for the object with ID: '#{last_id}' in the table '#{@args[:table].to_s}'.")
 		end
 		
 		@data = {}
@@ -48,7 +57,7 @@ class Knj::Db_row
 	end
 	
 	def update(newdata)
-		@db.update(@paras[:table], newdata, {@paras[:col_id] => self.id})
+		self.db.update(@args[:table], newdata, {@args[:col_id] => self.id})
 		self.reload
 		
 		if self.objects
@@ -57,13 +66,12 @@ class Knj::Db_row
 	end
 	
 	def delete
-		@db.delete(@paras[:table], {@paras[:col_id] => self.id})
+		self.db.delete(@args[:table], {@args[:col_id] => self.id})
 		self.destroy
 	end
 	
 	def destroy
-		@paras = nil
-		@db = nil
+		@args = nil
 		@data = nil
 	end
 	
@@ -95,12 +103,12 @@ class Knj::Db_row
 	end
 	
 	def id
-		return @data[@paras[:col_id]]
+		return @data[@args[:col_id]]
 	end
 	
 	def title
-		if @paras[:col_title]
-			return @data[@paras[:col_title].to_sym]
+		if @args[:col_title]
+			return @data[@args[:col_title].to_sym]
 		end
 		
 		if @data.has_key?(:title)
