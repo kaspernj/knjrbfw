@@ -594,7 +594,7 @@ class Knj::Web
 			browser = "firefox"
 			title = "Mozilla Firefox"
 			version = match[1]
-		elsif match = agent.macth(/msie\s*(\d\.\d)/)
+		elsif match = agent.match(/msie\s*(\d\.\d)/)
 			browser = "ie"
 			title = "Microsoft Internet Explorer"
 			version = match[1]
