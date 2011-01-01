@@ -598,6 +598,10 @@ class Knj::Web
 			browser = "ie"
 			title = "Microsoft Internet Explorer"
 			version = match[1]
+		elsif match = agent.match(/Opera\/([\d\.]+)/)
+			browser = "opera"
+			title = "Opera"
+			version = match[1]
 		elsif match = agent.match(/wget\/([\d\.]+)/)
 			browser = "bot"
 			title = "Bot"
@@ -605,11 +609,23 @@ class Knj::Web
 		elsif agent.index("baiduspider") != nil
 			browser = "bot"
 			title = "Bot"
-			version "Baiduspider"
+			version = "Baiduspider"
 		elsif agent.index("googlebot") != nil
 			browser = "bot"
 			title = "Bot"
 			version = "Googlebot"
+		elsif match = agent.match(/safari\/(\d+)/)
+			browser = "safari"
+			title = "Safari"
+			version = match[1]
+		elsif agent.index("bingbot") != nil
+			browser = "bot"
+			title = "Bot"
+			version = "Bingbot"
+		elsif agent.index("yahoo! slurp") != nil
+			browser = "bot"
+			title = "Bot"
+			version = "Yahoo! Slurp"
 		else
 			browser = "unknown"
 			title = "(unknown browser)"
