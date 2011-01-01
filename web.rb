@@ -598,6 +598,18 @@ class Knj::Web
 			browser = "ie"
 			title = "Microsoft Internet Explorer"
 			version = match[1]
+		elsif match = agent.match(/wget\/([\d\.]+)/)
+			browser = "bot"
+			title = "Bot"
+			version = "Wget #{match[1]}"
+		elsif agent.index("baiduspider") != nil
+			browser = "bot"
+			title = "Bot"
+			version "Baiduspider"
+		elsif agent.index("googlebot") != nil
+			browser = "bot"
+			title = "Bot"
+			version = "Googlebot"
 		else
 			browser = "unknown"
 			title = "(unknown browser)"
