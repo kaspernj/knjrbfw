@@ -29,6 +29,7 @@ module Knj
 	autoload :SSHRobot, $knjpath + "sshrobot/sshrobot"
 	autoload :Sysuser, $knjpath + "sysuser"
 	autoload :Thread, $knjpath + "thread"
+	autoload :Threadhandler, $knjpath + "threadhandler"
 	autoload :Translations, $knjpath + "translations"
 	autoload :X11VNC, $knjpath + "x11vnc"
 	autoload :Unix_proc, $knjpath + "unix_proc"

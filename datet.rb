@@ -76,6 +76,8 @@ class Knj::Datet
 			@time = self.add_years(1).stamp(:datet => false, :month => 1, :day => 1)
 			months_left = (months - 1) - (12 - cur_month)
 			return self.add_months(months_left) if months_left > 0
+		elsif next_month < 1
+			@time = self.add_years(-1).stamp(:datet => false, :month => 12)
 		else
 			@time = self.stamp(:datet => false, :month => next_month, :day => 1)
 		end
