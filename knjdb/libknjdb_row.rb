@@ -1,5 +1,5 @@
 class Knj::Db_row
-	attr_reader :args
+	attr_reader :args, :data
 	
 	def objects; return @args[:objects]; end
 	def is_knj?; return true; end
@@ -96,10 +96,6 @@ class Knj::Db_row
 	def []=(key, value)
 		self.update(key.to_sym => value)
 		self.reload
-	end
-	
-	def data
-		return @data
 	end
 	
 	def id
