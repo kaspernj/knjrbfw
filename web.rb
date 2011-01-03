@@ -598,7 +598,7 @@ class Knj::Web
 			browser = "ie"
 			title = "Microsoft Internet Explorer"
 			version = match[1]
-		elsif match = agent.match(/Opera\/([\d\.]+)/)
+		elsif match = agent.match(/opera\/([\d\.]+)/)
 			browser = "opera"
 			title = "Opera"
 			version = match[1]
@@ -630,6 +630,14 @@ class Knj::Web
 			browser = "bot"
 			title = "Bot"
 			version = "Yahoo! Slurp"
+		elsif agent.index("hostharvest") != nil
+			browser = "bot"
+			title = "Bot"
+			version = "HostHarvest"
+		elsif agent.index("exabot") != nil
+			browser = "bot"
+			title = "Bot"
+			version = "Exabot"
 		else
 			browser = "unknown"
 			title = "(unknown browser)"
