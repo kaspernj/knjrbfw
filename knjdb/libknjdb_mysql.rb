@@ -25,7 +25,6 @@ class KnjDB_mysql
 			return KnjDB_mysql_result.new(@conn.query(string))
 		rescue Mysql::Error => e
 			if e.message == "MySQL server has gone away"
-				print "Reconnect!\n"
 				self.reconnect
 				return KnjDB_mysql_result.new(@conn.query(string))
 			else
