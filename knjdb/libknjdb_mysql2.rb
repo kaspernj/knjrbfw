@@ -32,7 +32,16 @@ class KnjDB_mysql2
 	end
 	
 	def query(string)
-		return KnjDB_mysql2_result.new(@conn.query(string))
+		begin
+			return KnjDB_mysql2_result.new(@conn.query(string))
+		rescue Mysql2::Error => e
+			if e.message == "MySQL server has gone away"
+				self.reconnect
+				return KnjDB_mysql2_result.new(@conn.query(string))
+			else
+				raise e
+			end
+		end
 	end
 	
 	def escape(string)
