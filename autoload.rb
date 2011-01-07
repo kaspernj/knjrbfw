@@ -71,7 +71,7 @@ autoload :XmlSimple, $knjpath + "autoload/xmlsimple"
 autoload :Zip, "zip/zip"
 
 if RUBY_PLATFORM == "java"
-	autoload :GetText, "gettext"
+	autoload :GetText, $knjpath + "autoload/gettext"
 	autoload :Gtk, "knj/jruby-gtk2/gtk2"
 	autoload :Gdk, "knj/jruby-gtk2/gtk2"
 	autoload :GladeXML, "knj/jruby-gtk2/gtk2"
