@@ -642,6 +642,10 @@ class Knj::Web
 			browser = "bot"
 			title = "Bot"
 			version = "DotBot"
+		elsif agent.index("msnbot") != nil
+			browser = "bot"
+			title = "Bot"
+			version = "MSN bot"
 		else
 			browser = "unknown"
 			title = "(unknown browser)"
