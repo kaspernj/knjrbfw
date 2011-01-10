@@ -1,21 +1,22 @@
 <%
-	pic = GD2::Image.import(_get["path"])
+	pic = Magick::ImageList.new(_get["path"])
 	
 	if _get["smartsize"]
-		if pic.width > pic.height
+		if pic.columns > pic.rows
 			width = _get["smartsize"].to_i
-			height = (pic.height.to_f / (pic.width.to_f / width.to_f)).to_i
+			height = (pic.rows.to_f / (pic.columns.to_f / width.to_f)).to_i
 		else
 			height = _get["smartsize"].to_i
-			width = (pic.width.to_f / (pic.height.to_f / height.to_f)).to_i
+			width = (pic.columns.to_f / (pic.rows.to_f / height.to_f)).to_i
 		end
 		
-		pic.resize!(width, height)
+		pic = pic.resize_to_fit(width.to_i, height.to_i)
 	end
 	
-	pic.alpha_blending = false
-	pic.save_alpha = true
+	#pic.alpha_blending = false
+	#pic.save_alpha = true
 	
 	Php.header("Content-Type: image/png")
-	print pic.png
+	pic.format = "png"
+	print pic.to_blob
 %>
