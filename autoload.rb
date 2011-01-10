@@ -9,6 +9,8 @@ module Knj
 	autoload :Degulesider, $knjpath + "degulesider"
 	autoload :Errors, $knjpath + "errors"
 	autoload :Event_filemod, $knjpath + "event_filemod"
+	autoload :Exchangerates, $knjpath + "exchangerates"
+	autoload :Gettext_threadded, $knjpath + "gettext_threadded"
 	autoload :Locales, $knjpath + "locales"
 	autoload :Objects, $knjpath + "objects"
 	autoload :Opts, $knjpath + "opts"
