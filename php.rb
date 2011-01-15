@@ -231,14 +231,20 @@ module Knj::Php
 			Apache.request.headers_out[key] = value
 		end
 		
-		if $knj_eruby
-			$knj_eruby.header(key, value)
-		elsif $cgi.is_a?(CGI)
-			sent = true
-			$cgi.header(key => value)
-		elsif $_CGI.is_a?(CGI)
-			sent = true
-			$_CGI.header(key => value)
+		begin
+			#This is for knjAppServer - knj.
+			httpsession = _httpsession
+			httpsession.eruby.header(key, value)
+		rescue NameError
+			if $knj_eruby
+				$knj_eruby.header(key, value)
+			elsif $cgi.is_a?(CGI)
+				sent = true
+				$cgi.header(key => value)
+			elsif $_CGI.is_a?(CGI)
+				sent = true
+				$_CGI.header(key => value)
+			end
 		end
 	end
 	
