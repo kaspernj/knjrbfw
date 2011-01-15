@@ -90,8 +90,8 @@ class Knj::Eruby
 				end
 			end
 		else
-			Knj::Eruby::Handler.load_file(File.basename(filename), {:cachename => cachename})
-			print Knj::Eruby::Handler.evaluate
+			loaded_content = Knj::Eruby::Handler.load_file(File.basename(filename), {:cachename => cachename})
+			print loaded_content.evaluate
 		end
 		
 		Dir.chdir(pwd)
