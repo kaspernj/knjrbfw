@@ -15,7 +15,7 @@ class Knj::Objects
 	
 	def count_objects
 		count = 0
-		@objects.each do |key, value|
+		@objects.clone.each do |key, value|
 			value.each do |id, object|
 				count += 1
 			end
@@ -283,7 +283,7 @@ class Knj::Objects
 	
 	def clean_all
 		classnames = []
-		@objects.each do |classn, hash_list|
+		@objects.clone.each do |classn, hash_list|
 			classnames << classn
 		end
 		
@@ -295,7 +295,7 @@ class Knj::Objects
 	end
 	
 	def clean_recover
-		@objects.each do |classn, hash_list|
+		@objects.clone.each do |classn, hash_list|
 			classobj = Kernel.const_get(classn)
 			ObjectSpace.each_object(classobj) do |obj|
 				@objects[classn][obj.id] = obj
