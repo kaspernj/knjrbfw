@@ -1,6 +1,8 @@
 require "java"
 
 class KnjDB_java_mysql
+	attr_reader :knjdb, :conn, :escape_table, :escape_col, :escape_val
+	
 	def escape_table
 		return "`"
 	end
@@ -14,6 +16,10 @@ class KnjDB_java_mysql
 	end
 	
 	def initialize(knjdb_ob)
+		@escape_table = "`"
+		@escape_col = "`"
+		@escape_val = "'"
+		
 		@knjdb = knjdb_ob
 		@opts = knjdb_ob.opts
 		
@@ -53,6 +59,15 @@ class KnjDB_java_mysql
 	def escape(string)
 		return string.gsub("'", "\\'")
 	end
+	
+	def esc_col(string)
+		string = string.to_s
+		raise "Invalid column-string: #{string}" if string.index(@escape_col) != nil
+		return string
+	end
+	
+	alias :esc_table :esc_col
+	alias :esc :escape
 	
 	def lastID
 		data = self.query("SELECT LAST_INSERT_ID() AS id").fetch

@@ -137,6 +137,10 @@ module Knj::Php
 			number = number.to_f
 		end
 		
+		if number < 1
+			return sprintf("%.#{precision.to_s}f", number).gsub(".", seperator)
+		end
+		
 		number = sprintf("%.#{precision.to_s}f", number)
 		
 		#thanks for jmoses wrote some of tsep-code: http://snippets.dzone.com/posts/show/693
@@ -284,6 +288,30 @@ module Knj::Php
 		end
 		
 		return File.read(filepath.untaint)
+	end
+	
+	def self.is_file(filepath)
+		begin
+			if File.file?(filepath)
+				return true
+			end
+		rescue Exception
+			return false
+		end
+		
+		return false
+	end
+	
+	def self.is_dir(filepath)
+		begin
+			if File.directory?(filepath)
+				return true
+			end
+		rescue Exception
+			return false
+		end
+		
+		return false
 	end
 	
 	def self.unlink(filepath)
