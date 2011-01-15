@@ -13,9 +13,6 @@
 		pic = pic.resize_to_fit(width.to_i, height.to_i)
 	end
 	
-	#pic.alpha_blending = false
-	#pic.save_alpha = true
-	
 	Php.header("Content-Type: image/png")
 	pic.format = "png"
 	print pic.to_blob
