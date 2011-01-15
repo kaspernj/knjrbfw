@@ -8,6 +8,7 @@ module Knj
 	autoload :Db_row, $knjpath + "knjdb/libknjdb_row"
 	autoload :Degulesider, $knjpath + "degulesider"
 	autoload :Errors, $knjpath + "errors"
+	autoload :Eruby, $knjpath + "eruby"
 	autoload :Event_filemod, $knjpath + "event_filemod"
 	autoload :Exchangerates, $knjpath + "exchangerates"
 	autoload :Gettext_threadded, $knjpath + "gettext_threadded"

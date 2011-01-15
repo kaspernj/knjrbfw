@@ -10,6 +10,8 @@ class Knj::Thread < Thread
 		super(*paras) do
 			begin
 				block.call(*paras)
+			rescue SystemExit
+				exit
 			rescue Exception => e
 				print "Error: "
 				puts e.inspect
