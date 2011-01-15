@@ -1,11 +1,13 @@
 class KnjDB_mysql
-	attr_reader :knjdb, :conn, :escape_table, :escape_col, :escape_val
+	attr_reader :knjdb, :conn, :escape_table, :escape_col, :escape_val, :esc_table, :esc_col
 	
 	def initialize(knjdb_ob)
 		@knjdb = knjdb_ob
 		@escape_table = "`"
 		@escape_col = "`"
 		@escape_val = "'"
+		@esc_table = "`"
+		@esc_col = "`"
 		
 		if @knjdb.opts.has_key?(:port)
 			@port = @knjdb.opts[:port].to_i
