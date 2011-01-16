@@ -33,26 +33,36 @@ class Knj::Db
 	end
 	
 	def connect
-		@conn = self.spawn
+		@conn = self.spawn[:conn]
 	end
 	
 	def spawn
-		raise "No type given." if !@opts[:type]
-		require(File.dirname(__FILE__) + "/libknjdb_" + @opts[:type] + ".rb")
-		conn = Kernel.const_get("KnjDB_" + @opts[:type]).new(self)
+		@spawn_working = true
 		
-		@conns[@conns.length] = {
-			:conn => conn,
-			:running => false
-		}
+		begin
+			raise "No type given." if !@opts[:type]
+			require(File.dirname(__FILE__) + "/libknjdb_" + @opts[:type] + ".rb")
+			conn = Kernel.const_get("KnjDB_" + @opts[:type]).new(self)
+			
+			conn = {
+				:conn => conn,
+				:running => false
+			}
+			newconns = @conns.clone
+			newconns[newconns.length] = conn
+			@conns = newconns
+		ensure
+			@spawn_working = false
+		end
 		
 		return conn
 	end
 	
 	def close
-		@conns.each do |conn|
+		@conns.clone.each do |key, conn|
 			conn[:conn].close
 		end
+		@conns = {}
 	end
 	
 	def insert(tablename, arr_insert)
@@ -171,7 +181,7 @@ class Knj::Db
 		return @conn.query(string) if !@threadsafe
 		
 		retconn = nil
-		@conns.each do |key, conn|
+		@conns.clone.each do |key, conn|
 			next if conn[:running]
 			retconn = conn
 			break
@@ -185,8 +195,11 @@ class Knj::Db
 		end
 		
 		#all connections are taken - spawn new and run loop again.
-		self.spawn
-		return self.query(string)
+		conn = self.spawn
+		conn[:running] = true
+		ret = conn[:conn].query(string)
+		conn[:running] = false
+		return ret
 	end
 	
 	def lastID

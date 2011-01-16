@@ -269,17 +269,27 @@ module Knj::Php
 	def self.file_get_contents(filepath)
 		filepath = filepath.to_s
 		
-		if http_match = filepath.match(/^http(s|):\/\/(([A-z_\d\.]+)\.([A-z]{2,4}))(\/(.+))$/)
+		if http_match = filepath.match(/^http(s|):\/\/([A-z_\d\.]+)(|:(\d+))(\/(.+))$/)
+			if http_match[4].to_s.length > 0
+				port = http_match[4].to_i
+			end
+			
 			args = {
 				"host" => http_match[2]
 			}
 			
 			if http_match[1] == "s"
 				args["ssl"] = true
+				
+				if !port
+					port = 443
+				end
 			end
 			
+			args["port"] = port if port
+			
 			http = Knj::Http.new(args)
-			data = http.get("/#{http_match[5]}")
+			data = http.get(http_match[5])
 			return data["data"]
 		end
 		
