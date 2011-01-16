@@ -231,10 +231,15 @@ module Knj::Php
 			Apache.request.headers_out[key] = value
 		end
 		
-		#begin
+		begin
 			#This is for knjAppServer - knj.
-			_kas.header(key, value)
-=begin		rescue NameError
+			_kas.eruby.header(key, value)
+		rescue NameError => e
+			STDOUT.print "NameError!!!\n"
+			STDOUT.puts e.inspect
+			STDOUT.puts e.backtrace
+			STDOUT.print "\n\n"
+			
 			if $knj_eruby
 				$knj_eruby.header(key, value)
 			elsif $cgi.is_a?(CGI)
@@ -245,7 +250,6 @@ module Knj::Php
 				$_CGI.header(key => value)
 			end
 		end
-=end
 	end
 	
 	def self.nl2br(string)
