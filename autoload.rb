@@ -12,6 +12,7 @@ module Knj
 	autoload :Event_filemod, $knjpath + "event_filemod"
 	autoload :Exchangerates, $knjpath + "exchangerates"
 	autoload :Gettext_threadded, $knjpath + "gettext_threadded"
+	autoload :Jruby_compiler, $knjpath + "jruby_compiler"
 	autoload :Locales, $knjpath + "locales"
 	autoload :Objects, $knjpath + "objects"
 	autoload :Opts, $knjpath + "opts"
