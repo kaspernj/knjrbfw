@@ -53,11 +53,13 @@ class Knj::Eruby
 		if @java_compile
 			if !@eruby_java_cache[cachename] or reload_cache
 				#@eruby_java_cache[cachename] = @java_engine.compile(File.read(cachename))
-				@eruby_java_cache[cachename] = File.read(cachename)
+				#@eruby_java_cache[cachename] = File.read(cachename)
+				@eruby_java_cache[cachename] = Knj::Jruby_compiler.new(:path => cachename)
 			end
 			
 			#@eruby_java_cache[cachename].eval
-			eval(@eruby_java_cache[cachename])
+			@eruby_java_cache[cachename].run
+			#eval(@eruby_java_cache[cachename])
 		elsif @inseq_cache
 			if @inseq_rbc
 				bytepath = pi["dirname"] + "/" + pi["basename"] + ".rbc"

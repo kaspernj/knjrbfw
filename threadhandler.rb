@@ -11,7 +11,7 @@ class Knj::Threadhandler
 	
 	def get_and_lock
 		retkey = false
-		@objects.each do |key, data|
+		@objects.clone.each do |key, data|
 			if data[:free]
 				retkey = key
 				break
@@ -41,7 +41,7 @@ class Knj::Threadhandler
 	
 	def free(obj)
 		freekey = false
-		@objects.each do |key, data|
+		@objects.clone.each do |key, data|
 			if data[:object] == obj
 				freekey = key
 				break
