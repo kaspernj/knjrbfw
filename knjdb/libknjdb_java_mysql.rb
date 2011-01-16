@@ -57,7 +57,7 @@ class KnjDB_java_mysql
 	end
 	
 	def escape(string)
-		return string.gsub("'", "\\'")
+		return string.to_s.gsub("'", "\\'")
 	end
 	
 	def esc_col(string)
@@ -71,7 +71,9 @@ class KnjDB_java_mysql
 	
 	def lastID
 		data = self.query("SELECT LAST_INSERT_ID() AS id").fetch
-		return data[:id]
+		return data[:id] if data.has_key?(:id)
+		return data["id"] if data.has_key?("id")
+		raise "Could not get the last ID from database."
 	end
 	
 	def destroy
@@ -103,9 +105,9 @@ class KnjDB_java_mysql_result
 		return false if !status
 		
 		ret = {}
-		if $db and $db.opts[:return_keys] == "symbols"
+		if $db and $db.opts[:return_keys].to_s == "symbols"
 			0.upto(@keys.length - 1) do |count|
-				ret[@keys[count]] = @result.string(count + 1)
+				ret[@keys[count].to_sym] = @result.string(count + 1)
 			end
 		else
 			0.upto(@keys.length - 1) do |count|
