@@ -274,6 +274,9 @@ class Knj::Datet
 		elsif match = timestr.to_s.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{5})$/)
 			#Datet.code format
 			return Datet.new(Time.gm(match[1], match[2], match[3], match[4], match[5], match[6], match[7]))
+		elsif match = timestr.to_s.match(/^\s*(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})(|\.\d+)\s*$/)
+			#Database date format (with possibility of .0 in the end - miliseconds? -knj.
+			return Datet.new(Time.gm(match[1], match[2], match[3], match[4], match[5], match[6], match[7]))
 		end
 		
 		raise Errors::InvalidData.new(sprintf(_("Wrong format: %s"), timestr))

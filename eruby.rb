@@ -50,16 +50,14 @@ class Knj::Eruby
 		end
 		
 		begin
-			_buf = ""
-			
 			if @java_compile
 				if !@eruby_java_cache[cachename] or reload_cache
-					#@eruby_java_cache[cachename] = File.read(cachename)
-					@eruby_java_cache[cachename] = Knj::Jruby_compiler.new(:path => cachename)
+					@eruby_java_cache[cachename] = File.read(cachename)
+					#@eruby_java_cache[cachename] = Knj::Jruby_compiler.new(:path => cachename)
 				end
 				
-				#eval(@eruby_java_cache[cachename])
-				@eruby_java_cache[cachename].run
+				eval(@eruby_java_cache[cachename])
+				#@eruby_java_cache[cachename].run
 			elsif @inseq_cache
 				if @inseq_rbc
 					bytepath = pi["dirname"] + "/" + pi["basename"] + ".rbc"
@@ -93,8 +91,6 @@ class Knj::Eruby
 			end
 		rescue SystemExit
 			#ignore
-		ensure
-			print _buf if _buf.to_s.length > 0
 		end
 	end
 	
