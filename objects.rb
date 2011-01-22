@@ -3,7 +3,7 @@ class Knj::Objects
 	
 	def initialize(args)
 		@callbacks = {}
-		@args = ArrayExt.hash_sym(args)
+		@args = Knj::ArrayExt.hash_sym(args)
 		@args[:col_id] = :id if !@args[:col_id]
 		@args[:class_pre] = "class_" if !@args[:class_pre]
 		@args[:module] = Kernel if !@args[:module]
@@ -138,7 +138,7 @@ class Knj::Objects
 	end
 	
 	def list_opts(classname, args = {})
-		ArrayExt.hash_sym(args)
+		Knj::ArrayExt.hash_sym(args)
 		classname = classname.to_sym
 		
 		if args[:list_args]
@@ -169,7 +169,7 @@ class Knj::Objects
 	end
 	
 	def list_optshash(classname, args = {})
-		ArrayExt.hash_sym(args)
+		Knj::ArrayExt.hash_sym(args)
 		classname = classname.to_sym
 		
 		if args[:list_args]
