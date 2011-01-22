@@ -68,4 +68,18 @@ module Knj::ArrayExt
 		
 		return ret
 	end
+	
+	#Returns a hash based on the keys and values of a hash.
+	def self.hash_md5(hash)
+		combined_val = ""
+		hash.each do |key, val|
+			if combined_val.length > 0
+				combined_val += ";"
+			end
+			
+			combined_val += "#{key}:#{val}"
+		end
+		
+		return Knj::Php.md5(combined_val)
+	end
 end

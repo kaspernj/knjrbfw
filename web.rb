@@ -474,12 +474,12 @@ class Knj::Web
 				html += "<input type=\"file\" name=\"#{args[:name].html}\" class=\"input_file\" />"
 				html += "</td><td style=\"padding-left: 5px;\">"
 				
-				path = args[:path].gsub("%value%", value).untaint
+				path = args[:path].gsub("%value%", value.to_s).untaint
 				if File.exists?(path)
 					html += "<img src=\"image.php?picture=#{Php.urlencode(path).html}&smartsize=100&edgesize=25\" alt=\"Image\" />"
 					
 					if args[:dellink]
-						dellink = args[:dellink].gsub("%value%", value)
+						dellink = args[:dellink].gsub("%value%", value.to_s)
 						html += "<div style=\"text-align: center;\">(<a href=\"javascript: if (confirm('#{_("Do you want to delete the image?")}')){location.href='#{dellink}';}\">#{_("delete")}</a>)</div>"
 					end
 				end
@@ -547,7 +547,17 @@ class Knj::Web
 	end
 	
 	def self.rendering_engine
-		agent = $_SERVER["HTTP_USER_AGENT"].to_s.downcase
+		begin
+			servervar = _server
+		rescue Exception
+			servervar = $_SERVER
+		end
+		
+		if !servervar
+			raise "Could not figure out meta data."
+		end
+		
+		agent = servervar["HTTP_USER_AGENT"].to_s.downcase
 		
 		if agent.index("webkit") != nil
 			return "webkit"
@@ -555,12 +565,102 @@ class Knj::Web
 			return "gecko"
 		elsif agent.index("msie") != nil
 			return "msie"
-		elsif agent.index("w3c") != nil
+		elsif agent.index("w3c") != nil or agent.index("baiduspider") != nil or agent.index("googlebot") != nil
 			return "bot"
 		else
 			#print "Unknown agent: #{agent}"
 			return false
 		end
+	end
+	
+	def self.browser
+		begin
+			servervar = _server
+		rescue Exception
+			servervar = $_SERVER
+		end
+		
+		if !servervar
+			raise "Could not figure out meta data."
+		end
+		
+		agent = servervar["HTTP_USER_AGENT"].to_s.downcase
+		
+		if match = agent.match(/chrome\/(\d\.\d)/)
+			browser = "chrome"
+			title = "Google Chrome"
+			version = match[1]
+		elsif match = agent.match(/firefox\/(\d\.\d)/)
+			browser = "firefox"
+			title = "Mozilla Firefox"
+			version = match[1]
+		elsif match = agent.match(/msie\s*(\d\.\d)/)
+			browser = "ie"
+			title = "Microsoft Internet Explorer"
+			version = match[1]
+		elsif match = agent.match(/opera\/([\d\.]+)/)
+			browser = "opera"
+			title = "Opera"
+			version = match[1]
+		elsif match = agent.match(/wget\/([\d\.]+)/)
+			browser = "bot"
+			title = "Bot"
+			version = "Wget #{match[1]}"
+		elsif agent.index("baiduspider") != nil
+			browser = "bot"
+			title = "Bot"
+			version = "Baiduspider"
+		elsif agent.index("googlebot") != nil
+			browser = "bot"
+			title = "Bot"
+			version = "Googlebot"
+		elsif agent.index("gidbot") != nil
+			browser = "bot"
+			title = "Bot"
+			version "GIDBot"
+		elsif match = agent.match(/safari\/(\d+)/)
+			browser = "safari"
+			title = "Safari"
+			version = match[1]
+		elsif agent.index("bingbot") != nil
+			browser = "bot"
+			title = "Bot"
+			version = "Bingbot"
+		elsif agent.index("yahoo! slurp") != nil
+			browser = "bot"
+			title = "Bot"
+			version = "Yahoo! Slurp"
+		elsif agent.index("hostharvest") != nil
+			browser = "bot"
+			title = "Bot"
+			version = "HostHarvest"
+		elsif agent.index("exabot") != nil
+			browser = "bot"
+			title = "Bot"
+			version = "Exabot"
+		elsif agent.index("dotbot") != nil
+			browser = "bot"
+			title = "Bot"
+			version = "DotBot"
+		elsif agent.index("msnbot") != nil
+			browser = "bot"
+			title = "Bot"
+			version = "MSN bot"
+		elsif agent.index("yandexbot") != nil
+			browser = "bot"
+			title = "Bot"
+			version = "Yandex Bot"
+		else
+			browser = "unknown"
+			title = "(unknown browser)"
+			version = "(unknown version)"
+		end
+		
+		return {
+			"browser" => browser,
+			"title" => title,
+			"version" => version
+		}
 	end
 end
 
@@ -582,7 +682,13 @@ class String
 	end
 	
 	def sql
-		return $db.escape(self)
+		if $db
+			return $db.escape(self)
+		elsif Thread.current.is_a?(Knj::Thread) and Thread.current[:knjappserver] and Thread.current[:knjappserver][:db]
+			return Thread.current[:knjappserver][:db]
+		end
+		
+		raise "Could not figure out where to find db object."
 	end
 end
 

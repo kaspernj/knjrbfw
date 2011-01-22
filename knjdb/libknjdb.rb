@@ -1,7 +1,8 @@
 class Knj::Db
-	attr_reader :opts
+	attr_reader :opts, :conn
 	
 	def initialize(opts)
+		@conns = {}
 		self.setOpts(opts) if opts != nil
 	end
 	
@@ -14,6 +15,10 @@ class Knj::Db
 		
 		arr_opts.each do |key, val|
 			@opts[key.to_sym] = val
+			
+			if key.to_sym == :threadsafe and val
+				@threadsafe = val
+			end
 		end
 		
 		if @opts[:type] == "sqlite3" and RUBY_PLATFORM == "java"
@@ -28,26 +33,49 @@ class Knj::Db
 	end
 	
 	def connect
-		raise "No type given." if !@opts[:type]
+		@conn = self.spawn[:conn]
+	end
+	
+	def spawn
+		@spawn_working = true
 		
-		fpaths = [
-			"libknjdb_" + @opts[:type] + ".rb",
-			"drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}.rb"
-		]
-		fpaths.each do |fpath|
-			rpath = "#{File.dirname(__FILE__)}/#{fpath}"
+		begin
+			raise "No type given." if !@opts[:type]
 			
-			if File.exists?(rpath)
-				require rpath
-				break
+			fpaths = [
+				"libknjdb_" + @opts[:type] + ".rb",
+				"drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}.rb"
+			]
+			fpaths.each do |fpath|
+				rpath = "#{File.dirname(__FILE__)}/#{fpath}"
+				
+				if File.exists?(rpath)
+					require rpath
+					break
+				end
 			end
+			
+			conn = Kernel.const_get("KnjDB_" + @opts[:type]).new(self)
+			
+			conn = {
+				:conn => conn,
+				:running => false
+			}
+			newconns = @conns.clone
+			newconns[newconns.length] = conn
+			@conns = newconns
+		ensure
+			@spawn_working = false
 		end
 		
-		@conn = Kernel.const_get("KnjDB_" + @opts[:type]).new(self)
+		return conn
 	end
 	
 	def close
-		@conn.close
+		@conns.clone.each do |key, conn|
+			conn[:conn].close
+		end
+		@conns = {}
 	end
 	
 	def insert(tablename, arr_insert)
@@ -79,7 +107,7 @@ class Knj::Db
 		
 		sql += ")"
 		
-		@conn.query(sql)
+		self.query(sql)
 	end
 	
 	def update(tablename, arr_update, arr_terms = {})
@@ -163,7 +191,28 @@ class Knj::Db
 	end
 	
 	def query(string)
-		return @conn.query(string)
+		return @conn.query(string) if !@threadsafe
+		
+		retconn = nil
+		@conns.clone.each do |key, conn|
+			next if conn[:running]
+			retconn = conn
+			break
+		end
+		
+		if retconn
+			retconn[:running] = true
+			ret = retconn[:conn].query(string)
+			retconn[:running] = false
+			return ret
+		end
+		
+		#all connections are taken - spawn new and run loop again.
+		conn = self.spawn
+		conn[:running] = true
+		ret = conn[:conn].query(string)
+		conn[:running] = false
+		return ret
 	end
 	
 	def lastID
@@ -184,10 +233,6 @@ class Knj::Db
 	
 	def esc_table(str)
 		return @conn.esc_table(str)
-	end
-	
-	def esc(string)
-		return self.escape(string)
 	end
 	
 	def method_missing(method_name, *args)

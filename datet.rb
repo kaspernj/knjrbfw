@@ -76,6 +76,8 @@ class Knj::Datet
 			@time = self.add_years(1).stamp(:datet => false, :month => 1, :day => 1)
 			months_left = (months - 1) - (12 - cur_month)
 			return self.add_months(months_left) if months_left > 0
+		elsif next_month < 1
+			@time = self.add_years(-1).stamp(:datet => false, :month => 12)
 		else
 			@time = self.stamp(:datet => false, :month => next_month, :day => 1)
 		end
@@ -98,7 +100,14 @@ class Knj::Datet
 	end
 	
 	def days_in_month
-		return (Date.new(@time.year, 12, 31) << (12 - @time.month)).day.to_i
+		if @time.respond_to?(:days_in_month)
+			return @time.days_in_month
+		end
+		
+		dateob = Kernel.const_get(:Date).new(@time.year, 12, 31)
+		if dateob.respond_to? "<<"
+			return (dateob << (12 - @time.month)).day.to_i
+		end
 	end
 	
 	def day_in_week
@@ -204,11 +213,17 @@ class Knj::Datet
 	end
 	
 	def self.from_dbstr(date_string)
+		if date_string.is_a?(Time)
+			return Datet.new(date_string)
+		elsif date_string.is_a?(Date)
+			return Datet.new(date_string.to_time)
+		end
+		
 		if Datestamp.is_nullstamp?(date_string)
 			return false
 		end
 		
-		return Datet.new(Time.local(*ParseDate.parsedate(date_string)))
+		return Datet.new(Time.local(*ParseDate.parsedate(date_string.to_s)))
 	end
 	
 	def self.parse(str)
@@ -235,6 +250,12 @@ class Knj::Datet
 	end
 	
 	def self.in(timestr)
+		if timestr.is_a?(Time)
+			return Datet.new(timestr)
+		elsif timestr.is_a?(Date)
+			return Datet.new(timestr.to_time)
+		end
+		
 		if match = timestr.to_s.match(/^(\d+)\/(\d+) (\d+)/)
 			#MySQL date format
 			timestr = timestr.gsub(match[0], "")

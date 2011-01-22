@@ -37,6 +37,8 @@ class Knj::Http
 		@http = Net::HTTP.new(@opts["host"], port)
 		@http.set_debug_output($stderr) if @opts["debug"]
 		@http.use_ssl = true if @opts["ssl"]
+		
+		return self
 	end
 	
 	def check_connected

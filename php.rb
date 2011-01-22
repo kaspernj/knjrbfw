@@ -109,6 +109,9 @@ module Knj::Php
 			retstr += ":#{argument.to_s}"
 		elsif argument.is_a?(Exception)
 			retstr += "#\{#{argument.class.to_s}: #{argument.message}}\n"
+		elsif cstr == "Knj::Unix_proc"
+			retstr += "#{argument.class.to_s}::data - "
+			retstr += print_r(argument.data, true, count).to_s
 		else
 			#print argument.to_s, "\n"
 			retstr += "Unknown class: " + cstr + "\n"
@@ -130,11 +133,15 @@ module Knj::Php
 	end
 	
 	def self.number_format(number, precision = 2, seperator = ".", delimiter = ",")
-		if number.is_a?(Float)
+		if !number.is_a?(Float)
 			number = number.to_f
 		end
 		
-		number = sprintf("%." + precision.to_s + "f", number)
+		if number < 1
+			return sprintf("%.#{precision.to_s}f", number).gsub(".", seperator)
+		end
+		
+		number = sprintf("%.#{precision.to_s}f", number)
 		
 		#thanks for jmoses wrote some of tsep-code: http://snippets.dzone.com/posts/show/693
 		st = number.reverse
@@ -147,7 +154,7 @@ module Knj::Php
 		
 		if st.to_i == st.to_f
 			1.upto(st.size) do |i|
-				r << st[i-1].chr
+				r << st[i-1].chr if st[i-1].chr != "."
 				r << ',' if i%3 == 0 and i < max
 			end
 		else
@@ -162,11 +169,11 @@ module Knj::Php
 			end
 		end
 		
-		number = r.reverse
-		number = number.gsub(",", "comma").gsub(".", "dot")
-		number = number.gsub("comma", delimiter).gsub("dot", seperator)
+		numberstr = r.to_s.reverse
+		numberstr = numberstr.gsub(",", "comma").gsub(".", "dot")
+		numberstr = numberstr.gsub("comma", delimiter).gsub("dot", seperator)
 		
-		return number
+		return numberstr
 	end
 	
 	def self.ucwords(string)
@@ -219,19 +226,29 @@ module Knj::Php
 		
 		sent = false
 		
-		if Php.class_exists("Apache")
+		if Knj::Php.class_exists("Apache")
 			sent = true
 			Apache.request.headers_out[key] = value
 		end
 		
-		if $knj_eruby
-			$knj_eruby.header(key, value)
-		elsif $cgi.is_a?(CGI)
-			sent = true
-			$cgi.header(key => value)
-		elsif $_CGI.is_a?(CGI)
-			sent = true
-			$_CGI.header(key => value)
+		begin
+			#This is for knjAppServer - knj.
+			_kas.eruby.header(key, value)
+		rescue NameError => e
+			STDOUT.print "NameError!!!\n"
+			STDOUT.puts e.inspect
+			STDOUT.puts e.backtrace
+			STDOUT.print "\n\n"
+			
+			if $knj_eruby
+				$knj_eruby.header(key, value)
+			elsif $cgi.is_a?(CGI)
+				sent = true
+				$cgi.header(key => value)
+			elsif $_CGI.is_a?(CGI)
+				sent = true
+				$_CGI.header(key => value)
+			end
 		end
 	end
 	
@@ -254,7 +271,57 @@ module Knj::Php
 	end
 	
 	def self.file_get_contents(filepath)
+		filepath = filepath.to_s
+		
+		if http_match = filepath.match(/^http(s|):\/\/([A-z_\d\.]+)(|:(\d+))(\/(.+))$/)
+			if http_match[4].to_s.length > 0
+				port = http_match[4].to_i
+			end
+			
+			args = {
+				"host" => http_match[2]
+			}
+			
+			if http_match[1] == "s"
+				args["ssl"] = true
+				
+				if !port
+					port = 443
+				end
+			end
+			
+			args["port"] = port if port
+			
+			http = Knj::Http.new(args)
+			data = http.get(http_match[5])
+			return data["data"]
+		end
+		
 		return File.read(filepath.untaint)
+	end
+	
+	def self.is_file(filepath)
+		begin
+			if File.file?(filepath)
+				return true
+			end
+		rescue Exception
+			return false
+		end
+		
+		return false
+	end
+	
+	def self.is_dir(filepath)
+		begin
+			if File.directory?(filepath)
+				return true
+			end
+		rescue Exception
+			return false
+		end
+		
+		return false
 	end
 	
 	def self.unlink(filepath)
@@ -410,7 +477,6 @@ module Knj::Php
 			"value" => cvalue,
 			"path" => "/"
 		}
-		
 		paras["expires"] = Time.at(expire) if expire
 		paras["domain"] = domain if domain
 		
@@ -539,6 +605,18 @@ module Knj::Php
 		end
 		
 		raise "Missing method: #{func_name}\n"
+	end
+	
+	# Returns the scripts current memory usage.
+	def self.memory_get_usage
+		# FIXME: This only works on Linux at the moment, since we are doing this by command line - knj.
+		memory_usage = `ps -o rss= -p #{Process.pid}`.to_i * 1024
+		return memory_usage
+	end
+	
+	# Should return the peak usage of the running script, but I have found no way to detect this... Instead returns the currently memory usage.
+	def self.memory_get_peak_usage
+		return self.memory_get_usage
 	end
 	
 	Knj::Php.singleton_methods.each do |methodname|

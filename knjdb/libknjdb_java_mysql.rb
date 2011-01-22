@@ -1,6 +1,8 @@
 require "java"
 
 class KnjDB_java_mysql
+	attr_reader :knjdb, :conn, :escape_table, :escape_col, :escape_val
+	
 	def escape_table
 		return "`"
 	end
@@ -14,6 +16,10 @@ class KnjDB_java_mysql
 	end
 	
 	def initialize(knjdb_ob)
+		@escape_table = "`"
+		@escape_col = "`"
+		@escape_val = "'"
+		
 		@knjdb = knjdb_ob
 		@opts = knjdb_ob.opts
 		
@@ -23,7 +29,12 @@ class KnjDB_java_mysql
 			@port = 3306
 		end
 		
-		require File.dirname(__FILE__) + "/mysql-connector-java-5.1.13-bin.jar"
+		if File.exists?("/usr/share/java/mysql-connector-java.jar")
+			require "/usr/share/java/mysql-connector-java.jar"
+		else
+			require File.dirname(__FILE__) + "/mysql-connector-java-5.1.13-bin.jar"
+		end
+		
 		import "com.mysql.jdbc.Driver"
 		self.reconnect
 		self.query("SET SQL_MODE = ''")
@@ -46,12 +57,23 @@ class KnjDB_java_mysql
 	end
 	
 	def escape(string)
-		return string.gsub("'", "\\'")
+		return string.to_s.gsub("'", "\\'")
 	end
+	
+	def esc_col(string)
+		string = string.to_s
+		raise "Invalid column-string: #{string}" if string.index(@escape_col) != nil
+		return string
+	end
+	
+	alias :esc_table :esc_col
+	alias :esc :escape
 	
 	def lastID
 		data = self.query("SELECT LAST_INSERT_ID() AS id").fetch
-		return data[:id]
+		return data[:id] if data.has_key?(:id)
+		return data["id"] if data.has_key?("id")
+		raise "Could not get the last ID from database."
 	end
 	
 	def destroy
@@ -83,9 +105,9 @@ class KnjDB_java_mysql_result
 		return false if !status
 		
 		ret = {}
-		if $db and $db.opts[:return_keys] == "symbols"
+		if $db and $db.opts[:return_keys].to_s == "symbols"
 			0.upto(@keys.length - 1) do |count|
-				ret[@keys[count]] = @result.string(count + 1)
+				ret[@keys[count].to_sym] = @result.string(count + 1)
 			end
 		else
 			0.upto(@keys.length - 1) do |count|

@@ -1,14 +1,18 @@
-class ERuby
-	def self.load_settings
+class Knj::Eruby
+	attr_reader :fcgi
+	attr_reader :connects, :headers
+	
+	def initialize(args = {})
+		@args = args
 		@settings_loaded = true
 		@inseq_cache = false
 		@inseq_rbc = false
 		@java_compile = false
+		@filepath = File.dirname(Knj::Os::realpath(__FILE__))
+		@connects = {}
 		
 		if RUBY_PLATFORM == "java"
 			@java_compile = true
-			@java_factory = javax.script.ScriptEngineManager.new
-			@java_engine = @java_factory.getEngineByName("jruby")
 			@eruby_java_cache = {}
 		elsif RUBY_VERSION.slice(0..2) == "1.9" and RubyVM::InstructionSequence.respond_to?(:compile_file)
 			@eruby_rbyte = {}
@@ -20,92 +24,81 @@ class ERuby
 		end
 		
 		@inseq_rbc = false #this is not possible yet in Ruby... maybe in 1.9.3?
+		
+		self.reset_headers
+		self.reset_connects
 	end
 	
-	def self.import(filename)
-		ERuby.load_settings if !@settings_loaded
-		
+	def import(filename)
 		filename = File.expand_path(filename)
-		pwd = Dir.pwd
-		Dir.chdir(File.dirname(filename))
-		
-		fpath = "#{KnjEruby.filepath}/cache/#{filename.gsub("/", "_").gsub(".", "_")}"
-		pi = Knj::Php.pathinfo(filename)
-		cachename = fpath + ".cache"
-		
 		filetime = File.mtime(filename)
+		filepath = Knj::Php.realpath(filename)
+		fpath = "#{@filepath}/erb/cache/#{filename.gsub("/", "_").gsub(".", "_")}"
+		pi = Knj::Php.pathinfo(filename)
+		cachename = "#{fpath}.cache"
 		cacheexists = File.exists?(cachename)
 		cachetime = File.mtime(cachename) if File.exists?(cachename)
 		
+		if !File.exists?(filename)
+			raise "File does not exist: #{filename}"
+		end
+		
 		if !cacheexists or filetime > cachetime
-			KnjEruby.load_file(File.basename(filename), {:cachename => cachename})
+			Knj::Eruby::Handler.load_file(filepath, {:cachename => cachename})
 			cachetime = File.mtime(cachename)
 			reload_cache = true
 		end
 		
-		if @java_compile
-			if !@eruby_java_cache[cachename] or reload_cache
-				#@eruby_java_cache[cachename] = @java_engine.compile(File.read(cachename))
-				@eruby_java_cache[cachename] = File.read(cachename)
-			end
+		begin
+			_buf = ""
 			
-			#@eruby_java_cache[cachename].eval
-			eval(@eruby_java_cache[cachename])
-		elsif @inseq_cache
-			if @inseq_rbc
-				bytepath = pi["dirname"] + "/" + pi["basename"] + ".rbc"
-				byteexists = File.exists?(bytepath)
-				bytetime = File.mtime(bytepath) if File.exists?(bytepath)
+			if @java_compile
+				if !@eruby_java_cache[cachename] or reload_cache
+					#@eruby_java_cache[cachename] = File.read(cachename)
+					@eruby_java_cache[cachename] = Knj::Jruby_compiler.new(:path => cachename)
+				end
 				
-				if !File.exists?(bytepath) or cachetime > bytetime
-					res = RubyVM::InstructionSequence.compile_file(filename)
-					data = Marshal.dump(res.to_a)
-					File.open(bytepath, "w+") do |fp|
-						fp.write(data)
+				#eval(@eruby_java_cache[cachename])
+				@eruby_java_cache[cachename].run
+			elsif @inseq_cache
+				if @inseq_rbc
+					bytepath = pi["dirname"] + "/" + pi["basename"] + ".rbc"
+					byteexists = File.exists?(bytepath)
+					bytetime = File.mtime(bytepath) if File.exists?(bytepath)
+					
+					if !File.exists?(bytepath) or cachetime > bytetime
+						res = RubyVM::InstructionSequence.compile_file(filename)
+						data = Marshal.dump(res.to_a)
+						File.open(bytepath, "w+") do |fp|
+							fp.write(data)
+						end
 					end
 				end
-			end
-			
-			if @inseq_rbc
-				res = Marshal.load(File.read(bytepath))
-				RubyVM::InstructionSequence.load(res).eval
-			else
-				if !@eruby_rbyte[cachename] or reload_cache
-					@eruby_rbyte[cachename] = RubyVM::InstructionSequence.new(File.read(cachename))
-					#@eruby_rbyte[cachename] = RubyVM::InstructionSequence.compile_file(cachename)
-					@eruby_rbyte[cachename].eval
+				
+				if @inseq_rbc
+					res = Marshal.load(File.read(bytepath))
+					RubyVM::InstructionSequence.load(res).eval
 				else
-					_buf = ""
-					@eruby_rbyte[cachename].eval
-					if _buf
-						print _buf
+					if !@eruby_rbyte[cachename] or reload_cache
+						@eruby_rbyte[cachename] = RubyVM::InstructionSequence.new(File.read(cachename))
+						#@eruby_rbyte[cachename] = RubyVM::InstructionSequence.compile_file(cachename)
+						@eruby_rbyte[cachename].eval
+					else
+						@eruby_rbyte[cachename].eval
 					end
 				end
+			else
+				loaded_content = Knj::Eruby::Handler.load_file(File.basename(filename), {:cachename => cachename})
+				print loaded_content.evaluate
 			end
-		else
-			eruby = KnjEruby.load_file(File.basename(filename), {:cachename => cachename})
-			print eruby.evaluate
+		rescue SystemExit
+			#ignore
+		ensure
+			print _buf if _buf.to_s.length > 0
 		end
-		
-		Dir.chdir(pwd)
 	end
-end
-
-class KnjEruby < Erubis::Eruby
-	include Erubis::StdoutEnhancer
 	
-	@headers = [
-		["Content-Type", "text/html; charset=utf-8"]
-	]
-	@filepath = File.dirname(Knj::Os::realpath(__FILE__))
-	@connects = {}
-	
-	def self.fcgi=(newvalue); @fcgi = newvalue; end
-	def self.fcgi; return @fcgi; end
-	def self.connects; return @connects; end
-	def self.headers; return @headers; end
-	
-	def self.print_headers(args = {})
+	def print_headers(args = {})
 		header_str = ""
 		
 		@headers.each do |header|
@@ -117,7 +110,7 @@ class KnjEruby < Erubis::Eruby
 		return header_str
 	end
 	
-	def self.has_status_header?
+	def has_status_header?
 		@headers.each do |header|
 			if header[0] == "Status"
 				return true
@@ -127,30 +120,26 @@ class KnjEruby < Erubis::Eruby
 		return false
 	end
 	
-	def self.reset_connects
+	def reset_connects
 		@connects = {}
 	end
 	
-	def self.reset_headers
+	def reset_headers
 		@headers = [
 			["Content-Type", "text/html; charset=utf-8"]
 		]
 	end
 	
-	def self.header(key, value)
+	def header(key, value)
 		@headers << [key, value]
 	end
 	
-	def self.filepath
-		return @filepath
-	end
-	
-	def self.connect(signal, &block)
+	def connect(signal, &block)
 		@connects[signal] = [] if !@connects[signal]
 		@connects[signal] << block
 	end
 	
-	def self.printcont(tmp_out, args = {})
+	def printcont(tmp_out, args = {})
 		if @fcgi
 			@fcgi.print self.print_headers
 			tmp_out.rewind
@@ -171,14 +160,14 @@ class KnjEruby < Erubis::Eruby
 		end
 	end
 	
-	def self.load_return(filename, args = {})
+	def load_return(filename, args = {})
 		if !args[:io]
 			retio = StringIO.new
 			args[:io] = retio
 		end
 		
 		@args = args
-		KnjEruby.load(filename, args)
+		self.load(filename, args)
 		
 		if !args[:custom_io]
 			retio.rewind
@@ -186,24 +175,24 @@ class KnjEruby < Erubis::Eruby
 		end
 	end
 	
-	def self.load(filename, args = {})
+	def load(filename, args = {})
 		begin
 			if !args[:custom_io]
 				tmp_out = StringIO.new
 				$stdout = tmp_out
 			end
 			
-			ERuby.import(filename)
+			self.import(filename)
 			
-			if KnjEruby.connects["exit"]
-				KnjEruby.connects["exit"].each do |block|
+			if self.connects["exit"]
+				self.connects["exit"].each do |block|
 					block.call
 				end
 			end
 			
-			KnjEruby.printcont(tmp_out, args)
+			self.printcont(tmp_out, args)
 		rescue SystemExit => e
-			KnjEruby.printcont(tmp_out, args)
+			self.printcont(tmp_out, args)
 		rescue Exception => e
 			begin
 				if KnjEruby.connects["error"]
@@ -233,16 +222,15 @@ class KnjEruby < Erubis::Eruby
 			print "\n\n<pre>\n\n"
 			print "<b>#{CGI.escapeHTML(e.class.name)}: #{CGI.escapeHTML(e.message)}</b>\n\n"
 			
-			#Lets hide all the stuff in what is not the users files to make it easier to debug.
-			bt = e.backtrace
-			to = bt.length - 9
-			bt = bt[0..to]
-			
-			bt.each do |line|
+			e.backtrace.each do |line|
 				print CGI.escapeHTML(line) + "\n"
 			end
 			
-			KnjEruby.printcont(tmp_out, args)
+			self.printcont(tmp_out, args)
 		end
 	end
+end
+
+class Knj::Eruby::Handler < Erubis::Eruby
+	include Erubis::StdoutEnhancer
 end

@@ -43,6 +43,10 @@ module Knj::Os
 		end
 	end
 	
+	def self.mode
+		Php.print_r(ENV)
+	end
+	
 	def self.class_exist(classstr)
 		if Module.constants.index(classstr) != nil
 			return true
@@ -65,5 +69,23 @@ module Knj::Os
 		end
 		
 		return path
+	end
+	
+	def self.shellcmd(cmd)
+		res = {
+			:out => "",
+			:err => ""
+		}
+		
+		Open3.popen3(cmd) do |stdin, stdout, stderr|
+			res[:out] << stdout.read
+			res[:err] << stderr.read
+		end
+		
+		if res[:err].to_s.strip.length > 0
+			raise res[:err]
+		end
+		
+		return res[:out]
 	end
 end

@@ -1,11 +1,13 @@
 class KnjDB_mysql
-	attr_reader :knjdb, :conn, :escape_table, :escape_col, :escape_val
+	attr_reader :knjdb, :conn, :escape_table, :escape_col, :escape_val, :esc_table, :esc_col
 	
 	def initialize(knjdb_ob)
 		@knjdb = knjdb_ob
 		@escape_table = "`"
 		@escape_col = "`"
 		@escape_val = "'"
+		@esc_table = "`"
+		@esc_col = "`"
 		
 		if @knjdb.opts.has_key?(:port)
 			@port = @knjdb.opts[:port].to_i
@@ -25,7 +27,6 @@ class KnjDB_mysql
 			return KnjDB_mysql_result.new(self, @conn.query(string))
 		rescue Mysql::Error => e
 			if e.message == "MySQL server has gone away"
-				print "Reconnect!\n"
 				self.reconnect
 				return KnjDB_mysql_result.new(@conn.query(string))
 			else

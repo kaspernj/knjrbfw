@@ -1,4 +1,6 @@
 class Knj::Objects
+	attr_reader :objects
+	
 	def initialize(args)
 		@callbacks = {}
 		@args = ArrayExt.hash_sym(args)
@@ -13,17 +15,13 @@ class Knj::Objects
 	
 	def count_objects
 		count = 0
-		@objects.each do |key, value|
+		@objects.clone.each do |key, value|
 			value.each do |id, object|
 				count += 1
 			end
 		end
 		
 		return count
-	end
-	
-	def clean
-		@objects = {}
 	end
 	
 	def connect(args)
@@ -160,7 +158,11 @@ class Knj::Objects
 		obs.each do |object|
 			html += "<option value=\"#{object.id.html}\""
 			html += " selected=\"selected\"" if args[:selected] and args[:selected][@args[:col_id]] == object.id
-			html += ">#{object.title.html}</option>"
+			begin
+				html += ">#{object.title.html}</option>"
+			rescue Exception => e
+				html += ">[#{_("invalid title")}]</option>"
+			end
 		end
 		
 		return html
@@ -199,6 +201,7 @@ class Knj::Objects
 		return list
 	end
 	
+	# Returns a list of a specific object by running specific SQL against the database.
 	def list_bysql(classname, sql, &block)
 		classname = classname.to_sym
 		
@@ -215,6 +218,7 @@ class Knj::Objects
 		return ret if !block_given?
 	end
 	
+	# Add a new object to the database and to the cache.
 	def add(classname, data)
 		classname = classname.to_sym
 		self.requireclass(classname)
@@ -227,6 +231,7 @@ class Knj::Objects
 		return retob
 	end
 	
+	# Unset object. Do this if you are sure, that there are no more references left. This will be done automatically when deleting it.
 	def unset(object)
 		classname = object.class.name
 		
@@ -252,10 +257,113 @@ class Knj::Objects
 		end
 	end
 	
+	# Delete an object. Both from the database and from the cache.
 	def delete(object)
 		self.call("object" => object, "signal" => "delete_before")
 		self.unset(object)
 		object.delete
 		self.call("object" => object, "signal" => "delete")
+	end
+	
+	# Try to clean up objects by unsetting everything, start the garbagecollector, get all the remaining objects via ObjectSpace and set them again. Some (if not all) should be cleaned up and our cache should still be safe... dirty but works.
+	def clean(classn)
+		if classn.is_a?(Array)
+			classn.each do |realclassn|
+				self.clean(realclassn)
+			end
+		else
+			if !@objects[classn]
+				return false
+			else
+				@objects[classn] = {}
+				GC.start
+			end
+		end
+	end
+	
+	def clean_all
+		classnames = []
+		@objects.clone.each do |classn, hash_list|
+			classnames << classn
+		end
+		
+		classnames.each do |classn|
+			@objects[classn] = {}
+		end
+		
+		GC.start
+	end
+	
+	def clean_recover
+		@objects.clone.each do |classn, hash_list|
+			classobj = Kernel.const_get(classn)
+			ObjectSpace.each_object(classobj) do |obj|
+				@objects[classn][obj.id] = obj
+			end
+		end
+	end
+	
+	def sqlhelper(list_args, args)
+		sql_where = ""
+		
+		if args[:table]
+			table = "`#{@args[:db].esc_table(args[:table])}`."
+		else
+			table = ""
+		end
+		
+		limit_from = nil
+		limit_to = nil
+		
+		list_args.each do |key, val|
+			found = false
+			if args.has_key?(:cols_str) and args[:cols_str].index(key) != nil
+				sql_where += " AND #{table}`#{@args[:db].esc_col(key)}` = '#{@args[:db].esc(val)}'"
+				found = true
+			elsif args.has_key?(:cols_bools) and args[:cols_bools].index(key) != nil
+				if val.is_a?(TrueClass) or (val.is_a?(Integer) and val.to_i == 1)
+					realval = "1"
+				elsif val.is_a?(FalseClass) or (val.is_a?(Integer) and val.to_i == 0)
+					realval = "0"
+				else
+					raise "Could not make real value out of class: #{val.class.name}."
+				end
+				
+				sql_where += " AND #{table}`#{@args[:db].esc_col(key)}` = '#{@args[:db].esc(realval)}'"
+				found = true
+			elsif key.to_s == "limit_from"
+				limit_from = val.to_i
+				found = true
+			elsif key.to_s == "limit_to"
+				limit_to = val.to_i
+				found = true
+			elsif key.to_s == "limit"
+				limit_from = 0
+				limit_to = val.to_i
+			elsif args.has_key?(:cols_dbrows) and args[:cols_dbrows].index(key.to_s + "_id") != nil
+				sql_where += " AND #{table}`#{@args[:db].esc_col(key.to_s + "_id")}` = '#{@args[:db].esc(val.id.to_s.sql)}'"
+				found = true
+			elsif args.has_key?(:cols_str) and match = key.match(/^([A-z_\d]+)_search$/) and args[:cols_str].index(match[1]) != nil
+				Knj::Strings.searchstring(val).each do |str|
+					sql_where += " AND #{table}`#{@args[:db].esc_col(match[1])}` LIKE '%#{@args[:db].esc(str)}%'"
+				end
+				found = true
+			elsif args.has_key?(:cols_str) and match = key.match(/^([A-z_\d]+)_not$/) and args[:cols_str].index(match[1]) != nil
+				sql_where += " AND #{table}`#{@args[:db].esc_col(match[1])}` != '#{@args[:db].esc(val)}'"
+				found = true
+			end
+			
+			list_args.delete(key) if found
+		end
+		
+		sql_limit = false
+		if limit_from and limit_to
+			sql_limit = " LIMIT #{limit_from}, #{limit_to}"
+		end
+		
+		return {
+			:sql_where => sql_where,
+			:sql_limit => sql_limit
+		}
 	end
 end
