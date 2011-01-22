@@ -24,7 +24,7 @@ class KnjDB_mysql
 	
 	def query(string)
 		begin
-			return KnjDB_mysql_result.new(@conn.query(string))
+			return KnjDB_mysql_result.new(self, @conn.query(string))
 		rescue Mysql::Error => e
 			if e.message == "MySQL server has gone away"
 				self.reconnect
@@ -56,11 +56,37 @@ class KnjDB_mysql
 		@conn = nil
 		@knjdb = nil
 	end
+	
+	def tables
+		if !@tables
+			require "#{File.dirname(__FILE__)}/knjdb_mysql_tables.rb"
+			@tables = KnjDB_mysql::Tables.new(
+				:driver => self,
+				:db => @knjdb
+			)
+		end
+		
+		return @tables
+	end
+	
+	def cols
+		if !@cols
+			require "#{File.dirname(__FILE__)}/knjdb_mysql_columns.rb"
+			@cols = KnjDB_mysql::Columns.new(
+				:driver => self,
+				:db => @knjdb
+			)
+		end
+		
+		return @cols
+	end
 end
 
 class KnjDB_mysql_result
-	def initialize(result)
+	def initialize(driver, result)
+		@driver = driver
 		@result = result
+		
 		if @result
 			@keys = []
 			keys = @result.fetch_fields
@@ -71,7 +97,7 @@ class KnjDB_mysql_result
 	end
 	
 	def fetch
-		return self.fetch_hash_symbols if $db and $db.opts[:return_keys] == "symbols"
+		return self.fetch_hash_symbols if @driver.knjdb.opts[:return_keys] == "symbols"
 		return self.fetch_hash_strings
 	end
 	

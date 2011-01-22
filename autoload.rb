@@ -26,6 +26,7 @@ module Knj
 	autoload :Os, $knjpath + "os"
 	autoload :Gtk2, $knjpath + "gtk2"
 	autoload :Php, $knjpath + "php"
+	autoload :Php_parser, $knjpath + "php_parser/php_parser"
 	autoload :Rand, $knjpath + "rand"
 	autoload :Retry, $knjpath + "retry"
 	autoload :RSVGBIN, $knjpath + "rsvgbin"

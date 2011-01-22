@@ -599,6 +599,14 @@ module Knj::Php
 		end
 	end
 	
+	def self.method_missing(func_name, *paras)
+		if func_name.to_s == "print"
+			return print(*paras)
+		end
+		
+		raise "Missing method: #{func_name}\n"
+	end
+	
 	# Returns the scripts current memory usage.
 	def self.memory_get_usage
 		# FIXME: This only works on Linux at the moment, since we are doing this by command line - knj.
