@@ -11,8 +11,7 @@ end
 knjdir = File.dirname(File.realpath(__FILE__)) + "/../"
 
 require knjdir + "autoload"
-require "erubis"
-require knjdir + "/erb/include"
+require knjdir + "erb/include"
 
 $knj_eruby = KnjEruby
 

@@ -533,6 +533,14 @@ module Knj::Php
 		end
 	end
 	
+	def self.method_missing(func_name, *paras)
+		if func_name.to_s == "print"
+			return print(*paras)
+		end
+		
+		raise "Missing method: #{func_name}\n"
+	end
+	
 	Knj::Php.singleton_methods.each do |methodname|
 		define_method methodname.to_sym do |*paras|
 			return Knj::Php.send(methodname, *paras)

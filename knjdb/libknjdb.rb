@@ -29,7 +29,20 @@ class Knj::Db
 	
 	def connect
 		raise "No type given." if !@opts[:type]
-		require(File.dirname(__FILE__) + "/libknjdb_" + @opts[:type] + ".rb")
+		
+		fpaths = [
+			"libknjdb_" + @opts[:type] + ".rb",
+			"drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}.rb"
+		]
+		fpaths.each do |fpath|
+			rpath = "#{File.dirname(__FILE__)}/#{fpath}"
+			
+			if File.exists?(rpath)
+				require rpath
+				break
+			end
+		end
+		
 		@conn = Kernel.const_get("KnjDB_" + @opts[:type]).new(self)
 	end
 	
@@ -175,5 +188,11 @@ class Knj::Db
 	
 	def esc(string)
 		return self.escape(string)
+	end
+	
+	def method_missing(method_name, *args)
+		if @conn.respond_to?(method_name.to_sym)
+			return @conn.send(method_name, *args)
+		end
 	end
 end
