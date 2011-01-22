@@ -682,10 +682,10 @@ class String
 	end
 	
 	def sql
-		if $db
+		if Thread.current.is_a?(Knj::Thread) and Thread.current[:knjappserver] and Thread.current[:knjappserver][:db]
+			return Thread.current[:knjappserver][:db].escape(self)
+		elsif $db
 			return $db.escape(self)
-		elsif Thread.current.is_a?(Knj::Thread) and Thread.current[:knjappserver] and Thread.current[:knjappserver][:db]
-			return Thread.current[:knjappserver][:db]
 		end
 		
 		raise "Could not figure out where to find db object."

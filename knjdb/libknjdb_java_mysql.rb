@@ -19,9 +19,7 @@ class KnjDB_java_mysql
 		@escape_table = "`"
 		@escape_col = "`"
 		@escape_val = "'"
-		
 		@knjdb = knjdb_ob
-		@opts = knjdb_ob.opts
 		
 		if knjdb_ob.opts.has_key?(:port)
 			@port = knjdb_ob.opts[:port].to_i
@@ -41,7 +39,7 @@ class KnjDB_java_mysql
 	end
 	
 	def reconnect
-		@conn = java.sql::DriverManager.getConnection("jdbc:mysql://#{@opts[:host]}:#{@port}/#{@opts[:db]}?user=#{@opts[:user]}&password=#{@opts[:pass]}&populateInsertRowWithDefaultValues=true&zeroDateTimeBehavior=round")
+		@conn = java.sql::DriverManager.getConnection("jdbc:mysql://#{@knjdb.opts[:host]}:#{@port}/#{@knjdb.opts[:db]}?user=#{@knjdb.opts[:user]}&password=#{@knjdb.opts[:pass]}&populateInsertRowWithDefaultValues=true&zeroDateTimeBehavior=round")
 	end
 	
 	def query(sqlstr)
@@ -53,7 +51,7 @@ class KnjDB_java_mysql
 			rs = stmt.executeQuery(sqlstr)
 		end
 		
-		return KnjDB_java_mysql_result.new(rs)
+		return KnjDB_java_mysql_result.new(@knjdb, rs)
 	end
 	
 	def escape(string)
@@ -79,13 +77,14 @@ class KnjDB_java_mysql
 	def destroy
 		@conn = nil
 		@knjdb = nil
-		@opts = nil
+		@knjdb.opts = nil
 		@port = nil
 	end
 end
 
 class KnjDB_java_mysql_result
-	def initialize(result)
+	def initialize(knjdb, result)
+		@knjdb = knjdb
 		@result = result
 	end
 	
@@ -105,7 +104,7 @@ class KnjDB_java_mysql_result
 		return false if !status
 		
 		ret = {}
-		if $db and $db.opts[:return_keys].to_s == "symbols"
+		if @knjdb.opts[:return_keys].to_s == "symbols"
 			0.upto(@keys.length - 1) do |count|
 				ret[@keys[count].to_sym] = @result.string(count + 1)
 			end
