@@ -86,12 +86,28 @@ class Knj::Eruby
 					end
 				end
 			else
-				loaded_content = Knj::Eruby::Handler.load_file(File.basename(filename), {:cachename => cachename})
+				loaded_content = Knj::Eruby::Handler.load_file(filepath, {:cachename => cachename})
 				print loaded_content.evaluate
 			end
 		rescue SystemExit
 			#ignore
 		end
+	end
+	
+	def destroy
+		@connects.clear if @connects.is_a?(Hash)
+		@headers.clear if @headers.is_a?(Array)
+		@eruby_rbyte.clear if @eruby_rbyte.is_a?(Hash)
+		@eruby_java_cache.clear if @eruby_java_cache.is_a?(Hash)
+		@args.clear if @args.is_a?(Hash)
+		
+		@connects = nil
+		@headers = nil
+		@eruby_rbyte = nil
+		@eruby_java_cache = nil
+		@args = nil
+		@inseq_rbc = nil
+		@java_compile = nil
 	end
 	
 	def print_headers(args = {})
@@ -117,10 +133,12 @@ class Knj::Eruby
 	end
 	
 	def reset_connects
+		@connects.clear if @connects.is_a?(Hash)
 		@connects = {}
 	end
 	
 	def reset_headers
+		@headers.clear if @headers.is_a?(Array)
 		@headers = [
 			["Content-Type", "text/html; charset=utf-8"]
 		]
@@ -180,8 +198,8 @@ class Knj::Eruby
 			
 			self.import(filename)
 			
-			if self.connects["exit"]
-				self.connects["exit"].each do |block|
+			if @connects["exit"]
+				@connects["exit"].each do |block|
 					block.call
 				end
 			end

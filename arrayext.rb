@@ -20,7 +20,7 @@ module Knj::ArrayExt
 			
 			value = value[key] if args[:key]
 			value = value if !args[:key]
-			value = Php.call_user_func(args[:callback], value) if args[:callback]
+			value = Knj::Php.call_user_func(args[:callback], value) if args[:callback]
 			
 			if args[:callback] and !value
 				raise "Callback returned nothing."

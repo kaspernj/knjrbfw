@@ -1,6 +1,6 @@
 class Knj::Datestamp
 	def self.in(time = Time.new)
-		if Php.is_numeric(time)
+		if Knj::Php.is_numeric(time)
 			time = Time.at(time.to_i)
 		elsif time.is_a?(String)
 			time = Time.local(*ParseDate.parsedate(time))
@@ -14,7 +14,7 @@ class Knj::Datestamp
 			time = Time.new
 		end
 		
-		if Php.is_numeric(time)
+		if Knj::Php.is_numeric(time)
 			time = Time.at(time.to_i)
 		elsif time.is_a?(String)
 			begin
@@ -30,7 +30,7 @@ class Knj::Datestamp
 	end
 	
 	def self.from_dbstr(date_string)
-		if Datestamp.is_nullstamp?(date_string)
+		if Knj::Datestamp.is_nullstamp?(date_string)
 			return 0
 		end
 		
@@ -38,11 +38,11 @@ class Knj::Datestamp
 	end
 	
 	def self.out(time = nil, args = {})
-		ArrayExt.hash_sym(args)
+		Knj::ArrayExt.hash_sym(args)
 		
 		time = Time.new if !time
 		
-		if Php.is_numeric(time)
+		if Knj::Php.is_numeric(time)
 			time = Time.at(time.to_i)
 		elsif time.is_a?(String)
 			time = Time.at(Php.strtotime(time))
@@ -81,7 +81,7 @@ class Knj::Datestamp
 		datestr = "#{year}-#{month}-#{date}" if date and month and year
 		datestr += " #{hour}:#{minute}" if hour and minute
 		
-		return Datestamp.from_dbstr(datestr)
+		return Knj::Datestamp.from_dbstr(datestr)
 	end
 	
 	def self.is_nullstamp?(datestamp)
