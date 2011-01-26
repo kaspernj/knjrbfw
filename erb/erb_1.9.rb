@@ -1,17 +1,8 @@
 #!/usr/bin/env ruby1.9
 
-def File::realpath(path)
-	if File.symlink?(path)
-		return self.realpath(File.readlink(path))
-	end
-	
-	return path
-end
-
 knjdir = File.dirname(File.realpath(__FILE__)) + "/../"
 
 require knjdir + "autoload"
-require "erubis"
 require knjdir + "/erb/include"
 
 $knj_eruby = KnjEruby

@@ -235,11 +235,6 @@ module Knj::Php
 			#This is for knjAppServer - knj.
 			_kas.eruby.header(key, value)
 		rescue NameError => e
-			STDOUT.print "NameError!!!\n"
-			STDOUT.puts e.inspect
-			STDOUT.puts e.backtrace
-			STDOUT.print "\n\n"
-			
 			if $knj_eruby
 				$knj_eruby.header(key, value)
 			elsif $cgi.is_a?(CGI)
