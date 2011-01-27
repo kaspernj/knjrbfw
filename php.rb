@@ -227,16 +227,17 @@ module Knj::Php
 		sent = false
 		
 		if Knj::Php.class_exists("Apache")
-			sent = true
 			Apache.request.headers_out[key] = value
+			sent = true
 		end
 		
 		begin
-			#This is for knjAppServer - knj.
-			_kas.eruby.header(key, value)
+			_httpsession.eruby.header(key, value) #This is for knjAppServer - knj.
+			sent = true
 		rescue NameError => e
 			if $knj_eruby
 				$knj_eruby.header(key, value)
+				sent = true
 			elsif $cgi.is_a?(CGI)
 				sent = true
 				$cgi.header(key => value)
@@ -245,6 +246,8 @@ module Knj::Php
 				$_CGI.header(key => value)
 			end
 		end
+		
+		raise "Could not send header." if !sent
 	end
 	
 	def self.nl2br(string)
