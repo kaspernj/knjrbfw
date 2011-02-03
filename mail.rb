@@ -58,6 +58,7 @@ class Knj::Mail
 		
 		smtp_start = Net::SMTP.new(@paras["smtp_host"], @paras["smtp_port"])
 		smtp_start.enable_ssl if @paras["ssl"]
+		smtp_start.enable_starttls if @paras["tls"]
 		
 		if !@paras["smtp_domain"]
 			if @paras["smtp_host"]
@@ -66,6 +67,8 @@ class Knj::Mail
 				raise "SMTP domain not given."
 			end
 		end
+		
+		Php.print_r(@paras)
 		
 		smtp_start.start(@paras["smtp_domain"], @paras["smtp_user"], @paras["smtp_passwd"]) do |smtp|
 			smtp.send_message(mail.to_s, @paras["from"], @paras["to"])
