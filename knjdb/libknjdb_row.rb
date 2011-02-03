@@ -122,6 +122,10 @@ class Knj::Db_row
 		return @data.each(&args)
 	end
 	
+	def esc(str)
+		return self.db.escape(str)
+	end
+	
 	def method_missing(*args)
 		func_name = args[0].to_s
 		if match = func_name.match(/^(\S+)\?$/) and @data.has_key?(match[1].to_sym)

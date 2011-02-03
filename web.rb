@@ -14,7 +14,7 @@ class Knj::Web
 		elsif $_CGI
 			@cgi = $_CGI
 		else
-			if ENV["HTTP_HOST"] or $knj_eruby or Php.class_exists("Apache")
+			if ENV["HTTP_HOST"] or $knj_eruby or Knj::Php.class_exists("Apache")
 				@cgi = CGI.new
 			end
 		end
@@ -72,7 +72,7 @@ class Knj::Web
 			ENV.each do |key, value|
 				@server[key] = value
 			end
-		elsif Php.class_exists("Apache")
+		elsif Knj::Php.class_exists("Apache")
 			@server = {
 				"HTTP_HOST" => Apache.request.hostname,
 				"HTTP_USER_AGENT" => Apache.request.headers_in["User-Agent"],
@@ -116,7 +116,7 @@ class Knj::Web
 						isstring = false
 						do_files = true
 						cont = pair[1][0].string
-						Php.file_put_contents(tmpname, cont.to_s)
+						Knj::Php.file_put_contents(tmpname, cont.to_s)
 						
 						if cont.length > 0
 							stringparse = {
@@ -137,13 +137,13 @@ class Knj::Web
 				if stringparse
 					if !do_files
 						if isstring
-							Web.parse_name(@post, varname, stringparse)
+							Knj::Web.parse_name(@post, varname, stringparse)
 						else
 							@post[varname] = stringparse
 						end
 					else
 						if isstring
-							Web.parse_name(@files, varname, stringparse)
+							Knj::Web.parse_name(@files, varname, stringparse)
 						else
 							@files[varname] = stringparse
 						end
@@ -154,7 +154,7 @@ class Knj::Web
 		
 		
 		if @cgi and @cgi.query_string
-			@get = Web.parse_urlquery(@cgi.query_string)
+			@get = Knj::Web.parse_urlquery(@cgi.query_string)
 		else
 			@get = {}
 		end
@@ -169,7 +169,7 @@ class Knj::Web
 		self.global_params if @args[:globals]
 		
 		if @cookie[@args[:id]] and (sdata = @args[:db].single(:sessions, :id => @cookie[@args[:id]]))
-			@data = ArrayExt.hash_sym(sdata)
+			@data = Knj::ArrayExt.hash_sym(sdata)
 			
 			if @data
 				if @data[:user_agent] != @server["HTTP_USER_AGENT"] or @data[:ip] != @server["REMOTE_ADDR"]
@@ -183,16 +183,16 @@ class Knj::Web
 		
 		if !@data or !session_id
 			@db.insert(:sessions,
-				:date_start => Datestamp.dbstr,
-				:date_active => Datestamp.dbstr,
+				:date_start => Knj::Datet.new.dbstr,
+				:date_active => Knj::Datet.new.dbstr,
 				:user_agent => @server["HTTP_USER_AGENT"],
 				:ip => @server["REMOTE_ADDR"],
 				:last_url => @server["REQUEST_URI"].to_s
 			)
 			
-			@data = ArrayExt.hash_sym(@db.single(:sessions, :id => @db.last_id))
+			@data = Knj::ArrayExt.hash_sym(@db.single(:sessions, :id => @db.last_id))
 			session_id = @args[:id] + "_" + @data[:id]
-			Php.setcookie(@args[:id], @data[:id])
+			Knj::Php.setcookie(@args[:id], @data[:id])
 		end
 		
 		require "cgi/session"
@@ -210,14 +210,14 @@ class Knj::Web
 	
 	def self.parse_urlquery(querystr, args = {})
 		get = {}
-		Php.urldecode(querystr).split("&").each do |value|
+		Knj::Php.urldecode(querystr).split("&").each do |value|
 			pos = value.index("=")
 			
 			if pos != nil
 				name = value[0..pos-1]
 				name = name.to_sym if args[:syms]
 				valuestr = value.slice(pos+1..-1)
-				Web.parse_name(get, name, valuestr, args)
+				Knj::Web.parse_name(get, name, valuestr, args)
 			end
 		end
 		
@@ -240,7 +240,7 @@ class Knj::Web
 			
 			secname = try
 		else
-			secname = secname.to_i if Php.is_numeric(secname)
+			secname = secname.to_i if Knj::Php.is_numeric(secname)
 		end
 		
 		secname = secname.to_sym if args[:syms] and secname.is_a?(String)
@@ -257,14 +257,14 @@ class Knj::Web
 				name = name.to_sym if args[:syms]
 				seton[name] = {} if !seton.has_key?(name)
 				
-				secname, secname_empty = Web.parse_secname(seton[name], match[1], args)
+				secname, secname_empty = Knj::Web.parse_secname(seton[name], match[1], args)
 				
 				valuefrom = namepos + secname.to_s.length + 2
 				restname = varname.slice(valuefrom..-1)
 				
 				if restname and restname.index("[") != nil
 					seton[name][secname] = {} if !seton[name].has_key?(secname)
-					Web.parse_name_second(seton[name][secname], restname, value, args)
+					Knj::Web.parse_name_second(seton[name][secname], restname, value, args)
 				else
 					seton[name][secname] = value
 				end
@@ -281,14 +281,14 @@ class Knj::Web
 		if match
 			namepos = varname.index(match[0])
 			name = match[1]
-			secname, secname_empty = Web.parse_secname(seton, match[1], args)
+			secname, secname_empty = Knj::Web.parse_secname(seton, match[1], args)
 			
 			valuefrom = namepos + match[1].length + 2
 			restname = varname.slice(valuefrom..-1)
 			
 			if restname and restname.index("[") != nil
 				seton[secname] = {} if !seton.has_key?(secname)
-				Web.parse_name_second(seton[secname], restname, value, args)
+				Knj::Web.parse_name_second(seton[secname], restname, value, args)
 			else
 				seton[secname] = value
 			end
@@ -331,12 +331,12 @@ class Knj::Web
 		#Header way
 		if !@alert_sent
 			if args[:perm]
-				Php.header("Status: 301 Moved Permanently")
+				Knj::Php.header("Status: 301 Moved Permanently")
 			else
-				Php.header("Status: 303 See Other")
+				Knj::Php.header("Status: 303 See Other")
 			end
 			
-			Php.header("Location: #{string}")
+			Knj::Php.header("Location: #{string}")
 		end
 		
 		print "<script type=\"text/javascript\">location.href=\"#{string}\";</script>" if do_js
@@ -374,7 +374,7 @@ class Knj::Web
 	end
 	
 	def self.input(args)
-		ArrayExt.hash_sym(args)
+		Knj::ArrayExt.hash_sym(args)
 		
 		if args[:value]
 			if args[:value].is_a?(Array) and !args[:value][0].is_a?(NilClass)
@@ -393,7 +393,7 @@ class Knj::Web
 		end
 		
 		if value and args.has_key?(:value_func) and args[:value_func]
-			value = Php.call_user_func(args[:value_func], value)
+			value = Knj::Php.call_user_func(args[:value_func], value)
 		end
 		
 		value = args[:values] if args[:values]
@@ -466,7 +466,7 @@ class Knj::Web
 				html += " multiple" if args[:multiple]
 				html += " size=\"#{args[:size].to_s}\"" if args[:size]
 				html += ">"
-				html += Web.opts(args[:opts], value, args[:opts_args])
+				html += Knj::Web.opts(args[:opts], value, args[:opts_args])
 				html += "</select>"
 				html += "</td>"
 			elsif args[:type] == :imageupload
@@ -476,7 +476,7 @@ class Knj::Web
 				
 				path = args[:path].gsub("%value%", value.to_s).untaint
 				if File.exists?(path)
-					html += "<img src=\"image.php?picture=#{Php.urlencode(path).html}&smartsize=100&edgesize=25\" alt=\"Image\" />"
+					html += "<img src=\"image.php?picture=#{Knj::Php.urlencode(path).html}&smartsize=100&edgesize=25\" alt=\"Image\" />"
 					
 					if args[:dellink]
 						dellink = args[:dellink].gsub("%value%", value.to_s)
@@ -638,6 +638,18 @@ class Knj::Web
 			browser = "bot"
 			title = "Bot"
 			version = "Exabot"
+		elsif agent.index("dotbot") != nil
+			browser = "bot"
+			title = "Bot"
+			version = "DotBot"
+		elsif agent.index("msnbot") != nil
+			browser = "bot"
+			title = "Bot"
+			version = "MSN bot"
+		elsif agent.index("yandexbot") != nil
+			browser = "bot"
+			title = "Bot"
+			version = "Yandex Bot"
 		else
 			browser = "unknown"
 			title = "(unknown browser)"
@@ -653,15 +665,15 @@ class Knj::Web
 end
 
 def alert(string)
-	return Knj.Web.alert(string)
+	return Knj::Web.alert(string)
 end
 
 def redirect(string)
-	return Knj.Web.redirect(string)
+	return Knj::Web.redirect(string)
 end
 
 def jsback(string)
-	return Knj.Web.back
+	return Knj::Web.back
 end
 
 class String
@@ -670,7 +682,13 @@ class String
 	end
 	
 	def sql
-		return $db.escape(self)
+		if Thread.current.is_a?(Knj::Thread) and Thread.current[:knjappserver] and Thread.current[:knjappserver][:db]
+			return Thread.current[:knjappserver][:db].escape(self)
+		elsif $db
+			return $db.escape(self)
+		end
+		
+		raise "Could not figure out where to find db object."
 	end
 end
 

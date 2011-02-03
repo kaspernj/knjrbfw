@@ -3,7 +3,7 @@ class Knj::Objects
 	
 	def initialize(args)
 		@callbacks = {}
-		@args = ArrayExt.hash_sym(args)
+		@args = Knj::ArrayExt.hash_sym(args)
 		@args[:col_id] = :id if !@args[:col_id]
 		@args[:class_pre] = "class_" if !@args[:class_pre]
 		@args[:module] = Kernel if !@args[:module]
@@ -15,7 +15,7 @@ class Knj::Objects
 	
 	def count_objects
 		count = 0
-		@objects.each do |key, value|
+		@objects.clone.each do |key, value|
 			value.each do |id, object|
 				count += 1
 			end
@@ -49,7 +49,7 @@ class Knj::Objects
 					if callback["block"]
 						callback["block"].call
 					elsif callback["callback"]
-						Php.call_user_func(callback["callback"], args)
+						Knj::Php.call_user_func(callback["callback"], args)
 					else
 						raise "No valid callback given."
 					end
@@ -62,7 +62,7 @@ class Knj::Objects
 		return nil if !@args[:require] and @args.has_key?(:require)
 		classname = classname.to_s
 		
-		if !Php.class_exists(classname)
+		if !Knj::Php.class_exists(classname)
 			filename = @args[:class_path] + "/#{@args[:class_pre]}#{classname.downcase}.rb"
 			filename_req = @args[:class_path] + "/#{@args[:class_pre]}#{classname.downcase}"
 			raise "Class file could not be found: #{filename}." if !File.exists?(filename)
@@ -138,7 +138,7 @@ class Knj::Objects
 	end
 	
 	def list_opts(classname, args = {})
-		ArrayExt.hash_sym(args)
+		Knj::ArrayExt.hash_sym(args)
 		classname = classname.to_sym
 		
 		if args[:list_args]
@@ -169,7 +169,7 @@ class Knj::Objects
 	end
 	
 	def list_optshash(classname, args = {})
-		ArrayExt.hash_sym(args)
+		Knj::ArrayExt.hash_sym(args)
 		classname = classname.to_sym
 		
 		if args[:list_args]
@@ -178,7 +178,7 @@ class Knj::Objects
 			obs = self.list(classname)
 		end
 		
-		if Php.class_exists("Dictionary")
+		if Knj::Php.class_exists("Dictionary")
 			list = Dictionary.new
 		else
 			list = Hash.new
@@ -248,7 +248,7 @@ class Knj::Objects
 			print "Class: #{object.class.name}.\n"
 			print "ID: #{object.id}.\n"
 			
-			Php.print_r(@objects[object.class.to_s])
+			Knj::Php.print_r(@objects[object.class.to_s])
 			
 			exit
 			raise "Could not find object ID in cache."
@@ -283,7 +283,7 @@ class Knj::Objects
 	
 	def clean_all
 		classnames = []
-		@objects.each do |classn, hash_list|
+		@objects.clone.each do |classn, hash_list|
 			classnames << classn
 		end
 		
@@ -295,7 +295,7 @@ class Knj::Objects
 	end
 	
 	def clean_recover
-		@objects.each do |classn, hash_list|
+		@objects.clone.each do |classn, hash_list|
 			classobj = Kernel.const_get(classn)
 			ObjectSpace.each_object(classobj) do |obj|
 				@objects[classn][obj.id] = obj

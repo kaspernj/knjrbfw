@@ -137,6 +137,10 @@ module Knj::Php
 			number = number.to_f
 		end
 		
+		if number < 1
+			return sprintf("%.#{precision.to_s}f", number).gsub(".", seperator)
+		end
+		
 		number = sprintf("%.#{precision.to_s}f", number)
 		
 		#thanks for jmoses wrote some of tsep-code: http://snippets.dzone.com/posts/show/693
@@ -222,20 +226,28 @@ module Knj::Php
 		
 		sent = false
 		
-		if Php.class_exists("Apache")
-			sent = true
+		if Knj::Php.class_exists("Apache")
 			Apache.request.headers_out[key] = value
+			sent = true
 		end
 		
-		if $knj_eruby
-			$knj_eruby.header(key, value)
-		elsif $cgi.is_a?(CGI)
+		begin
+			_httpsession.eruby.header(key, value) #This is for knjAppServer - knj.
 			sent = true
-			$cgi.header(key => value)
-		elsif $_CGI.is_a?(CGI)
-			sent = true
-			$_CGI.header(key => value)
+		rescue NameError => e
+			if $knj_eruby
+				$knj_eruby.header(key, value)
+				sent = true
+			elsif $cgi.is_a?(CGI)
+				sent = true
+				$cgi.header(key => value)
+			elsif $_CGI.is_a?(CGI)
+				sent = true
+				$_CGI.header(key => value)
+			end
 		end
+		
+		raise "Could not send header." if !sent
 	end
 	
 	def self.nl2br(string)
@@ -259,21 +271,55 @@ module Knj::Php
 	def self.file_get_contents(filepath)
 		filepath = filepath.to_s
 		
-		if http_match = filepath.match(/^http(s|):\/\/(([A-z_\d\.]+)\.([A-z]{2,4}))(\/(.+))$/)
+		if http_match = filepath.match(/^http(s|):\/\/([A-z_\d\.]+)(|:(\d+))(\/(.+))$/)
+			if http_match[4].to_s.length > 0
+				port = http_match[4].to_i
+			end
+			
 			args = {
 				"host" => http_match[2]
 			}
 			
 			if http_match[1] == "s"
 				args["ssl"] = true
+				
+				if !port
+					port = 443
+				end
 			end
 			
+			args["port"] = port if port
+			
 			http = Knj::Http.new(args)
-			data = http.get("/#{http_match[5]}")
+			data = http.get(http_match[5])
 			return data["data"]
 		end
 		
 		return File.read(filepath.untaint)
+	end
+	
+	def self.is_file(filepath)
+		begin
+			if File.file?(filepath)
+				return true
+			end
+		rescue Exception
+			return false
+		end
+		
+		return false
+	end
+	
+	def self.is_dir(filepath)
+		begin
+			if File.directory?(filepath)
+				return true
+			end
+		rescue Exception
+			return false
+		end
+		
+		return false
 	end
 	
 	def self.unlink(filepath)
@@ -549,6 +595,14 @@ module Knj::Php
 		rescue => e
 			return false
 		end
+	end
+	
+	def self.method_missing(func_name, *paras)
+		if func_name.to_s == "print"
+			return print(*paras)
+		end
+		
+		raise "Missing method: #{func_name}\n"
 	end
 	
 	# Returns the scripts current memory usage.

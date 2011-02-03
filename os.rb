@@ -88,4 +88,28 @@ module Knj::Os
 		
 		return res[:out]
 	end
+	
+	def self.xauth_file
+		authfile = ""
+		Dir.new("/var/run/gdm").each do |file|
+			next if file == "." or file == ".." or !file.match(/^auth-for-gdm-.+$/)
+			authfile = "/var/run/gdm/#{file}/database"
+		end
+		
+		if authfile.to_s.length <= 0
+			raise "Could not figure out authfile for GDM."
+		end
+		
+		return authfile
+	end
+	
+	def self.check_display_env
+		if !ENV["DISPLAY"]
+			ENV["DISPLAY"] = ":0.0"
+		end
+		
+		if !ENV["XAUTHORITY"]
+			ENV["XAUTHORITY"] = Knj::Os.xauth_file
+		end
+	end
 end

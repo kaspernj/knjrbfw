@@ -10,7 +10,7 @@ class Knj::Sysuser
 		cont.split("\n").each do |line|
 			linearr = line.split(":")
 			
-			list << Sysuser.new(
+			list << Knj::Sysuser.new(
 				"nick" => linearr[0],
 				"home" => linearr[5],
 				"shell" => linearr[6]
