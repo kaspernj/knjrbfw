@@ -247,7 +247,7 @@ module Knj::Php
 			end
 		end
 		
-		raise "Could not send header." if !sent
+		return sent
 	end
 	
 	def self.nl2br(string)
@@ -595,14 +595,6 @@ module Knj::Php
 		rescue => e
 			return false
 		end
-	end
-	
-	def self.method_missing(func_name, *paras)
-		if func_name.to_s == "print"
-			return print(*paras)
-		end
-		
-		raise "Missing method: #{func_name}\n"
 	end
 	
 	# Returns the scripts current memory usage.
