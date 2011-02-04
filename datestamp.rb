@@ -45,7 +45,7 @@ class Knj::Datestamp
 		if Knj::Php.is_numeric(time)
 			time = Time.at(time.to_i)
 		elsif time.is_a?(String)
-			time = Time.at(Php.strtotime(time))
+			time = Time.at(Knj::Php.strtotime(time))
 		end
 		
 		str = ""
