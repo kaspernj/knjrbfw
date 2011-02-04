@@ -282,6 +282,7 @@ module Knj::Php
 			
 			if http_match[1] == "s"
 				args["ssl"] = true
+				args["validate"] = false
 				
 				if !port
 					port = 443
