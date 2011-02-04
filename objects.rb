@@ -49,7 +49,7 @@ class Knj::Objects
 					if callback["block"]
 						callback["block"].call
 					elsif callback["callback"]
-						Php.call_user_func(callback["callback"], args)
+						Knj::Php.call_user_func(callback["callback"], args)
 					else
 						raise "No valid callback given."
 					end
@@ -62,7 +62,7 @@ class Knj::Objects
 		return nil if !@args[:require] and @args.has_key?(:require)
 		classname = classname.to_s
 		
-		if !Php.class_exists(classname)
+		if !Knj::Php.class_exists(classname)
 			filename = @args[:class_path] + "/#{@args[:class_pre]}#{classname.downcase}.rb"
 			filename_req = @args[:class_path] + "/#{@args[:class_pre]}#{classname.downcase}"
 			raise "Class file could not be found: #{filename}." if !File.exists?(filename)
@@ -178,7 +178,7 @@ class Knj::Objects
 			obs = self.list(classname)
 		end
 		
-		if Php.class_exists("Dictionary")
+		if Knj::Php.class_exists("Dictionary")
 			list = Dictionary.new
 		else
 			list = Hash.new
@@ -248,7 +248,7 @@ class Knj::Objects
 			print "Class: #{object.class.name}.\n"
 			print "ID: #{object.id}.\n"
 			
-			Php.print_r(@objects[object.class.to_s])
+			Knj::Php.print_r(@objects[object.class.to_s])
 			
 			exit
 			raise "Could not find object ID in cache."

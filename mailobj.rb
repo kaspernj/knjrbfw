@@ -65,6 +65,7 @@ class Knj::Mailobj
 		
 		smtp_start = Net::SMTP.new(@args["smtp_host"], @args["smtp_port"])
 		smtp_start.enable_ssl if @args["ssl"]
+		smtp_start.enable_starttls if @args["tls"]
 		
 		if !@args["smtp_domain"]
 			if @args["smtp_host"]

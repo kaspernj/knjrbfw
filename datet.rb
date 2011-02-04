@@ -29,6 +29,26 @@ class Knj::Datet
 		end
 	end
 	
+	def add_mins(mins = 1)
+		mins = mins.to_i
+		cur_mins = @time.min
+		next_min  = cur_mins + mins
+		
+		if next_min >= 60
+			@time = self.add_hours(1).stamp(:datet => false, :min => 0)
+			mins_left = (mins - 1) - (60 - cur_mins)
+			return self.add_mins(mins_left) if mins_left > 0
+		elsif next_min < 0
+			@time = self.add_hours(-1).stamp(:datet => false, :min => 59)
+			mins_left = mins + cur_mins + 1
+			self.add_mins(mins_left) if mins_left > 0
+		else
+			@time = self.stamp(:datet => false, :min => next_min)
+		end
+		
+		return self
+	end
+	
 	def add_hours(hours = 1)
 		hours = hours.to_i
 		cur_hour = @time.hour
@@ -164,6 +184,7 @@ class Knj::Datet
 		return self.add_hours(val) if @mode == :hours
 		return self.add_days(val) if @mode == :days
 		return self.add_months(val) if @mode == :months
+		return self.add_mins(val) if @mode == :mins
 		raise "No such mode: #{@mode}"
 	end
 	
@@ -179,6 +200,11 @@ class Knj::Datet
 	
 	def hours
 		@mode = :hours
+		return self
+	end
+	
+	def mins
+		@mode = :mins
 		return self
 	end
 	
@@ -202,7 +228,7 @@ class Knj::Datet
 		time = Time.gm(vars[:year], vars[:month], vars[:day], vars[:hour], vars[:min], vars[:sec])
 		
 		if !args.has_key?(:datet) or args[:datet]
-			return Datet.new(time)
+			return Knj::Datet.new(time)
 		end
 		
 		return time
@@ -214,20 +240,20 @@ class Knj::Datet
 	
 	def self.from_dbstr(date_string)
 		if date_string.is_a?(Time)
-			return Datet.new(date_string)
+			return Knj::Datet.new(date_string)
 		elsif date_string.is_a?(Date)
-			return Datet.new(date_string.to_time)
+			return Knj::Datet.new(date_string.to_time)
 		end
 		
-		if Datestamp.is_nullstamp?(date_string)
+		if Knj::Datestamp.is_nullstamp?(date_string)
 			return false
 		end
 		
-		return Datet.new(Time.local(*ParseDate.parsedate(date_string.to_s)))
+		return Knj::Datet.new(Time.local(*ParseDate.parsedate(date_string.to_s)))
 	end
 	
 	def self.parse(str)
-		return Datet.from_dbstr(str)
+		return Knj::Datet.from_dbstr(str)
 	end
 	
 	def out(args = {})
@@ -251,9 +277,11 @@ class Knj::Datet
 	
 	def self.in(timestr)
 		if timestr.is_a?(Time)
-			return Datet.new(timestr)
+			return Knj::Datet.new(timestr)
 		elsif timestr.is_a?(Date)
-			return Datet.new(timestr.to_time)
+			return Knj::Datet.new(timestr.to_time)
+		elsif timestr.is_a?(Knj::Datet)
+			return timestr
 		end
 		
 		if match = timestr.to_s.match(/^(\d+)\/(\d+) (\d+)/)
@@ -270,13 +298,16 @@ class Knj::Datet
 				minute = match[2]
 			end
 			
-			return Datet.new(Time.gm(year, month, date, hour, minute))
+			return Knj::Datet.new(Time.gm(year, month, date, hour, minute))
 		elsif match = timestr.to_s.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{5})$/)
 			#Datet.code format
-			return Datet.new(Time.gm(match[1], match[2], match[3], match[4], match[5], match[6], match[7]))
+			return Knj::Datet.new(Time.gm(match[1], match[2], match[3], match[4], match[5], match[6], match[7]))
+		elsif match = timestr.to_s.match(/^\s*(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})(|\.\d+)\s*$/)
+			#Database date format (with possibility of .0 in the end - miliseconds? -knj.
+			return Knj::Datet.new(Time.gm(match[1], match[2], match[3], match[4], match[5], match[6], match[7]))
 		end
 		
-		raise Errors::InvalidData.new(sprintf(_("Wrong format: %s"), timestr))
+		raise Knj::Errors::InvalidData.new(sprintf(_("Wrong format: %s"), timestr))
 	end
 	
 	def self.months_arr

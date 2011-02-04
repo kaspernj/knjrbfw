@@ -49,53 +49,61 @@ class Knj::Eruby
 			reload_cache = true
 		end
 		
-		begin
-			_buf = ""
-			
-			if @java_compile
-				if !@eruby_java_cache[cachename] or reload_cache
-					#@eruby_java_cache[cachename] = File.read(cachename)
-					@eruby_java_cache[cachename] = Knj::Jruby_compiler.new(:path => cachename)
-				end
-				
-				#eval(@eruby_java_cache[cachename])
-				@eruby_java_cache[cachename].run
-			elsif @inseq_cache
-				if @inseq_rbc
-					bytepath = pi["dirname"] + "/" + pi["basename"] + ".rbc"
-					byteexists = File.exists?(bytepath)
-					bytetime = File.mtime(bytepath) if File.exists?(bytepath)
-					
-					if !File.exists?(bytepath) or cachetime > bytetime
-						res = RubyVM::InstructionSequence.compile_file(filename)
-						data = Marshal.dump(res.to_a)
-						File.open(bytepath, "w+") do |fp|
-							fp.write(data)
-						end
-					end
-				end
-				
-				if @inseq_rbc
-					res = Marshal.load(File.read(bytepath))
-					RubyVM::InstructionSequence.load(res).eval
-				else
-					if !@eruby_rbyte[cachename] or reload_cache
-						@eruby_rbyte[cachename] = RubyVM::InstructionSequence.new(File.read(cachename))
-						#@eruby_rbyte[cachename] = RubyVM::InstructionSequence.compile_file(cachename)
-						@eruby_rbyte[cachename].eval
-					else
-						@eruby_rbyte[cachename].eval
-					end
-				end
-			else
-				loaded_content = Knj::Eruby::Handler.load_file(File.basename(filename), {:cachename => cachename})
-				print loaded_content.evaluate
+		if @java_compile
+			if !@eruby_java_cache[cachename] or reload_cache
+				@eruby_java_cache[cachename] = File.read(cachename)
+				#@eruby_java_cache[cachename] = Knj::Jruby_compiler.new(:path => cachename)
 			end
-		rescue SystemExit
-			#ignore
-		ensure
-			print _buf if _buf.to_s.length > 0
+			
+			eval(@eruby_java_cache[cachename])
+			#@eruby_java_cache[cachename].run
+		elsif @inseq_cache
+			if @inseq_rbc
+				bytepath = pi["dirname"] + "/" + pi["basename"] + ".rbc"
+				byteexists = File.exists?(bytepath)
+				bytetime = File.mtime(bytepath) if File.exists?(bytepath)
+				
+				if !File.exists?(bytepath) or cachetime > bytetime
+					res = RubyVM::InstructionSequence.compile_file(filename)
+					data = Marshal.dump(res.to_a)
+					File.open(bytepath, "w+") do |fp|
+						fp.write(data)
+					end
+				end
+			end
+			
+			if @inseq_rbc
+				res = Marshal.load(File.read(bytepath))
+				RubyVM::InstructionSequence.load(res).eval
+			else
+				if !@eruby_rbyte[cachename] or reload_cache
+					@eruby_rbyte[cachename] = RubyVM::InstructionSequence.new(File.read(cachename))
+					#@eruby_rbyte[cachename] = RubyVM::InstructionSequence.compile_file(cachename)
+					@eruby_rbyte[cachename].eval
+				else
+					@eruby_rbyte[cachename].eval
+				end
+			end
+		else
+			loaded_content = Knj::Eruby::Handler.load_file(filepath, {:cachename => cachename})
+			print loaded_content.evaluate
 		end
+	end
+	
+	def destroy
+		@connects.clear if @connects.is_a?(Hash)
+		@headers.clear if @headers.is_a?(Array)
+		@eruby_rbyte.clear if @eruby_rbyte.is_a?(Hash)
+		@eruby_java_cache.clear if @eruby_java_cache.is_a?(Hash)
+		@args.clear if @args.is_a?(Hash)
+		
+		@connects = nil
+		@headers = nil
+		@eruby_rbyte = nil
+		@eruby_java_cache = nil
+		@args = nil
+		@inseq_rbc = nil
+		@java_compile = nil
 	end
 	
 	def print_headers(args = {})
@@ -112,22 +120,19 @@ class Knj::Eruby
 	
 	def has_status_header?
 		@headers.each do |header|
-			if header[0] == "Status"
-				return true
-			end
+			return true if header[0] == "Status"
 		end
 		
 		return false
 	end
 	
 	def reset_connects
+		@connects.clear if @connects.is_a?(Hash)
 		@connects = {}
 	end
 	
 	def reset_headers
-		@headers = [
-			["Content-Type", "text/html; charset=utf-8"]
-		]
+		@headers = []
 	end
 	
 	def header(key, value)
@@ -184,8 +189,8 @@ class Knj::Eruby
 			
 			self.import(filename)
 			
-			if self.connects["exit"]
-				self.connects["exit"].each do |block|
+			if @connects["exit"]
+				@connects["exit"].each do |block|
 					block.call
 				end
 			end

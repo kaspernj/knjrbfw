@@ -227,21 +227,17 @@ module Knj::Php
 		sent = false
 		
 		if Knj::Php.class_exists("Apache")
-			sent = true
 			Apache.request.headers_out[key] = value
+			sent = true
 		end
 		
 		begin
-			#This is for knjAppServer - knj.
-			_kas.eruby.header(key, value)
+			_httpsession.eruby.header(key, value) #This is for knjAppServer - knj.
+			sent = true
 		rescue NameError => e
-			STDOUT.print "NameError!!!\n"
-			STDOUT.puts e.inspect
-			STDOUT.puts e.backtrace
-			STDOUT.print "\n\n"
-			
 			if $knj_eruby
 				$knj_eruby.header(key, value)
+				sent = true
 			elsif $cgi.is_a?(CGI)
 				sent = true
 				$cgi.header(key => value)
@@ -250,6 +246,8 @@ module Knj::Php
 				$_CGI.header(key => value)
 			end
 		end
+		
+		return sent
 	end
 	
 	def self.nl2br(string)
@@ -284,6 +282,7 @@ module Knj::Php
 			
 			if http_match[1] == "s"
 				args["ssl"] = true
+				args["validate"] = false
 				
 				if !port
 					port = 443
