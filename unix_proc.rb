@@ -1,4 +1,5 @@
 class Knj::Unix_proc
+	attr_reader :data
 	@procs = {}
 	
 	def self.spawn(data)
@@ -13,12 +14,12 @@ class Knj::Unix_proc
 		return @procs[data["pid"]]
 	end
 	
-	def self.list(paras = {})
+	def self.list(args = {})
 		cmdstr = "ps aux"
 		grepstr = ""
 		
-		if paras["grep"]
-			grepstr = "grep #{Knj::Strings.unixsafe(paras["grep"])}"
+		if args["grep"]
+			grepstr = "grep #{Knj::Strings.unixsafe(args["grep"])}"
 			cmdstr += " | #{grepstr}"
 		end
 		
@@ -35,7 +36,7 @@ class Knj::Unix_proc
 				"app" => File.basename(match[4])
 			}
 			
-			if match[1] != $$
+			if match[1].to_i != $$.to_i
 				if !grepstr or match[4].index(grepstr) == nil   #dont return current process.
 					ret << Knj::Unix_proc.spawn(data)
 				end
@@ -44,8 +45,6 @@ class Knj::Unix_proc
 		
 		return ret
 	end
-	
-	attr_reader :data
 	
 	def initialize(data)
 		@data = data
