@@ -321,7 +321,7 @@ class Knj::Web
 	
 	def self.alert(string)
 		@alert_sent = true
-		html = "<script type=\"text/javascript\">alert(\"#{Strings.js_safe(string.to_s)}\");</script>"
+		html = "<script type=\"text/javascript\">alert(\"#{Knj::Strings.js_safe(string.to_s)}\");</script>"
 		print html
 	end
 	
