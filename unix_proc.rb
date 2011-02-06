@@ -7,7 +7,7 @@ class Knj::Unix_proc
 		if proc
 			proc.update_data(data)
 		else
-			@procs[data["pid"]] = Unix_proc.new(data)
+			@procs[data["pid"]] = Knj::Unix_proc.new(data)
 		end
 		
 		return @procs[data["pid"]]
@@ -18,7 +18,7 @@ class Knj::Unix_proc
 		grepstr = ""
 		
 		if paras["grep"]
-			grepstr = "grep #{Strings.unixsafe(paras["grep"])}"
+			grepstr = "grep #{Knj::Strings.unixsafe(paras["grep"])}"
 			cmdstr += " | #{grepstr}"
 		end
 		
@@ -37,7 +37,7 @@ class Knj::Unix_proc
 			
 			if match[1] != $$
 				if !grepstr or match[4].index(grepstr) == nil   #dont return current process.
-					ret << Unix_proc.spawn(data)
+					ret << Knj::Unix_proc.spawn(data)
 				end
 			end
 		end
