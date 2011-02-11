@@ -4,7 +4,7 @@ module Knj::Strings
 	end
 	
 	def self.unixsafe(string)
-		return Strings.UnixSafe(string)
+		return Knj::Strings.UnixSafe(string)
 	end
 	
 	def self.searchstring(string)

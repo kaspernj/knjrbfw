@@ -71,6 +71,7 @@ module Knj::Os
 		return path
 	end
 	
+	#Runs a command and returns output. Also throws an exception of something is outputted to stderr.
 	def self.shellcmd(cmd)
 		res = {
 			:out => "",
@@ -89,6 +90,13 @@ module Knj::Os
 		return res[:out]
 	end
 	
+	#Runs a command as a process of its own and wont block or be depended on this process.
+	def self.subproc(cmd)
+		cmd = cmd.to_s + "  >> /dev/null 2>&1 &"
+		%x[#{cmd}]
+	end
+	
+	#Returns the xauth file for GDM.
 	def self.xauth_file
 		authfile = ""
 		Dir.new("/var/run/gdm").each do |file|
@@ -103,13 +111,14 @@ module Knj::Os
 		return authfile
 	end
 	
+	#Checks if the display variable and xauth is set - if not sets it to the GDM xauth and defaults the display to :0.0.
 	def self.check_display_env
 		if !ENV["DISPLAY"]
 			ENV["DISPLAY"] = ":0.0"
-		end
-		
-		if !ENV["XAUTHORITY"]
-			ENV["XAUTHORITY"] = Knj::Os.xauth_file
+			
+			if !ENV["XAUTHORITY"]
+				ENV["XAUTHORITY"] = Knj::Os.xauth_file
+			end
 		end
 	end
 end
