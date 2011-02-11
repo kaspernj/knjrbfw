@@ -573,6 +573,34 @@ class Knj::Web
 		end
 	end
 	
+	def self.os
+		begin
+			servervar = _server
+		rescue Exception
+			servervar = $_SERVER
+		end
+		
+		if !servervar
+			raise "Could not figure out meta data."
+		end
+		
+		agent = servervar["HTTP_USER_AGENT"].to_s.downcase
+		
+		if agent.index("(windows;") != nil or agent.index("windows nt") != nil
+			return {
+				"os" => "win",
+				"title" => "Windows"
+			}
+		elsif agent.index("linux") != nil
+			return {
+				"os" => "linux",
+				"title" => "Linux"
+			}
+		end
+		
+		raise "Unknown OS: #{agent}"
+	end
+	
 	def self.browser
 		begin
 			servervar = _server
