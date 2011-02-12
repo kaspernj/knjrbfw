@@ -71,6 +71,7 @@ module Knj::Os
 		return path
 	end
 	
+	#Runs a command and returns output. Also throws an exception of something is outputted to stderr.
 	def self.shellcmd(cmd)
 		res = {
 			:out => "",
@@ -89,6 +90,13 @@ module Knj::Os
 		return res[:out]
 	end
 	
+	#Runs a command as a process of its own and wont block or be depended on this process.
+	def self.subproc(cmd)
+		cmd = cmd.to_s + "  >> /dev/null 2>&1 &"
+		%x[#{cmd}]
+	end
+	
+	#Returns the xauth file for GDM.
 	def self.xauth_file
 		authfile = ""
 		Dir.new("/var/run/gdm").each do |file|
@@ -103,18 +111,25 @@ module Knj::Os
 		return authfile
 	end
 	
+	#Checks if the display variable and xauth is set - if not sets it to the GDM xauth and defaults the display to :0.0.
 	def self.check_display_env
 		ret = {}
 		
 		if ENV["DISPLAY"].to_s.strip.length <= 0
 			x_procs = Knj::Unix_proc.list("grep" => "/usr/bin/X")
-			Knj::Php.print_r(x_procs)
-			exit
+			set_disp = nil
+			x_procs.each do |x_proc|
+				if match = x_proc["cmd"].match(/(:\d+)/)
+					set_disp = match[1]
+					break
+				end
+			end
 			
-			ENV["DISPLAY"] = ":0.0"
-			ret["display"] = ":0.0"
+			raise "Could not figure out display." if !set_disp
+			
+			ENV["DISPLAY"] = set_disp
+			ret["display"] = set_disp
 		else
-			print "Display: #{ENV["DISPLAY"]}\n"
 			ret["display"] = ENV["DISPLAY"]
 		end
 		

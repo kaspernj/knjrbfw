@@ -22,14 +22,14 @@ checks.each do |dir|
 	original_name = dir + "_original"
 	
 	if mode == "dev"
-		if File.symlink?(dir)
+		if File.exists?(dir) and File.symlink?(dir)
 			#do nothing.
-		else
+		elsif File.exists?(dir) and !File.exists?(original_name)
 			File.rename(dir, original_name)
 			File.rename(dev_name, dir)
 		end
 	elsif mode == "original"
-		if File.symlink?(dir)
+		if File.exists?(dir) and File.exists?(original_name) and File.symlink?(dir)
 			File.rename(dir, dev_name)
 			File.rename(original_name, dir)
 		else

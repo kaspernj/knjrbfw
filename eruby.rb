@@ -34,7 +34,7 @@ class Knj::Eruby
 		filetime = File.mtime(filename)
 		filepath = Knj::Php.realpath(filename)
 		fpath = "#{@filepath}/erb/cache/#{filename.gsub("/", "_").gsub(".", "_")}"
-		pi = Knj::Php.pathinfo(filename)
+		
 		cachename = "#{fpath}.cache"
 		cacheexists = File.exists?(cachename)
 		cachetime = File.mtime(cachename) if File.exists?(cachename)
@@ -59,9 +59,11 @@ class Knj::Eruby
 			#@eruby_java_cache[cachename].run
 		elsif @inseq_cache
 			if @inseq_rbc
+				pi = Knj::Php.pathinfo(filename)
 				bytepath = pi["dirname"] + "/" + pi["basename"] + ".rbc"
 				byteexists = File.exists?(bytepath)
 				bytetime = File.mtime(bytepath) if File.exists?(bytepath)
+				pi.clear
 				
 				if !File.exists?(bytepath) or cachetime > bytetime
 					res = RubyVM::InstructionSequence.compile_file(filename)

@@ -321,7 +321,7 @@ class Knj::Web
 	
 	def self.alert(string)
 		@alert_sent = true
-		html = "<script type=\"text/javascript\">alert(\"#{Strings.js_safe(string.to_s)}\");</script>"
+		html = "<script type=\"text/javascript\">alert(\"#{Knj::Strings.js_safe(string.to_s)}\");</script>"
 		print html
 	end
 	
@@ -573,6 +573,34 @@ class Knj::Web
 		end
 	end
 	
+	def self.os
+		begin
+			servervar = _server
+		rescue Exception
+			servervar = $_SERVER
+		end
+		
+		if !servervar
+			raise "Could not figure out meta data."
+		end
+		
+		agent = servervar["HTTP_USER_AGENT"].to_s.downcase
+		
+		if agent.index("(windows;") != nil or agent.index("windows nt") != nil
+			return {
+				"os" => "win",
+				"title" => "Windows"
+			}
+		elsif agent.index("linux") != nil
+			return {
+				"os" => "linux",
+				"title" => "Linux"
+			}
+		end
+		
+		raise "Unknown OS: #{agent}"
+	end
+	
 	def self.browser
 		begin
 			servervar = _server
@@ -650,6 +678,14 @@ class Knj::Web
 			browser = "bot"
 			title = "Bot"
 			version = "Yandex Bot"
+		elsif agent.index("mj12bot") != nil
+			browser = "bot"
+			title = "Bot"
+			version "Majestic12 Bot"
+		elsif agent.index("facebookexternalhit") != nil
+			browser = "bot"
+			title = "Bot"
+			version = "Facebook Externalhit"
 		else
 			browser = "unknown"
 			title = "(unknown browser)"

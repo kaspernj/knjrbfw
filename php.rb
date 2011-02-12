@@ -68,7 +68,7 @@ module Knj::Php
 				end
 				
 				retstr += "[#{keystr}] => "
-				retstr += Php.print_r(val, true, count + 1).to_s
+				retstr += Knj::Php.print_r(val, true, count + 1).to_s
 			end
 			
 			i = 0
@@ -282,6 +282,7 @@ module Knj::Php
 			
 			if http_match[1] == "s"
 				args["ssl"] = true
+				args["validate"] = false
 				
 				if !port
 					port = 443
@@ -479,7 +480,7 @@ module Knj::Php
 		paras["domain"] = domain if domain
 		
 		cookie = CGI::Cookie.new(paras)
-		Php.header("Set-Cookie: #{cookie.to_s}")
+		Knj::Php.header("Set-Cookie: #{cookie.to_s}")
 		
 		if $_COOKIE
 			$_COOKIE[cname] = cvalue

@@ -68,8 +68,6 @@ class Knj::Mail
 			end
 		end
 		
-		Php.print_r(@paras)
-		
 		smtp_start.start(@paras["smtp_domain"], @paras["smtp_user"], @paras["smtp_passwd"]) do |smtp|
 			smtp.send_message(mail.to_s, @paras["from"], @paras["to"])
 		end

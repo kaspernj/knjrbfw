@@ -4,7 +4,7 @@ module Knj::Strings
 	end
 	
 	def self.unixsafe(string)
-		return Strings.UnixSafe(string)
+		return Knj::Strings.UnixSafe(string)
 	end
 	
 	def self.searchstring(string)
@@ -43,7 +43,7 @@ module Knj::Strings
 	end
 	
 	def self.yn_str(value, str_yes, str_no)
-		value = value.to_i if Php.is_numeric(value)
+		value = value.to_i if Knj::Php.is_numeric(value)
 		
 		if value.is_a?(Integer)
 			if value == 0
