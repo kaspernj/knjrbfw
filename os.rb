@@ -104,12 +104,28 @@ module Knj::Os
 	end
 	
 	def self.check_display_env
-		if !ENV["DISPLAY"]
+		ret = {}
+		
+		if ENV["DISPLAY"].to_s.strip.length <= 0
+			x_procs = Knj::Unix_proc.list("grep" => "/usr/bin/X")
+			Knj::Php.print_r(x_procs)
+			exit
+			
 			ENV["DISPLAY"] = ":0.0"
+			ret["display"] = ":0.0"
+		else
+			print "Display: #{ENV["DISPLAY"]}\n"
+			ret["display"] = ENV["DISPLAY"]
 		end
 		
 		if !ENV["XAUTHORITY"]
-			ENV["XAUTHORITY"] = Knj::Os.xauth_file
+			res = Knj::Os.xauth_file
+			ENV["XAUTHORITY"] = res
+			ret["xauth"] = res
+		else
+			ret["xauth"] = ENV["XAUTHORITY"]
 		end
+		
+		return ret
 	end
 end

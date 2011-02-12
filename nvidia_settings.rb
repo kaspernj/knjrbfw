@@ -9,14 +9,14 @@ class Knj::Nvidia_settings
 		}
 	end
 	
-	def self.list
+	def self.list(args = {})
 		res = Knj::Os.shellcmd("nvidia-settings -q gpus")
 		ret = []
 		
 		res.scan(/\[gpu:(\d+)\]/) do |gpu|
-			ret << Knj::Nvidia_settings.new(
+			ret << Knj::Nvidia_settings.new(args.merge({
 				"gpu_no" => gpu[0]
-			)
+			}))
 		end
 		
 		return ret
@@ -33,5 +33,15 @@ class Knj::Nvidia_settings
 		if res.index("assigned value") == nil
 			raise res.strip
 		end
+	end
+	
+	def extra_args
+		str = ""
+		
+		if @data["display"]
+			str += " --display #{@data["display"]}"
+		end
+		
+		return str
 	end
 end
