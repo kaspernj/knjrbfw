@@ -340,13 +340,23 @@ class Knj::Objects
 			elsif key.to_s == "limit"
 				limit_from = 0
 				limit_to = val.to_i
+				found = true
 			elsif args.has_key?(:cols_dbrows) and args[:cols_dbrows].index(key.to_s + "_id") != nil
 				sql_where += " AND #{table}`#{@args[:db].esc_col(key.to_s + "_id")}` = '#{@args[:db].esc(val.id.to_s.sql)}'"
 				found = true
-			elsif args.has_key?(:cols_str) and match = key.match(/^([A-z_\d]+)_search$/) and args[:cols_str].index(match[1]) != nil
-				Knj::Strings.searchstring(val).each do |str|
-					sql_where += " AND #{table}`#{@args[:db].esc_col(match[1])}` LIKE '%#{@args[:db].esc(str)}%'"
+			elsif args.has_key?(:cols_str) and match = key.match(/^([A-z_\d]+)_(search|has)$/) and args[:cols_str].index(match[1]) != nil
+				if match[2] == "search"
+					Knj::Strings.searchstring(val).each do |str|
+						sql_where += " AND #{table}`#{@args[:db].esc_col(match[1])}` LIKE '%#{@args[:db].esc(str)}%'"
+					end
+				elsif match[2] == "has"
+					if val
+						sql_where += " AND #{table}`#{@args[:db].esc_col(match[1])}` != ''"
+					else
+						sql_where += " AND #{table}`#{@args[:db].esc_col(match[1])}` = ''"
+					end
 				end
+				
 				found = true
 			elsif args.has_key?(:cols_str) and match = key.match(/^([A-z_\d]+)_not$/) and args[:cols_str].index(match[1]) != nil
 				sql_where += " AND #{table}`#{@args[:db].esc_col(match[1])}` != '#{@args[:db].esc(val)}'"
@@ -356,7 +366,7 @@ class Knj::Objects
 			list_args.delete(key) if found
 		end
 		
-		sql_limit = false
+		sql_limit = ""
 		if limit_from and limit_to
 			sql_limit = " LIMIT #{limit_from}, #{limit_to}"
 		end
