@@ -393,7 +393,16 @@ class Knj::Web
 		end
 		
 		if value and args.has_key?(:value_func) and args[:value_func]
-			value = Knj::Php.call_user_func(args[:value_func], value)
+			Knj::Php.print_r(args)
+			cback = args[:value_func]
+			
+			if cback.is_a?(Method)
+				value = cback.call(value)
+			elsif cback.is_a?(Array)
+				value = Knj::Php.call_user_func(args[:value_func], value)
+			else
+				raise "Unknown class: #{cback.class.name}."
+			end
 		end
 		
 		value = args[:values] if args[:values]
