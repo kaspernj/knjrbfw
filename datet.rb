@@ -187,7 +187,23 @@ class Knj::Datet
 	end
 	
 	def hour=(newhour)
-		@time = self.stamp(:datet => false, :hour => newhour.to_i)
+		newhour = newhour.to_i
+		day = @time.day
+		
+		loop do
+			break if newhour >= 0
+			day += -1
+			newhour += 24
+		end
+		
+		loop do
+			break if newhour < 24
+			day += 1
+			newhour += -24
+		end
+		
+		@time = self.stamp(:datet => false, :hour => newhour)
+		self.date = day if day != @time.day
 		return self
 	end
 	
