@@ -24,15 +24,16 @@ class Knj::Objects
 		return count
 	end
 	
-	def connect(args)
+	def connect(args, &block)
 		raise "No object given." if !args["object"]
 		raise "No signals given." if !args.has_key?("signal") and !args.has_key?("signals")
 		args["block"] = block if block_given?
 		@callbacks[args["object"]] = {} if !@callbacks[args["object"]]
-		@callbacks[args["object"]][@callbacks[args["object"]].length.to_s] = args
+		conn_id = @callbacks[args["object"]].length.to_s
+		@callbacks[args["object"]][conn_id] = args
 	end
 	
-	def call(args)
+	def call(args, &block)
 		classstr = args["object"].class.to_s
 		
 		if @callbacks[classstr]
@@ -45,14 +46,24 @@ class Knj::Objects
 					docall = true
 				end
 				
-				if docall
-					if callback["block"]
-						callback["block"].call
-					elsif callback["callback"]
-						Knj::Php.call_user_func(callback["callback"], args)
+				next if !docall
+				
+				if callback["block"]
+					callargs = []
+					arity = callback["block"].arity
+					if arity <= 0
+						#do nothing
+					elsif arity == 1
+						callargs << args["object"]
 					else
-						raise "No valid callback given."
+						raise "Unknown number of arguments: #{arity}"
 					end
+					
+					callback["block"].call(*callargs)
+				elsif callback["callback"]
+					Knj::Php.call_user_func(callback["callback"], args)
+				else
+					raise "No valid callback given."
 				end
 			end
 		end

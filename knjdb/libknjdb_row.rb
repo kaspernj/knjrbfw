@@ -81,6 +81,7 @@ class Knj::Db_row
 	
 	def [](key)
 		raise "No valid key given." if !key
+		raise "No data was loaded on the object? Maybe you are trying to call a deleted object?" if !@data
 		
 		if @data.has_key?(key)
 			return @data[key]
