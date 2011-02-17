@@ -115,6 +115,25 @@ class Knj::Objects
 		return false
 	end
 	
+	def get_try(obj, col_name, obj_name = nil)
+		if !obj_name
+			if match = col_name.to_s.match(/^(.+)_id$/)
+				obj_name = Knj::Php.ucwords(match[1]).to_sym
+			else
+				raise "Could not figure out objectname for: #{col_name}."
+			end
+		end
+		
+		id_data = obj[col_name].to_i
+		return false if !id_data
+		
+		begin
+			return self.get(obj_name, id_data)
+		rescue Knj::Errors::NotFound
+			return false
+		end
+	end
+	
 	def list(classname, args = {}, &block)
 		classname = classname.to_sym
 		self.requireclass(classname)
@@ -304,10 +323,12 @@ class Knj::Objects
 	end
 	
 	def sqlhelper(list_args, args)
+		db = @args[:db]
 		sql_where = ""
+		sql_order = ""
 		
 		if args[:table]
-			table = "`#{@args[:db].esc_table(args[:table])}`."
+			table = "`#{db.esc_table(args[:table])}`."
 		else
 			table = ""
 		end
@@ -315,10 +336,71 @@ class Knj::Objects
 		limit_from = nil
 		limit_to = nil
 		
+		if list_args.has_key?("orderby")
+			orders = []
+			orderstr = list_args["orderby"]
+			
+			if list_args["orderby"].is_a?(String)
+				found = false
+				found = true if !found and args.has_key?(:cols_str) and args[:cols_str].index(orderstr) != nil
+				found = true if !found and args.has_key?(:cols_date) and args[:cols_date].index(orderstr) != nil
+				
+				if found
+					sql_order += " ORDER BY "
+					ordermode = " ASC"
+					if list_args.has_key?("ordermode")
+						if list_args["ordermode"] == "desc"
+							ordermode = " DESC"
+						elsif list_args["ordermode"] == "asc"
+							ordermode = " ASC"
+							raise "Unknown ordermode: #{list_args["ordermode"]}"
+						end
+						
+						list_args.delete("ordermode")
+					end
+					
+					sql_order += "#{table}`#{db.esc_col(list_args["orderby"])}`#{ordermode}"
+					list_args.delete("orderby")
+				end
+			elsif list_args["orderby"].is_a?(Array)
+				sql_order += " ORDER BY "
+				
+				list_args["orderby"].each do |val|
+					if val.is_a?(Array)
+						orderstr = val[0]
+						
+						if val[1] == "asc"
+							ordermode = " ASC"
+						elsif val[1] == "desc"
+							ordermode = "DESC"
+						end
+					elsif val.is_a?(String)
+						orderstr = val
+						ordermode = " ASC"
+					else
+						raise "Unknown object: #{val.class.name}"
+					end
+					
+					found = false
+					found = true if !found and args.has_key?(:cols_str) and args[:cols_str].index(orderstr) != nil
+					found = true if !found and args.has_key?(:cols_date) and args[:cols_date].index(orderstr) != nil
+					
+					raise "Column not found for ordering: #{orderstr}." if !found
+					orders << "#{table}`#{db.esc_col(orderstr)}`#{ordermode}"
+				end
+				
+				sql_order += orders.join(", ")
+				list_args.delete("orderby")
+			else
+				raise "Unknown orderby object: #{list_args["orderby"].class.name}."
+			end
+		end
+		
 		list_args.each do |key, val|
 			found = false
+			
 			if args.has_key?(:cols_str) and args[:cols_str].index(key) != nil
-				sql_where += " AND #{table}`#{@args[:db].esc_col(key)}` = '#{@args[:db].esc(val)}'"
+				sql_where += " AND #{table}`#{db.esc_col(key)}` = '#{db.esc(val)}'"
 				found = true
 			elsif args.has_key?(:cols_bools) and args[:cols_bools].index(key) != nil
 				if val.is_a?(TrueClass) or (val.is_a?(Integer) and val.to_i == 1)
@@ -329,7 +411,7 @@ class Knj::Objects
 					raise "Could not make real value out of class: #{val.class.name}."
 				end
 				
-				sql_where += " AND #{table}`#{@args[:db].esc_col(key)}` = '#{@args[:db].esc(realval)}'"
+				sql_where += " AND #{table}`#{db.esc_col(key)}` = '#{db.esc(realval)}'"
 				found = true
 			elsif key.to_s == "limit_from"
 				limit_from = val.to_i
@@ -342,24 +424,38 @@ class Knj::Objects
 				limit_to = val.to_i
 				found = true
 			elsif args.has_key?(:cols_dbrows) and args[:cols_dbrows].index(key.to_s + "_id") != nil
-				sql_where += " AND #{table}`#{@args[:db].esc_col(key.to_s + "_id")}` = '#{@args[:db].esc(val.id.to_s.sql)}'"
+				sql_where += " AND #{table}`#{db.esc_col(key.to_s + "_id")}` = '#{db.esc(val.id.to_s.sql)}'"
 				found = true
 			elsif args.has_key?(:cols_str) and match = key.match(/^([A-z_\d]+)_(search|has)$/) and args[:cols_str].index(match[1]) != nil
 				if match[2] == "search"
 					Knj::Strings.searchstring(val).each do |str|
-						sql_where += " AND #{table}`#{@args[:db].esc_col(match[1])}` LIKE '%#{@args[:db].esc(str)}%'"
+						sql_where += " AND #{table}`#{db.esc_col(match[1])}` LIKE '%#{db.esc(str)}%'"
 					end
 				elsif match[2] == "has"
 					if val
-						sql_where += " AND #{table}`#{@args[:db].esc_col(match[1])}` != ''"
+						sql_where += " AND #{table}`#{db.esc_col(match[1])}` != ''"
 					else
-						sql_where += " AND #{table}`#{@args[:db].esc_col(match[1])}` = ''"
+						sql_where += " AND #{table}`#{db.esc_col(match[1])}` = ''"
 					end
 				end
 				
 				found = true
 			elsif args.has_key?(:cols_str) and match = key.match(/^([A-z_\d]+)_not$/) and args[:cols_str].index(match[1]) != nil
-				sql_where += " AND #{table}`#{@args[:db].esc_col(match[1])}` != '#{@args[:db].esc(val)}'"
+				sql_where += " AND #{table}`#{db.esc_col(match[1])}` != '#{db.esc(val)}'"
+				found = true
+			elsif args.has_key?(:cols_date) and match = key.match(/^(.+)_(day|month|from|to)$/) and args[:cols_date].index(match[1]) != nil
+				if match[2] == "day"
+					sql_where += " AND DATE_FORMAT(#{table}`#{db.esc_col(match[1])}`, '%d %m %Y') = DATE_FORMAT('#{db.esc(val.dbstr)}', '%d %m %Y')"
+				elsif match[2] == "month"
+					sql_where += " AND DATE_FORMAT(#{table}`#{db.esc_col(match[1])}`, '%m %Y') = DATE_FORMAT('#{db.esc(val.dbstr)}', '%m %Y')"
+				elsif match[2] == "from"
+					sql_where += " AND #{table}`#{db.esc_col(match[1])}` >= '#{db.esc(val.dbstr)}'"
+				elsif match[2] == "to"
+					sql_where += " AND #{table}`#{db.esc_col(match[1])}` <= '#{db.esc(val.dbstr)}'"
+				else
+					raise "Unknown date-key: #{match[2]}."
+				end
+				
 				found = true
 			end
 			
@@ -373,7 +469,8 @@ class Knj::Objects
 		
 		return {
 			:sql_where => sql_where,
-			:sql_limit => sql_limit
+			:sql_limit => sql_limit,
+			:sql_order => sql_order
 		}
 	end
 end

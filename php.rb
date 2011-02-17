@@ -393,7 +393,6 @@ module Knj::Php
 	def self.html_entity_decode(string)
 		string = CGI.unescapeHTML(string.to_s)
 		string = string.gsub("&oslash;", "ø").gsub("&aelig;", "æ").gsub("&aring;", "å").gsub("&euro;", "€")
-		
 		return string
 	end
 	
