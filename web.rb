@@ -393,7 +393,6 @@ class Knj::Web
 		end
 		
 		if value and args.has_key?(:value_func) and args[:value_func]
-			Knj::Php.print_r(args)
 			cback = args[:value_func]
 			
 			if cback.is_a?(Method)
