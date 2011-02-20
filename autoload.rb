@@ -19,6 +19,7 @@ module Knj
 	autoload :Opts, $knjpath + "opts"
 	autoload :Mail, $knjpath + "mail"
 	autoload :Mailobj, $knjpath + "mailobj"
+	autoload :Mount, $knjpath + "mount"
 	autoload :Notify, $knjpath + "notify"
 	autoload :Nvidia_settings, $knjpath + "nvidia_settings"
 	autoload :Web, $knjpath + "web"
