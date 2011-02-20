@@ -8,10 +8,10 @@ class Knj::Datet
 	def find(incr, args)
 		count = 0
 		while true
-			if args[:day_in_week]
-				if self.day_in_week == args[:day_in_week]
-					return self
-				end
+			if args[:day_in_week] and self.day_in_week == args[:day_in_week]
+				return self
+			elsif args[:wday] and self.time.wday == args[:wday].to_i
+				return self
 			end
 			
 			if incr == :day
@@ -19,7 +19,7 @@ class Knj::Datet
 			elsif incr == :month
 				self.add_months(1)
 			else
-				raise "Invalid increment: " + incr.to_s
+				raise "Invalid increment: #{incr}."
 			end
 			
 			count += 1
@@ -153,16 +153,66 @@ class Knj::Datet
 		return @time.year
 	end
 	
+	def hour
+		return @time.hour
+	end
+	
+	def min
+		return @time.min
+	end
+	
 	def year=(newyear)
 		@time = self.stamp(:datet => false, :year => newyear)
 	end
 	
 	def month
+		@mode = :months
 		return @time.month
 	end
 	
 	def date
+		@mode = :days
 		return @time.day
+	end
+	
+	def wday_mon
+		wday = @time.wday
+		return 0 if wday == 6
+		return wday - 1
+	end
+	
+	def date=(newday)
+		@time = self.stamp(:datet => false, :day => newday.to_i)
+		return self
+	end
+	
+	def hour=(newhour)
+		newhour = newhour.to_i
+		day = @time.day
+		
+		loop do
+			break if newhour >= 0
+			day += -1
+			newhour += 24
+		end
+		
+		loop do
+			break if newhour < 24
+			day += 1
+			newhour += -24
+		end
+		
+		@time = self.stamp(:datet => false, :hour => newhour)
+		self.date = day if day != @time.day
+		return self
+	end
+	
+	def min=(newmin)
+		@time = self.stamp(:datet => false, :min => newmin.to_i)
+	end
+	
+	def sec=(newsec)
+		@time = self.stamp(:datet => false, :sec => newsec.to_i)
 	end
 	
 	alias :day :date
@@ -245,10 +295,7 @@ class Knj::Datet
 			return Knj::Datet.new(date_string.to_time)
 		end
 		
-		if Knj::Datestamp.is_nullstamp?(date_string)
-			return false
-		end
-		
+		return false if Knj::Datestamp.is_nullstamp?(date_string)
 		return Knj::Datet.new(Time.local(*ParseDate.parsedate(date_string.to_s)))
 	end
 	
@@ -263,7 +310,11 @@ class Knj::Datet
 		
 		if !args.has_key?(:date) or args[:date]
 			date_shown = true
-			str += "%02d" % @time.day.to_s + "/" + "%02d" % @time.month.to_s + " " + "%04d" % @time.year.to_s
+			str += "%02d" % @time.day.to_s + "/" + "%02d" % @time.month.to_s
+			
+			if !args.has_key?(:year) or args[:year]
+				str += " " + "%04d" % @time.year.to_s
+			end
 		end
 		
 		if !args.has_key?(:time) or args[:time]
@@ -302,9 +353,9 @@ class Knj::Datet
 		elsif match = timestr.to_s.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{5})$/)
 			#Datet.code format
 			return Knj::Datet.new(Time.gm(match[1], match[2], match[3], match[4], match[5], match[6], match[7]))
-		elsif match = timestr.to_s.match(/^\s*(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})(|\.\d+)\s*$/)
+		elsif match = timestr.to_s.match(/^\s*(\d{4})-(\d{2})-(\d{2})(|\s+(\d{2}):(\d{2}):(\d{2})(|\.\d+)\s*)$/)
 			#Database date format (with possibility of .0 in the end - miliseconds? -knj.
-			return Knj::Datet.new(Time.gm(match[1], match[2], match[3], match[4], match[5], match[6], match[7]))
+			return Knj::Datet.new(Time.gm(match[1], match[2], match[3], match[5], match[6], match[7], match[8]))
 		end
 		
 		raise Knj::Errors::InvalidData.new(sprintf(_("Wrong format: %s"), timestr))
@@ -325,6 +376,18 @@ class Knj::Datet
 			11, _("November"),
 			12, _("December")
 		]
+	end
+	
+	def loc_wday
+		return _(@time.strftime("%A"))
+	end
+	
+	def loc_wday_small
+		return _(@time.strftime("%a"))
+	end
+	
+	def loc_month
+		return _(@time.strftime("%B"))
 	end
 	
 	def to_s

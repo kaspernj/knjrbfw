@@ -1,7 +1,6 @@
 class Knj::Db_row
 	attr_reader :args, :data
 	
-	def objects; return @args[:objects]; end
 	def is_knj?; return true; end
 	
 	def initialize(args)
@@ -11,7 +10,7 @@ class Knj::Db_row
 		end
 		
 		@args[:db] = $db if !@args[:db] and $db and $db.class.to_s == "Knj::Db"
-		@args[:objects] = $objects if !@args[:objects] and $objects and $objects.class.to_s == "Knj::Objects"
+		@args[:objects] = $objects if !@args[:objects] and $objects and $objects.is_a?(Knj::Objects)
 		@args[:col_id] = :id if !@args[:col_id]
 		raise "No table given." if !@args[:table]
 		
@@ -43,6 +42,14 @@ class Knj::Db_row
 		return @args[:db]
 	end
 	
+	def ob
+		return @args[:objects] if @args.has_key?(:objects)
+		return $ob if $ob and $ob.is_a?(Knj::Objects)
+		return false
+	end
+	
+	alias :objects :ob
+	
 	def reload
 		last_id = self.id
 		data = self.db.single(@args[:table], {@args[:col_id] => self.id})
@@ -60,8 +67,8 @@ class Knj::Db_row
 		self.db.update(@args[:table], newdata, {@args[:col_id] => self.id})
 		self.reload
 		
-		if self.objects
-			self.objects.call("object" => self, "signal" => "update")
+		if self.ob
+			self.ob.call("object" => self, "signal" => "update")
 		end
 	end
 	
@@ -81,6 +88,7 @@ class Knj::Db_row
 	
 	def [](key)
 		raise "No valid key given." if !key
+		raise "No data was loaded on the object? Maybe you are trying to call a deleted object?" if !@data
 		
 		if @data.has_key?(key)
 			return @data[key]

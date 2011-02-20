@@ -35,10 +35,10 @@ class Knj::Translations
 		end
 		
 		trans = @ob.list(:Translation, {
-			:object_class => classn,
-			:object_id => objid,
-			:key => key,
-			:locale => locale
+			"object_class" => classn,
+			"object_id" => objid,
+			"key" => key,
+			"locale" => locale
 		})
 		trans.each do |tran|
 			if !@cache[classn]
@@ -76,21 +76,21 @@ class Knj::Translations
 		end
 		
 		values.each do |key, val|
-			trans = @ob.list(:Translation, {
-				:object => obj,
-				:key => key,
-				:locale => locale
+			trans = @ob.get_by(:Translation, {
+				"object" => obj,
+				"key" => key,
+				"locale" => locale
 			})
 			
-			if trans.empty?
+			if trans
+				trans.update(:value => val)
+			else
 				@ob.add(:Translation, {
 					:object => obj,
 					:key => key,
 					:locale => locale,
 					:value => val
 				})
-			else
-				trans[0].update(:value => val)
 			end
 		end
 	end
@@ -100,7 +100,7 @@ class Knj::Translations
 		objid = obj.id
 		
 		trans = @ob.list(:Translation, {
-			:object => obj
+			"object" => obj
 		})
 		trans.each do |tran|
 			@ob.delete(tran)
@@ -113,7 +113,7 @@ end
 class Knj::Translations::Translation < Knj::Db_row
 	def initialize(data, translations)
 		@translations = translations
-		super(:objects => translations.ob, :db => translations.db, :data => data, :table => :translations)
+		super(:objects => translations.ob, :db => translations.db, :data => data, :table => :translations, :force_selfdb => true)
 	end
 	
 	def self.add(data, translations)
@@ -130,16 +130,22 @@ class Knj::Translations::Translation < Knj::Db_row
 	def self.list(args = {}, translations = nil)
 		sql = "SELECT * FROM translations WHERE 1=1"
 		
+		ret = translations.ob.sqlhelper(args, {
+			:cols_str => ["object_class", "object_id", "key", "locale"]
+		})
+		sql += ret[:sql_where]
+		
 		args.each do |key, val|
 			case key
-				when :object_class, :object_id, :key, :locale
-					sql += " AND `#{key}` = '#{val.to_s.sql}'"
-				when :object
+				when "object"
 					sql += " AND object_class = '#{val.class.name.sql}' AND object_id = '#{val.id.sql}'"
 				else
 					raise "No such key: #{key}."
 			end
 		end
+		
+		sql += ret[:sql_order]
+		sql += ret[:sql_limit]
 		
 		return translations.ob.list_bysql(:Translation, sql)
 	end

@@ -30,6 +30,7 @@ class KnjDB_mysql
 				self.reconnect
 				return KnjDB_mysql_result.new(@conn.query(string))
 			else
+				print "SQL: #{string}\n\n"
 				raise e
 			end
 		end

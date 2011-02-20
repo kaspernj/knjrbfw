@@ -113,12 +113,34 @@ module Knj::Os
 	
 	#Checks if the display variable and xauth is set - if not sets it to the GDM xauth and defaults the display to :0.0.
 	def self.check_display_env
-		if !ENV["DISPLAY"]
-			ENV["DISPLAY"] = ":0.0"
-			
-			if !ENV["XAUTHORITY"]
-				ENV["XAUTHORITY"] = Knj::Os.xauth_file
+		ret = {}
+		
+		if ENV["DISPLAY"].to_s.strip.length <= 0
+			x_procs = Knj::Unix_proc.list("grep" => "/usr/bin/X")
+			set_disp = nil
+			x_procs.each do |x_proc|
+				if match = x_proc["cmd"].match(/(:\d+)/)
+					set_disp = match[1]
+					break
+				end
 			end
+			
+			raise "Could not figure out display." if !set_disp
+			
+			ENV["DISPLAY"] = set_disp
+			ret["display"] = set_disp
+		else
+			ret["display"] = ENV["DISPLAY"]
 		end
+		
+		if !ENV["XAUTHORITY"]
+			res = Knj::Os.xauth_file
+			ENV["XAUTHORITY"] = res
+			ret["xauth"] = res
+		else
+			ret["xauth"] = ENV["XAUTHORITY"]
+		end
+		
+		return ret
 	end
 end

@@ -68,7 +68,7 @@ module Knj::Php
 				end
 				
 				retstr += "[#{keystr}] => "
-				retstr += Php.print_r(val, true, count + 1).to_s
+				retstr += Knj::Php.print_r(val, true, count + 1).to_s
 			end
 			
 			i = 0
@@ -393,7 +393,6 @@ module Knj::Php
 	def self.html_entity_decode(string)
 		string = CGI.unescapeHTML(string.to_s)
 		string = string.gsub("&oslash;", "ø").gsub("&aelig;", "æ").gsub("&aring;", "å").gsub("&euro;", "€")
-		
 		return string
 	end
 	
@@ -480,7 +479,7 @@ module Knj::Php
 		paras["domain"] = domain if domain
 		
 		cookie = CGI::Cookie.new(paras)
-		Php.header("Set-Cookie: #{cookie.to_s}")
+		Knj::Php.header("Set-Cookie: #{cookie.to_s}")
 		
 		if $_COOKIE
 			$_COOKIE[cname] = cvalue
@@ -571,7 +570,10 @@ module Knj::Php
 	end
 	
 	def self.basename(filepath)
-		ret = filepath.to_s.split("/").last.split(".")
+		splitted = filepath.to_s.split("/").last
+		return false if !splitted
+		
+		ret = splitted.split(".")
 		ret.delete(ret.last)
 		return ret.join(".")
 	end
