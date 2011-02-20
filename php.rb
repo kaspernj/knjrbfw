@@ -570,7 +570,10 @@ module Knj::Php
 	end
 	
 	def self.basename(filepath)
-		ret = filepath.to_s.split("/").last.split(".")
+		splitted = filepath.to_s.split("/").last
+		return false if !splitted
+		
+		ret = splitted.split(".")
 		ret.delete(ret.last)
 		return ret.join(".")
 	end

@@ -39,9 +39,7 @@ class Knj::Eruby
 		cacheexists = File.exists?(cachename)
 		cachetime = File.mtime(cachename) if File.exists?(cachename)
 		
-		if !File.exists?(filename)
-			raise "File does not exist: #{filename}"
-		end
+		raise "File does not exist: #{filename}" if !File.exists?(filename)
 		
 		if !cacheexists or filetime > cachetime
 			Knj::Eruby::Handler.load_file(filepath, {:cachename => cachename})
@@ -78,13 +76,15 @@ class Knj::Eruby
 				res = Marshal.load(File.read(bytepath))
 				RubyVM::InstructionSequence.load(res).eval
 			else
-				if !@eruby_rbyte[cachename] or reload_cache
-					@eruby_rbyte[cachename] = RubyVM::InstructionSequence.new(File.read(cachename))
+				if !@eruby_rbyte[cachename] or @eruby_rbyte[cachename][:time] < filetime
 					#@eruby_rbyte[cachename] = RubyVM::InstructionSequence.compile_file(cachename)
-					@eruby_rbyte[cachename].eval
-				else
-					@eruby_rbyte[cachename].eval
+					@eruby_rbyte[cachename] = {
+						:inseq => RubyVM::InstructionSequence.new(File.read(cachename)),
+						:time => Time.new
+					}
 				end
+				
+				@eruby_rbyte[cachename][:inseq].eval
 			end
 		else
 			loaded_content = Knj::Eruby::Handler.load_file(filepath, {:cachename => cachename})

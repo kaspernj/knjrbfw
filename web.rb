@@ -249,9 +249,14 @@ class Knj::Web
 	end
 	
 	def self.parse_name(seton, varname, value, args = {})
+		if value.respond_to?(:filename) and value.filename
+			realvalue = value
+		else
+			realvalue = value.to_s
+		end
+		
 		if varname and varname.index("[") != nil
-			match = varname.match(/\[(.*?)\]/)
-			if match
+			if match = varname.match(/\[(.*?)\]/)
 				namepos = varname.index(match[0])
 				name = varname.slice(0..namepos - 1)
 				name = name.to_sym if args[:syms]
@@ -266,18 +271,24 @@ class Knj::Web
 					seton[name][secname] = {} if !seton[name].has_key?(secname)
 					Knj::Web.parse_name_second(seton[name][secname], restname, value, args)
 				else
-					seton[name][secname] = value
+					seton[name][secname] = realvalue
 				end
 			else
-				seton[varname][match[1]] = value
+				seton[varname][match[1]] = realvalue
 			end
 		else
-			seton[varname] = value
+			seton[varname] = realvalue
 		end
 	end
 	
 	def self.parse_name_second(seton, varname, value, args = {})
-		match = varname.match(/\[(.*?)\]/)
+		if value.respond_to?(:filename) and value.filename
+			realvalue = value
+		else
+			realvalue = value.to_s
+		end
+		
+		match = varname.match(/^\[(.*?)\]/)
 		if match
 			namepos = varname.index(match[0])
 			name = match[1]
@@ -290,10 +301,10 @@ class Knj::Web
 				seton[secname] = {} if !seton.has_key?(secname)
 				Knj::Web.parse_name_second(seton[secname], restname, value, args)
 			else
-				seton[secname] = value
+				seton[secname] = realvalue
 			end
 		else
-			seton[varname] = value
+			seton[varname] = realvalue
 		end
 	end
 	
@@ -376,11 +387,13 @@ class Knj::Web
 	def self.input(args)
 		Knj::ArrayExt.hash_sym(args)
 		
-		if args[:value]
+		if args.has_key?(:value)
 			if args[:value].is_a?(Array) and !args[:value][0].is_a?(NilClass)
 				value = args[:value][0][args[:value][1]]
 			elsif args[:value].is_a?(String) or args[:value].is_a?(Integer)
 				value = args[:value].to_s
+			else
+				value = args[:value]
 			end
 		end
 		
@@ -432,6 +445,7 @@ class Knj::Web
 		checked = ""
 		checked += " value=\"#{args[:value_active]}\"" if args.has_key?(:value_active)
 		checked += " checked" if value.is_a?(String) and value == "1" or value.to_s == "1"
+		checked += " checked" if value.is_a?(TrueClass)
 		
 		html = ""
 		
@@ -525,7 +539,7 @@ class Knj::Web
 		html = ""
 		addsel = " selected=\"selected\"" if !curvalue
 		
-		html += "<option#{addsel} value=\"\">#{_("Add new")}</option>" if opts_args and opts_args[:add]
+		html += "<option#{addsel} value=\"\">#{_("Add new")}</option>" if opts_args and (opts_args[:add] or opts_args[:addnew])
 		html += "<option#{addsel} value=\"\">#{_("Choose")}</option>" if opts_args and opts_args[:choose]
 		html += "<option#{addsel} value=\"\">#{_("None")}</option>" if opts_args and opts_args[:none]
 		

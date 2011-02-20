@@ -29,6 +29,10 @@ class KnjDB_mysql2
 		require "rubygems"
 		require "mysql2"
 		@conn = Mysql2::Client.new(args)
+		
+		if @knjdb.opts[:encoding]
+			@conn.query("SET NAMES '#{self.esc(@knjdb.opts[:encoding])}'")
+		end
 	end
 	
 	def query(string)

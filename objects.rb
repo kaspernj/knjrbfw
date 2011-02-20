@@ -179,7 +179,7 @@ class Knj::Objects
 		
 		html = ""
 		
-		if args[:addnew]
+		if args[:addnew] or args[:add]
 			html += "<option"
 			html += " selected=\"selected\"" if !args[:selected]
 			html += " value=\"\">#{_("Add new")}</option>"
@@ -187,10 +187,30 @@ class Knj::Objects
 		
 		obs.each do |object|
 			html += "<option value=\"#{object.id.html}\""
-			html += " selected=\"selected\"" if args[:selected] and args[:selected][@args[:col_id]] == object.id
+			
+			selected = false
+			if args[:selected].is_a?(Array) and args[:selected].index(object) != nil
+				selected = true
+			elsif args[:selected] and args[:selected].is_a?(Knj::Db_row) and args[:selected][@args[:col_id]] == object.id
+				selected = true
+			end
+			
+			html += " selected=\"selected\"" if selected
+			
 			begin
-				html += ">#{object.title.html}</option>"
+				print "Ext: #{Encoding.default_external}\n"
+				print "Int: #{Encoding.default_internal}\n"
+				
+				objhtml = object.title.html
+				
+				print "ObjEnc: #{objhtml.encoding}\n"
+				print "Enc: #{html.encoding}\n"
+				
+				html += ">#{objhtml}</option>"
 			rescue Exception => e
+				puts e.inspect
+				puts e.backtrace
+				
 				html += ">[#{_("invalid title")}]</option>"
 			end
 		end
@@ -214,7 +234,7 @@ class Knj::Objects
 			list = Hash.new
 		end
 		
-		if args[:addnew]
+		if args[:addnew] or args[:add]
 			list["0"] = _("Add new")
 		elsif args[:choose]
 			list["0"] = _("Choose") + ":"
@@ -272,18 +292,16 @@ class Knj::Objects
 		classname = classname.to_sym
 		
 		if !@objects.has_key?(classname)
-			raise "Could not find object class in cache: #{object.class.name}."
-		elsif !@objects[classname][object[@args[:col_id]].to_i]
-			print "Could not unset object from cache.\n"
-			print "Class: #{object.class.name}.\n"
-			print "ID: #{object.id}.\n"
-			
-			Knj::Php.print_r(@objects[object.class.to_s])
-			
-			exit
-			raise "Could not find object ID in cache."
+			raise "Could not find object class in cache: #{classname}."
+		elsif !@objects[classname].has_key?(object.id.to_i)
+			errstr = ""
+			errstr += "Could not unset object from cache.\n"
+			errstr += "Class: #{object.class.name}.\n"
+			errstr += "ID: #{object.id}.\n"
+			errstr += "Could not find object ID in cache."
+			raise errstr
 		else
-			@objects[classname].delete(object)
+			@objects[classname].delete(object.id.to_i)
 		end
 	end
 	
@@ -293,6 +311,7 @@ class Knj::Objects
 		self.unset(object)
 		object.delete
 		self.call("object" => object, "signal" => "delete")
+		object.destroy
 	end
 	
 	# Try to clean up objects by unsetting everything, start the garbagecollector, get all the remaining objects via ObjectSpace and set them again. Some (if not all) should be cleaned up and our cache should still be safe... dirty but works.
