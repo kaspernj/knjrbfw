@@ -37,7 +37,7 @@ class Knj::Objects
 		classstr = args["object"].class.to_s
 		
 		if @callbacks[classstr]
-			@callbacks[classstr].each do |callback_key, callback|
+			@callbacks[classstr].clone.each do |callback_key, callback|
 				docall = false
 				
 				if callback.has_key?("signal") and args.has_key?("signal") and callback["signal"] == args["signal"]
@@ -91,7 +91,7 @@ class Knj::Objects
 		elsif data.is_a?(Integer) or data.is_a?(String) or data.is_a?(Fixnum)
 			id = data.to_i
 		else
-			raise Errors::InvalidData.new("Unknown data: #{data.class.to_s}.")
+			raise Knj::Errors::InvalidData.new("Unknown data: #{data.class.to_s}.")
 		end
 		
 		@objects[classname] = {} if !@objects[classname]
