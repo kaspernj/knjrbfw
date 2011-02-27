@@ -22,6 +22,12 @@ class Knj::Mount
 				end
 			end
 			
+			if args["to_search"]
+				Knj::Strings.searchstring(args["to_search"]).each do |str|
+					add = false if !folder_to or folder_to.index(str) == nil
+				end
+			end
+			
 			if add
 				ret << Knj::Mount.new(
 					:type => type,
