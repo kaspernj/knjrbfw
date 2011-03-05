@@ -12,7 +12,7 @@ class KnjDB_mysql::Columns
 		
 		raise "No type given." if !data[:type]
 		
-		if data[:type] == "varchar" and !data[:maxlength]
+		if data[:type] == :varchar and !data.has_key?(:maxlength)
 			data[:maxlength] = 255
 		end
 		
@@ -44,8 +44,15 @@ end
 
 class KnjDB_mysql::Columns::Column
 	def initialize(args)
-		@db = args[:db]
-		@driver = args[:driver]
-		@cols = args[:cols]
+		@args = args
+	end
+	
+	def name
+		return @args[:data][:Field]
+	end
+	
+	def drop
+		sql = "ALTER TABLE `#{@args[:table].name}` DROP COLUMN `#{self.name}`"
+		@args[:db].query(sql)
 	end
 end

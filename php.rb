@@ -106,7 +106,7 @@ module Knj::Php
 		elsif argument.is_a?(String) or argument.is_a?(Integer) or argument.is_a?(Fixnum) or argument.is_a?(Float)
 			retstr += argument.to_s + "\n"
 		elsif argument.is_a?(Symbol)
-			retstr += ":#{argument.to_s}"
+			retstr += ":#{argument.to_s}\n"
 		elsif argument.is_a?(Exception)
 			retstr += "#\{#{argument.class.to_s}: #{argument.message}}\n"
 		elsif cstr == "Knj::Unix_proc"

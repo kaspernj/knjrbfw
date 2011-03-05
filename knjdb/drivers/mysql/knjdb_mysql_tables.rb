@@ -10,7 +10,7 @@ class KnjDB_mysql::Tables
 	def [](table_name)
 		list = self.list
 		return list[table_name.to_s] if list[table_name.to_s]
-		raise Errors::NotFound.new("Table was not found: #{table_name}.")
+		raise Knj::Errors::NotFound.new("Table was not found: #{table_name}.")
 	end
 	
 	def list
@@ -34,7 +34,7 @@ class KnjDB_mysql::Tables
 		sql = "CREATE TABLE `#{name}` ("
 		
 		first = true
-		data[:columns].each do |col_name, col_data|
+		data["columns"].each do |col_name, col_data|
 			if first
 				first = false
 			else
@@ -61,7 +61,8 @@ class KnjDB_mysql::Tables::Table
 	end
 	
 	def drop
-		raise "stub!"
+		sql = "DROP TABLE `#{self.name}`"
+		@db.query(sql)
 	end
 	
 	def optimize
@@ -83,9 +84,10 @@ class KnjDB_mysql::Tables::Table
 			q_cols = @db.query(sql)
 			while d_cols = q_cols.fetch
 				@list[d_cols[:Field]] = KnjDB_mysql::Columns::Column.new(
-					:cols => self,
+					:table => self,
 					:db => @db,
-					:driver => @driver
+					:driver => @driver,
+					:data => d_cols
 				)
 			end
 		end
