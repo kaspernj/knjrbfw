@@ -60,7 +60,7 @@ class KnjDB_mysql
 	
 	def tables
 		if !@tables
-			require "#{File.dirname(__FILE__)}/knjdb_mysql_tables.rb"
+			require "#{File.dirname(__FILE__)}/knjdb_mysql_tables"
 			@tables = KnjDB_mysql::Tables.new(
 				:driver => self,
 				:db => @knjdb
@@ -72,7 +72,7 @@ class KnjDB_mysql
 	
 	def cols
 		if !@cols
-			require "#{File.dirname(__FILE__)}/knjdb_mysql_columns.rb"
+			require "#{File.dirname(__FILE__)}/knjdb_mysql_columns"
 			@cols = KnjDB_mysql::Columns.new(
 				:driver => self,
 				:db => @knjdb
@@ -80,6 +80,18 @@ class KnjDB_mysql
 		end
 		
 		return @cols
+	end
+	
+	def indexes
+		if !@indexes
+			require "#{File.dirname(__FILE__)}/knjdb_mysql_indexes"
+			@indexes = KnjDB_mysql::Indexes.new(
+				:driver => self,
+				:db => @knjdb
+			)
+		end
+		
+		return @indexes
 	end
 end
 

@@ -95,9 +95,55 @@ class KnjDB_mysql::Tables::Table
 		return @list
 	end
 	
+	def indexes
+		if !@indexes_list
+			@db.indexes
+			@indexes_list = {}
+			sql = "SHOW INDEX FROM `#{self.name}`"
+			
+			q_indexes = @db.query(sql)
+			while d_indexes = q_indexes.fetch
+				@indexes_list[d_indexes[:Key_name]] = KnjDB_mysql::Indexes::Index.new(
+					:table => self,
+					:db => @db,
+					:driver => @driver,
+					:data => d_indexes
+				)
+			end
+		end
+		
+		return @indexes_list
+	end
+	
+	def index(name)
+		list = self.indexes
+		return list[name] if list[name]
+		raise Knj::Errors::NotFound.new("Index not found: #{name}.")
+	end
+	
 	def create_columns(col_arr)
 		col_arr.each do |col_data|
 			sql = "ALTER TABLE `#{self.name}` ADD COLUMN #{@db.cols.data_sql(col_data[:name], col_data[:data])};"
+			@db.query(sql)
+		end
+	end
+	
+	def create_indexes(index_arr)
+		index_arr.each do |index_data|
+			raise "No columns was given." if index_data["columns"].empty?
+			
+			sql = "CREATE INDEX #{@db.escape_col}#{@db.esc_col(index_data["name"])}#{@db.escape_col} ON #{@db.escape_table}#{@db.esc_table(self.name)}#{@db.escape_table} ("
+			
+			first = true
+			index_data["columns"].each do |col_name|
+				sql += ", " if !first
+				first = false if first
+				
+				sql += "#{@db.escape_col}#{@db.esc_col(col_name)}#{@db.escape_col}"
+			end
+			
+			sql += ")"
+			
 			@db.query(sql)
 		end
 	end
