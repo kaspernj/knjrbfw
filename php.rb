@@ -26,9 +26,15 @@ module Knj::Php
 			superstr = supercl.to_s
 		end
 		
-		if argument.is_a?(Hash) or supercl.is_a?(Hash) or cstr == "Knjappserver::Session_accessor" or cstr == "SQLite3::ResultSet::HashWithTypes" or cstr == "CGI" or cstr == "Knj::Db_row" or cstr == "Apache::Table" or superstr == "Knj::Db_row"
+		if argument.is_a?(Hash) or supercl.is_a?(Hash) or cstr == "Knjappserver::Session_accessor" or cstr == "SQLite3::ResultSet::HashWithTypes" or cstr == "CGI" or cstr == "Knj::Db_row" or cstr == "Apache::Table" or superstr == "Knj::Db_row" or argument.respond_to?(:to_hash)
+			if argument.respond_to?(:to_hash)
+				argument_use = argument.to_hash
+			else
+				argument_use = argument
+			end
+			
 			retstr += argument.class.to_s + "{\n"
-			argument.each do |pair|
+			argument_use.each do |pair|
 				i = 0
 				while(i < count)
 					retstr += "   "

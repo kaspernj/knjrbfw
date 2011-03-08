@@ -71,6 +71,13 @@ class Knj::Mount
 		Knj::Os.shellcmd(cmd)
 	end
 	
+	def self.ensure(args)
+		list = Knj::Mount.list("to_search" => args["to"])
+		return false if !list.empty?
+		Knj::Mount.mount(args)
+		return true
+	end
+	
 	attr_reader :data
 	
 	def initialize(data)
