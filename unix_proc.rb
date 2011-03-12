@@ -3,10 +3,10 @@ class Knj::Unix_proc
 	@procs = {}
 	
 	def self.spawn(data)
-		proc = @procs[data["pid"]]
+		proc_ele = @procs[data["pid"]]
 		
-		if proc
-			proc.update_data(data)
+		if proc_ele
+			proc_ele.update_data(data)
 		else
 			@procs[data["pid"]] = Knj::Unix_proc.new(data)
 		end
@@ -36,17 +36,36 @@ class Knj::Unix_proc
 				"app" => File.basename(match[4])
 			}
 			
-			if match[1].to_i != $$.to_i
-				if !grepstr or match[4].index(grepstr) == nil   #dont return current process.
-					ret << Knj::Unix_proc.spawn(data)
-				end
-			end
+			add = true
+			add = false if (!args.has_key?("ignore_self") or args["ignore_self"]) and match[1].to_i == $$.to_i
+			add = false if grepstr and match[4].index(grepstr) == nil   #dont return current process.
+			
+			ret << Knj::Unix_proc.spawn(data) if add
 		end
 		
 		return ret
 	end
 	
+	def self.find_self
+		procs = Knj::Unix_proc.list("ignore_self" => false)
+		pid_find = Process.pid
+		
+		proc_find = false
+		procs.each do |proc_ele|
+			if proc_ele["pid"].to_s == pid_find.to_s
+				proc_find = proc_ele
+				break
+			end
+		end
+		
+		return proc_find
+	end
+	
 	def initialize(data)
+		@data = data
+	end
+	
+	def update_data(data)
 		@data = data
 	end
 	

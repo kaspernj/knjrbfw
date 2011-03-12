@@ -143,4 +143,15 @@ module Knj::Os
 		
 		return ret
 	end
+	
+	def self.executed_cmd
+		return ENV["SUDO_COMMAND"] if ENV["SUDO_COMMAND"]
+		
+		proc_self = Knj::Unix_proc.find_self
+		cmd = proc_self["cmd"]
+		
+		cmd.gsub!(/^ruby/, ENV["_"]) if ENV["_"]
+		
+		return cmd
+	end
 end
