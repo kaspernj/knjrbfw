@@ -14,14 +14,12 @@ class Knj::Event_filemod
 		
 		Knj::Thread.new do
 			while @run do
-				if !@args
-					break
-				end
+				break if !@args or !@args[:paths] or @args[:paths].empty?
 				
-				@args[:paths].each do |path|
+				@args[:paths].clone.each do |path|
 					changed = false
 					
-					if !@mtimes.has_key?(path)
+					if @mtimes and !@mtimes.has_key?(path) and @mtimes.is_a?(Hash)
 						@mtimes[path] = File.mtime(path)
 					end
 					
@@ -32,7 +30,7 @@ class Knj::Event_filemod
 						changed = true
 					end
 					
-					if !changed and newdate and newdate > @mtimes[path]
+					if !changed and newdate and @mtimes and newdate > @mtimes[path]
 						changed = true
 					end
 					
