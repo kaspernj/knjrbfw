@@ -45,6 +45,8 @@ module Knj::ArrayExt
 	
 	#Converts all keys in the given hash to symbols.
 	def self.hash_sym(hash)
+		raise "Invalid argument: #{hash.class.name}" if !hash or !hash.respond_to?(:each)
+		
 		adds = {}
 		hash.each do |key, value|
 			if !key.is_a?(Symbol)
@@ -81,5 +83,24 @@ module Knj::ArrayExt
 		end
 		
 		return Knj::Php.md5(combined_val)
+	end
+	
+	#Compares the keys and values of two hashes and returns true if they are different.
+	def self.hash_diff?(h1, h2, args = {})
+		if !args.has_key?("h1_to_h2") or args["h1_to_h2"]
+			h1.each do |key, val|
+				return true if !h2.has_key?(key)
+				return true if h2[key].to_s != val.to_s
+			end
+		end
+		
+		if !args.has_key?("h2_to_h1") or args["h2_to_h1"]
+			h2.each do |key, val|
+				return true if !h1.has_key?(key)
+				return true if h1[key].to_s != val.to_s
+			end
+		end
+		
+		return false
 	end
 end
