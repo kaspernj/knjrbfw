@@ -1,7 +1,7 @@
 class Knj::SSHRobot
 	def initialize(args)
 		@forwards = []
-		@args = ArrayExt.hash_sym(args)
+		@args = Knj::ArrayExt.hash_sym(args)
 		@args[:port] = 22 if !@args.has_key?(:port)
 	end
 	
@@ -37,7 +37,7 @@ class Knj::SSHRobot
 	end
 	
 	def forward(args)
-		ArrayExt.hash_sym(args)
+		Knj::ArrayExt.hash_sym(args)
 		args[:type] = "local" if !args[:type]
 		args[:session] = self.session_spawn if !args[:session]
 		args[:host_local] = "0.0.0.0" if !args[:host_local]
