@@ -23,9 +23,7 @@ class Knj::Nvidia_settings
 	end
 	
 	def power_mizer_mode=(newval)
-		if @power_mizer_modes[newval] == nil
-			raise "No such power-mizer-mode."
-		end
+		raise "No such power-mizer-mode." if @power_mizer_modes[newval] == nil
 		
 		cmd = "nvidia-settings -a [gpu:#{@data["gpu_no"]}]/GPUPowerMizerMode=#{@power_mizer_modes[newval]}"
 		res = Knj::Os.shellcmd(cmd)
