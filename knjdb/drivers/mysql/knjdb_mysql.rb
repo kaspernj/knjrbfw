@@ -32,6 +32,10 @@ class KnjDB_mysql
 				return KnjDB_mysql_result.new(@conn.query(string))
 			else
 				print "SQL: #{string}\n\n"
+				
+				puts e.message
+				puts e.backtrace
+				
 				raise e
 			end
 		end

@@ -1,5 +1,6 @@
 class KnjDB_mysql::Tables
 	attr_reader :db, :driver
+	attr_accessor :list
 	
 	def initialize(args)
 		@args = args
@@ -51,6 +52,8 @@ class KnjDB_mysql::Tables
 end
 
 class KnjDB_mysql::Tables::Table
+	attr_accessor :list
+	
 	def initialize(args)
 		@db = args[:db]
 		@driver = args[:driver]

@@ -25,7 +25,8 @@ class KnjDB_mysql::Columns
 		end
 		
 		sql += " COMMENT '#{@driver.escape(data["comment"])}'" if data.has_key?("comment")
-		sql += " AFTER `#{@driver.esc_col(data["after"])}`" if data["after"]
+		sql += " AFTER `#{@driver.esc_col(data["after"])}`" if data["after"] and !data["first"]
+		sql += " FIRST" if data["first"]
 		
 		return sql
 	end
@@ -41,6 +42,18 @@ class KnjDB_mysql::Columns::Column
 	
 	def name
 		return @args[:data][:Field]
+	end
+	
+	def data
+		return {
+			"type" => self.type,
+			"name" => self.name,
+			"null" => self.null?,
+			"maxlength" => self.maxlength,
+			"default" => self.default,
+			"primarykey" => self.primarykey?,
+			"autoincr" => self.autoincr?
+		}
 	end
 	
 	def type
@@ -79,13 +92,31 @@ class KnjDB_mysql::Columns::Column
 		return @args[:data][:Default]
 	end
 	
+	def primarykey?
+		if @args[:data][:name] == "nr"
+			Knj::Php.print_r(@args[:data])
+			exit
+		end
+		
+		return false if @args[:data][:pk].to_i == 0
+		return true
+	end
+	
+	def autoincr?
+		if @args[:data][:name] == "nr"
+			Knj::Php.print_r(@args[:data])
+			exit
+		end
+		
+		return false
+	end
+	
 	def comment
 		return @args[:data][:Comment]
 	end
 	
 	def drop
-		sql = "ALTER TABLE `#{@args[:table].name}` DROP COLUMN `#{self.name}`"
-		@args[:db].query(sql)
+		@args[:db].query("ALTER TABLE `#{@args[:table].name}` DROP COLUMN `#{self.name}`")
 	end
 	
 	def change(data)
@@ -102,7 +133,7 @@ class KnjDB_mysql::Columns::Column
 		newdata.delete("primarykey") if newdata.has_key?("primarykey")
 		
 		type_s = newdata["type"].to_s
-		sql = "ALTER TABLE #{table_escape} CHANGE #{col_escaped} #{@db.cols.data_sql(newdata)}"
-		@db.query(sql)
+		@db.query("ALTER TABLE #{table_escape} CHANGE #{col_escaped} #{@db.cols.data_sql(newdata)}")
+		@args[:table].list = nil if data.has_key?("name") and data["name"] != self.name
 	end
 end
