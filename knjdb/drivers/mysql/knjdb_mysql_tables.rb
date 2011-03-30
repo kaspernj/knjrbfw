@@ -30,6 +30,8 @@ class KnjDB_mysql::Tables
 	end
 	
 	def create(name, data)
+		raise "No columns was given." if !data["columns"] or data["columns"].empty?
+		
 		sql = "CREATE TABLE `#{name}` ("
 		
 		first = true
