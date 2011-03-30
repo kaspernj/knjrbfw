@@ -118,6 +118,7 @@ module Knj::Os
 		if ENV["DISPLAY"].to_s.strip.length <= 0
 			x_procs = Knj::Unix_proc.list("grep" => "/usr/bin/X")
 			set_disp = nil
+			
 			x_procs.each do |x_proc|
 				if match = x_proc["cmd"].match(/(:\d+)/)
 					set_disp = match[1]

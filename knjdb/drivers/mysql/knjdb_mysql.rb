@@ -1,5 +1,6 @@
 class KnjDB_mysql
 	attr_reader :knjdb, :conn, :escape_table, :escape_col, :escape_val, :esc_table, :esc_col
+	attr_accessor :tables, :cols, :indexes
 	
 	def initialize(knjdb_ob)
 		@knjdb = knjdb_ob
@@ -31,6 +32,10 @@ class KnjDB_mysql
 				return KnjDB_mysql_result.new(@conn.query(string))
 			else
 				print "SQL: #{string}\n\n"
+				
+				puts e.message
+				puts e.backtrace
+				
 				raise e
 			end
 		end
@@ -56,42 +61,6 @@ class KnjDB_mysql
 	def destroy
 		@conn = nil
 		@knjdb = nil
-	end
-	
-	def tables
-		if !@tables
-			require "#{File.dirname(__FILE__)}/knjdb_mysql_tables"
-			@tables = KnjDB_mysql::Tables.new(
-				:driver => self,
-				:db => @knjdb
-			)
-		end
-		
-		return @tables
-	end
-	
-	def cols
-		if !@cols
-			require "#{File.dirname(__FILE__)}/knjdb_mysql_columns"
-			@cols = KnjDB_mysql::Columns.new(
-				:driver => self,
-				:db => @knjdb
-			)
-		end
-		
-		return @cols
-	end
-	
-	def indexes
-		if !@indexes
-			require "#{File.dirname(__FILE__)}/knjdb_mysql_indexes"
-			@indexes = KnjDB_mysql::Indexes.new(
-				:driver => self,
-				:db => @knjdb
-			)
-		end
-		
-		return @indexes
 	end
 end
 
