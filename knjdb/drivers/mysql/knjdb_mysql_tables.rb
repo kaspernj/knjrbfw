@@ -22,7 +22,8 @@ class KnjDB_mysql::Tables
 				@list[d_tables[:Name]] = KnjDB_mysql::Tables::Table.new(
 					:db => @db,
 					:driver => @driver,
-					:data => d_tables
+					:data => d_tables,
+					:tables => self
 				)
 			end
 		end
@@ -57,6 +58,7 @@ class KnjDB_mysql::Tables::Table
 	attr_accessor :list
 	
 	def initialize(args)
+		@args = args
 		@db = args[:db]
 		@driver = args[:driver]
 		@data = args[:data]
@@ -152,5 +154,13 @@ class KnjDB_mysql::Tables::Table
 			
 			@db.query(sql)
 		end
+	end
+	
+	def rename(newname)
+		oldname = self.name
+		@db.query("ALTER TABLE `#{oldname}` RENAME TO `#{newname}`")
+		@args[:tables].list[newname] = self
+		@args[:tables].list.delete(oldname)
+		@data[:Name] = newname
 	end
 end
