@@ -36,11 +36,10 @@ class Knj::Unix_proc
 				"app" => File.basename(match[4])
 			}
 			
-			add = true
-			add = false if (!args.has_key?("ignore_self") or args["ignore_self"]) and match[1].to_i == $$.to_i
-			add = false if grepstr and match[4].index(grepstr) == nil   #dont return current process.
+			next if (!args.has_key?("ignore_self") or args["ignore_self"]) and match[1].to_i == $$.to_i
+			next if grepstr.length > 0 and match[4].index(grepstr) != nil #dont return current process.
 			
-			ret << Knj::Unix_proc.spawn(data) if add
+			ret << Knj::Unix_proc.spawn(data)
 		end
 		
 		return ret
