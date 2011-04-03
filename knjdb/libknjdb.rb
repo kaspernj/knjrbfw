@@ -43,8 +43,8 @@ class Knj::Db
 			raise "No type given." if !@opts[:type]
 			
 			fpaths = [
-				"libknjdb_" + @opts[:type] + ".rb",
-				"drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}.rb"
+				"drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}.rb",
+				"libknjdb_" + @opts[:type] + ".rb"
 			]
 			fpaths.each do |fpath|
 				rpath = "#{File.dirname(__FILE__)}/#{fpath}"
@@ -235,9 +235,47 @@ class Knj::Db
 		return @conn.esc_table(str)
 	end
 	
+	def tables
+		if !@conn.tables
+			require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_tables"
+			@conn.tables = Kernel.const_get("KnjDB_#{@opts[:type]}".to_sym).const_get(:Tables).new(
+				:driver => @conn,
+				:db => self
+			)
+		end
+		
+		return @conn.tables
+	end
+	
+	def cols
+		if !@cols
+			require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_columns"
+			@cols = Kernel.const_get("KnjDB_#{@opts[:type]}".to_sym).const_get(:Columns).new(
+				:driver => @conn,
+				:db => self
+			)
+		end
+		
+		return @cols
+	end
+	
+	def indexes
+		if !@indexes
+			require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_indexes"
+			@indexes = Kernel.const_get("KnjDB_#{@opts[:type]}".to_sym).const_get(:Indexes).new(
+				:driver => @conn,
+				:db => self
+			)
+		end
+		
+		return @indexes
+	end
+	
 	def method_missing(method_name, *args)
 		if @conn.respond_to?(method_name.to_sym)
 			return @conn.send(method_name, *args)
 		end
+		
+		raise "Method not found: #{method_name}"
 	end
 end

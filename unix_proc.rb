@@ -24,7 +24,7 @@ class Knj::Unix_proc
 		end
 		
 		ret = []
-		res = %x[#{cmdstr}]
+		res = Knj::Os.shellcmd(cmdstr)
 		
 		res.scan(/^(\S+)\s+([0-9]+)\s+([0-9.]+)\s+([0-9.]+)\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+ (.+)($|\n)/) do |match|
 			data = {

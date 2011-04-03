@@ -1,5 +1,6 @@
 class KnjDB_mysql::Tables
 	attr_reader :db, :driver
+	attr_accessor :list
 	
 	def initialize(args)
 		@args = args
@@ -21,7 +22,8 @@ class KnjDB_mysql::Tables
 				@list[d_tables[:Name]] = KnjDB_mysql::Tables::Table.new(
 					:db => @db,
 					:driver => @driver,
-					:data => d_tables
+					:data => d_tables,
+					:tables => self
 				)
 			end
 		end
@@ -30,16 +32,14 @@ class KnjDB_mysql::Tables
 	end
 	
 	def create(name, data)
+		raise "No columns was given." if !data["columns"] or data["columns"].empty?
+		
 		sql = "CREATE TABLE `#{name}` ("
 		
 		first = true
 		data["columns"].each do |col_data|
-			if first
-				first = false
-			else
-				sql += ", "
-			end
-			
+			sql += ", " if !first
+			first = false if first
 			sql += @db.cols.data_sql(col_data)
 		end
 		
@@ -55,7 +55,10 @@ class KnjDB_mysql::Tables
 end
 
 class KnjDB_mysql::Tables::Table
+	attr_accessor :list
+	
 	def initialize(args)
+		@args = args
 		@db = args[:db]
 		@driver = args[:driver]
 		@data = args[:data]
@@ -104,9 +107,8 @@ class KnjDB_mysql::Tables::Table
 		if !@indexes_list
 			@db.indexes
 			@indexes_list = {}
-			sql = "SHOW INDEX FROM `#{self.name}`"
 			
-			q_indexes = @db.query(sql)
+			q_indexes = @db.query("SHOW INDEX FROM `#{self.name}`")
 			while d_indexes = q_indexes.fetch
 				@indexes_list[d_indexes[:Key_name]] = KnjDB_mysql::Indexes::Index.new(
 					:table => self,
@@ -152,5 +154,13 @@ class KnjDB_mysql::Tables::Table
 			
 			@db.query(sql)
 		end
+	end
+	
+	def rename(newname)
+		oldname = self.name
+		@db.query("ALTER TABLE `#{oldname}` RENAME TO `#{newname}`")
+		@args[:tables].list[newname] = self
+		@args[:tables].list.delete(oldname)
+		@data[:Name] = newname
 	end
 end

@@ -1,4 +1,4 @@
-class KnjDB_mysql::Columns
+class KnjDB_sqlite3::Columns
 	attr_reader :db, :driver
 	
 	def initialize(args)
@@ -13,10 +13,10 @@ class KnjDB_mysql::Columns
 		data["maxlength"] = 255 if data["type"] == "varchar" and !data.has_key?("maxlength")
 		
 		sql = "`#{data["name"]}` #{data["type"]}"
-		sql += "(#{data["maxlength"]})" if data["maxlength"]
+		sql += "(#{data["maxlength"]})" if data["maxlength"] and !data["autoincr"]
+		sql += "(11)" if !data.has_key?("maxlength") and !data["autoincr"]
 		sql += " PRIMARY KEY" if data["primarykey"]
-		sql += " AUTO_INCREMENT" if data["autoincr"]
-		sql += " NOT NULL" if !data["null"]
+		sql += " NOT NULL" if !data["null"] and data.has_key?("null")
 		
 		if data.has_key?("default_func")
 			sql += " DEFAULT #{data["default_func"]}"
@@ -25,14 +25,12 @@ class KnjDB_mysql::Columns
 		end
 		
 		sql += " COMMENT '#{@driver.escape(data["comment"])}'" if data.has_key?("comment")
-		sql += " AFTER `#{@driver.esc_col(data["after"])}`" if data["after"] and !data["first"]
-		sql += " FIRST" if data["first"]
 		
 		return sql
 	end
 end
 
-class KnjDB_mysql::Columns::Column
+class KnjDB_sqlite3::Columns::Column
 	attr_reader :args
 	
 	def initialize(args)
@@ -41,7 +39,7 @@ class KnjDB_mysql::Columns::Column
 	end
 	
 	def name
-		return @args[:data][:Field]
+		return @args[:data][:name]
 	end
 	
 	def data
@@ -58,18 +56,24 @@ class KnjDB_mysql::Columns::Column
 	
 	def type
 		if !@type
-			if match = @args[:data][:Type].match(/^([A-z]+)$/)
+			if match = @args[:data][:type].match(/^([A-z]+)$/)
 				@maxlength = false
-				@type = match[0]
-			elsif match = @args[:data][:Type].match(/^decimal\((\d+),(\d+)\)$/)
+				type = match[0]
+			elsif match = @args[:data][:type].match(/^decimal\((\d+),(\d+)\)$/)
 				@maxlength = "#{match[1]},#{match[2]}"
-				@type = "decimal"
-			elsif match = @args[:data][:Type].match(/^enum\((.+)\)$/)
+				type = "decimal"
+			elsif match = @args[:data][:type].match(/^enum\((.+)\)$/)
 				@maxlength = match[1]
-				@type = "enum"
-			elsif match = @args[:data][:Type].match(/^(.+)\((\d+)\)$/)
+				type = "enum"
+			elsif match = @args[:data][:type].match(/^(.+)\((\d+)\)$/)
 				@maxlength = match[2]
-				@type = match[1]
+				type = match[1]
+			end
+			
+			if type == "integer"
+				@type = "int"
+			else
+				@type = type
 			end
 		end
 		
@@ -77,7 +81,7 @@ class KnjDB_mysql::Columns::Column
 	end
 	
 	def null?
-		return false if @args[:data][:Null] == "NO"
+		return false if @args[:data][:notnull].to_i == 1
 		return true
 	end
 	
@@ -88,35 +92,33 @@ class KnjDB_mysql::Columns::Column
 	end
 	
 	def default
-		return false if !@args[:data][:Default]
-		return @args[:data][:Default]
+		def_val = @args[:data][:dflt_value]
+		if def_val.to_s.slice(0..0) == "'"
+			def_val = def_val.to_s.slice(0)
+		end
+		
+		if def_val.to_s.slice(-1..-1) == "'"
+			def_val = def_val.to_s.slice(0, def_val.length - 1)
+		end
+		
+		return false if @args[:data][:dflt_value].to_s.length == 0
+		return def_val
 	end
 	
 	def primarykey?
-		if @args[:data][:name] == "nr"
-			Knj::Php.print_r(@args[:data])
-			exit
-		end
-		
 		return false if @args[:data][:pk].to_i == 0
 		return true
 	end
 	
 	def autoincr?
-		if @args[:data][:name] == "nr"
-			Knj::Php.print_r(@args[:data])
-			exit
-		end
-		
+		Knj::Php.print_r(@args[:data])
 		return false
 	end
 	
-	def comment
-		return @args[:data][:Comment]
-	end
-	
 	def drop
-		@args[:db].query("ALTER TABLE `#{@args[:table].name}` DROP COLUMN `#{self.name}`")
+		@args[:table].copy(
+			"drops" => self.name
+		)
 	end
 	
 	def change(data)
@@ -133,7 +135,7 @@ class KnjDB_mysql::Columns::Column
 		newdata.delete("primarykey") if newdata.has_key?("primarykey")
 		
 		type_s = newdata["type"].to_s
-		@db.query("ALTER TABLE #{table_escape} CHANGE #{col_escaped} #{@db.cols.data_sql(newdata)}")
-		@args[:table].list = nil if data.has_key?("name") and data["name"] != self.name
+		sql = "ALTER TABLE #{table_escape} CHANGE #{col_escaped} #{@db.cols.data_sql(newdata)}"
+		@db.query(sql)
 	end
 end
