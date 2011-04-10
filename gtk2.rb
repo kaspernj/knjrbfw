@@ -8,7 +8,7 @@ module Knj::Gtk2
 		return Knj::Gtk2.msgbox(p1, p2, p3)
 	end
 	
-	def self.msgbox(paras, type = "warning", title = "Warning")
+	def self.msgbox(paras, type = "warning", title = nil)
 		if paras.is_a?(Array)
 			msg = paras[0]
 			title = paras[2]
@@ -28,8 +28,10 @@ module Knj::Gtk2
 		if !title
 			if type == "yesno"
 				title = "Question"
-			else
+			elsif type == "info"
 				title = "Message"
+			else
+				title = "Warning"
 			end
 		end
 		

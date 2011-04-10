@@ -40,6 +40,7 @@ class KnjDB_mysql::Tables
 		data["columns"].each do |col_data|
 			sql += ", " if !first
 			first = false if first
+			col_data.delete("after") if col_data["after"]
 			sql += @db.cols.data_sql(col_data)
 		end
 		
