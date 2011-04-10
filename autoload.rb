@@ -1,10 +1,12 @@
 $knjpath = File.dirname(__FILE__) + "/"
+require "#{$knjpath}/knj.rb"
 
 module Knj
 	autoload :ArrayExt, $knjpath + "arrayext"
 	autoload :Datestamp, $knjpath + "datestamp"
 	autoload :Datet, $knjpath + "datet"
 	autoload :Cpufreq, $knjpath + "cpufreq"
+	autoload :Datarow, $knjpath + "datarow.rb"
 	autoload :Db, $knjpath + "knjdb/libknjdb"
 	autoload :Db_row, $knjpath + "knjdb/libknjdb_row"
 	autoload :Degulesider, $knjpath + "degulesider"
