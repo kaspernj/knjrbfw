@@ -402,7 +402,7 @@ module Knj::Php
 	def self.html_entity_decode(string)
 		require "cgi"
 		string = CGI.unescapeHTML(string.to_s)
-		string = string.gsub("&oslash;", "ø").gsub("&aelig;", "æ").gsub("&aring;", "å").gsub("&euro;", "€")
+		string = string.gsub("&oslash;", "ø").gsub("&aelig;", "æ").gsub("&aring;", "å").gsub("&euro;", "€").gsub("#39;", "'")
 		return string
 	end
 	

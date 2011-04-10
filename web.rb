@@ -638,23 +638,23 @@ class Knj::Web
 		
 		agent = servervar["HTTP_USER_AGENT"].to_s.downcase
 		
-		if match = agent.match(/chrome\/(\d\.\d)/)
+		if match = agent.match(/chrome\/(\d+\.\d+)/)
 			browser = "chrome"
 			title = "Google Chrome"
 			version = match[1]
-		elsif match = agent.match(/firefox\/(\d\.\d)/)
+		elsif match = agent.match(/firefox\/(\d+\.\d+)/)
 			browser = "firefox"
 			title = "Mozilla Firefox"
 			version = match[1]
-		elsif match = agent.match(/msie\s*(\d\.\d)/)
+		elsif match = agent.match(/msie\s*(\d+\.\d+)/)
 			browser = "ie"
 			title = "Microsoft Internet Explorer"
 			version = match[1]
-		elsif match = agent.match(/opera\/([\d\.]+)/)
+		elsif match = agent.match(/opera\/([\d+\.]+)/)
 			browser = "opera"
 			title = "Opera"
 			version = match[1]
-		elsif match = agent.match(/wget\/([\d\.]+)/)
+		elsif match = agent.match(/wget\/([\d+\.]+)/)
 			browser = "bot"
 			title = "Bot"
 			version = "Wget #{match[1]}"
