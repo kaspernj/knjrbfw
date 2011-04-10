@@ -187,6 +187,7 @@ module Knj::Php
 	end
 	
 	def self.htmlspecialchars(string)
+		require "cgi"
 		return CGI.escapeHTML(string)
 	end
 	
@@ -261,10 +262,12 @@ module Knj::Php
 	end
 	
 	def self.urldecode(string)
+		require "cgi"
 		return CGI.unescape(string)
 	end
 	
 	def self.urlencode(string)
+		require "cgi"
 		return CGI.escape(string.to_s)
 	end
 	
@@ -397,6 +400,7 @@ module Knj::Php
 	end
 	
 	def self.html_entity_decode(string)
+		require "cgi"
 		string = CGI.unescapeHTML(string.to_s)
 		string = string.gsub("&oslash;", "ø").gsub("&aelig;", "æ").gsub("&aring;", "å").gsub("&euro;", "€")
 		return string
