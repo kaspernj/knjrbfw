@@ -91,7 +91,9 @@ class Knj::Eruby
 				loaded_content = Knj::Eruby::Handler.load_file(filepath, {:cachename => cachename})
 				print loaded_content.evaluate
 			end
-			rescue Exception => e
+		rescue SystemExit
+			#do nothing.
+		rescue Exception => e
 			self.handle_error(e)
 		end
 	end

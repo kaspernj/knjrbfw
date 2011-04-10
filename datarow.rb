@@ -11,14 +11,14 @@ class Knj::Datarow
 		return self.class.name.split("::").last
 	end
 	
-	def initialize(args)
-		@ob = args[:ob]
+	def initialize(d)
+		@ob = d.ob
 		raise "No ob given." if !@ob
 		
-		if args[:data].is_a?(Hash)
-			@data = args[:data]
-		elsif args[:data]
-			@data = {:id => args[:data]}
+		if d.data.is_a?(Hash)
+			@data = d.data
+		elsif d.data
+			@data = {:id => d.data}
 			self.reload
 		else
 			Knj::Php.print_r(args)

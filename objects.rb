@@ -106,10 +106,10 @@ class Knj::Objects
 		
 		if !@objects[classname][id]
 			if @args[:datarow]
-				@objects[classname][id] = @args[:module].const_get(classname).new(
+				@objects[classname][id] = @args[:module].const_get(classname).new(Knj::Hash_methods.new(
 					:ob => self,
 					:data => data
-				)
+				))
 			else
 				args = [data]
 				args = args | @args[:extra_args] if @args[:extra_args]
@@ -164,7 +164,7 @@ class Knj::Objects
 		raise "list-function has not been implemented for #{classname}" if !classob.respond_to?("list")
 		
 		if @args[:datarow]
-			ret = classob.list(:args => args, :ob => self, :db => @args[:db])
+			ret = classob.list(Knj::Hash_methods.new(:args => args, :ob => self, :db => @args[:db]))
 		else
 			realargs = [args]
 			realargs = realargs | @args[:extra_args] if @args[:extra_args]
@@ -291,11 +291,11 @@ class Knj::Objects
 		
 		if @args[:datarow]
 			if @args[:module].const_get(classname).respond_to?(:add)
-				@args[:module].const_get(classname).add(
+				@args[:module].const_get(classname).add(Knj::Hash_methods.new(
 					:ob => self,
 					:db => self.db,
 					:data => data
-				)
+				))
 			end
 			
 			@args[:db].insert(classname, data)
@@ -337,10 +337,11 @@ class Knj::Objects
 	def delete(object)
 		self.call("object" => object, "signal" => "delete_before")
 		self.unset(object)
+		obj_id = object.id
 		object.delete if object.respond_to?(:delete)
 		
 		if @args[:datarow]
-			@args[:db].delete(object.table, {:id => object.id})
+			@args[:db].delete(object.table, {:id => obj_id})
 		end
 		
 		self.call("object" => object, "signal" => "delete")
