@@ -78,7 +78,7 @@ autoload :Win32, "win32/registry"
 autoload :WIN32OLE, "win32ole"
 autoload :WEBrick, "webrick"
 autoload :XmlSimple, $knjpath + "autoload/xmlsimple"
-autoload :Zip, "zip/zip"
+autoload :Zip, $knjpath + "autoload/zip.rb"
 
 if RUBY_PLATFORM == "java"
 	autoload :GetText, $knjpath + "autoload/gettext"
