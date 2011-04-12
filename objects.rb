@@ -387,9 +387,11 @@ class Knj::Objects
 	end
 	
 	def sqlhelper(list_args, args)
-		db = @args[:db]
-		sql_where = ""
-		sql_order = ""
+		if args[:db]
+			db = args[:db]
+		else
+			db = @args[:db]
+		end
 		
 		if args[:table]
 			table = "`#{db.esc_table(args[:table])}`."
@@ -397,8 +399,17 @@ class Knj::Objects
 			table = ""
 		end
 		
+		sql_where = ""
+		sql_order = ""
+		sql_limit = ""
+		
 		limit_from = nil
 		limit_to = nil
+		
+		cols_str_has = args.has_key?(:cols_str)
+		cols_num_has = args.has_key?(:cols_num)
+		cols_date_has = args.has_key?(:cols_date)
+		cols_dbrows_has = args.has_key?(:cols_dbrows)
 		
 		if list_args.has_key?("orderby")
 			orders = []
@@ -406,8 +417,8 @@ class Knj::Objects
 			
 			if list_args["orderby"].is_a?(String)
 				found = false
-				found = true if !found and args.has_key?(:cols_str) and args[:cols_str].index(orderstr) != nil
-				found = true if !found and args.has_key?(:cols_date) and args[:cols_date].index(orderstr) != nil
+				found = true if !found and cols_str_has and args[:cols_str].index(orderstr) != nil
+				found = true if !found and cols_date_has and args[:cols_date].index(orderstr) != nil
 				
 				if found
 					sql_order += " ORDER BY "
@@ -446,8 +457,8 @@ class Knj::Objects
 					end
 					
 					found = false
-					found = true if !found and args.has_key?(:cols_str) and args[:cols_str].index(orderstr) != nil
-					found = true if !found and args.has_key?(:cols_date) and args[:cols_date].index(orderstr) != nil
+					found = true if !found and cols_str_has and args[:cols_str].index(orderstr) != nil
+					found = true if !found and cols_date_has and args[:cols_date].index(orderstr) != nil
 					
 					raise "Column not found for ordering: #{orderstr}." if !found
 					orders << "#{table}`#{db.esc_col(orderstr)}`#{ordermode}"
@@ -463,7 +474,7 @@ class Knj::Objects
 		list_args.each do |key, val|
 			found = false
 			
-			if args.has_key?(:cols_str) and args[:cols_str].index(key) != nil
+			if (cols_str_has and args[:cols_str].index(key) != nil) or (cols_num_has and args[:cols_num].index(key) != nil)
 				sql_where += " AND #{table}`#{db.esc_col(key)}` = '#{db.esc(val)}'"
 				found = true
 			elsif args.has_key?(:cols_bools) and args[:cols_bools].index(key) != nil
@@ -487,10 +498,10 @@ class Knj::Objects
 				limit_from = 0
 				limit_to = val.to_i
 				found = true
-			elsif args.has_key?(:cols_dbrows) and args[:cols_dbrows].index(key.to_s + "_id") != nil
+			elsif cols_dbrows_has and args[:cols_dbrows].index(key.to_s + "_id") != nil
 				sql_where += " AND #{table}`#{db.esc_col(key.to_s + "_id")}` = '#{db.esc(val.id.to_s.sql)}'"
 				found = true
-			elsif args.has_key?(:cols_str) and match = key.match(/^([A-z_\d]+)_(search|has)$/) and args[:cols_str].index(match[1]) != nil
+			elsif cols_str_has and match = key.match(/^([A-z_\d]+)_(search|has)$/) and args[:cols_str].index(match[1]) != nil
 				if match[2] == "search"
 					Knj::Strings.searchstring(val).each do |str|
 						sql_where += " AND #{table}`#{db.esc_col(match[1])}` LIKE '%#{db.esc(str)}%'"
@@ -504,10 +515,10 @@ class Knj::Objects
 				end
 				
 				found = true
-			elsif args.has_key?(:cols_str) and match = key.match(/^([A-z_\d]+)_not$/) and args[:cols_str].index(match[1]) != nil
+			elsif cols_str_has and match = key.match(/^([A-z_\d]+)_not$/) and args[:cols_str].index(match[1]) != nil
 				sql_where += " AND #{table}`#{db.esc_col(match[1])}` != '#{db.esc(val)}'"
 				found = true
-			elsif args.has_key?(:cols_date) and match = key.match(/^(.+)_(day|month|from|to)$/) and args[:cols_date].index(match[1]) != nil
+			elsif cols_date_has and match = key.match(/^(.+)_(day|month|from|to)$/) and args[:cols_date].index(match[1]) != nil
 				if match[2] == "day"
 					sql_where += " AND DATE_FORMAT(#{table}`#{db.esc_col(match[1])}`, '%d %m %Y') = DATE_FORMAT('#{db.esc(val.dbstr)}', '%d %m %Y')"
 				elsif match[2] == "month"
@@ -526,7 +537,6 @@ class Knj::Objects
 			list_args.delete(key) if found
 		end
 		
-		sql_limit = ""
 		if limit_from and limit_to
 			sql_limit = " LIMIT #{limit_from}, #{limit_to}"
 		end

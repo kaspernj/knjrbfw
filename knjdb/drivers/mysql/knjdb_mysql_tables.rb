@@ -6,6 +6,7 @@ class KnjDB_mysql::Tables
 		@args = args
 		@db = @args[:db]
 		@driver = @args[:driver]
+		@subtype = @db.opts[:subtype]
 	end
 	
 	def [](table_name)
@@ -19,6 +20,29 @@ class KnjDB_mysql::Tables
 			@list = {}
 			q_tables = @db.query("SHOW TABLE STATUS")
 			while d_tables = q_tables.fetch
+				if @subtype == "java"
+					d_tables = {
+						:Name => d_tables[:TABLE_NAME],
+						:Engine => d_tables[:ENGINE],
+						:Version => d_tables[:VERSION],
+						:Row_format => d_tables[:ROW_FORMAT],
+						:Rows => d_tables[:TABLE_ROWS],
+						:Avg_row_length => d_tables[:AVG_ROW_LENGTH],
+						:Data_length => d_tables[:DATA_LENGTH],
+						:Max_data_length => d_tables[:MAX_DATA_LENGTH],
+						:Index_length => d_tables[:INDEX_LENGTH],
+						:Data_free => d_tables[:DATA_FREE],
+						:Auto_increment => d_tables[:AUTO_INCREMENT],
+						:Create_time => d_tables[:CREATE_TIME],
+						:Update_time => d_tables[:UPDATE_TIME],
+						:Check_time => d_tables[:CHECK_TIME],
+						:Collation => d_tables[:TABLE_COLLATION],
+						:Checksum => d_tables[:CHECKSUM],
+						:Create_options => d_tables[:CREATE_OPTIONS],
+						:Comment => d_tables[:TABLE_COMMENT]
+					}
+				end
+				
 				@list[d_tables[:Name]] = KnjDB_mysql::Tables::Table.new(
 					:db => @db,
 					:driver => @driver,
@@ -63,6 +87,7 @@ class KnjDB_mysql::Tables::Table
 		@db = args[:db]
 		@driver = args[:driver]
 		@data = args[:data]
+		@subtype = @db.opts[:subtype]
 	end
 	
 	def name
@@ -92,6 +117,20 @@ class KnjDB_mysql::Tables::Table
 			
 			q_cols = @db.query(sql)
 			while d_cols = q_cols.fetch
+				if @subtype == "java"
+					d_cols = {
+						:Field => d_cols[:COLUMN_NAME],
+						:Type => d_cols[:COLUMN_TYPE],
+						:Collation => d_cols[:COLLATION_NAME],
+						:Null => d_cols[:IS_NULLABLE],
+						:Key => d_cols[:COLUMN_KEY],
+						:Default => d_cols[:COLUMN_DEFAULT],
+						:Extra => d_cols[:EXTRA],
+						:Privileges => d_cols[:PRIVILEGES],
+						:Comment => d_cols[:COLUMN_COMMENT]
+					}
+				end
+				
 				@list[d_cols[:Field]] = KnjDB_mysql::Columns::Column.new(
 					:table => self,
 					:db => @db,

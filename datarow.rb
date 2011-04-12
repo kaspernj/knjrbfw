@@ -7,6 +7,48 @@ class Knj::Datarow
 		return self.name.split("::").last
 	end
 	
+	def self.columns(d)
+		columns_load(d) if !@columns
+		return @columns
+	end
+	
+	def self.columns_load(d)
+		return nil if @columns
+		@columns = d.db.tables[name].columns
+	end
+	
+	def self.list_helper(d)
+		if !@columns_sqlhelper_args
+			cols = self.columns(d)
+			
+			sqlhelper_args = {
+				:db => d.db,
+				:table => table,
+				:cols_str => [],
+				:cols_num => [],
+				:cols_dbrows => [],
+				:cols_date => []
+			}
+			cols.each do |col_name, col_obj|
+				col_type = col_obj.type
+				
+				if col_type == "int" and col_name.slice(-3, 3) == "_id"
+					sqlhelper_args[:cols_dbrows] << col_name
+				elsif col_type == "int"
+					sqlhelper_args[:cols_num] << col_name
+				elsif col_type == "varchar" or col_type == "text" or col_type == "enum"
+					sqlhelper_args[:cols_str] << col_name
+				elsif col_type == "date" or col_type == "datetime"
+					sqlhelper_args[:cols_date] << col_name
+				end
+			end
+			
+			@columns_sqlhelper_args = sqlhelper_args
+		end
+		
+		return d.ob.sqlhelper(d.args, @columns_sqlhelper_args)
+	end
+	
 	def table
 		return self.class.name.split("::").last
 	end
@@ -84,8 +126,6 @@ class Knj::Datarow
 		elsif @data.has_key?(:name)
 			return @data[:name]
 		end
-		
-		Knj::Php.print_r(@data)
 		
 		raise "Couldnt figure out the title/name of the object on class #{self.class.name}."
 	end
