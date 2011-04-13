@@ -37,7 +37,7 @@ class Knj::Unix_proc
 			}
 			
 			next if (!args.has_key?("ignore_self") or args["ignore_self"]) and match[1].to_i == $$.to_i
-			next if args["grep"] and match[4].index(args["grep"]) == nil #dont return current process.
+			next if grepstr.length > 0 and match[4].index(grepstr) != nil #dont return current process.
 			
 			ret << Knj::Unix_proc.spawn(data)
 		end

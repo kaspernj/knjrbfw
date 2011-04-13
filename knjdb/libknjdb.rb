@@ -10,6 +10,10 @@ class Knj::Db
 		return "`"
 	end
 	
+	def args
+		return @opts
+	end
+	
 	def setOpts(arr_opts)
 		@opts = {}
 		

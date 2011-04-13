@@ -13,6 +13,10 @@ class Knj::Objects
 		raise "No class path given." if !@args[:class_path]
 	end
 	
+	def db
+		return @args[:db]
+	end
+	
 	def count_objects
 		count = 0
 		@objects.clone.each do |key, value|
@@ -90,17 +94,27 @@ class Knj::Objects
 			id = data[@args[:col_id].to_s].to_i
 		elsif data.is_a?(Integer) or data.is_a?(String) or data.is_a?(Fixnum)
 			id = data.to_i
-		else
+		elsif
+			Knj::Php.print_r(data)
 			raise Knj::Errors::InvalidData.new("Unknown data: #{data.class.to_s}.")
 		end
 		
-		@objects[classname] = {} if !@objects[classname]
+		if !@objects[classname]
+			self.requireclass(classname)
+			@objects[classname] = {}
+		end
 		
 		if !@objects[classname][id]
-			self.requireclass(classname)
-			args = [data]
-			args = args | @args[:extra_args] if @args[:extra_args]
-			@objects[classname][id] = @args[:module].const_get(classname).new(*args)
+			if @args[:datarow]
+				@objects[classname][id] = @args[:module].const_get(classname).new(
+					:ob => self,
+					:data => data
+				)
+			else
+				args = [data]
+				args = args | @args[:extra_args] if @args[:extra_args]
+				@objects[classname][id] = @args[:module].const_get(classname).new(*args)
+			end
 		end
 		
 		return @objects[classname][id]
@@ -116,10 +130,7 @@ class Knj::Objects
 		args[:limit_from] = 0
 		args[:limit_to] = 1
 		
-		realargs = [args]
-		realargs = realargs | @args[:extra_args] if @args[:extra_args]
-		
-		classob.list(*realargs).each do |obj|
+		self.list(classname, args) do |obj|
 			return obj
 		end
 		
@@ -152,18 +163,20 @@ class Knj::Objects
 		
 		raise "list-function has not been implemented for #{classname}" if !classob.respond_to?("list")
 		
-		realargs = [args]
-		realargs = realargs | @args[:extra_args] if @args[:extra_args]
+		if @args[:datarow]
+			ret = classob.list(:args => args, :ob => self, :db => @args[:db])
+		else
+			realargs = [args]
+			realargs = realargs | @args[:extra_args] if @args[:extra_args]
+			ret = classob.list(*realargs)
+		end
 		
 		if block_given?
-			objects_return = classob.list(*realargs, &block)
-			if objects_return
-				objects_return.each do |object|
-					block.call(object)
-				end
+			ret.each do |obj|
+				yield(obj)
 			end
 		else
-			return classob.list(*realargs)
+			return ret
 		end
 	end
 	
@@ -276,8 +289,23 @@ class Knj::Objects
 		args = [data]
 		args = args | @args[:extra_args] if @args[:extra_args]
 		
-		retob = @args[:module].const_get(classname).add(*args)
+		if @args[:datarow]
+			if @args[:module].const_get(classname).respond_to?(:add)
+				@args[:module].const_get(classname).add(
+					:ob => self,
+					:db => self.db,
+					:data => data
+				)
+			end
+			
+			@args[:db].insert(classname, data)
+			retob = self.get(classname, @args[:db].last_id)
+		else
+			retob = @args[:module].const_get(classname).add(*args)
+		end
+		
 		self.call("object" => retob, "signal" => "add")
+		
 		return retob
 	end
 	
@@ -309,7 +337,12 @@ class Knj::Objects
 	def delete(object)
 		self.call("object" => object, "signal" => "delete_before")
 		self.unset(object)
-		object.delete
+		object.delete if object.respond_to?(:delete)
+		
+		if @args[:datarow]
+			@args[:db].delete(object.table, {:id => object.id})
+		end
+		
 		self.call("object" => object, "signal" => "delete")
 		object.destroy
 	end

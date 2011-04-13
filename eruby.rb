@@ -41,54 +41,58 @@ class Knj::Eruby
 		
 		raise "File does not exist: #{filename}" if !File.exists?(filename)
 		
-		if !cacheexists or filetime > cachetime
-			Knj::Eruby::Handler.load_file(filepath, {:cachename => cachename})
-			cachetime = File.mtime(cachename)
-			reload_cache = true
-		end
-		
-		if @java_compile
-			if !@eruby_java_cache[cachename] or reload_cache
-				@eruby_java_cache[cachename] = File.read(cachename)
-				#@eruby_java_cache[cachename] = Knj::Jruby_compiler.new(:path => cachename)
+		begin
+			if !cacheexists or filetime > cachetime
+				Knj::Eruby::Handler.load_file(filepath, {:cachename => cachename})
+				cachetime = File.mtime(cachename)
+				reload_cache = true
 			end
 			
-			eval(@eruby_java_cache[cachename])
-			#@eruby_java_cache[cachename].run
-		elsif @inseq_cache
-			if @inseq_rbc
-				pi = Knj::Php.pathinfo(filename)
-				bytepath = pi["dirname"] + "/" + pi["basename"] + ".rbc"
-				byteexists = File.exists?(bytepath)
-				bytetime = File.mtime(bytepath) if File.exists?(bytepath)
-				pi.clear
+			if @java_compile
+				if !@eruby_java_cache[cachename] or reload_cache
+					@eruby_java_cache[cachename] = File.read(cachename)
+					#@eruby_java_cache[cachename] = Knj::Jruby_compiler.new(:path => cachename)
+				end
 				
-				if !File.exists?(bytepath) or cachetime > bytetime
-					res = RubyVM::InstructionSequence.compile_file(filename)
-					data = Marshal.dump(res.to_a)
-					File.open(bytepath, "w+") do |fp|
-						fp.write(data)
+				eval(@eruby_java_cache[cachename])
+				#@eruby_java_cache[cachename].run
+			elsif @inseq_cache
+				if @inseq_rbc
+					pi = Knj::Php.pathinfo(filename)
+					bytepath = pi["dirname"] + "/" + pi["basename"] + ".rbc"
+					byteexists = File.exists?(bytepath)
+					bytetime = File.mtime(bytepath) if File.exists?(bytepath)
+					pi.clear
+					
+					if !File.exists?(bytepath) or cachetime > bytetime
+						res = RubyVM::InstructionSequence.compile_file(filename)
+						data = Marshal.dump(res.to_a)
+						File.open(bytepath, "w+") do |fp|
+							fp.write(data)
+						end
 					end
 				end
-			end
-			
-			if @inseq_rbc
-				res = Marshal.load(File.read(bytepath))
-				RubyVM::InstructionSequence.load(res).eval
-			else
-				if !@eruby_rbyte[cachename] or @eruby_rbyte[cachename][:time] < filetime
-					#@eruby_rbyte[cachename] = RubyVM::InstructionSequence.compile_file(cachename)
-					@eruby_rbyte[cachename] = {
-						:inseq => RubyVM::InstructionSequence.new(File.read(cachename)),
-						:time => Time.new
-					}
-				end
 				
-				@eruby_rbyte[cachename][:inseq].eval
+				if @inseq_rbc
+					res = Marshal.load(File.read(bytepath))
+					RubyVM::InstructionSequence.load(res).eval
+				else
+					if !@eruby_rbyte[cachename] or @eruby_rbyte[cachename][:time] < filetime
+						#@eruby_rbyte[cachename] = RubyVM::InstructionSequence.compile_file(cachename)
+						@eruby_rbyte[cachename] = {
+							:inseq => RubyVM::InstructionSequence.new(File.read(cachename)),
+							:time => Time.new
+						}
+					end
+					
+					@eruby_rbyte[cachename][:inseq].eval
+				end
+			else
+				loaded_content = Knj::Eruby::Handler.load_file(filepath, {:cachename => cachename})
+				print loaded_content.evaluate
 			end
-		else
-			loaded_content = Knj::Eruby::Handler.load_file(filepath, {:cachename => cachename})
-			print loaded_content.evaluate
+			rescue Exception => e
+			self.handle_error(e)
 		end
 	end
 	
@@ -201,39 +205,42 @@ class Knj::Eruby
 		rescue SystemExit => e
 			self.printcont(tmp_out, args)
 		rescue Exception => e
-			begin
-				if KnjEruby.connects["error"]
-					KnjEruby.connects["error"].each do |block|
-						block.call(e)
-					end
+			self.handle_error(e)
+			self.printcont(tmp_out, args)
+		end
+	end
+	
+	def handle_error(e)
+		begin
+			if KnjEruby.connects["error"]
+				KnjEruby.connects["error"].each do |block|
+					block.call(e)
 				end
-			rescue SystemExit => e
-				exit
-			rescue Exception => e
-				#An error occurred while trying to run the on-error-block - show this as an normal error.
-				print "\n\n<pre>\n\n"
-				print "<b>#{CGI.escapeHTML(e.class.name)}: #{CGI.escapeHTML(e.message)}</b>\n\n"
-				
-				#Lets hide all the stuff in what is not the users files to make it easier to debug.
-				bt = e.backtrace
-				#to = bt.length - 9
-				#bt = bt[0..to]
-				
-				bt.each do |line|
-					print CGI.escapeHTML(line) + "\n"
-				end
-				
-				print "</pre>"
 			end
-			
+		rescue SystemExit => e
+			exit
+		rescue Exception => e
+			#An error occurred while trying to run the on-error-block - show this as an normal error.
 			print "\n\n<pre>\n\n"
 			print "<b>#{CGI.escapeHTML(e.class.name)}: #{CGI.escapeHTML(e.message)}</b>\n\n"
 			
-			e.backtrace.each do |line|
+			#Lets hide all the stuff in what is not the users files to make it easier to debug.
+			bt = e.backtrace
+			#to = bt.length - 9
+			#bt = bt[0..to]
+			
+			bt.each do |line|
 				print CGI.escapeHTML(line) + "\n"
 			end
 			
-			self.printcont(tmp_out, args)
+			print "</pre>"
+		end
+		
+		print "\n\n<pre>\n\n"
+		print "<b>#{CGI.escapeHTML(e.class.name)}: #{CGI.escapeHTML(e.message)}</b>\n\n"
+		
+		e.backtrace.each do |line|
+			print CGI.escapeHTML(line) + "\n"
 		end
 	end
 end
