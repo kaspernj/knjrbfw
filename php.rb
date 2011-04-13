@@ -584,6 +584,14 @@ module Knj::Php
 		return ret.join(".")
 	end
 	
+	def self.base64_encode(str)
+		return Base64.encode64(str.to_s)
+	end
+	
+	def self.base64_decode(str)
+		return Base64.decode64(str.to_s)
+	end
+	
 	def self.pathinfo(filepath)
 		filepath = filepath.to_s
 		

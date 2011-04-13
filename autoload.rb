@@ -47,6 +47,7 @@ module Knj
 end
 
 #ruby objects.
+autoload :Base64, "base64"
 autoload :CGI, "cgi"
 autoload :CSV, "csv"
 autoload :Date, "date"
