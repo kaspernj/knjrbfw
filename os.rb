@@ -44,7 +44,7 @@ module Knj::Os
 	end
 	
 	def self.mode
-		Php.print_r(ENV)
+		Knj::Php.print_r(ENV)
 	end
 	
 	def self.class_exist(classstr)
@@ -151,7 +151,7 @@ module Knj::Os
 		proc_self = Knj::Unix_proc.find_self
 		cmd = proc_self["cmd"]
 		
-		cmd.gsub!(/^ruby/, ENV["_"]) if ENV["_"]
+		cmd.gsub!(/^ruby([\d\.]+)/, ENV["_"]) if ENV["_"]
 		
 		return cmd
 	end
