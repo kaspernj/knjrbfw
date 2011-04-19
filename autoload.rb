@@ -16,6 +16,7 @@ module Knj
 	autoload :Exchangerates, $knjpath + "exchangerates"
 	autoload :Gettext_threadded, $knjpath + "gettext_threadded"
 	autoload :Hash_methods, $knjpath + "hash_methods.rb"
+	autoload :Ip2location, $knjpath + "ip2location.rb"
 	autoload :Jruby_compiler, $knjpath + "jruby_compiler"
 	autoload :Locales, $knjpath + "locales"
 	autoload :Objects, $knjpath + "objects"
@@ -51,6 +52,7 @@ module Knj
 end
 
 #ruby objects.
+autoload :Base64, "base64"
 autoload :CGI, "cgi"
 autoload :CSV, "csv"
 autoload :Date, "date"
