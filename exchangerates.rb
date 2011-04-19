@@ -22,7 +22,7 @@ class Knj::Exchangerates
 		floatval = floatval.to_f
 		locale = locale.to_s
 		
-		raise "No such locale: #{locale}." if !@rates.has_key?(locale)
+		raise "No such locale: '#{locale}' in '#{@rates.keys.join(",")}'." if !@rates.has_key?(locale)
 		
 		base_rate = @rates[@base][:rate].to_f
 		cur_rate = @rates[locale][:rate].to_f

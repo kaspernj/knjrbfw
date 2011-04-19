@@ -1,10 +1,12 @@
 $knjpath = File.dirname(__FILE__) + "/"
+require "#{$knjpath}/knj.rb"
 
 module Knj
 	autoload :ArrayExt, $knjpath + "arrayext"
 	autoload :Datestamp, $knjpath + "datestamp"
 	autoload :Datet, $knjpath + "datet"
 	autoload :Cpufreq, $knjpath + "cpufreq"
+	autoload :Datarow, $knjpath + "datarow.rb"
 	autoload :Db, $knjpath + "knjdb/libknjdb"
 	autoload :Db_row, $knjpath + "knjdb/libknjdb_row"
 	autoload :Degulesider, $knjpath + "degulesider"
@@ -49,6 +51,7 @@ module Knj
 end
 
 #ruby objects.
+autoload :Base64, "base64"
 autoload :CGI, "cgi"
 autoload :CSV, "csv"
 autoload :Date, "date"
@@ -79,7 +82,7 @@ autoload :Win32, "win32/registry"
 autoload :WIN32OLE, "win32ole"
 autoload :WEBrick, "webrick"
 autoload :XmlSimple, $knjpath + "autoload/xmlsimple"
-autoload :Zip, "zip/zip"
+autoload :Zip, $knjpath + "autoload/zip.rb"
 
 if RUBY_PLATFORM == "java"
 	autoload :GetText, $knjpath + "autoload/gettext"

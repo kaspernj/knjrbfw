@@ -187,6 +187,7 @@ module Knj::Php
 	end
 	
 	def self.htmlspecialchars(string)
+		require "cgi"
 		return CGI.escapeHTML(string)
 	end
 	
@@ -261,10 +262,12 @@ module Knj::Php
 	end
 	
 	def self.urldecode(string)
+		require "cgi"
 		return CGI.unescape(string)
 	end
 	
 	def self.urlencode(string)
+		require "cgi"
 		return CGI.escape(string.to_s)
 	end
 	
@@ -397,8 +400,9 @@ module Knj::Php
 	end
 	
 	def self.html_entity_decode(string)
+		require "cgi"
 		string = CGI.unescapeHTML(string.to_s)
-		string = string.gsub("&oslash;", "ø").gsub("&aelig;", "æ").gsub("&aring;", "å").gsub("&euro;", "€")
+		string = string.gsub("&oslash;", "ø").gsub("&aelig;", "æ").gsub("&aring;", "å").gsub("&euro;", "€").gsub("#39;", "'")
 		return string
 	end
 	
@@ -582,6 +586,14 @@ module Knj::Php
 		ret = splitted.split(".")
 		ret.delete(ret.last)
 		return ret.join(".")
+	end
+	
+	def self.base64_encode(str)
+		return Base64.encode64(str.to_s)
+	end
+	
+	def self.base64_decode(str)
+		return Base64.decode64(str.to_s)
 	end
 	
 	def self.pathinfo(filepath)

@@ -2,7 +2,7 @@ class Knj::Web
 	attr_reader :session, :cgi, :data
 	
 	def initialize(args = {})
-		@args = ArrayExt.hash_sym(args)
+		@args = Knj::ArrayExt.hash_sym(args)
 		@db = @args[:db] if @args[:db] 
 		@args[:tmp] = "/tmp" if !@args[:tmp]
 		
@@ -638,23 +638,23 @@ class Knj::Web
 		
 		agent = servervar["HTTP_USER_AGENT"].to_s.downcase
 		
-		if match = agent.match(/chrome\/(\d\.\d)/)
+		if match = agent.match(/chrome\/(\d+\.\d+)/)
 			browser = "chrome"
 			title = "Google Chrome"
 			version = match[1]
-		elsif match = agent.match(/firefox\/(\d\.\d)/)
+		elsif match = agent.match(/firefox\/(\d+\.\d+)/)
 			browser = "firefox"
 			title = "Mozilla Firefox"
 			version = match[1]
-		elsif match = agent.match(/msie\s*(\d\.\d)/)
+		elsif match = agent.match(/msie\s*(\d+\.\d+)/)
 			browser = "ie"
 			title = "Microsoft Internet Explorer"
 			version = match[1]
-		elsif match = agent.match(/opera\/([\d\.]+)/)
+		elsif match = agent.match(/opera\/([\d+\.]+)/)
 			browser = "opera"
 			title = "Opera"
 			version = match[1]
-		elsif match = agent.match(/wget\/([\d\.]+)/)
+		elsif match = agent.match(/wget\/([\d+\.]+)/)
 			browser = "bot"
 			title = "Bot"
 			version = "Wget #{match[1]}"
@@ -721,6 +721,71 @@ class Knj::Web
 			"title" => title,
 			"version" => version
 		}
+	end
+	
+	def self.locale(args = {})
+		begin
+			servervar = _server
+		rescue Exception
+			servervar = $_SERVER
+		end
+		
+		if !servervar
+			raise "Could not figure out meta data."
+		end
+		
+		ret = {
+			:recommended => [],
+			:browser => []
+		}
+		
+		alangs = servervar["HTTP_ACCEPT_LANGUAGE"].to_s
+		if alangs.length > 0
+			alangs.split(/\s*,\s*/).each do |alang|
+				if qmatch = alang.match(/;\s*q=([\d\.]+)/)
+					alang.gsub!(/;\s*q=([\d\.]+)/, "")
+					q = qmatch[1].to_f
+				else
+					q = 1.0
+				end
+				
+				if match = alang.match(/^([A-z]+)-([A-z]+)$/)
+					locale = match[1]
+					sublocale = match[2]
+				else
+					locale = alang
+					sublocale = false
+				end
+				
+				ret[:browser] << {
+					:locale => locale,
+					:sublocale => sublocale,
+					:q => q
+				}
+			end
+		end
+		
+		if args[:supported] and ret[:browser]
+			ret[:browser].each do |locale|
+				args[:supported].each do |supported_locale|
+					if match = supported_locale.match(/^([A-z]+)_([A-z]+)$/)
+						if match[1] == locale[:locale]
+							if !locale[:sublocale]
+								ret[:recommended] << supported_locale if ret[:recommended].index(supported_locale) == nil
+							elsif locale[:sublocale] == match[1]
+								ret[:recommended] << supported_locale if ret[:recommended].index(supported_locale) == nil
+							end
+						end
+					end
+				end
+			end
+		end
+		
+		if args[:default]
+			ret[:recommended] << args[:default] if ret[:recommended].index(args[:default]) == nil
+		end
+		
+		return ret
 	end
 end
 
