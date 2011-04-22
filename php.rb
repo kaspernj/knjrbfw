@@ -26,7 +26,7 @@ module Knj::Php
 			superstr = supercl.to_s
 		end
 		
-		if argument.is_a?(Hash) or supercl.is_a?(Hash) or cstr == "Knjappserver::Session_accessor" or cstr == "SQLite3::ResultSet::HashWithTypes" or cstr == "CGI" or cstr == "Knj::Db_row" or cstr == "Apache::Table" or superstr == "Knj::Db_row" or argument.respond_to?(:to_hash)
+		if argument.is_a?(Hash) or supercl.is_a?(Hash) or cstr == "Knjappserver::Session_accessor" or cstr == "SQLite3::ResultSet::HashWithTypes" or cstr == "CGI" or cstr == "Knj::Db_row" or cstr == "Knj::Datarow" or cstr == "Apache::Table" or superstr == "Knj::Db_row" or superstr == "Knj::Datarow" or argument.respond_to?(:to_hash)
 			if argument.respond_to?(:to_hash)
 				argument_use = argument.to_hash
 			else
@@ -628,6 +628,21 @@ module Knj::Php
 	# Should return the peak usage of the running script, but I have found no way to detect this... Instead returns the currently memory usage.
 	def self.memory_get_peak_usage
 		return self.memory_get_usage
+	end
+	
+	def self.ip2long(ip)
+		return IPAddr.new(ip).to_i
+	end
+	
+	# Thanks to this link for the following functions: http://snippets.dzone.com/posts/show/4509
+	def self.long2ip(long)
+		ip = []
+		4.times do |i|
+			ip.push(long.to_i & 255)
+			long = long.to_i >> 8
+		end
+		
+		ip.reverse.join(".")
 	end
 	
 	Knj::Php.singleton_methods.each do |methodname|

@@ -309,6 +309,27 @@ class Knj::Objects
 		return retob
 	end
 	
+	def adds(classname, datas)
+		if !@args[:datarow]
+			datas.each do |data|
+				@args[:module].const_get(classname).add(*args)
+				self.call("object" => retob, "signal" => "add")
+			end
+		else
+			if @args[:module].const_get(classname).respond_to?(:add)
+				datas.each do |data|
+					@args[:module].const_get(classname).add(Knj::Hash_methods.new(
+						:ob => self,
+						:db => self.db,
+						:data => data
+					))
+				end
+			end
+			
+			db.insert_multi(classname, datas)
+		end
+	end
+	
 	# Unset object. Do this if you are sure, that there are no more references left. This will be done automatically when deleting it.
 	def unset(object)
 		classname = object.class.name
@@ -346,6 +367,31 @@ class Knj::Objects
 		
 		self.call("object" => object, "signal" => "delete")
 		object.destroy
+	end
+	
+	def deletes(objs)
+		if !@args[:datarow]
+			objs.each do |obj|
+				self.delete(obj)
+			end
+		else
+			arr_ids = []
+			ids = []
+			objs.each do |obj|
+				ids << obj.id
+				if ids.length >= 1000
+					arr_ids << ids
+					ids = []
+				end
+				
+				obj.delete if obj.respond_to?(:delete)
+			end
+			
+			arr_ids << ids if ids.length > 0
+			arr_ids.each do |ids|
+				@args[:db].delete(objs[0].table, {:id => ids})
+			end
+		end
 	end
 	
 	# Try to clean up objects by unsetting everything, start the garbagecollector, get all the remaining objects via ObjectSpace and set them again. Some (if not all) should be cleaned up and our cache should still be safe... dirty but works.
@@ -529,6 +575,16 @@ class Knj::Objects
 					sql_where += " AND #{table}`#{db.esc_col(match[1])}` <= '#{db.esc(val.dbstr)}'"
 				else
 					raise "Unknown date-key: #{match[2]}."
+				end
+				
+				found = true
+			elsif cols_num_has and match = key.match(/^(.+)_(from|to)$/) and args[:cols_num].index(match[1]) != nil
+				if match[2] == "from"
+					sql_where += " AND #{table}`#{db.esc_col(match[1])}` <= '#{db.esc(val)}'"
+				elsif match[2] == "to"
+					sql_where += " AND #{table}`#{db.esc_col(match[1])}` >= '#{db.esc(val)}'"
+				else
+					raise "Unknown method of treating cols-num-argument: #{match[2]}."
 				end
 				
 				found = true

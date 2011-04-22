@@ -14,7 +14,7 @@ class Knj::Datarow
 	
 	def self.columns_load(d)
 		return nil if @columns
-		@columns = d.db.tables[name].columns
+		@columns = d.db.tables[table].columns
 	end
 	
 	def self.list_helper(d)
@@ -34,7 +34,7 @@ class Knj::Datarow
 				
 				if col_type == "int" and col_name.slice(-3, 3) == "_id"
 					sqlhelper_args[:cols_dbrows] << col_name
-				elsif col_type == "int"
+				elsif col_type == "int" or col_type == "bigint"
 					sqlhelper_args[:cols_num] << col_name
 				elsif col_type == "varchar" or col_type == "text" or col_type == "enum"
 					sqlhelper_args[:cols_str] << col_name

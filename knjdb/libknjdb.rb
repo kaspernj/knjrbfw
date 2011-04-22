@@ -114,6 +114,16 @@ class Knj::Db
 		self.query(sql)
 	end
 	
+	def insert_multi(tablename, arr_hashes)
+		if @conn.respond_to?(:insert_multi)
+			@conn.insert_multi(tablename, arr_hashes)
+		else
+			arr_hashes.each do |hash|
+				self.insert(tablename, hash)
+			end
+		end
+	end
+	
 	def update(tablename, arr_update, arr_terms = {})
 		sql = "UPDATE #{@conn.escape_col}#{tablename.to_s}#{@conn.escape_col} SET "
 		
