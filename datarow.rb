@@ -24,15 +24,18 @@ class Knj::Datarow
 			sqlhelper_args = {
 				:db => d.db,
 				:table => table,
-				:cols_str => [],
-				:cols_num => [],
+				:cols_bools => [],
+				:cols_date => [],
 				:cols_dbrows => [],
-				:cols_date => []
+				:cols_num => [],
+				:cols_str => []
 			}
 			cols.each do |col_name, col_obj|
 				col_type = col_obj.type
 				
-				if col_type == "int" and col_name.slice(-3, 3) == "_id"
+				if col_type == "enum" and col_obj.maxlength == "'0','1'"
+					sqlhelper_args[:cols_bools] << col_name
+				elsif col_type == "int" and col_name.slice(-3, 3) == "_id"
 					sqlhelper_args[:cols_dbrows] << col_name
 				elsif col_type == "int" or col_type == "bigint"
 					sqlhelper_args[:cols_num] << col_name

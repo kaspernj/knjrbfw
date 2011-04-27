@@ -524,12 +524,12 @@ class Knj::Objects
 				sql_where += " AND #{table}`#{db.esc_col(key)}` = '#{db.esc(val)}'"
 				found = true
 			elsif args.has_key?(:cols_bools) and args[:cols_bools].index(key) != nil
-				if val.is_a?(TrueClass) or (val.is_a?(Integer) and val.to_i == 1)
+				if val.is_a?(TrueClass) or (val.is_a?(Integer) and val.to_i == 1) or (val.is_a?(String) and (val == "true" or val == "1"))
 					realval = "1"
-				elsif val.is_a?(FalseClass) or (val.is_a?(Integer) and val.to_i == 0)
+				elsif val.is_a?(FalseClass) or (val.is_a?(Integer) and val.to_i == 0) or (val.is_a?(String) and (val == "false" or val == "0"))
 					realval = "0"
 				else
-					raise "Could not make real value out of class: #{val.class.name}."
+					raise "Could not make real value out of class: #{val.class.name} => #{val}."
 				end
 				
 				sql_where += " AND #{table}`#{db.esc_col(key)}` = '#{db.esc(realval)}'"
