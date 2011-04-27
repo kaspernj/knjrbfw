@@ -131,6 +131,10 @@ class KnjDB_mysql
 		end
 	end
 	
+	def close
+		@conn.close
+	end
+	
 	def destroy
 		@conn = nil
 		@knjdb = nil
