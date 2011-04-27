@@ -12,7 +12,6 @@ class Knj::Threadhandler
 		@thread_timeout = Knj::Thread.new do
 			loop do
 				sleep @args[:timeout]
-				STDOUT.print "Checking timeout.\n"
 				check_inactive
 			end
 		end
