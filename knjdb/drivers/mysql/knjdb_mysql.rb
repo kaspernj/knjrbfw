@@ -25,18 +25,16 @@ class KnjDB_mysql
 		if !@subtype or @subtype == "mysql"
 			@conn = Mysql.real_connect(@knjdb.opts[:host], @knjdb.opts[:user], @knjdb.opts[:pass], @knjdb.opts[:db], @port)
 		elsif @subtype == "mysql2"
-			args = {
+			require "rubygems"
+			require "mysql2"
+			@conn = Mysql2::Client.new(
 				:host => @knjdb.opts[:host],
 				:username => @knjdb.opts[:user],
 				:password => @knjdb.opts[:pass],
 				:database => @knjdb.opts[:db],
 				:port => @port,
 				:symbolize_keys => true
-			}
-			
-			require "rubygems"
-			require "mysql2"
-			@conn = Mysql2::Client.new(args)
+			)
 		elsif @subtype == "java"
 			if !@jdbc_loaded
 				require "java"

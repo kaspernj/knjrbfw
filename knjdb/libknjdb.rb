@@ -1,8 +1,7 @@
 class Knj::Db
-	attr_reader :opts, :conn
+	attr_reader :opts, :conn, :conns
 	
 	def initialize(opts)
-		@conns = {}
 		self.setOpts(opts) if opts != nil
 	end
 	
@@ -16,13 +15,8 @@ class Knj::Db
 	
 	def setOpts(arr_opts)
 		@opts = {}
-		
 		arr_opts.each do |key, val|
 			@opts[key.to_sym] = val
-			
-			if key.to_sym == :threadsafe and val
-				@threadsafe = val
-			end
 		end
 		
 		if @opts[:type] == "sqlite3" and RUBY_PLATFORM == "java"
@@ -37,49 +31,52 @@ class Knj::Db
 	end
 	
 	def connect
-		@conn = self.spawn[:conn]
+		@conn = self.spawn
+		
+		if @opts[:threadsafe]
+			@conns = Knj::Threadhandler.new
+			
+			@conns.on_spawn_new do
+				spawn
+			end
+			
+			@conns.on_inactive do |data|
+				data[:obj].close
+			end
+			
+			@conns.on_activate do |data|
+				data[:obj].reconnect
+			end
+		end
 	end
 	
 	def spawn
-		@spawn_working = true
+		raise "No type given." if !@opts[:type]
 		
-		begin
-			raise "No type given." if !@opts[:type]
+		fpaths = [
+			"drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}.rb",
+			"libknjdb_" + @opts[:type] + ".rb"
+		]
+		fpaths.each do |fpath|
+			rpath = "#{File.dirname(__FILE__)}/#{fpath}"
 			
-			fpaths = [
-				"drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}.rb",
-				"libknjdb_" + @opts[:type] + ".rb"
-			]
-			fpaths.each do |fpath|
-				rpath = "#{File.dirname(__FILE__)}/#{fpath}"
-				
-				if File.exists?(rpath)
-					require rpath
-					break
-				end
+			if File.exists?(rpath)
+				require rpath
+				break
 			end
-			
-			conn = Kernel.const_get("KnjDB_" + @opts[:type]).new(self)
-			
-			conn = {
-				:conn => conn,
-				:running => false
-			}
-			newconns = @conns.clone
-			newconns[newconns.length] = conn
-			@conns = newconns
-		ensure
-			@spawn_working = false
 		end
 		
-		return conn
+		return Kernel.const_get("KnjDB_" + @opts[:type]).new(self)
 	end
 	
 	def close
-		@conns.clone.each do |key, conn|
-			conn[:conn].close
+		@conn.close if @conn
+		
+		if @conns
+			@conns.objects.each do |data|
+				data[:object].close
+			end
 		end
-		@conns = {}
 	end
 	
 	def insert(tablename, arr_insert)
@@ -205,28 +202,22 @@ class Knj::Db
 	end
 	
 	def query(string)
-		return @conn.query(string) if !@threadsafe
-		
-		retconn = nil
-		@conns.clone.each do |key, conn|
-			next if conn[:running]
-			retconn = conn
-			break
+		if !@working
+			begin
+				@working = true
+				return @conn.query(string)
+			ensure
+				@working = false
+			end
 		end
 		
-		if retconn
-			retconn[:running] = true
-			ret = retconn[:conn].query(string)
-			retconn[:running] = false
-			return ret
-		end
+		conn = @conns.get_and_lock
 		
-		#all connections are taken - spawn new and run loop again.
-		conn = self.spawn
-		conn[:running] = true
-		ret = conn[:conn].query(string)
-		conn[:running] = false
-		return ret
+		begin
+			return conn.query(string)
+		ensure
+			@conns.free(conn)
+		end
 	end
 	
 	def lastID
