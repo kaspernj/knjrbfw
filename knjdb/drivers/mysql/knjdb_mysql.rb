@@ -84,6 +84,9 @@ class KnjDB_mysql
 				if e.message == "MySQL server has gone away"
 					self.reconnect
 					return KnjDB_mysql2_result.new(@conn.query(string))
+				elsif e.message == "This connection is still waiting for a result, try again once you have the result"
+					sleep 0.1
+					retry
 				else
 					raise e
 				end
@@ -124,7 +127,7 @@ class KnjDB_mysql
 		if !@subtype or @subtype == "mysql"
 			return @conn.insert_id
 		else
-			data = self.query("SELECT LAST_INSERT_ID() AS id").fetch
+			data = query("SELECT LAST_INSERT_ID() AS id").fetch
 			return data[:id] if data.has_key?(:id)
 		end
 	end

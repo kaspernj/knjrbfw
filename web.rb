@@ -625,20 +625,23 @@ class Knj::Web
 		raise "Unknown OS: #{agent}"
 	end
 	
-	def self.browser
-		begin
-			servervar = _server
-		rescue Exception
-			servervar = $_SERVER
-		end
-		
+	def self.browser(servervar = nil)
 		if !servervar
-			raise "Could not figure out meta data."
+			begin
+				servervar = _server
+			rescue Exception
+				servervar = $_SERVER
+			end
 		end
 		
+		raise "Could not figure out meta data." if !servervar
 		agent = servervar["HTTP_USER_AGENT"].to_s.downcase
 		
-		if match = agent.match(/chrome\/(\d+\.\d+)/)
+		if match = agent.index("knj:true") != nil
+			browser = "bot"
+			title = "Bot"
+			version = "KnjHttp"
+		elsif match = agent.match(/chrome\/(\d+\.\d+)/)
 			browser = "chrome"
 			title = "Google Chrome"
 			version = match[1]

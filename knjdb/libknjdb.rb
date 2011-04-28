@@ -211,12 +211,23 @@ class Knj::Db
 			end
 		end
 		
-		conn = @conns.get_and_lock
-		
-		begin
-			return conn.query(string)
-		ensure
-			@conns.free(conn)
+		if !@conns
+			sleep 0.1 while @working
+			
+			begin
+				@working = true
+				return @conn.query(string)
+			ensure
+				@working = false
+			end
+		else
+			conn = @conns.get_and_lock
+			
+			begin
+				return conn.query(string)
+			ensure
+				@conns.free(conn)
+			end
 		end
 	end
 	
