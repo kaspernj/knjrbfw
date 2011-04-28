@@ -465,6 +465,7 @@ class Knj::Objects
 				found = false
 				found = true if !found and cols_str_has and args[:cols_str].index(orderstr) != nil
 				found = true if !found and cols_date_has and args[:cols_date].index(orderstr) != nil
+				found = true if !found and cols_num_has and args[:cols_num].index(orderstr) != nil
 				
 				if found
 					sql_order += " ORDER BY "
@@ -505,6 +506,7 @@ class Knj::Objects
 					found = false
 					found = true if !found and cols_str_has and args[:cols_str].index(orderstr) != nil
 					found = true if !found and cols_date_has and args[:cols_date].index(orderstr) != nil
+					found = true if !found and cols_num_has and args[:cols_num].index(orderstr) != nil
 					
 					raise "Column not found for ordering: #{orderstr}." if !found
 					orders << "#{table}`#{db.esc_col(orderstr)}`#{ordermode}"
