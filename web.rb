@@ -713,6 +713,10 @@ class Knj::Web
 			browser = "bot"
 			title = "Bot"
 			version = "Facebook Externalhit"
+		elsif agent.index("SiteBot") != nil
+			browser = "bot"
+			title = "Bot"
+			version = "SiteBot"
 		else
 			browser = "unknown"
 			title = "(unknown browser)"
