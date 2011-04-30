@@ -677,6 +677,10 @@ class Knj::Web
 			browser = "safari"
 			title = "Safari"
 			version = match[1]
+		elsif agent.index("iPad") != nil
+			browser = "safari"
+			title = "Safari (iPad)"
+			version = "ipad"
 		elsif agent.index("bingbot") != nil
 			browser = "bot"
 			title = "Bot"
