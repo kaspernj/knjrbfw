@@ -717,6 +717,10 @@ class Knj::Web
 			browser = "bot"
 			title = "Bot"
 			version = "SiteBot"
+		elsif agent.match(/java\/([\d\.]+)/)
+			browser = "bot"
+			title = "Java"
+			version = match[1]
 		else
 			browser = "unknown"
 			title = "(unknown browser)"
