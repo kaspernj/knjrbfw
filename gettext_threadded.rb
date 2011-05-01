@@ -1,4 +1,6 @@
 class Knj::Gettext_threadded
+	attr_reader :args, :langs
+	
 	def initialize(args)
 		@args = args
 		@langs = {}
@@ -42,5 +44,21 @@ class Knj::Gettext_threadded
 		end
 		
 		return @langs[locale][str]
+	end
+	
+	def lang_opts
+		langs = {}
+		@langs.keys.sort.each do |lang|
+			title_file_path = "#{@args["dir"]}/#{lang}/title.txt"
+			if File.exists?(title_file_path)
+				title = File.read(title_file_path)
+			else
+				title = lang
+			end
+			
+			langs[lang] = title
+		end
+		
+		return langs
 	end
 end

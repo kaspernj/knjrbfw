@@ -477,7 +477,7 @@ class Knj::Web
 			elsif args[:type] == :fckeditor
 				args[:height] = 400 if !args[:height]
 				
-				require "/usr/share/fckeditor/fckeditor"
+				require "/usr/share/fckeditor/fckeditor.rb"
 				fck = FCKeditor.new(args[:name])
 				fck.Height = args[:height].to_i
 				fck.Value = value

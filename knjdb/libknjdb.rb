@@ -82,6 +82,27 @@ class Knj::Db
 		@conns = {}
 	end
 	
+	def clone_conn
+		return Knj::Db.new(@opts)
+	end
+	
+	def copy_to(db)
+		data["tables"].each do |table|
+			db.tables.create(table["name"], table)
+		end
+	end
+	
+	def data
+		tables_ret = []
+		tables.list.each do |name, table|
+			tables_ret << table.data
+		end
+		
+		return {
+			"tables" => tables_ret
+		}
+	end
+	
 	def insert(tablename, arr_insert)
 		sql = "INSERT INTO #{@conn.escape_table}#{tablename.to_s}#{@conn.escape_table} ("
 		
