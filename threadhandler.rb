@@ -1,59 +1,90 @@
 class Knj::Threadhandler
+	attr_reader :inactive_blocks, :args, :activate_blocks, :objects
+	
 	def initialize(args = {})
 		@args = args
-		@count = 0
-		@objects = {}
+		@objects = []
+		@args[:timeout] = 5 if !@args[:timeout]
+		@inactive_blocks = []
+		@activate_blocks = []
+		
+		@thread_timeout = Knj::Thread.new do
+			loop do
+				sleep @args[:timeout]
+				check_inactive
+			end
+		end
 	end
 	
 	def on_spawn_new(&block)
 		@spawn_new_block = block
 	end
 	
+	def on_inactive(&block)
+		@inactive_blocks << block
+	end
+	
+	def on_activate(&block)
+		@activate_blocks << block
+	end
+	
+	def check_inactive
+		cur_time = Time.new.to_i - @args[:timeout]
+		@objects.each do |data|
+			if data[:free] and !data[:inactive] and data[:free] < cur_time
+				@inactive_blocks.each do |block|
+					data[:inactive] = true
+					block.call(:obj => data[:object])
+				end
+			end
+		end
+	end
+	
 	def get_and_lock
-		retkey = false
-		@objects.clone.each do |key, data|
+		retdata = false
+		@objects.each do |data|
 			if data[:free]
-				retkey = key
+				retdata = data
 				break
 			end
 		end
 		
-		if retkey
-			objdata = @objects[retkey]
-			
+		if retdata
 			#Test if object is still free - if not, try again - knj.
-			return self.get_and_lock if !objdata[:free]
+			return get_and_lock if !retdata[:free]
+			retdata[:free] = false
 			
-			objdata[:free] = false
-			STDOUT.print "Got and locked #{retkey}\n" if @args[:debug]
-			return objdata[:object]
+			if retdata[:inactive]
+				@activate_blocks.each do |block|
+					block.call(:obj => retdata[:object])
+				end
+				
+				retdata.delete(:inactive)
+			end
+			
+			return retdata[:object]
 		end
 		
 		newobj = @spawn_new_block.call
-		@objects[@count] = {
+		@objects << {
 			:free => false,
 			:object => newobj
 		}
-		STDOUT.print "Spawned db and locked: #{@count}\n" if @args[:debug]
-		@count += 1
+		STDOUT.print "Spawned db and locked new.\n" if @args[:debug]
 		return newobj
 	end
 	
 	def free(obj)
-		freekey = false
-		@objects.clone.each do |key, data|
+		freedata = false
+		@objects.each do |data|
 			if data[:object] == obj
-				freekey = key
+				freedata = data
 				break
 			end
 		end
 		
-		if !freekey
-			raise "Could not find that object in list."
-		end
-		
-		STDOUT.print "Freed #{freekey}\n" if @args[:debug]
-		objdata = @objects[freekey]
-		objdata[:free] = true
+		raise "Could not find that object in list." if !freedata
+		STDOUT.print "Freed one.\n" if @args[:debug]
+		freedata[:free] = Time.new.to_i
 	end
 end

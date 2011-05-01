@@ -465,6 +465,7 @@ class Knj::Objects
 				found = false
 				found = true if !found and cols_str_has and args[:cols_str].index(orderstr) != nil
 				found = true if !found and cols_date_has and args[:cols_date].index(orderstr) != nil
+				found = true if !found and cols_num_has and args[:cols_num].index(orderstr) != nil
 				
 				if found
 					sql_order += " ORDER BY "
@@ -505,6 +506,7 @@ class Knj::Objects
 					found = false
 					found = true if !found and cols_str_has and args[:cols_str].index(orderstr) != nil
 					found = true if !found and cols_date_has and args[:cols_date].index(orderstr) != nil
+					found = true if !found and cols_num_has and args[:cols_num].index(orderstr) != nil
 					
 					raise "Column not found for ordering: #{orderstr}." if !found
 					orders << "#{table}`#{db.esc_col(orderstr)}`#{ordermode}"
@@ -524,12 +526,12 @@ class Knj::Objects
 				sql_where += " AND #{table}`#{db.esc_col(key)}` = '#{db.esc(val)}'"
 				found = true
 			elsif args.has_key?(:cols_bools) and args[:cols_bools].index(key) != nil
-				if val.is_a?(TrueClass) or (val.is_a?(Integer) and val.to_i == 1)
+				if val.is_a?(TrueClass) or (val.is_a?(Integer) and val.to_i == 1) or (val.is_a?(String) and (val == "true" or val == "1"))
 					realval = "1"
-				elsif val.is_a?(FalseClass) or (val.is_a?(Integer) and val.to_i == 0)
+				elsif val.is_a?(FalseClass) or (val.is_a?(Integer) and val.to_i == 0) or (val.is_a?(String) and (val == "false" or val == "0"))
 					realval = "0"
 				else
-					raise "Could not make real value out of class: #{val.class.name}."
+					raise "Could not make real value out of class: #{val.class.name} => #{val}."
 				end
 				
 				sql_where += " AND #{table}`#{db.esc_col(key)}` = '#{db.esc(realval)}'"
@@ -594,7 +596,7 @@ class Knj::Objects
 		end
 		
 		if limit_from and limit_to
-			sql_limit = " LIMIT #{limit_from}, #{limit_to}"
+			sql_limit = " LIMIT #{limit_from}, #{limit_to - limit_from}"
 		end
 		
 		return {

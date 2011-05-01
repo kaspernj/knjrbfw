@@ -25,18 +25,16 @@ class KnjDB_mysql
 		if !@subtype or @subtype == "mysql"
 			@conn = Mysql.real_connect(@knjdb.opts[:host], @knjdb.opts[:user], @knjdb.opts[:pass], @knjdb.opts[:db], @port)
 		elsif @subtype == "mysql2"
-			args = {
+			require "rubygems"
+			require "mysql2"
+			@conn = Mysql2::Client.new(
 				:host => @knjdb.opts[:host],
 				:username => @knjdb.opts[:user],
 				:password => @knjdb.opts[:pass],
 				:database => @knjdb.opts[:db],
 				:port => @port,
 				:symbolize_keys => true
-			}
-			
-			require "rubygems"
-			require "mysql2"
-			@conn = Mysql2::Client.new(args)
+			)
 		elsif @subtype == "java"
 			if !@jdbc_loaded
 				require "java"
@@ -86,6 +84,9 @@ class KnjDB_mysql
 				if e.message == "MySQL server has gone away"
 					self.reconnect
 					return KnjDB_mysql2_result.new(@conn.query(string))
+				elsif e.message == "This connection is still waiting for a result, try again once you have the result"
+					sleep 0.1
+					retry
 				else
 					raise e
 				end
@@ -126,9 +127,13 @@ class KnjDB_mysql
 		if !@subtype or @subtype == "mysql"
 			return @conn.insert_id
 		else
-			data = self.query("SELECT LAST_INSERT_ID() AS id").fetch
+			data = query("SELECT LAST_INSERT_ID() AS id").fetch
 			return data[:id] if data.has_key?(:id)
 		end
+	end
+	
+	def close
+		@conn.close
 	end
 	
 	def destroy
