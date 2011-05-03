@@ -39,6 +39,7 @@ class KnjDB_sqlite3::Tables
 		
 		sql += ")"
 		
+		print sql + "\n"
 		@db.query(sql)
 		@list = nil
 		
@@ -178,7 +179,12 @@ class KnjDB_sqlite3::Tables::Table
 			
 			sql += ", " if !first
 			first = false if first
-			sql += @db.cols.data_sql(col.data)
+			
+			if args.has_key?("alter_columns") and args["alter_columns"][name.to_s]
+				sql += @db.cols.data_sql(args["alter_columns"][name.to_s])
+			else
+				sql += @db.cols.data_sql(col.data)
+			end
 			
 			if args["new"]
 				args["new"].each do |col_data|
