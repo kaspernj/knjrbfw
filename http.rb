@@ -2,9 +2,7 @@ class Knj::Http
 	attr_reader :cookies
 	
 	def self.isgdlink(url)
-		http = Knj::Http.new(
-			"host" => "is.gd"
-		)
+		http = Knj::Http.new("host" => "is.gd")
 		http.connect
 		resp = http.get("/api.php?longurl=" + url)
 		
@@ -14,7 +12,7 @@ class Knj::Http
 	def initialize(opts = {})
 		@opts = opts
 		@cookies = {}
-		@useragent = "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.0.1) Gecko/20060111 Firefox/1.5.0.1"
+		@useragent = "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.0.1; knj:true) Gecko/20060111 Firefox/1.5.0.1"
 	end
 	
 	def opts

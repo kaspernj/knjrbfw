@@ -677,6 +677,10 @@ class Knj::Web
 			browser = "safari"
 			title = "Safari"
 			version = match[1]
+		elsif agent.index("iPad") != nil
+			browser = "safari"
+			title = "Safari (iPad)"
+			version = "ipad"
 		elsif agent.index("bingbot") != nil
 			browser = "bot"
 			title = "Bot"
@@ -717,6 +721,10 @@ class Knj::Web
 			browser = "bot"
 			title = "Bot"
 			version = "SiteBot"
+		elsif agent.match(/java\/([\d\.]+)/)
+			browser = "bot"
+			title = "Java"
+			version = match[1]
 		else
 			browser = "unknown"
 			title = "(unknown browser)"
