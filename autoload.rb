@@ -14,6 +14,7 @@ module Knj
 	autoload :Eruby, $knjpath + "eruby"
 	autoload :Event_filemod, $knjpath + "event_filemod"
 	autoload :Exchangerates, $knjpath + "exchangerates"
+	autoload :Fs, $knjpath + "fs/fs"
 	autoload :Gettext_threadded, $knjpath + "gettext_threadded"
 	autoload :Hash_methods, $knjpath + "hash_methods.rb"
 	autoload :Ip2location, $knjpath + "ip2location.rb"

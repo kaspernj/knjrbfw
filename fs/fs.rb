@@ -1,13 +1,29 @@
 class Knj::Fs
+	@drivers = []
+	drivers_path = Knj::Php.realpath("#{File.dirname(__FILE__)}/drivers")
+	Dir.new(drivers_path).each do |file|
+		fn = "#{drivers_path}/#{file}"
+		next if file == "." or file == ".." or File.directory?(fn)
+		
+		class_name = Knj::Php.ucwords(file.slice(0..-4)).to_sym
+		print "Classname: #{class_name}\n"
+		autoload class_name, fn
+		
+		@drivers << {
+			:name => file.slice(0..-4),
+			:args => const_get(class_name).args
+		}
+	end
+	
+	def self.drivers
+		return @drivers
+	end
+	
 	def initialize(args = {})
 		@args = args
 	end
 	
 	def spawn_driver
-		file_path = "#{Knj::Php.realpath("#{File.dirname(__FILE__)}/drivers")}/#{@args[:driver]}.rb"
-		raise "Driver does not exist: #{@args[:driver]}" if !File.exists(file_path)
-		require file_path
-		
 		class_name = Knj::Php.ucwords(@args[:driver])
 		@driver = self.class.const_get(class_name).new(:fs => self, :args => @args)
 	end
