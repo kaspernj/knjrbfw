@@ -15,13 +15,23 @@ class KnjDB_sqlite3
 		
 		raise "No path was given." if !@path
 		
-		@conn = SQLite3::Database.open(@path)
-		@conn.results_as_hash = true
-		@conn.type_translation = false
+		if @knjdb.opts[:subtype] == "rhodes"
+			@conn = SQLite3::Database.new(@path, @path)
+		else
+			@conn = SQLite3::Database.open(@path)
+			@conn.results_as_hash = true
+			@conn.type_translation = false
+		end
 	end
 	
 	def query(string)
-		return KnjDB_sqlite3_result.new(self, @conn.execute(string))
+		if @knjdb.opts[:subtype] == "rhodes"
+			res = @conn.execute(string, string)
+		else
+			res = @conn.execute(string)
+		end
+		
+		return KnjDB_sqlite3_result.new(self, res)
 	end
 	
 	def escape(string)
