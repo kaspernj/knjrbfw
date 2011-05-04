@@ -1,9 +1,15 @@
-require "#{File.dirname(__FILE__)}/autoload.rb"
+if $knjpath
+	autoload_path = "#{$knjpath}autoload.rb"
+else
+	autoload_path = "#{File.dirname(__FILE__)}/autoload.rb"
+end
+
+require autoload_path
 
 module Knj
 	def self.appserver_cli(filename)
 		Knj::Os.chdir_file(filename)
-		require "#{File.dirname(__FILE__)}/includes/appserver_cli.rb"
+		require "#{$knjpath}/includes/appserver_cli.rb"
 	end
 	
 	def self.dirname(filepath)
