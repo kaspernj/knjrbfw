@@ -143,7 +143,6 @@ class KnjDB_sqlite3::Tables::Table
 	
 	def clone(newname)
 		raise "Invalid name." if newname.to_s.strip.length <= 0
-		
 		cols_cur = self.columns
 		
 		sql = "CREATE TABLE `#{newname}` ("
@@ -155,12 +154,9 @@ class KnjDB_sqlite3::Tables::Table
 		end
 		
 		sql += ");"
-		
-		print "SQL Create: #{sql}\n"
 		@db.query(sql)
 		
 		sql = "INSERT INTO `#{newname}` SELECT * FROM `#{self.name}`"
-		print "SQL: #{sql}\n"
 		@db.query(sql)
 		return @db.tables[newname]
 	end
@@ -245,7 +241,10 @@ class KnjDB_sqlite3::Tables::Table
 			raise "No name was given." if !index_data.has_key?("name") or index_data["name"].strip.length <= 0
 			raise "No columns was given on index #{index_data["name"]}." if index_data["columns"].empty?
 			
-			sql = "CREATE INDEX #{@db.escape_col}#{@db.esc_col(index_data["name"])}#{@db.escape_col} ON #{@db.escape_table}#{@db.esc_table(self.name)}#{@db.escape_table} ("
+			name = index_data["name"]
+			name = "#{self.name}__#{name}" if @db.opts[:index_append_table_name]
+			
+			sql = "CREATE INDEX #{@db.escape_col}#{@db.esc_col(name)}#{@db.escape_col} ON #{@db.escape_table}#{@db.esc_table(self.name)}#{@db.escape_table} ("
 			
 			first = true
 			index_data["columns"].each do |col_name|
@@ -258,6 +257,7 @@ class KnjDB_sqlite3::Tables::Table
 			sql += ")"
 			
 			@db.query(sql)
+			@indexes_list = nil
 		end
 	end
 end

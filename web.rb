@@ -802,6 +802,16 @@ class Knj::Web
 		
 		return ret
 	end
+	
+	def self.hiddens(hidden_arr)
+		html = ""
+		
+		hidden_arr.each do |hidden_hash|
+			html += "<input type=\"hidden\" name=\"#{hidden_hash[:name].to_s.html}\" value=\"#{hidden_hash[:value].to_s.html}\" />"
+		end
+		
+		return html
+	end
 end
 
 def alert(string)

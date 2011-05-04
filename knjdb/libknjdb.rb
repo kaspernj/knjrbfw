@@ -83,9 +83,38 @@ class Knj::Db
 		return Knj::Db.new(@opts)
 	end
 	
-	def copy_to(db)
+	def copy_to(db, args = {})
 		data["tables"].each do |table|
+			table_args = nil
+			table_args = args["tables"][table["name"].to_s] if args and args["tables"] and args["tables"][table["name"].to_s]
+			next if table_args and table_args["skip"]
+			
 			db.tables.create(table["name"], table)
+			
+			limit_from = 0
+			limit_incr = 1000
+			
+			loop do
+				ins_arr = []
+				q_rows = self.select(table["name"], {}, {"limit_from" => limit_from, "limit_to" => limit_incr})
+				while d_rows = q_rows.fetch
+					col_args = nil
+					
+					if table_args and table_args["columns"]
+						d_rows.each do |col_name, col_data|
+							col_args = table_args["columns"][col_name.to_s] if table_args and table_args["columns"]
+							d_rows[col_name] = "" if col_args and col_args["empty"]
+						end
+					end
+					
+					ins_arr << d_rows
+				end
+				
+				break if ins_arr.empty?
+				
+				db.insert_multi(table["name"], ins_arr)
+				limit_from += limit_incr
+			end
 		end
 	end
 	
@@ -143,6 +172,8 @@ class Knj::Db
 	end
 	
 	def update(tablename, arr_update, arr_terms = {})
+		return false if arr_update.empty?
+		
 		sql = "UPDATE #{@conn.escape_col}#{tablename.to_s}#{@conn.escape_col} SET "
 		
 		first = true
@@ -167,7 +198,7 @@ class Knj::Db
 	def select(tablename, arr_terms = nil, args = nil)
 		sql = "SELECT * FROM #{@conn.escape_table}#{tablename.to_s}#{@conn.escape_table}"
 		
-		if arr_terms != nil
+		if arr_terms != nil and !arr_terms.empty?
 			sql += " WHERE #{self.makeWhere(arr_terms)}"
 		end
 		
@@ -179,6 +210,13 @@ class Knj::Db
 			
 			if args["limit"]
 				sql += " LIMIT " + args["limit"].to_s
+			end
+			
+			if args["limit_from"] and args["limit_to"]
+				raise "'limit_from' was not numeric: '#{args["limit_from"]}'." if !Knj::Php.is_numeric(args["limit_from"])
+				raise "'limit_to' was not numeric: '#{args["limit_to"]}'." if !Knj::Php.is_numeric(args["limit_to"])
+				
+				sql += " LIMIT #{args["limit_from"]}, #{args["limit_to"]}"
 			end
 		end
 		

@@ -522,7 +522,7 @@ class Knj::Objects
 		list_args.each do |key, val|
 			found = false
 			
-			if (cols_str_has and args[:cols_str].index(key) != nil) or (cols_num_has and args[:cols_num].index(key) != nil)
+			if (cols_str_has and args[:cols_str].index(key) != nil) or (cols_num_has and args[:cols_num].index(key) != nil) or (cols_dbrows_has and args[:cols_dbrows].index(key) != nil)
 				sql_where += " AND #{table}`#{db.esc_col(key)}` = '#{db.esc(val)}'"
 				found = true
 			elsif args.has_key?(:cols_bools) and args[:cols_bools].index(key) != nil

@@ -1,5 +1,5 @@
 class KnjDB_sqlite3
-	attr_reader :knjdb, :conn, :escape_table, :escape_col, :escape_val, :esc_table, :esc_col
+	attr_reader :knjdb, :conn, :escape_table, :escape_col, :escape_val, :esc_table, :esc_col, :symbolize
 	attr_accessor :tables, :cols, :indexes
 	
 	def initialize(knjdb_ob)
@@ -12,6 +12,7 @@ class KnjDB_sqlite3
 		@knjdb = knjdb_ob
 		@path = @knjdb.opts[:path] if @knjdb.opts[:path]
 		@path = @knjdb.opts["path"] if @knjdb.opts["path"]
+		@symbolize = true if !@knjdb.opts.has_key?(:return_keys) or @knjdb.opts[:return_keys] == "symbols"
 		
 		raise "No path was given." if !@path
 		
@@ -68,7 +69,7 @@ class KnjDB_sqlite3_result
 			end
 		end
 		
-		Knj::ArrayExt.hash_sym(tha_return) if @driver.knjdb.opts[:return_keys] == "symbols"
+		Knj::ArrayExt.hash_sym(tha_return) if @driver.symbolize
 		
 		return tha_return
 	end

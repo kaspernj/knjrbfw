@@ -88,6 +88,8 @@ class KnjDB_mysql::Tables::Table
 		@driver = args[:driver]
 		@data = args[:data]
 		@subtype = @db.opts[:subtype]
+		
+		raise "Could not figure out name." if !@data[:Name]
 	end
 	
 	def name
