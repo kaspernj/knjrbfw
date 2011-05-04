@@ -1,22 +1,27 @@
 class Knj::Gettext_threadded
-	def initialize(args)
+	attr_reader :langs, :args
+	
+	def initialize(args = {})
 		@args = args
 		@langs = {}
-		
+		load_dir(@args["dir"]) if @args["dir"]
+	end
+	
+	def load_dir(dir)
 		check_folders = ["LC_MESSAGES", "LC_ALL"]
 		
-		Dir.new(@args["dir"]).each do |file|
-			fn = "#{@args["dir"]}/#{file}"
+		Dir.new(dir).each do |file|
+			fn = "#{dir}/#{file}"
 			if File.directory?(fn) and file.match(/^[a-z]{2}_[A-Z]{2}$/)
-				@langs[file] = {}
+				@langs[file] = {} if !@langs[file]
 				
 				check_folders.each do |fname|
-					fpath = "#{@args["dir"]}/#{file}/#{fname}"
+					fpath = "#{dir}/#{file}/#{fname}"
 					
 					if File.exists?(fpath) and File.directory?(fpath)
 						Dir.new(fpath).each do |pofile|
 							if pofile.match(/\.po$/)
-								pofn = "#{@args["dir"]}/#{file}/#{fname}/#{pofile}"
+								pofn = "#{dir}/#{file}/#{fname}/#{pofile}"
 								cont = File.read(pofn)
 								cont.scan(/msgid\s+\"(.+)\"\nmsgstr\s+\"(.+)\"\n\n/) do |match|
 									@langs[file][match[0]] = match[1]
