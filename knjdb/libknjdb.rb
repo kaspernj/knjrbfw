@@ -60,7 +60,7 @@ class Knj::Db
 		fpaths.each do |fpath|
 			rpath = "#{File.dirname(__FILE__)}/#{fpath}"
 			
-			if File.exists?(rpath)
+			if (!@opts.has_key?(:require) or @opts[:require]) and File.exists?(rpath)
 				require rpath
 				break
 			end
@@ -312,7 +312,7 @@ class Knj::Db
 	
 	def tables
 		if !@conn.tables
-			require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_tables"
+			require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_tables" if (!@opts.has_key?(:require) or @opts[:require])
 			@conn.tables = Kernel.const_get("KnjDB_#{@opts[:type]}".to_sym).const_get(:Tables).new(
 				:driver => @conn,
 				:db => self
@@ -324,7 +324,7 @@ class Knj::Db
 	
 	def cols
 		if !@cols
-			require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_columns"
+			require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_columns" if (!@opts.has_key?(:require) or @opts[:require])
 			@cols = Kernel.const_get("KnjDB_#{@opts[:type]}".to_sym).const_get(:Columns).new(
 				:driver => @conn,
 				:db => self
@@ -336,7 +336,7 @@ class Knj::Db
 	
 	def indexes
 		if !@indexes
-			require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_indexes"
+			require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_indexes" if (!@opts.has_key?(:require) or @opts[:require])
 			@indexes = Kernel.const_get("KnjDB_#{@opts[:type]}".to_sym).const_get(:Indexes).new(
 				:driver => @conn,
 				:db => self

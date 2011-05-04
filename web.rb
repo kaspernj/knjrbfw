@@ -828,11 +828,11 @@ end
 
 class String
 	def html
-		return CGI.escapeHTML(self)
+		return self.to_s.gsub(/&/, "&amp;").gsub(/\"/, "&quot;").gsub(/>/, "&gt;").gsub(/</, "&lt;")
 	end
 	
 	def sql
-		if Thread.current.is_a?(Knj::Thread) and Thread.current[:knjappserver] and Thread.current[:knjappserver][:db]
+		if Thread.current.class.name == "Knj::Thread" and Thread.current[:knjappserver] and Thread.current[:knjappserver][:db]
 			return Thread.current[:knjappserver][:db].escape(self)
 		elsif $db
 			return $db.escape(self)

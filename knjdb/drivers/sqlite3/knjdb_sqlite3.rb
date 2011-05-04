@@ -16,13 +16,23 @@ class KnjDB_sqlite3
 		
 		raise "No path was given." if !@path
 		
-		@conn = SQLite3::Database.open(@path)
-		@conn.results_as_hash = true
-		@conn.type_translation = false
+		if @knjdb.opts[:subtype] == "rhodes"
+			@conn = SQLite3::Database.new(@path, @path)
+		else
+			@conn = SQLite3::Database.open(@path)
+			@conn.results_as_hash = true
+			@conn.type_translation = false
+		end
 	end
 	
 	def query(string)
-		return KnjDB_sqlite3_result.new(self, @conn.execute(string))
+		if @knjdb.opts[:subtype] == "rhodes"
+			res = @conn.execute(string, string)
+		else
+			res = @conn.execute(string)
+		end
+		
+		return KnjDB_sqlite3_result.new(self, res)
 	end
 	
 	def escape(string)
@@ -45,32 +55,27 @@ end
 
 class KnjDB_sqlite3_result
 	def initialize(driver, result_array)
-		@driver = driver
 		@result_array = result_array
 		@index = 0
+		@retkeys = driver.knjdb.opts[:return_keys]
 	end
 	
 	def fetch
-		tha_index = @index
+		tha_return = @result_array[@index]
+		return false if !tha_return
 		@index += 1
 		
-		tha_return = @result_array[tha_index]
-		return false if !tha_return
-		
-		if tha_return.class.to_s == "SQLite3::ResultSet::HashWithTypes"
-			tha_return = Hash.new.replace(tha_return)
-		end
-		
-		if tha_return.is_a?(Hash)
-			tha_return.each do |pair|
-				if Knj::Php::is_numeric(pair[0])
-					tha_return.delete(pair[0])
-				end
+		ret = {}
+		tha_return.each do |key, val|
+			if Knj::Php::is_numeric(key)
+				#do nothing.
+			elsif @retkeys == "symbols" and !key.is_a?(Symbol)
+				ret[key.to_sym] = val
+			else
+				ret[key] = val
 			end
 		end
 		
-		Knj::ArrayExt.hash_sym(tha_return) if @driver.symbolize
-		
-		return tha_return
+		return ret
 	end
 end
