@@ -596,7 +596,7 @@ class Knj::Objects
 		end
 		
 		if limit_from and limit_to
-			sql_limit = " LIMIT #{limit_from}, #{limit_to - limit_from}"
+			sql_limit = " LIMIT #{limit_from}, #{limit_to}"
 		end
 		
 		return {
