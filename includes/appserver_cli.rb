@@ -8,6 +8,14 @@ class Appserver_cli
 	def self._(str)
 		return str
 	end
+	
+	def self.gettext
+		return self
+	end
+	
+	def self.lang_opts
+		return []
+	end
 end
 
 def _kas

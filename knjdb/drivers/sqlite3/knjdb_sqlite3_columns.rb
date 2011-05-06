@@ -11,6 +11,7 @@ class KnjDB_sqlite3::Columns
 		raise "No type given." if !data["type"]
 		
 		data["maxlength"] = 255 if data["type"] == "varchar" and !data.has_key?("maxlength")
+		data["type"] = "integer" if data["type"] == "int"
 		
 		sql = "`#{data["name"]}` #{data["type"]}"
 		sql += "(#{data["maxlength"]})" if data["maxlength"] and !data["autoincr"]
@@ -40,6 +41,10 @@ class KnjDB_sqlite3::Columns::Column
 	
 	def name
 		return @args[:data][:name]
+	end
+	
+	def table
+		return @args[:table]
 	end
 	
 	def data
@@ -111,6 +116,7 @@ class KnjDB_sqlite3::Columns::Column
 	end
 	
 	def autoincr?
+		print "Autoincr:\n"
 		Knj::Php.print_r(@args[:data])
 		return false
 	end
@@ -122,9 +128,6 @@ class KnjDB_sqlite3::Columns::Column
 	end
 	
 	def change(data)
-		esc_col = @args[:driver].escape_col
-		col_escaped = "#{esc_col}#{@db.esc_col(self.name)}#{esc_col}"
-		table_escape = "#{@args[:driver].escape_table}#{@args[:driver].esc_table(@args[:table].name)}#{@args[:driver].escape_table}"
 		newdata = data.clone
 		
 		newdata["name"] = self.name if !newdata.has_key?("name")
@@ -134,8 +137,10 @@ class KnjDB_sqlite3::Columns::Column
 		newdata["default"] = self.default if !newdata.has_key?("default")
 		newdata.delete("primarykey") if newdata.has_key?("primarykey")
 		
-		type_s = newdata["type"].to_s
-		sql = "ALTER TABLE #{table_escape} CHANGE #{col_escaped} #{@db.cols.data_sql(newdata)}"
-		@db.query(sql)
+		new_table = self.table.copy(
+			"alter_columns" => {
+				self.name.to_s => newdata
+			}
+		)
 	end
 end

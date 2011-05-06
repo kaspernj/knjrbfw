@@ -6,17 +6,11 @@ module Knj::Locales
 			#_session method does not exist - continue.
 		end
 		
-		if !locale
-			if ENV["LANGUAGE"]
-				locale = ENV["LANGUAGE"]
-			end
-		end
+		locale = ENV["LANGUAGE"] if !locale and ENV["LANGUAGE"]
+		locale = $locale if !locale and $locale
 		
-		if !locale
-			raise "Could not figure out locale."
-		end
-		
-		raise "Could not understand language: #{ENV["LANGUAGE"]}." if !match = locale.to_s.match(/^([a-z]{2})_([A-Z]{2})/)
+		raise "Could not figure out locale." if !locale
+		raise "Could not understand language: #{locale}." if !match = locale.to_s.match(/^([a-z]{2})_([A-Z]{2})/)
 				
 		return {
 			"first" => match[1],

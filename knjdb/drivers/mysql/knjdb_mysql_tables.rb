@@ -88,6 +88,8 @@ class KnjDB_mysql::Tables::Table
 		@driver = args[:driver]
 		@data = args[:data]
 		@subtype = @db.opts[:subtype]
+		
+		raise "Could not figure out name." if !@data[:Name]
 	end
 	
 	def name
@@ -150,12 +152,18 @@ class KnjDB_mysql::Tables::Table
 			
 			q_indexes = @db.query("SHOW INDEX FROM `#{self.name}`")
 			while d_indexes = q_indexes.fetch
-				@indexes_list[d_indexes[:Key_name]] = KnjDB_mysql::Indexes::Index.new(
-					:table => self,
-					:db => @db,
-					:driver => @driver,
-					:data => d_indexes
-				)
+				next if d_indexes[:Key_name] == "PRIMARY"
+				
+				if !@indexes_list[d_indexes[:Key_name]]
+					@indexes_list[d_indexes[:Key_name]] = KnjDB_mysql::Indexes::Index.new(
+						:table => self,
+						:db => @db,
+						:driver => @driver,
+						:data => d_indexes
+					)
+				end
+				
+				@indexes_list[d_indexes[:Key_name]].columns << d_indexes[:Column_name]
 			end
 		end
 		
@@ -202,5 +210,23 @@ class KnjDB_mysql::Tables::Table
 		@args[:tables].list[newname] = self
 		@args[:tables].list.delete(oldname)
 		@data[:Name] = newname
+	end
+	
+	def data
+		ret = {
+			"name" => name,
+			"columns" => [],
+			"indexes" => []
+		}
+		
+		columns.each do |name, column|
+			ret["columns"] << column.data
+		end
+		
+		indexes.each do |name, index|
+			ret["indexes"] << index.data if name != "PRIMARY"
+		end
+		
+		return ret
 	end
 end
