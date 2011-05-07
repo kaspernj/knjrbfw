@@ -169,8 +169,15 @@ class Knj::Db
 					@conns.free(conn)
 				end
 			else
-				@conn.query(sql)
-				return @conn.lastID
+				sleep 0.1 while @working
+				@working = true
+				
+				begin
+					@conn.query(sql)
+					return @conn.lastID
+				ensure
+					@working = false
+				end
 			end
 		else
 			self.query(sql)
