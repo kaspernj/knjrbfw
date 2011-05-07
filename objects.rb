@@ -298,8 +298,8 @@ class Knj::Objects
 				))
 			end
 			
-			@args[:db].insert(classname, data)
-			retob = self.get(classname, @args[:db].last_id)
+			ins_id = @args[:db].insert(classname, data, {:return_id => true})
+			retob = self.get(classname, ins_id)
 		else
 			retob = @args[:module].const_get(classname).add(*args)
 		end

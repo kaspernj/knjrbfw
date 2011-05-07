@@ -129,7 +129,7 @@ class Knj::Db
 		}
 	end
 	
-	def insert(tablename, arr_insert)
+	def insert(tablename, arr_insert, args = {})
 		sql = "INSERT INTO #{@conn.escape_table}#{tablename.to_s}#{@conn.escape_table} ("
 		
 		first = true
@@ -158,7 +158,23 @@ class Knj::Db
 		
 		sql += ")"
 		
-		self.query(sql)
+		if args[:return_id]
+			if @conns
+				conn = @conns.get_and_lock
+				
+				begin
+					conn.query(sql)
+					return conn.lastID
+				ensure
+					@conns.free(conn)
+				end
+			else
+				@conn.query(sql)
+				return @conn.lastID
+			end
+		else
+			self.query(sql)
+		end
 	end
 	
 	def insert_multi(tablename, arr_hashes)

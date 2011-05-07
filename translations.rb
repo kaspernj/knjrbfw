@@ -123,8 +123,8 @@ class Knj::Translations::Translation < Knj::Db_row
 			data.delete(:object)
 		end
 		
-		translations.db.insert(:translations, data)
-		return translations.ob.get(:Translation, translations.db.last_id)
+		ins_id = translations.db.insert(:translations, data, {:return_id => true})
+		return translations.ob.get(:Translation, ins_id)
 	end
 	
 	def self.list(args = {}, translations = nil)
