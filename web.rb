@@ -477,7 +477,7 @@ class Knj::Web
 			elsif args[:type] == :fckeditor
 				args[:height] = 400 if !args[:height]
 				
-				require "/usr/share/fckeditor/fckeditor"
+				require "/usr/share/fckeditor/fckeditor.rb"
 				fck = FCKeditor.new(args[:name])
 				fck.Height = args[:height].to_i
 				fck.Value = value
@@ -802,6 +802,16 @@ class Knj::Web
 		
 		return ret
 	end
+	
+	def self.hiddens(hidden_arr)
+		html = ""
+		
+		hidden_arr.each do |hidden_hash|
+			html += "<input type=\"hidden\" name=\"#{hidden_hash[:name].to_s.html}\" value=\"#{hidden_hash[:value].to_s.html}\" />"
+		end
+		
+		return html
+	end
 end
 
 def alert(string)
@@ -818,11 +828,11 @@ end
 
 class String
 	def html
-		return CGI.escapeHTML(self)
+		return self.to_s.gsub(/&/, "&amp;").gsub(/\"/, "&quot;").gsub(/>/, "&gt;").gsub(/</, "&lt;")
 	end
 	
 	def sql
-		if Thread.current.is_a?(Knj::Thread) and Thread.current[:knjappserver] and Thread.current[:knjappserver][:db]
+		if Thread.current.class.name == "Knj::Thread" and Thread.current[:knjappserver] and Thread.current[:knjappserver][:db]
 			return Thread.current[:knjappserver][:db].escape(self)
 		elsif $db
 			return $db.escape(self)

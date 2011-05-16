@@ -60,7 +60,7 @@ class Knj::Db
 		fpaths.each do |fpath|
 			rpath = "#{File.dirname(__FILE__)}/#{fpath}"
 			
-			if File.exists?(rpath)
+			if (!@opts.has_key?(:require) or @opts[:require]) and File.exists?(rpath)
 				require rpath
 				break
 			end
@@ -79,7 +79,57 @@ class Knj::Db
 		end
 	end
 	
-	def insert(tablename, arr_insert)
+	def clone_conn
+		return Knj::Db.new(@opts)
+	end
+	
+	def copy_to(db, args = {})
+		data["tables"].each do |table|
+			table_args = nil
+			table_args = args["tables"][table["name"].to_s] if args and args["tables"] and args["tables"][table["name"].to_s]
+			next if table_args and table_args["skip"]
+			
+			db.tables.create(table["name"], table)
+			
+			limit_from = 0
+			limit_incr = 1000
+			
+			loop do
+				ins_arr = []
+				q_rows = self.select(table["name"], {}, {"limit_from" => limit_from, "limit_to" => limit_incr})
+				while d_rows = q_rows.fetch
+					col_args = nil
+					
+					if table_args and table_args["columns"]
+						d_rows.each do |col_name, col_data|
+							col_args = table_args["columns"][col_name.to_s] if table_args and table_args["columns"]
+							d_rows[col_name] = "" if col_args and col_args["empty"]
+						end
+					end
+					
+					ins_arr << d_rows
+				end
+				
+				break if ins_arr.empty?
+				
+				db.insert_multi(table["name"], ins_arr)
+				limit_from += limit_incr
+			end
+		end
+	end
+	
+	def data
+		tables_ret = []
+		tables.list.each do |name, table|
+			tables_ret << table.data
+		end
+		
+		return {
+			"tables" => tables_ret
+		}
+	end
+	
+	def insert(tablename, arr_insert, args = {})
 		sql = "INSERT INTO #{@conn.escape_table}#{tablename.to_s}#{@conn.escape_table} ("
 		
 		first = true
@@ -108,11 +158,35 @@ class Knj::Db
 		
 		sql += ")"
 		
-		self.query(sql)
+		if args[:return_id]
+			if @conns
+				conn = @conns.get_and_lock
+				
+				begin
+					conn.query(sql)
+					return conn.lastID
+				ensure
+					@conns.free(conn)
+				end
+			else
+				sleep 0.1 while @working
+				@working = true
+				
+				begin
+					@conn.query(sql)
+					return @conn.lastID
+				ensure
+					@working = false
+				end
+			end
+		else
+			self.query(sql)
+		end
 	end
 	
 	def insert_multi(tablename, arr_hashes)
 		if @conn.respond_to?(:insert_multi)
+			return false if arr_hashes.empty?
 			@conn.insert_multi(tablename, arr_hashes)
 		else
 			arr_hashes.each do |hash|
@@ -122,6 +196,8 @@ class Knj::Db
 	end
 	
 	def update(tablename, arr_update, arr_terms = {})
+		return false if arr_update.empty?
+		
 		sql = "UPDATE #{@conn.escape_col}#{tablename.to_s}#{@conn.escape_col} SET "
 		
 		first = true
@@ -146,7 +222,7 @@ class Knj::Db
 	def select(tablename, arr_terms = nil, args = nil)
 		sql = "SELECT * FROM #{@conn.escape_table}#{tablename.to_s}#{@conn.escape_table}"
 		
-		if arr_terms != nil
+		if arr_terms != nil and !arr_terms.empty?
 			sql += " WHERE #{self.makeWhere(arr_terms)}"
 		end
 		
@@ -158,6 +234,13 @@ class Knj::Db
 			
 			if args["limit"]
 				sql += " LIMIT " + args["limit"].to_s
+			end
+			
+			if args["limit_from"] and args["limit_to"]
+				raise "'limit_from' was not numeric: '#{args["limit_from"]}'." if !Knj::Php.is_numeric(args["limit_from"])
+				raise "'limit_to' was not numeric: '#{args["limit_to"]}'." if !Knj::Php.is_numeric(args["limit_to"])
+				
+				sql += " LIMIT #{args["limit_from"]}, #{args["limit_to"]}"
 			end
 		end
 		
@@ -253,7 +336,7 @@ class Knj::Db
 	
 	def tables
 		if !@conn.tables
-			require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_tables"
+			require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_tables" if (!@opts.has_key?(:require) or @opts[:require])
 			@conn.tables = Kernel.const_get("KnjDB_#{@opts[:type]}".to_sym).const_get(:Tables).new(
 				:driver => @conn,
 				:db => self
@@ -265,7 +348,7 @@ class Knj::Db
 	
 	def cols
 		if !@cols
-			require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_columns"
+			require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_columns" if (!@opts.has_key?(:require) or @opts[:require])
 			@cols = Kernel.const_get("KnjDB_#{@opts[:type]}".to_sym).const_get(:Columns).new(
 				:driver => @conn,
 				:db => self
@@ -277,7 +360,7 @@ class Knj::Db
 	
 	def indexes
 		if !@indexes
-			require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_indexes"
+			require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_indexes" if (!@opts.has_key?(:require) or @opts[:require])
 			@indexes = Kernel.const_get("KnjDB_#{@opts[:type]}".to_sym).const_get(:Indexes).new(
 				:driver => @conn,
 				:db => self

@@ -17,6 +17,10 @@ class Knj::Datarow
 		@columns = d.db.tables[table].columns
 	end
 	
+	def self.columns_sqlhelper_args
+		return @columns_sqlhelper_args
+	end
+	
 	def self.list_helper(d)
 		if !@columns_sqlhelper_args
 			cols = self.columns(d)

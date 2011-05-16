@@ -298,8 +298,8 @@ class Knj::Objects
 				))
 			end
 			
-			@args[:db].insert(classname, data)
-			retob = self.get(classname, @args[:db].last_id)
+			ins_id = @args[:db].insert(classname, data, {:return_id => true})
+			retob = self.get(classname, ins_id)
 		else
 			retob = @args[:module].const_get(classname).add(*args)
 		end
@@ -352,6 +352,21 @@ class Knj::Objects
 		else
 			@objects[classname].delete(object.id.to_i)
 		end
+	end
+	
+	def unset_class(classname)
+		if classname.is_a?(Array)
+			classname.each do |classn|
+				self.unset_class(classn)
+			end
+			
+			return false
+		end
+		
+		classname = classname.to_sym
+		return false if !@objects.has_key?(classname)
+		@objects[classname] = {}
+		GC.start
 	end
 	
 	# Delete an object. Both from the database and from the cache.
@@ -522,7 +537,7 @@ class Knj::Objects
 		list_args.each do |key, val|
 			found = false
 			
-			if (cols_str_has and args[:cols_str].index(key) != nil) or (cols_num_has and args[:cols_num].index(key) != nil)
+			if (cols_str_has and args[:cols_str].index(key) != nil) or (cols_num_has and args[:cols_num].index(key) != nil) or (cols_dbrows_has and args[:cols_dbrows].index(key) != nil)
 				sql_where += " AND #{table}`#{db.esc_col(key)}` = '#{db.esc(val)}'"
 				found = true
 			elsif args.has_key?(:cols_bools) and args[:cols_bools].index(key) != nil
@@ -596,7 +611,7 @@ class Knj::Objects
 		end
 		
 		if limit_from and limit_to
-			sql_limit = " LIMIT #{limit_from}, #{limit_to - limit_from}"
+			sql_limit = " LIMIT #{limit_from}, #{limit_to}"
 		end
 		
 		return {

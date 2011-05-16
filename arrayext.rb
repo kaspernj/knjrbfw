@@ -22,9 +22,7 @@ module Knj::ArrayExt
 			value = value if !args[:key]
 			value = Knj::Php.call_user_func(args[:callback], value) if args[:callback]
 			
-			if args[:callback] and !value
-				raise "Callback returned nothing."
-			end
+			raise "Callback returned nothing." if args[:callback] and !value
 			
 			str += args[:surr] if args[:surr]
 			str += value.to_s
@@ -102,5 +100,35 @@ module Knj::ArrayExt
 		end
 		
 		return false
+	end
+	
+	#Returns a hash based on the string-keys in a hash.
+	def self.hash_keys_hash(hash)
+		hashes = []
+		hash.keys.sort.each do |key|
+			hashes << Digest::MD5.hexdigest(key.to_s)
+		end
+		
+		return Digest::MD5.hexdigest(hashes.join("_"))
+	end
+	
+	#Returns hash based on the string-values in a hash.
+	def self.hash_values_hash(hash)
+		hashes = []
+		hash.keys.sort.each do |key|
+			hashes << Digest::MD5.hexdigest(hash[key].to_s)
+		end
+		
+		return Digest::MD5.hexdigest(hashes.join("_"))
+	end
+	
+	#Returns a hash based on the string-values of an array.
+	def self.array_hash(arr)
+		hashes = []
+		arr.each do |ele|
+			hashes << Digest::MD5.hexdigest(ele.to_s)
+		end
+		
+		return Digest::MD5.hexdigest(hashes.join("_"))
 	end
 end

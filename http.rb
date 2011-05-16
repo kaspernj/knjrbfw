@@ -10,9 +10,18 @@ class Knj::Http
 	end
 	
 	def initialize(opts = {})
+		require "webrick"
+		require "cgi"
+		require "net/http"
+		
 		@opts = opts
 		@cookies = {}
-		@useragent = "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.0.1; knj:true) Gecko/20060111 Firefox/1.5.0.1"
+		
+		if opts["useragent"]
+			@useragent = opts["useragent"]
+		else
+			@useragent = "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.0.1; knj:true) Gecko/20060111 Firefox/3.6.0.1"
+		end
 	end
 	
 	def opts
@@ -54,7 +63,7 @@ class Knj::Http
 				cookiestr += "; "
 			end
 			
-			cookiestr += key + "=" + value
+			cookiestr += value.to_s
 		end
 		
 		return cookiestr
@@ -68,11 +77,8 @@ class Knj::Http
 	end
 	
 	def setcookie(set_data)
-		if set_data and set_data.length > 0
-			set_data.split(", ").each do |cookiestr|
-				cookiedata = cookiestr.split(";")[0].split("=")
-				@cookies[cookiedata[0]] = cookiedata[1]
-			end
+		WEBrick::Cookie.parse_set_cookies(set_data.to_s).each do |cookie|
+			@cookies[cookie.name] = cookie
 		end
 	end
 	
