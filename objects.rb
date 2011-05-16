@@ -211,19 +211,9 @@ class Knj::Objects
 			html += " selected=\"selected\"" if selected
 			
 			begin
-				print "Ext: #{Encoding.default_external}\n"
-				print "Int: #{Encoding.default_internal}\n"
-				
 				objhtml = object.title.html
-				
-				print "ObjEnc: #{objhtml.encoding}\n"
-				print "Enc: #{html.encoding}\n"
-				
 				html += ">#{objhtml}</option>"
 			rescue Exception => e
-				puts e.inspect
-				puts e.backtrace
-				
 				html += ">[#{_("invalid title")}]</option>"
 			end
 		end
