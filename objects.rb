@@ -354,6 +354,21 @@ class Knj::Objects
 		end
 	end
 	
+	def unset_class(classname)
+		if classname.is_a?(Array)
+			classname.each do |classn|
+				self.unset_class(classn)
+			end
+			
+			return false
+		end
+		
+		classname = classname.to_sym
+		return false if !@objects.has_key?(classname)
+		@objects[classname] = {}
+		GC.start
+	end
+	
 	# Delete an object. Both from the database and from the cache.
 	def delete(object)
 		self.call("object" => object, "signal" => "delete_before")

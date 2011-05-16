@@ -12,7 +12,8 @@ class Knj::Translations
 			:extra_args => [self],
 			:class_path => File.dirname(__FILE__),
 			:module => Knj::Translations,
-			:require => false
+			:require => false,
+			:datarow => true
 		)
 		
 		@cache = {}
@@ -110,30 +111,19 @@ class Knj::Translations
 	end
 end
 
-class Knj::Translations::Translation < Knj::Db_row
-	def initialize(data, translations)
-		@translations = translations
-		super(:objects => translations.ob, :db => translations.db, :data => data, :table => :translations, :force_selfdb => true)
-	end
-	
+class Knj::Translations::Translation < Knj::Datarow
 	def self.add(data, translations)
 		if data[:object]
 			data[:object_class] = data[:object].class.name
 			data[:object_id] = data[:object].id
 			data.delete(:object)
 		end
-		
-		ins_id = translations.db.insert(:translations, data, {:return_id => true})
-		return translations.ob.get(:Translation, ins_id)
 	end
 	
-	def self.list(args = {}, translations = nil)
-		sql = "SELECT * FROM translations WHERE 1=1"
+	def self.list(d)
+		sql = "SELECT * FROM #{table} WHERE 1=1"
 		
-		ret = translations.ob.sqlhelper(args, {
-			:cols_str => ["object_class", "object_id", "key", "locale"]
-		})
-		sql += ret[:sql_where]
+		ret = list_helper(d)
 		
 		args.each do |key, val|
 			case key
@@ -144,13 +134,10 @@ class Knj::Translations::Translation < Knj::Db_row
 			end
 		end
 		
+		sql += ret[:sql_where]
 		sql += ret[:sql_order]
 		sql += ret[:sql_limit]
 		
 		return translations.ob.list_bysql(:Translation, sql)
-	end
-	
-	def delete
-		self.db.delete(:translations, {:id => self.id})
 	end
 end

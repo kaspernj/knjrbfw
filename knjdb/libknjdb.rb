@@ -186,6 +186,7 @@ class Knj::Db
 	
 	def insert_multi(tablename, arr_hashes)
 		if @conn.respond_to?(:insert_multi)
+			return false if arr_hashes.empty?
 			@conn.insert_multi(tablename, arr_hashes)
 		else
 			arr_hashes.each do |hash|
