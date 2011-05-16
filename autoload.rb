@@ -4,7 +4,7 @@ require "#{$knjpath}/knj.rb"
 module Knj
 	autoload :ArrayExt, $knjpath + "arrayext"
 	autoload :Datestamp, $knjpath + "datestamp"
-	autoload :Datet, $knjpath + "datet"
+	autoload :Datet, $knjpath + "datet.rb"
 	autoload :Cpufreq, $knjpath + "cpufreq"
 	autoload :Datarow, $knjpath + "datarow.rb"
 	autoload :Db, $knjpath + "knjdb/libknjdb"
