@@ -39,7 +39,6 @@ class KnjDB_sqlite3::Tables
 		
 		sql += ")"
 		
-		print sql + "\n"
 		@db.query(sql)
 		@list = nil
 		

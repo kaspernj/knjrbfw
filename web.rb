@@ -498,9 +498,12 @@ class Knj::Web
 				html += "<input type=\"file\" name=\"#{args[:name].html}\" class=\"input_file\" />"
 				html += "</td><td style=\"padding-left: 5px;\">"
 				
+				raise "No path given for imageupload-input." if !args.has_key?(:path)
+				raise "No value given in arguments for imageupload-input." if !args.has_key?(:value)
+				
 				path = args[:path].gsub("%value%", value.to_s).untaint
 				if File.exists?(path)
-					html += "<img src=\"image.php?picture=#{Knj::Php.urlencode(path).html}&smartsize=100&edgesize=25\" alt=\"Image\" />"
+					html += "<img src=\"image.php?picture=#{Knj::Php.urlencode(path).html}&smartsize=100&edgesize=25&force=true&ts=#{Time.new.to_f}\" alt=\"Image\" />"
 					
 					if args[:dellink]
 						dellink = args[:dellink].gsub("%value%", value.to_s)

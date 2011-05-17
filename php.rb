@@ -273,7 +273,7 @@ module Knj::Php
 	
 	def self.file_put_contents(filepath, content)
 		File.open(filepath.untaint, "w") do |file|
-			file.write content
+			file.write(content)
 		end
 	end
 	

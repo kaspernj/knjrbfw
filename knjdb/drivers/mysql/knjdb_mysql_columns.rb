@@ -93,21 +93,12 @@ class KnjDB_mysql::Columns::Column
 	end
 	
 	def primarykey?
-		if @args[:data][:name] == "nr"
-			Knj::Php.print_r(@args[:data])
-			exit
-		end
-		
 		return false if @args[:data][:pk].to_i == 0
 		return true
 	end
 	
 	def autoincr?
-		if @args[:data][:name] == "nr"
-			Knj::Php.print_r(@args[:data])
-			exit
-		end
-		
+		return true if @args[:data][:Extra].index("auto_increment") != nil
 		return false
 	end
 	

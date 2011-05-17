@@ -125,7 +125,7 @@ class Knj::Translations::Translation < Knj::Datarow
 		
 		ret = list_helper(d)
 		
-		args.each do |key, val|
+		d.args.each do |key, val|
 			case key
 				when "object"
 					sql += " AND object_class = '#{val.class.name.sql}' AND object_id = '#{val.id.sql}'"
@@ -138,6 +138,6 @@ class Knj::Translations::Translation < Knj::Datarow
 		sql += ret[:sql_order]
 		sql += ret[:sql_limit]
 		
-		return translations.ob.list_bysql(:Translation, sql)
+		return d.ob.list_bysql(:Translation, sql)
 	end
 end
