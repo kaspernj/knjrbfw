@@ -69,6 +69,10 @@ class Knj::Http
 		return cookiestr
 	end
 	
+	def cookie_add(cgi_cookie)
+		@cookies[cgi_cookie.name] = cgi_cookie
+	end
+	
 	def headers
 		tha_headers = {"User-Agent" => @useragent}
 		tha_headers["Referer"] = @lasturl if @lasturl
