@@ -88,7 +88,6 @@ class Knj::Db
 			table_args = nil
 			table_args = args["tables"][table["name"].to_s] if args and args["tables"] and args["tables"][table["name"].to_s]
 			next if table_args and table_args["skip"]
-			
 			db.tables.create(table["name"], table)
 			
 			limit_from = 0

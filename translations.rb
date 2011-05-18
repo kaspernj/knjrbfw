@@ -41,8 +41,10 @@ class Knj::Translations
 			"key" => key,
 			"locale" => locale
 		})
+		return "" if trans.empty?
+		
 		trans.each do |tran|
-			if !@cache[classn]
+			if !@cache.has_key?(classn)
 				@cache[classn] = {
 					objid => {
 						key => {
@@ -61,11 +63,10 @@ class Knj::Translations
 					locale => tran
 				}
 			elsif !@cache[classn][objid][key][locale]
-				@cache[classn][objid][key][locale] =  tran
+				@cache[classn][objid][key][locale] = tran
 			end
 		end
 		
-		return "" if trans.empty?
 		return trans[0][:value]
 	end
 	
@@ -78,7 +79,8 @@ class Knj::Translations
 		
 		values.each do |key, val|
 			trans = @ob.get_by(:Translation, {
-				"object" => obj,
+				"object_id" => obj.id,
+				"object_class" => obj.class.name,
 				"key" => key,
 				"locale" => locale
 			})
@@ -112,23 +114,22 @@ class Knj::Translations
 end
 
 class Knj::Translations::Translation < Knj::Datarow
-	def self.add(data, translations)
-		if data[:object]
-			data[:object_class] = data[:object].class.name
-			data[:object_id] = data[:object].id
-			data.delete(:object)
+	def self.add(d)
+		if d.data[:object]
+			d.data[:object_class] = d.data[:object].class.name
+			d.data[:object_id] = d.data[:object].id
+			d.data.delete(:object)
 		end
 	end
 	
 	def self.list(d)
 		sql = "SELECT * FROM #{table} WHERE 1=1"
-		
 		ret = list_helper(d)
 		
 		d.args.each do |key, val|
 			case key
 				when "object"
-					sql += " AND object_class = '#{val.class.name.sql}' AND object_id = '#{val.id.sql}'"
+					sql += " AND object_class = '#{d.db.esc(val.class.name)}' AND object_id = '#{d.db.esc(val.id)}'"
 				else
 					raise "No such key: #{key}."
 			end

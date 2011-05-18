@@ -26,17 +26,24 @@ class KnjDB_sqlite3
 	end
 	
 	def query(string)
-		if @knjdb.opts[:subtype] == "rhodes"
-			res = @conn.execute(string, string)
-		else
-			res = @conn.execute(string)
+		begin
+			if @knjdb.opts[:subtype] == "rhodes"
+				res = @conn.execute(string, string)
+			else
+				res = @conn.execute(string)
+			end
+		rescue Exception => e
+			print "SQL: #{string}\n"
+			raise e
 		end
 		
 		return KnjDB_sqlite3_result.new(self, res)
 	end
 	
 	def escape(string)
-    	return string.to_s.gsub("'", "\\'")
+		#This code is taken directly from the documentation so we dont have to rely on the SQLite3::Database class. This way it can also be used with JRuby and IronRuby...
+		#http://sqlite-ruby.rubyforge.org/classes/SQLite/Database.html
+		return string.to_s.gsub(/'/, "''")
 	end
 	
 	def esc_col(string)
