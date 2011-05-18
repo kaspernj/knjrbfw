@@ -313,6 +313,18 @@ class Knj::Db
 		end
 	end
 	
+	def q(str)
+		ret = query(str)
+		
+		if block_given?
+			while data = ret.fetch
+				yield data
+			end
+		end
+		
+		return ret
+	end
+	
 	def lastID
 		return @conn.lastID
 	end

@@ -103,7 +103,8 @@ class Knj::Translations
 		objid = obj.id
 		
 		trans = @ob.list(:Translation, {
-			"object" => obj
+			"object_id" => obj.id,
+			"object_class" => obj.class.name
 		})
 		trans.each do |tran|
 			@ob.delete(tran)
@@ -123,16 +124,11 @@ class Knj::Translations::Translation < Knj::Datarow
 	end
 	
 	def self.list(d)
-		sql = "SELECT * FROM #{table} WHERE 1=1"
+		sql = "SELECT * FROM #{d.db.conn.escape_col}#{d.db.esc_col(table)}#{d.db.conn.escape_col} WHERE 1=1"
 		ret = list_helper(d)
 		
 		d.args.each do |key, val|
-			case key
-				when "object"
-					sql += " AND object_class = '#{d.db.esc(val.class.name)}' AND object_id = '#{d.db.esc(val.id)}'"
-				else
-					raise "No such key: #{key}."
-			end
+			raise "No such key: #{key}."
 		end
 		
 		sql += ret[:sql_where]

@@ -1,5 +1,5 @@
 class KnjDB_mysql
-	attr_reader :knjdb, :conn, :escape_table, :escape_col, :escape_val, :esc_table, :esc_col
+	attr_reader :knjdb, :conn, :escape_table, :escape_col, :escape_val, :esc_table
 	attr_accessor :tables, :cols, :indexes
 	
 	def initialize(knjdb_ob)

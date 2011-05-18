@@ -255,14 +255,13 @@ class Knj::Objects
 	end
 	
 	# Returns a list of a specific object by running specific SQL against the database.
-	def list_bysql(classname, sql, &block)
+	def list_bysql(classname, sql)
 		classname = classname.to_sym
 		
-		ret = []
-		q_obs = @args[:db].query(sql)
-		while d_obs = q_obs.fetch
+		ret = [] if !block_given?
+		@args[:db].q(sql) do |d_obs|
 			if block_given?
-				block.call(self.get(classname, d_obs))
+				yield(self.get(classname, d_obs))
 			else
 				ret << self.get(classname, d_obs)
 			end
