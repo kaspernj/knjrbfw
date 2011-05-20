@@ -214,8 +214,8 @@ class Knj::Eruby
 	
 	def handle_error(e)
 		begin
-			if KnjEruby.connects["error"]
-				KnjEruby.connects["error"].each do |block|
+			if @connects and @connects.has_key?("error")
+				@connects["error"].each do |block|
 					block.call(e)
 				end
 			end

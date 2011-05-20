@@ -1,5 +1,5 @@
 class Knj::Objects
-	attr_reader :objects
+	attr_reader :objects, :args
 	
 	def initialize(args)
 		@callbacks = {}
@@ -317,6 +317,28 @@ class Knj::Objects
 			
 			db.insert_multi(classname, datas)
 		end
+	end
+	
+	def static(class_name, method_name, *args)
+		raise "Only available with datarow enabled." if !@args[:datarow]
+		class_name = class_name.to_sym
+		method_name = method_name.to_sym
+		
+		class_obj = @args[:module].const_get(class_name)
+		raise "The class '#{class_obj.name}' has no such method: '#{method_name}'." if !class_obj.respond_to?(method_name)
+		method_obj = class_obj.method(method_name)
+		
+		pass_args = []
+		pass_args << Knj::Hash_methods.new(
+			:ob => self,
+			:db => self.db
+		)
+		
+		args.each do |arg|
+			pass_args << arg
+		end
+		
+		method_obj.call(*pass_args)
 	end
 	
 	# Unset object. Do this if you are sure, that there are no more references left. This will be done automatically when deleting it.

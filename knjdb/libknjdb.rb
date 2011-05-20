@@ -345,6 +345,14 @@ class Knj::Db
 		return @conn.esc_table(str)
 	end
 	
+	def date_out(date_obj)
+		return Knj::Datet.in(date_obj).dbstr
+	end
+	
+	def date_in(date_obj)
+		return Knj::Datet.in(date_obj)
+	end
+	
 	def tables
 		if !@conn.tables
 			require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_tables" if (!@opts.has_key?(:require) or @opts[:require])
