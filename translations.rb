@@ -1,8 +1,9 @@
 class Knj::Translations
-	attr_accessor :args, :db, :ob
+	attr_accessor :args, :db, :ob, :cache
 	
 	def initialize(args)
 		@args = args
+		@cache = {}
 		
 		raise "No DB given." if !@args[:db]
 		@db = @args[:db]
@@ -15,8 +16,6 @@ class Knj::Translations
 			:require => false,
 			:datarow => true
 		)
-		
-		@cache = {}
 	end
 	
 	def get(obj, key, args = {})

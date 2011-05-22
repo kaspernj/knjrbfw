@@ -4,10 +4,12 @@ class Knj::Gettext_threadded
 	def initialize(args = {})
 		@args = args
 		@langs = {}
+		@dirs = []
 		load_dir(@args["dir"]) if @args["dir"]
 	end
 	
 	def load_dir(dir)
+		@dirs << dir
 		check_folders = ["LC_MESSAGES", "LC_ALL"]
 		
 		Dir.new(dir).each do |file|
@@ -49,11 +51,17 @@ class Knj::Gettext_threadded
 	def lang_opts
 		langs = {}
 		@langs.keys.sort.each do |lang|
-			title_file_path = "#{@args["dir"]}/#{lang}/title.txt"
-			if File.exists?(title_file_path)
-				title = File.read(title_file_path)
-			else
-				title = lang
+			title = nil
+			
+			@dirs.each do |dir|
+				title_file_path = "#{dir}/#{lang}/title.txt"
+				if File.exists?(title_file_path)
+					title = File.read(title_file_path)
+				else
+					title = lang
+				end
+				
+				break if title
 			end
 			
 			langs[lang] = title
