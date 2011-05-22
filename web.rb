@@ -539,7 +539,8 @@ class Knj::Web
 		end
 		
 		return "" if !opthash
-		curvalue = curvalue.id if curvalue.is_a?(Knj::Db_row)
+		cname = curvalue.class.name
+		curvalue = curvalue.id if (cname == "Knj::Db_row" or cname == "Knj::Datarow")
 		
 		html = ""
 		addsel = " selected=\"selected\"" if !curvalue

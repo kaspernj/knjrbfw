@@ -4,6 +4,7 @@ class KnjDB_mysql
 	
 	def initialize(knjdb_ob)
 		@knjdb = knjdb_ob
+		@encoding = @knjdb.opts[:encoding]
 		@escape_table = "`"
 		@escape_col = "`"
 		@escape_val = "'"
@@ -17,7 +18,6 @@ class KnjDB_mysql
 		end
 		
 		@subtype = @knjdb.opts[:subtype]
-		
 		self.reconnect
 	end
 	
@@ -55,12 +55,12 @@ class KnjDB_mysql
 			raise "Unknown subtype: #{@subtype}"
 		end
 		
-		if @knjdb.opts[:encoding]
-			@conn.query("SET NAMES '#{self.esc(@knjdb.opts[:encoding])}'")
-		end
+		@conn.query("SET NAMES '#{self.esc(@encoding)}'") if @encoding
 	end
 	
 	def query(string)
+		string = string.to_s.force_encoding("UTF-8") if @encoding == "utf8"
+		
 		if !@subtype or @subtype == "mysql"
 			begin
 				return KnjDB_mysql_result.new(self, @conn.query(string))
@@ -69,11 +69,6 @@ class KnjDB_mysql
 					self.reconnect
 					return KnjDB_mysql_result.new(self, @conn.query(string))
 				else
-					print "SQL: #{string}\n\n"
-					
-					puts e.message
-					puts e.backtrace
-					
 					raise e
 				end
 			end
@@ -126,9 +121,12 @@ class KnjDB_mysql
 	def lastID
 		if !@subtype or @subtype == "mysql"
 			return @conn.insert_id
+		elsif @subtype == "mysql2"
+			return @conn.last_id
 		else
 			data = query("SELECT LAST_INSERT_ID() AS id").fetch
 			return data[:id] if data.has_key?(:id)
+			raise "Could not figure out last inserted ID."
 		end
 	end
 	

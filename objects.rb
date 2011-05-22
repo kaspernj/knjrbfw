@@ -204,7 +204,7 @@ class Knj::Objects
 			selected = false
 			if args[:selected].is_a?(Array) and args[:selected].index(object) != nil
 				selected = true
-			elsif args[:selected] and args[:selected].is_a?(Knj::Db_row) and args[:selected][@args[:col_id]] == object.id
+			elsif args[:selected] and args[:selected].respond_to?("is_knj?") and args[:selected].id.to_s == object.id.to_s
 				selected = true
 			end
 			
@@ -343,6 +343,13 @@ class Knj::Objects
 	
 	# Unset object. Do this if you are sure, that there are no more references left. This will be done automatically when deleting it.
 	def unset(object)
+		if object.is_a?(Array)
+			object.each do |obj|
+				unset(obj)
+			end
+			return nil
+		end
+		
 		classname = object.class.name
 		
 		if @args[:module]
@@ -482,6 +489,7 @@ class Knj::Objects
 		cols_num_has = args.has_key?(:cols_num)
 		cols_date_has = args.has_key?(:cols_date)
 		cols_dbrows_has = args.has_key?(:cols_dbrows)
+		cols_bools_has = args.has_key?(:cols_bools)
 		
 		if list_args.has_key?("orderby")
 			orders = []
@@ -533,6 +541,7 @@ class Knj::Objects
 					found = true if !found and cols_str_has and args[:cols_str].index(orderstr) != nil
 					found = true if !found and cols_date_has and args[:cols_date].index(orderstr) != nil
 					found = true if !found and cols_num_has and args[:cols_num].index(orderstr) != nil
+					found = true if !found and cols_bools_has and args[:cols_bools].index(orderstr) != nil
 					
 					raise "Column not found for ordering: #{orderstr}." if !found
 					orders << "#{table}`#{db.esc_col(orderstr)}`#{ordermode}"
@@ -551,7 +560,7 @@ class Knj::Objects
 			if (cols_str_has and args[:cols_str].index(key) != nil) or (cols_num_has and args[:cols_num].index(key) != nil) or (cols_dbrows_has and args[:cols_dbrows].index(key) != nil)
 				sql_where += " AND #{table}`#{db.esc_col(key)}` = '#{db.esc(val)}'"
 				found = true
-			elsif args.has_key?(:cols_bools) and args[:cols_bools].index(key) != nil
+			elsif cols_bools_has and args[:cols_bools].index(key) != nil
 				if val.is_a?(TrueClass) or (val.is_a?(Integer) and val.to_i == 1) or (val.is_a?(String) and (val == "true" or val == "1"))
 					realval = "1"
 				elsif val.is_a?(FalseClass) or (val.is_a?(Integer) and val.to_i == 0) or (val.is_a?(String) and (val == "false" or val == "0"))

@@ -22,35 +22,42 @@ class Knj::Datarow
 	end
 	
 	def self.list_helper(d)
+		sleep 0.1 while @columns_sqlhelper_args_working
+		
 		if !@columns_sqlhelper_args
-			cols = self.columns(d)
-			
-			sqlhelper_args = {
-				:db => d.db,
-				:table => table,
-				:cols_bools => [],
-				:cols_date => [],
-				:cols_dbrows => [],
-				:cols_num => [],
-				:cols_str => []
-			}
-			cols.each do |col_name, col_obj|
-				col_type = col_obj.type
+			begin
+				@columns_sqlhelper_args_working = true
+				cols = self.columns(d)
 				
-				if col_type == "enum" and col_obj.maxlength == "'0','1'"
-					sqlhelper_args[:cols_bools] << col_name
-				elsif col_type == "int" and col_name.slice(-3, 3) == "_id"
-					sqlhelper_args[:cols_dbrows] << col_name
-				elsif col_type == "int" or col_type == "bigint"
-					sqlhelper_args[:cols_num] << col_name
-				elsif col_type == "varchar" or col_type == "text" or col_type == "enum"
-					sqlhelper_args[:cols_str] << col_name
-				elsif col_type == "date" or col_type == "datetime"
-					sqlhelper_args[:cols_date] << col_name
+				sqlhelper_args = {
+					:db => d.db,
+					:table => table,
+					:cols_bools => [],
+					:cols_date => [],
+					:cols_dbrows => [],
+					:cols_num => [],
+					:cols_str => []
+				}
+				cols.each do |col_name, col_obj|
+					col_type = col_obj.type
+					
+					if col_type == "enum" and col_obj.maxlength == "'0','1'"
+						sqlhelper_args[:cols_bools] << col_name
+					elsif col_type == "int" and col_name.slice(-3, 3) == "_id"
+						sqlhelper_args[:cols_dbrows] << col_name
+					elsif col_type == "int" or col_type == "bigint"
+						sqlhelper_args[:cols_num] << col_name
+					elsif col_type == "varchar" or col_type == "text" or col_type == "enum"
+						sqlhelper_args[:cols_str] << col_name
+					elsif col_type == "date" or col_type == "datetime"
+						sqlhelper_args[:cols_date] << col_name
+					end
 				end
+				
+				@columns_sqlhelper_args = sqlhelper_args
+			ensure
+				@columns_sqlhelper_args_working = false
 			end
-			
-			@columns_sqlhelper_args = sqlhelper_args
 		end
 		
 		return d.ob.sqlhelper(d.args, @columns_sqlhelper_args)
@@ -112,10 +119,10 @@ class Knj::Datarow
 	end
 	
 	def [](key)
-		raise "No valid key given." if !key
+		raise "No valid key given." if !key.is_a?(Symbol)
 		raise "No data was loaded on the object? Maybe you are trying to call a deleted object?" if !@data
 		return @data[key] if @data.has_key?(key)
-		raise "No such key: #{key.to_s}."
+		raise "No such key: #{key}."
 	end
 	
 	def []=(key, value)
