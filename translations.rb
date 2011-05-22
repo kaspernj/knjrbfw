@@ -29,7 +29,7 @@ class Knj::Translations
 		end
 		
 		classn = obj.class.name
-		objid = obj.id
+		objid = obj.id.to_s
 		
 		if @cache[classn] and @cache[classn][objid] and @cache[classn][objid][key] and @cache[classn][objid][key][locale]
 			return @cache[classn][objid][key][locale][:value]
@@ -100,7 +100,7 @@ class Knj::Translations
 	
 	def delete(obj)
 		classn = obj.class.name
-		objid = obj.id
+		objid = obj.id.to_s
 		
 		trans = @ob.list(:Translation, {
 			"object_id" => obj.id,
@@ -110,7 +110,7 @@ class Knj::Translations
 			@ob.delete(tran)
 		end
 		
-		@cache[classn].delete(objid)
+		@cache[classn].delete(objid) if @cache.has_key?(classn) and @cache.has_key?(objid)
 	end
 end
 
