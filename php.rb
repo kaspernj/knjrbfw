@@ -645,6 +645,23 @@ module Knj::Php
 		ip.reverse.join(".")
 	end
 	
+	def self.gzcompress(str, level = 3)
+		zstream = Zlib::Deflate.new
+		gzip_str = zstream.deflate(str.to_s, Zlib::FINISH)
+		zstream.close
+		
+		return gzip_str
+	end
+	
+	def self.gzuncompress(str, length = 0)
+		zstream = Zlib::Inflate.new
+		plain_str = zstream.inflate(str.to_s)
+		zstream.finish
+		zstream.close
+		
+		return plain_str.to_s
+	end
+	
 	Knj::Php.singleton_methods.each do |methodname|
 		define_method methodname.to_sym do |*paras|
 			return Knj::Php.send(methodname, *paras)
