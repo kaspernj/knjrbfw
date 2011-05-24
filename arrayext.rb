@@ -88,14 +88,28 @@ module Knj::ArrayExt
 		if !args.has_key?("h1_to_h2") or args["h1_to_h2"]
 			h1.each do |key, val|
 				return true if !h2.has_key?(key)
-				return true if h2[key].to_s != val.to_s
+				
+				hash_val = h2[key].to_s
+				hash_val = hash_val.force_encoding("UTF-8") if hash_val.respond_to?(:force_encoding)
+				
+				val = val.to_s
+				val = val.force_encoding("UTF-8") if val.respond_to?(:force_encoding)
+				
+				return true if hash_val != val
 			end
 		end
 		
 		if !args.has_key?("h2_to_h1") or args["h2_to_h1"]
 			h2.each do |key, val|
 				return true if !h1.has_key?(key)
-				return true if h1[key].to_s != val.to_s
+				
+				hash_val = h1[key].to_s
+				hash_val = hash_val.force_encoding("UTF-8") if hash_val.respond_to?(:force_encoding)
+				
+				val = val.to_s
+				val = val.force_encoding("UTF-8") if val.respond_to?(:force_encoding)
+				
+				return true if hash_val != val
 			end
 		end
 		
