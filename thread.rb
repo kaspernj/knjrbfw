@@ -2,14 +2,18 @@
 class Knj::Thread < Thread
 	attr_accessor :data
 	
-	def initialize(*paras, &block)
+	def initialize(*args, &block)
 		@data = {}
+		@args = args if !block
+		@callbacks = {}
 		raise "No block was given." if !block_given?
 		
-		Thread.abort_on_exception = true
-		super(*paras) do
+		abort_on_exception = true
+		super(*args) do
 			begin
-				block.call(*paras)
+				call(:on_run)
+				block.call(*@args)
+				call(:on_done)
 			rescue SystemExit
 				exit
 			rescue Exception => e
@@ -19,6 +23,18 @@ class Knj::Thread < Thread
 				puts e.backtrace
 				print "\n\n"
 			end
+		end
+	end
+	
+	def connect(signal, &block)
+		@callbacks[signal] = [] if !@callbacks.has_key?(signal)
+		@callbacks[signal] << block
+	end
+	
+	def call(signal, *args)
+		return false if !@callbacks.has_key?(signal)
+		@callbacks[signal].each do |block|
+			block.call(*args)
 		end
 	end
 	
