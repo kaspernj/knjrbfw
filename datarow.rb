@@ -77,7 +77,7 @@ class Knj::Datarow
 			@data = {:id => d.data}
 			self.reload
 		else
-			Knj::Php.print_r(args)
+			Knj::Php.print_r(d.data)
 			raise "Could not figure out the data."
 		end
 	end

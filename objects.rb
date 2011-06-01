@@ -210,8 +210,17 @@ class Knj::Objects
 			
 			html += " selected=\"selected\"" if selected
 			
+			obj_methods = object.class.instance_methods(false)
+			
 			begin
-				objhtml = object.title.html
+				if obj_methods.index(:name) != nil
+					objhtml = object.name.html
+				elsif obj_methods.index(:title) != nil
+					objhtml = object.title.html
+				else
+					raise "Could not figure out which name-method to call?"
+				end
+				
 				html += ">#{objhtml}</option>"
 			rescue Exception => e
 				html += ">[#{_("invalid title")}]</option>"
