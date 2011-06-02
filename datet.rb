@@ -71,6 +71,7 @@ class Knj::Datet
 	
 	def add_days(days = 1)
 		days = days.to_i
+		return self if days == 0
 		dim = self.days_in_month
 		cur_day = @time.day
 		next_day = cur_day + days
@@ -79,6 +80,12 @@ class Knj::Datet
 			@time = self.add_months(1).stamp(:datet => false, :day => 1)
 			days_left = (days - 1) - (dim - cur_day)
 			self.add_days(days_left) if days_left > 0
+		elsif next_day <= 0
+			self.date = 1
+			self.add_months(-1)
+			@time = self.stamp(:datet => false, :day => self.days_in_month)
+			days_left = days + 1
+			self.add_days(days_left) if days_left != 0
 		else
 			@time = self.stamp(:datet => false, :day => next_day)
 		end
@@ -182,7 +189,14 @@ class Knj::Datet
 	end
 	
 	def date=(newday)
-		@time = self.stamp(:datet => false, :day => newday.to_i)
+		newday = newday.to_i
+		
+		if newday <= 0
+			self.add_days(newday - 1)
+		else
+			@time = self.stamp(:datet => false, :day => newday)
+		end
+		
 		return self
 	end
 	
@@ -203,6 +217,7 @@ class Knj::Datet
 		end
 		
 		@time = self.stamp(:datet => false, :hour => newhour)
+		
 		self.date = day if day != @time.day
 		return self
 	end
