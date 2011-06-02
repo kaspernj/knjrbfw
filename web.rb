@@ -633,7 +633,7 @@ class Knj::Web
 		if !servervar
 			begin
 				servervar = _server
-			rescue Exception
+			rescue Exception => e
 				servervar = $_SERVER
 			end
 		end
