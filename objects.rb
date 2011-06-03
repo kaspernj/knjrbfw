@@ -591,7 +591,7 @@ class Knj::Objects
 				limit_to = val.to_i
 				found = true
 			elsif cols_dbrows_has and args[:cols_dbrows].index(key.to_s + "_id") != nil
-				sql_where += " AND #{table}`#{db.esc_col(key.to_s + "_id")}` = '#{db.esc(val.id.to_s.sql)}'"
+				sql_where += " AND #{table}`#{db.esc_col(key.to_s + "_id")}` = '#{db.esc(val.id)}'"
 				found = true
 			elsif cols_str_has and match = key.match(/^([A-z_\d]+)_(search|has)$/) and args[:cols_str].index(match[1]) != nil
 				if match[2] == "search"

@@ -839,7 +839,7 @@ class String
 		if Thread.current.class.name == "Knj::Thread"
 			tdata = Thread.current.data
 			tid = Thread.current.__id__
-			return tdata[:knjdb][tid].query(string) if tdata[:knjdb] and tdata[:knjdb][tid]
+			return tdata[:knjdb][tid].escape(self) if tdata[:knjdb] and tdata[:knjdb][tid]
 			
 			if Thread.current[:knjappserver] and Thread.current[:knjappserver][:db]
 				return Thread.current[:knjappserver][:db].escape(self)
