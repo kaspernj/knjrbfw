@@ -100,7 +100,6 @@ class KnjDB_mysql
 					sleep 0.1
 					retry
 				else
-					print string + "\n"
 					raise e
 				end
 			end
