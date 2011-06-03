@@ -836,18 +836,13 @@ class String
 	end
 	
 	def sql
-		if Thread.current.class.name == "Knj::Thread"
-			tdata = Thread.current.data
-			tid = Thread.current.__id__
-			return tdata[:knjdb][tid].escape(self) if tdata[:knjdb] and tdata[:knjdb][tid]
-			
-			if Thread.current[:knjappserver] and Thread.current[:knjappserver][:db]
-				return Thread.current[:knjappserver][:db].escape(self)
-			elsif $db
-				return $db.escape(self)
-			end
+		begin
+			return _httpsession.db.escape(self)
+		rescue NameError
+			#ignore - not in KnjAppServer HTTP-session.
 		end
 		
+		return $db.escape(self) if $db
 		raise "Could not figure out where to find db object."
 	end
 end
