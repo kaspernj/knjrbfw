@@ -321,7 +321,8 @@ class Knj::Db
 	def query(string)
 		if Thread.current.class.name == "Knj::Thread"
 			tdata = Thread.current.data
-			return tdata[:knjdb][__id__].query(string) if tdata[:knjdb] and tdata[:knjdb][__id__]
+			tid = Thread.current.__id__
+			return tdata[:knjdb][tid].query(string) if tdata[:knjdb] and tdata[:knjdb][tid]
 		end
 		
 		if !@working

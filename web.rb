@@ -836,10 +836,16 @@ class String
 	end
 	
 	def sql
-		if Thread.current.class.name == "Knj::Thread" and Thread.current[:knjappserver] and Thread.current[:knjappserver][:db]
-			return Thread.current[:knjappserver][:db].escape(self)
-		elsif $db
-			return $db.escape(self)
+		if Thread.current.class.name == "Knj::Thread"
+			tdata = Thread.current.data
+			tid = Thread.current.__id__
+			return tdata[:knjdb][tid].query(string) if tdata[:knjdb] and tdata[:knjdb][tid]
+			
+			if Thread.current[:knjappserver] and Thread.current[:knjappserver][:db]
+				return Thread.current[:knjappserver][:db].escape(self)
+			elsif $db
+				return $db.escape(self)
+			end
 		end
 		
 		raise "Could not figure out where to find db object."
