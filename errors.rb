@@ -3,6 +3,7 @@ module Knj::Errors
 	class NotFound < StandardError; end
 	class InvalidData < StandardError; end
 	class Retry < StandardError; end
+	class NoAccess < StandardError; end
 	
 	def self.error_str(err, args = {})
 		if args[:html]
