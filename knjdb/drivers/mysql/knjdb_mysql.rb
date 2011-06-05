@@ -18,7 +18,7 @@ class KnjDB_mysql
 		end
 		
 		@subtype = @knjdb.opts[:subtype]
-		self.reconnect
+		reconnect
 	end
 	
 	def reconnect
@@ -50,24 +50,41 @@ class KnjDB_mysql
 			end
 			
 			@conn = java.sql::DriverManager.getConnection("jdbc:mysql://#{@knjdb.opts[:host]}:#{@port}/#{@knjdb.opts[:db]}?user=#{@knjdb.opts[:user]}&password=#{@knjdb.opts[:pass]}&populateInsertRowWithDefaultValues=true&zeroDateTimeBehavior=round")
-			self.query("SET SQL_MODE = ''")
+			query("SET SQL_MODE = ''")
 		else
 			raise "Unknown subtype: #{@subtype}"
 		end
 		
-		@conn.query("SET NAMES '#{self.esc(@encoding)}'") if @encoding
+		query_conn(@conn, "SET NAMES '#{esc(@encoding)}'") if @encoding
+	end
+	
+	def query_conn(conn, str)
+		if @subtype == "java"
+			stmt = conn.createStatement
+			
+			if str.match(/insert\s+into\s+/i) or str.match(/update\s+/i) or str.match(/^\s*delete\s+/i)
+				return stmt.execute(str)
+			else
+				return stmt.executeQuery(str)
+			end
+		elsif conn.respond_to?(:query)
+			return conn.query(str)
+		else
+			raise "Could not figure out the way to execute the query on #{conn.class.name}."
+		end
 	end
 	
 	def query(string)
-		string = string.to_s.force_encoding("UTF-8") if @encoding == "utf8"
+		string = string.to_s
+		string = string.force_encoding("UTF-8") if @encoding == "utf8" and string.respond_to?(:force_encoding)
 		
 		if !@subtype or @subtype == "mysql"
 			begin
 				return KnjDB_mysql_result.new(self, @conn.query(string))
 			rescue Mysql::Error => e
 				if e.message == "MySQL server has gone away"
-					self.reconnect
-					return KnjDB_mysql_result.new(self, @conn.query(string))
+					reconnect
+					retry
 				else
 					raise e
 				end
@@ -76,9 +93,9 @@ class KnjDB_mysql
 			begin
 				return KnjDB_mysql2_result.new(@conn.query(string))
 			rescue Mysql2::Error => e
-				if e.message == "MySQL server has gone away"
-					self.reconnect
-					return KnjDB_mysql2_result.new(@conn.query(string))
+				if e.message == "MySQL server has gone away" or e.message == "closed MySQL connection"
+					reconnect
+					retry
 				elsif e.message == "This connection is still waiting for a result, try again once you have the result"
 					sleep 0.1
 					retry
@@ -87,15 +104,18 @@ class KnjDB_mysql
 				end
 			end
 		elsif @subtype == "java"
-			stmt = @conn.createStatement
-			
-			if string.match(/insert\s+into\s+/i) or string.match(/update\s+/i)
-				rs = stmt.execute(string)
-			else
-				rs = stmt.executeQuery(string)
+			begin
+				return KnjDB_java_mysql_result.new(@knjdb, query_conn(@conn, string))
+			rescue => e
+				if e.to_s.index("No operations allowed after connection closed") != nil
+					reconnect
+					retry
+				end
+				
+				raise e
 			end
-			
-			return KnjDB_java_mysql_result.new(@knjdb, rs)
+		else
+			raise "Unknown subtype: '#{@subtype}'."
 		end
 	end
 	
@@ -105,7 +125,20 @@ class KnjDB_mysql
 		elsif @subtype == "mysql2"
 			return @conn.escape(string.to_s)
 		elsif @subtype == "java"
-			return string.to_s.gsub("'", "\\'")
+			#This is copied from the Ruby/MySQL framework at: http://www.tmtm.org/en/ruby/mysql/
+			return string.to_s.gsub(/([\0\n\r\032\'\"\\])/) do
+				case $1
+					when "\0" then "\\0"
+					when "\n" then "\\n"
+					when "\r" then "\\r"
+					when "\032" then "\\Z"
+					else "\\"+$1
+				end
+			end
+			
+			#return string.to_s.gsub("'", "\\'")
+		else
+			raise "Unknown subtype: '#{@subtype}'."
 		end
 	end
 	
@@ -166,7 +199,7 @@ class KnjDB_mysql
 		
 		sql += ")"
 		
-		self.query(sql)
+		query(sql)
 	end
 end
 
@@ -185,8 +218,8 @@ class KnjDB_mysql_result
 	end
 	
 	def fetch
-		return self.fetch_hash_symbols if @driver.knjdb.opts[:return_keys] == "symbols"
-		return self.fetch_hash_strings
+		return fetch_hash_symbols if @driver.knjdb.opts[:return_keys] == "symbols"
+		return fetch_hash_strings
 	end
 	
 	def fetch_hash_strings
@@ -245,7 +278,7 @@ class KnjDB_java_mysql_result
 	end
 	
 	def fetch
-		self.read_meta if !@keys
+		read_meta if !@keys
 		status = @result.next
 		return false if !status
 		
