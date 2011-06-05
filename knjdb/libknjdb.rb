@@ -76,8 +76,9 @@ class Knj::Db
 		
 		begin
 			tdata = Thread.current.data
+			tid = self.__id__
 			tdata[:knjdb] = {} if !tdata.has_key?(:knjdb)
-			tdata[:knjdb][__id__] = db
+			tdata[:knjdb][tid] = db
 		ensure
 			@conns.free(db)
 		end
@@ -86,10 +87,11 @@ class Knj::Db
 	def free_thread
 		raise "Not within a Knj::Thread: #{Thread.current.class.name}." if Thread.current.class.name.to_s != "Knj::Thread"
 		tdata = Thread.current.data
+		tid = self.__id__
 		
-		if tdata.has_key?(:knjdb) and tdata[:knjdb].has_key?(__id__)
-			db = tdata[:knjdb][__id__]
-			tdata[:knjdb].delete(__id__)
+		if tdata.has_key?(:knjdb) and tdata[:knjdb].has_key?(tid)
+			db = tdata[:knjdb][tid]
+			tdata[:knjdb].delete(tid)
 			@conns.free(db)
 		end
 	end
@@ -185,9 +187,10 @@ class Knj::Db
 		if args[:return_id]
 			if Thread.current.class.name == "Knj::Thread"
 				tdata = Thread.current.data
+				tid = self.__id__
 				
-				if tdata.has_key?(:knjdb) and tdata[:knjdb].has_key?(__id__)
-					conn = tdata[:knjdb][__id__]
+				if tdata.has_key?(:knjdb) and tdata[:knjdb].has_key?(tid)
+					conn = tdata[:knjdb][tid]
 					conn.query(sql)
 					return conn.lastID
 				end
@@ -321,7 +324,8 @@ class Knj::Db
 	def query(string)
 		if Thread.current.class.name == "Knj::Thread"
 			tdata = Thread.current.data
-			return tdata[:knjdb][__id__].query(string) if tdata[:knjdb] and tdata[:knjdb][__id__]
+			tid = self.__id__
+			return tdata[:knjdb][tid].query(string) if tdata[:knjdb] and tdata[:knjdb][tid]
 		end
 		
 		if !@working
