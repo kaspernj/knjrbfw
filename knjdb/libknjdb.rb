@@ -71,6 +71,7 @@ class Knj::Db
 	
 	def get_and_register_thread
 		raise "Not within a Knj::Thread: #{Thread.current.class.name}" if Thread.current.class.name.to_s != "Knj::Thread"
+		raise "KnjDB-object is not in threadding mode." if !@conns
 		
 		db = @conns.get_and_lock
 		

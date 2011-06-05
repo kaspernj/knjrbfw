@@ -141,6 +141,11 @@ class Knj::Datarow
 			return @data[:name]
 		end
 		
+		obj_methods = self.class.instance_methods(false)
+		[:name, :title].each do |method_name|
+			return self.method(method_name).call if obj_methods.index(method_name)
+		end
+		
 		raise "Couldnt figure out the title/name of the object on class #{self.class.name}."
 	end
 	
