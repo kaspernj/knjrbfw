@@ -348,6 +348,8 @@ class Knj::Datet
 			return Knj::Datet.new(timestr.to_time)
 		elsif timestr.is_a?(Knj::Datet)
 			return timestr
+		elsif timestr == nil
+			return Knj::Datet.in("1970-01-01")
 		end
 		
 		if match = timestr.to_s.match(/^(\d+)\/(\d+) (\d+)/)
@@ -373,7 +375,7 @@ class Knj::Datet
 			return Knj::Datet.new(Time.gm(match[1].to_i, match[2].to_i, match[3].to_i, match[5].to_i, match[6].to_i, match[7].to_i, match[8].to_i))
 		end
 		
-		raise Knj::Errors::InvalidData.new(sprintf("Wrong format: %s", timestr))
+		raise Knj::Errors::InvalidData.new("Wrong format: '#{timestr}', class: '#{timestr.class.name}'")
 	end
 	
 	def self.months_arr
