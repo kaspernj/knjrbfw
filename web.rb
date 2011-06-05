@@ -461,7 +461,7 @@ class Knj::Web
 		else
 			html += "<tr>"
 			html += "<td class=\"tdt\">"
-			html += args[:title].html
+			html += args[:title].to_s.html
 			html += "</td>"
 			html += "<td class=\"tdc\">"
 			

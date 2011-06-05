@@ -303,6 +303,9 @@ class Knj::Objects
 		end
 		
 		self.call("object" => retob, "signal" => "add")
+		if retob.respond_to?(:add_after)
+			retob.send(:add_after, {})
+		end
 		
 		return retob
 	end
