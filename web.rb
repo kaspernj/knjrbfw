@@ -676,7 +676,7 @@ class Knj::Web
 		elsif agent.index("gidbot") != nil
 			browser = "bot"
 			title = "Bot"
-			version "GIDBot"
+			version = "GIDBot"
 		elsif match = agent.match(/safari\/(\d+)/)
 			browser = "safari"
 			title = "Safari"
@@ -716,7 +716,7 @@ class Knj::Web
 		elsif agent.index("mj12bot") != nil
 			browser = "bot"
 			title = "Bot"
-			version "Majestic12 Bot"
+			version = "Majestic12 Bot"
 		elsif agent.index("facebookexternalhit") != nil
 			browser = "bot"
 			title = "Bot"
