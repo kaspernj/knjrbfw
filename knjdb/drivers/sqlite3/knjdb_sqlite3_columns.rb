@@ -111,13 +111,14 @@ class KnjDB_sqlite3::Columns::Column
 	end
 	
 	def primarykey?
+		return true if @args[:data][:name] == "id"
 		return false if @args[:data][:pk].to_i == 0
 		return true
 	end
 	
 	def autoincr?
-		print "Autoincr:\n"
-		Knj::Php.print_r(@args[:data])
+		return true if @args[:data][:name] == "id"
+		return true if @args[:data][:pk].to_i >= 1
 		return false
 	end
 	
