@@ -39,7 +39,6 @@ class KnjDB_sqlite3::Tables
 		
 		sql += ")"
 		
-		print sql + "\n"
 		@db.query(sql)
 		@list = nil
 		
@@ -236,6 +235,8 @@ class KnjDB_sqlite3::Tables::Table
 					:driver => @driver,
 					:data => d_indexes
 				)
+				
+				@indexes_list[d_indexes[:name]].columns << d_indexes[:name]
 			end
 		end
 		
@@ -265,5 +266,23 @@ class KnjDB_sqlite3::Tables::Table
 			@db.query(sql)
 			@indexes_list = nil
 		end
+	end
+	
+	def data
+		ret = {
+			"name" => name,
+			"columns" => [],
+			"indexes" => []
+		}
+		
+		columns.each do |name, column|
+			ret["columns"] << column.data
+		end
+		
+		indexes.each do |name, index|
+			ret["indexes"] << index.data if name != "PRIMARY"
+		end
+		
+		return ret
 	end
 end
