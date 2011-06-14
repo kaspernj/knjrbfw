@@ -37,7 +37,7 @@ class Knj::Db
 			@conns = Knj::Threadhandler.new
 			
 			@conns.on_spawn_new do
-				spawn
+				self.spawn
 			end
 			
 			@conns.on_inactive do |data|
@@ -70,29 +70,25 @@ class Knj::Db
 	end
 	
 	def get_and_register_thread
-		raise "Not within a Knj::Thread: #{Thread.current.class.name}" if Thread.current.class.name.to_s != "Knj::Thread"
 		raise "KnjDB-object is not in threadding mode." if !@conns
 		
 		db = @conns.get_and_lock
 		
 		begin
-			tdata = Thread.current.data
 			tid = self.__id__
-			tdata[:knjdb] = {} if !tdata.has_key?(:knjdb)
-			tdata[:knjdb][tid] = db
+			Thread.current[:knjdb] = {} if !Thread.current[:knjdb]
+			Thread.current[:knjdb][tid] = db
 		ensure
 			@conns.free(db)
 		end
 	end
 	
 	def free_thread
-		raise "Not within a Knj::Thread: #{Thread.current.class.name}." if Thread.current.class.name.to_s != "Knj::Thread"
-		tdata = Thread.current.data
 		tid = self.__id__
 		
-		if tdata.has_key?(:knjdb) and tdata[:knjdb].has_key?(tid)
-			db = tdata[:knjdb][tid]
-			tdata[:knjdb].delete(tid)
+		if Thread.current[:knjdb] and Thread.current[:knjdb].has_key?(tid)
+			db = Thread.current[:knjdb][tid]
+			Thread.current[:knjdb].delete(tid)
 			@conns.free(db)
 		end
 	end
@@ -116,6 +112,7 @@ class Knj::Db
 			table_args = nil
 			table_args = args["tables"][table["name"].to_s] if args and args["tables"] and args["tables"][table["name"].to_s]
 			next if table_args and table_args["skip"]
+			table.delete("indexes") if table.has_key?("indexes") and args["skip_indexes"]
 			db.tables.create(table["name"], table)
 			
 			limit_from = 0
@@ -186,15 +183,12 @@ class Knj::Db
 		sql += ")"
 		
 		if args[:return_id]
-			if Thread.current.class.name == "Knj::Thread"
-				tdata = Thread.current.data
-				tid = self.__id__
-				
-				if tdata.has_key?(:knjdb) and tdata[:knjdb].has_key?(tid)
-					conn = tdata[:knjdb][tid]
-					conn.query(sql)
-					return conn.lastID
-				end
+			tid = self.__id__
+			
+			if Thread.current[:knjdb] and Thread.current[:knjdb].has_key?(tid)
+				conn = Thread.current[:knjdb][tid]
+				conn.query(sql)
+				return conn.lastID
 			end
 			
 			if @conns
@@ -323,10 +317,9 @@ class Knj::Db
 	end
 	
 	def query(string)
-		if Thread.current.class.name == "Knj::Thread"
-			tdata = Thread.current.data
+		if Thread.current[:knjdb]
 			tid = self.__id__
-			return tdata[:knjdb][tid].query(string) if tdata[:knjdb] and tdata[:knjdb][tid]
+			return Thread.current[:knjdb][tid].query(string) if Thread.current[:knjdb] and Thread.current[:knjdb].has_key?(tid)
 		end
 		
 		if !@working
