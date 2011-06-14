@@ -69,6 +69,7 @@ class KnjDB_mysql::Tables
 		end
 		
 		sql += ")"
+		
 		@db.query(sql)
 		@list = nil
 		
@@ -200,6 +201,7 @@ class KnjDB_mysql::Tables::Table
 			
 			sql += ")"
 			
+			print sql + "\n"
 			@db.query(sql)
 		end
 	end

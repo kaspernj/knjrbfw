@@ -5,8 +5,11 @@ class KnjDB_sqlite3::Indexes
 end
 
 class KnjDB_sqlite3::Indexes::Index
+	attr_reader :columns
+	
 	def initialize(args)
 		@args = args
+		@columns = []
 	end
 	
 	def name
@@ -15,5 +18,12 @@ class KnjDB_sqlite3::Indexes::Index
 	
 	def drop
 		@args[:db].query("DROP INDEX `#{self.name}`")
+	end
+	
+	def data
+		return {
+			"name" => name,
+			"columns" => @columns
+		}
 	end
 end
