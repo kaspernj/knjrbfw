@@ -13,6 +13,7 @@ module Knj
 	autoload :Errors, $knjpath + "errors.rb"
 	autoload :Eruby, $knjpath + "eruby.rb"
 	autoload :Event_filemod, $knjpath + "event_filemod.rb"
+	autoload :Event_handler, $knjpath + "event_handler.rb"
 	autoload :Exchangerates, $knjpath + "exchangerates.rb"
 	autoload :Fs, $knjpath + "fs/fs.rb"
 	autoload :Gettext_threadded, $knjpath + "gettext_threadded.rb"
