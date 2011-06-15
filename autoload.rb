@@ -46,6 +46,7 @@ module Knj
 	autoload :Sysuser, $knjpath + "sysuser.rb"
 	autoload :Thread, $knjpath + "thread.rb"
 	autoload :Thread2, $knjpath + "thread2.rb"
+	autoload :Threadpool, $knjpath + "threadpool.rb"
 	autoload :Threadhandler, $knjpath + "threadhandler.rb"
 	autoload :Translations, $knjpath + "translations.rb"
 	autoload :X11VNC, $knjpath + "x11vnc.rb"

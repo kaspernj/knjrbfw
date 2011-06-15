@@ -46,6 +46,16 @@ class Knj::Event_handler
 		@events[name].delete(callback_id)
 	end
 	
+	def count_connects(name)
+		raise "No such event." if !@events.has_key?(name)
+		return @events[name][:callbacks].length
+	end
+	
+	def connected?(name)
+		raise "No such event." if !@events.has_key?(name)
+		return !@events[name][:callbacks].empty?
+	end
+	
 	def call(name, *args)
 		raise "No such event: '#{name}'." if !@events.has_key?(name)
 		event = @events[name]
