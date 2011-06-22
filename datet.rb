@@ -236,12 +236,27 @@ class Knj::Datet
 		@time = self.stamp(:datet => false, :month => newmonth)
 	end
 	
-	def >=(datet)
-		return @time.to_i >= datet.time.to_i
+	def arg_to_time(datet)
+		if datet.is_a?(Knj::Datet)
+			return datet.time
+		elsif datet.is_a?(Time)
+			return datet
+		else
+			raise "Could not handle object of class: '#{datet.class.name}'."
+		end
 	end
 	
-	def ==(datet)
-		return @time.to_i == datet.time.to_i
+	include Comparable
+	def <=>(timeobj)
+		secs = arg_to_time(timeobj).to_i
+		
+		if secs > @time.to_i
+			return 1
+		elsif secs < @time.to_i
+			return -1
+		else
+			return 0
+		end
 	end
 	
 	def add_something(val)
