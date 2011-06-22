@@ -2,14 +2,14 @@
 class Knj::Thread < Thread
 	attr_accessor :data
 	
-	def initialize(*paras, &block)
+	def initialize(*args, &block)
 		@data = {}
 		raise "No block was given." if !block_given?
 		
-		Thread.abort_on_exception = true
-		super(*paras) do
+		abort_on_exception = true
+		super(*args) do
 			begin
-				block.call(*paras)
+				block.call(*args)
 			rescue SystemExit
 				exit
 			rescue Exception => e

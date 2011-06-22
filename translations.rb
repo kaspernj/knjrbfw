@@ -1,8 +1,9 @@
 class Knj::Translations
-	attr_accessor :args, :db, :ob
+	attr_accessor :args, :db, :ob, :cache
 	
 	def initialize(args)
 		@args = args
+		@cache = {}
 		
 		raise "No DB given." if !@args[:db]
 		@db = @args[:db]
@@ -12,10 +13,9 @@ class Knj::Translations
 			:extra_args => [self],
 			:class_path => File.dirname(__FILE__),
 			:module => Knj::Translations,
-			:require => false
+			:require => false,
+			:datarow => true
 		)
-		
-		@cache = {}
 	end
 	
 	def get(obj, key, args = {})
@@ -28,7 +28,7 @@ class Knj::Translations
 		end
 		
 		classn = obj.class.name
-		objid = obj.id
+		objid = obj.id.to_s
 		
 		if @cache[classn] and @cache[classn][objid] and @cache[classn][objid][key] and @cache[classn][objid][key][locale]
 			return @cache[classn][objid][key][locale][:value]
@@ -40,8 +40,10 @@ class Knj::Translations
 			"key" => key,
 			"locale" => locale
 		})
+		return "" if trans.empty?
+		
 		trans.each do |tran|
-			if !@cache[classn]
+			if !@cache.has_key?(classn)
 				@cache[classn] = {
 					objid => {
 						key => {
@@ -60,11 +62,10 @@ class Knj::Translations
 					locale => tran
 				}
 			elsif !@cache[classn][objid][key][locale]
-				@cache[classn][objid][key][locale] =  tran
+				@cache[classn][objid][key][locale] = tran
 			end
 		end
 		
-		return "" if trans.empty?
 		return trans[0][:value]
 	end
 	
@@ -77,7 +78,8 @@ class Knj::Translations
 		
 		values.each do |key, val|
 			trans = @ob.get_by(:Translation, {
-				"object" => obj,
+				"object_id" => obj.id,
+				"object_class" => obj.class.name,
 				"key" => key,
 				"locale" => locale
 			})
@@ -97,60 +99,41 @@ class Knj::Translations
 	
 	def delete(obj)
 		classn = obj.class.name
-		objid = obj.id
+		objid = obj.id.to_s
 		
 		trans = @ob.list(:Translation, {
-			"object" => obj
+			"object_id" => obj.id,
+			"object_class" => obj.class.name
 		})
 		trans.each do |tran|
 			@ob.delete(tran)
 		end
 		
-		@cache[classn].delete(objid)
+		@cache[classn].delete(objid) if @cache.has_key?(classn) and @cache.has_key?(objid)
 	end
 end
 
-class Knj::Translations::Translation < Knj::Db_row
-	def initialize(data, translations)
-		@translations = translations
-		super(:objects => translations.ob, :db => translations.db, :data => data, :table => :translations, :force_selfdb => true)
+class Knj::Translations::Translation < Knj::Datarow
+	def self.add(d)
+		if d.data[:object]
+			d.data[:object_class] = d.data[:object].class.name
+			d.data[:object_id] = d.data[:object].id
+			d.data.delete(:object)
+		end
 	end
 	
-	def self.add(data, translations)
-		if data[:object]
-			data[:object_class] = data[:object].class.name
-			data[:object_id] = data[:object].id
-			data.delete(:object)
+	def self.list(d)
+		sql = "SELECT * FROM #{d.db.conn.escape_col}#{d.db.esc_col(table)}#{d.db.conn.escape_col} WHERE 1=1"
+		ret = list_helper(d)
+		
+		d.args.each do |key, val|
+			raise "No such key: #{key}."
 		end
 		
-		translations.db.insert(:translations, data)
-		return translations.ob.get(:Translation, translations.db.last_id)
-	end
-	
-	def self.list(args = {}, translations = nil)
-		sql = "SELECT * FROM translations WHERE 1=1"
-		
-		ret = translations.ob.sqlhelper(args, {
-			:cols_str => ["object_class", "object_id", "key", "locale"]
-		})
 		sql += ret[:sql_where]
-		
-		args.each do |key, val|
-			case key
-				when "object"
-					sql += " AND object_class = '#{val.class.name.sql}' AND object_id = '#{val.id.sql}'"
-				else
-					raise "No such key: #{key}."
-			end
-		end
-		
 		sql += ret[:sql_order]
 		sql += ret[:sql_limit]
 		
-		return translations.ob.list_bysql(:Translation, sql)
-	end
-	
-	def delete
-		self.db.delete(:translations, {:id => self.id})
+		return d.ob.list_bysql(:Translation, sql)
 	end
 end

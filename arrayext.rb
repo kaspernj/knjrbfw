@@ -22,9 +22,7 @@ module Knj::ArrayExt
 			value = value if !args[:key]
 			value = Knj::Php.call_user_func(args[:callback], value) if args[:callback]
 			
-			if args[:callback] and !value
-				raise "Callback returned nothing."
-			end
+			raise "Callback returned nothing." if args[:callback] and !value
 			
 			str += args[:surr] if args[:surr]
 			str += value.to_s
@@ -82,7 +80,7 @@ module Knj::ArrayExt
 			combined_val += "#{key}:#{val}"
 		end
 		
-		return Knj::Php.md5(combined_val)
+		return Digest::MD5.hexdigest(combined_val)
 	end
 	
 	#Compares the keys and values of two hashes and returns true if they are different.
@@ -90,17 +88,61 @@ module Knj::ArrayExt
 		if !args.has_key?("h1_to_h2") or args["h1_to_h2"]
 			h1.each do |key, val|
 				return true if !h2.has_key?(key)
-				return true if h2[key].to_s != val.to_s
+				
+				hash_val = h2[key].to_s
+				hash_val = hash_val.force_encoding("UTF-8") if hash_val.respond_to?(:force_encoding)
+				
+				val = val.to_s
+				val = val.force_encoding("UTF-8") if val.respond_to?(:force_encoding)
+				
+				return true if hash_val != val
 			end
 		end
 		
 		if !args.has_key?("h2_to_h1") or args["h2_to_h1"]
 			h2.each do |key, val|
 				return true if !h1.has_key?(key)
-				return true if h1[key].to_s != val.to_s
+				
+				hash_val = h1[key].to_s
+				hash_val = hash_val.force_encoding("UTF-8") if hash_val.respond_to?(:force_encoding)
+				
+				val = val.to_s
+				val = val.force_encoding("UTF-8") if val.respond_to?(:force_encoding)
+				
+				return true if hash_val != val
 			end
 		end
 		
 		return false
+	end
+	
+	#Returns a hash based on the string-keys in a hash.
+	def self.hash_keys_hash(hash)
+		hashes = []
+		hash.keys.sort.each do |key|
+			hashes << Digest::MD5.hexdigest(key.to_s)
+		end
+		
+		return Digest::MD5.hexdigest(hashes.join("_"))
+	end
+	
+	#Returns hash based on the string-values in a hash.
+	def self.hash_values_hash(hash)
+		hashes = []
+		hash.keys.sort.each do |key|
+			hashes << Digest::MD5.hexdigest(hash[key].to_s)
+		end
+		
+		return Digest::MD5.hexdigest(hashes.join("_"))
+	end
+	
+	#Returns a hash based on the string-values of an array.
+	def self.array_hash(arr)
+		hashes = []
+		arr.each do |ele|
+			hashes << Digest::MD5.hexdigest(ele.to_s)
+		end
+		
+		return Digest::MD5.hexdigest(hashes.join("_"))
 	end
 end

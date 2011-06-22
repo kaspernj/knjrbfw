@@ -10,7 +10,7 @@ class Knj::Mount
 			opts = match[3].split(",")
 			
 			folder_from = nil if folder_from == "none"
-			raise "The folder doesnt exist?" if !File.exists?(folder_to)
+			#raise "The folder doesnt exist?" if !File.exists?(folder_to)
 			
 			add = true
 			add = false if args.has_key?("to") and args["to"] != folder_to

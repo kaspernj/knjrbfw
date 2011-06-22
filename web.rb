@@ -461,7 +461,7 @@ class Knj::Web
 		else
 			html += "<tr>"
 			html += "<td class=\"tdt\">"
-			html += args[:title].html
+			html += args[:title].to_s.html
 			html += "</td>"
 			html += "<td class=\"tdc\">"
 			
@@ -477,7 +477,7 @@ class Knj::Web
 			elsif args[:type] == :fckeditor
 				args[:height] = 400 if !args[:height]
 				
-				require "/usr/share/fckeditor/fckeditor"
+				require "/usr/share/fckeditor/fckeditor.rb"
 				fck = FCKeditor.new(args[:name])
 				fck.Height = args[:height].to_i
 				fck.Value = value
@@ -498,9 +498,12 @@ class Knj::Web
 				html += "<input type=\"file\" name=\"#{args[:name].html}\" class=\"input_file\" />"
 				html += "</td><td style=\"padding-left: 5px;\">"
 				
+				raise "No path given for imageupload-input." if !args.has_key?(:path)
+				raise "No value given in arguments for imageupload-input." if !args.has_key?(:value)
+				
 				path = args[:path].gsub("%value%", value.to_s).untaint
 				if File.exists?(path)
-					html += "<img src=\"image.php?picture=#{Knj::Php.urlencode(path).html}&smartsize=100&edgesize=25\" alt=\"Image\" />"
+					html += "<img src=\"image.php?picture=#{Knj::Php.urlencode(path).html}&smartsize=100&edgesize=25&force=true&ts=#{Time.new.to_f}\" alt=\"Image\" />"
 					
 					if args[:dellink]
 						dellink = args[:dellink].gsub("%value%", value.to_s)
@@ -536,7 +539,8 @@ class Knj::Web
 		end
 		
 		return "" if !opthash
-		curvalue = curvalue.id if curvalue.is_a?(Knj::Db_row)
+		cname = curvalue.class.name
+		curvalue = curvalue.id if (cname == "Knj::Db_row" or cname == "Knj::Datarow")
 		
 		html = ""
 		addsel = " selected=\"selected\"" if !curvalue
@@ -629,7 +633,7 @@ class Knj::Web
 		if !servervar
 			begin
 				servervar = _server
-			rescue Exception
+			rescue Exception => e
 				servervar = $_SERVER
 			end
 		end
@@ -672,11 +676,15 @@ class Knj::Web
 		elsif agent.index("gidbot") != nil
 			browser = "bot"
 			title = "Bot"
-			version "GIDBot"
+			version = "GIDBot"
 		elsif match = agent.match(/safari\/(\d+)/)
 			browser = "safari"
 			title = "Safari"
 			version = match[1]
+		elsif agent.index("iPad") != nil
+			browser = "safari"
+			title = "Safari (iPad)"
+			version = "ipad"
 		elsif agent.index("bingbot") != nil
 			browser = "bot"
 			title = "Bot"
@@ -708,7 +716,7 @@ class Knj::Web
 		elsif agent.index("mj12bot") != nil
 			browser = "bot"
 			title = "Bot"
-			version "Majestic12 Bot"
+			version = "Majestic12 Bot"
 		elsif agent.index("facebookexternalhit") != nil
 			browser = "bot"
 			title = "Bot"
@@ -717,6 +725,14 @@ class Knj::Web
 			browser = "bot"
 			title = "Bot"
 			version = "SiteBot"
+		elsif match = agent.match(/java\/([\d\.]+)/)
+			browser = "bot"
+			title = "Java"
+			version = match[1]
+		elsif match = agent.match(/ezooms\/([\d\.]+)/)
+			browser = "bot"
+			title = "Ezooms"
+			version = match[1]
 		else
 			browser = "unknown"
 			title = "(unknown browser)"
@@ -794,6 +810,16 @@ class Knj::Web
 		
 		return ret
 	end
+	
+	def self.hiddens(hidden_arr)
+		html = ""
+		
+		hidden_arr.each do |hidden_hash|
+			html += "<input type=\"hidden\" name=\"#{hidden_hash[:name].to_s.html}\" value=\"#{hidden_hash[:value].to_s.html}\" />"
+		end
+		
+		return html
+	end
 end
 
 def alert(string)
@@ -810,16 +836,17 @@ end
 
 class String
 	def html
-		return CGI.escapeHTML(self)
+		return self.to_s.gsub(/&/, "&amp;").gsub(/\"/, "&quot;").gsub(/>/, "&gt;").gsub(/</, "&lt;")
 	end
 	
 	def sql
-		if Thread.current.is_a?(Knj::Thread) and Thread.current[:knjappserver] and Thread.current[:knjappserver][:db]
-			return Thread.current[:knjappserver][:db].escape(self)
-		elsif $db
-			return $db.escape(self)
+		begin
+			return _httpsession.db.escape(self)
+		rescue NameError
+			#ignore - not in KnjAppServer HTTP-session.
 		end
 		
+		return $db.escape(self) if $db
 		raise "Could not figure out where to find db object."
 	end
 end

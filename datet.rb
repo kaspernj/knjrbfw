@@ -71,6 +71,7 @@ class Knj::Datet
 	
 	def add_days(days = 1)
 		days = days.to_i
+		return self if days == 0
 		dim = self.days_in_month
 		cur_day = @time.day
 		next_day = cur_day + days
@@ -79,6 +80,12 @@ class Knj::Datet
 			@time = self.add_months(1).stamp(:datet => false, :day => 1)
 			days_left = (days - 1) - (dim - cur_day)
 			self.add_days(days_left) if days_left > 0
+		elsif next_day <= 0
+			self.date = 1
+			self.add_months(-1)
+			@time = self.stamp(:datet => false, :day => self.days_in_month)
+			days_left = days + 1
+			self.add_days(days_left) if days_left != 0
 		else
 			@time = self.stamp(:datet => false, :day => next_day)
 		end
@@ -182,7 +189,14 @@ class Knj::Datet
 	end
 	
 	def date=(newday)
-		@time = self.stamp(:datet => false, :day => newday.to_i)
+		newday = newday.to_i
+		
+		if newday <= 0
+			self.add_days(newday - 1)
+		else
+			@time = self.stamp(:datet => false, :day => newday)
+		end
+		
 		return self
 	end
 	
@@ -203,6 +217,7 @@ class Knj::Datet
 		end
 		
 		@time = self.stamp(:datet => false, :hour => newhour)
+		
 		self.date = day if day != @time.day
 		return self
 	end
@@ -221,12 +236,27 @@ class Knj::Datet
 		@time = self.stamp(:datet => false, :month => newmonth)
 	end
 	
-	def >=(datet)
-		return @time.to_i >= datet.time.to_i
+	def arg_to_time(datet)
+		if datet.is_a?(Knj::Datet)
+			return datet.time
+		elsif datet.is_a?(Time)
+			return datet
+		else
+			raise "Could not handle object of class: '#{datet.class.name}'."
+		end
 	end
 	
-	def ==(datet)
-		return @time.to_i == datet.time.to_i
+	include Comparable
+	def <=>(timeobj)
+		secs = arg_to_time(timeobj).to_i
+		
+		if secs > @time.to_i
+			return 1
+		elsif secs < @time.to_i
+			return -1
+		else
+			return 0
+		end
 	end
 	
 	def add_something(val)
@@ -333,6 +363,8 @@ class Knj::Datet
 			return Knj::Datet.new(timestr.to_time)
 		elsif timestr.is_a?(Knj::Datet)
 			return timestr
+		elsif timestr == nil
+			return Knj::Datet.in("1970-01-01")
 		end
 		
 		if match = timestr.to_s.match(/^(\d+)\/(\d+) (\d+)/)
@@ -358,7 +390,7 @@ class Knj::Datet
 			return Knj::Datet.new(Time.gm(match[1].to_i, match[2].to_i, match[3].to_i, match[5].to_i, match[6].to_i, match[7].to_i, match[8].to_i))
 		end
 		
-		raise Knj::Errors::InvalidData.new(sprintf("Wrong format: %s", timestr))
+		raise Knj::Errors::InvalidData.new("Wrong format: '#{timestr}', class: '#{timestr.class.name}'")
 	end
 	
 	def self.months_arr

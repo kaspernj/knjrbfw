@@ -22,7 +22,7 @@ module Knj::Gtk2::Tv
 		
 		count = 0
 		data.each do |value|
-			iter[count] = value
+			iter[count] = value.to_s
 			count += 1
 		end
 	end

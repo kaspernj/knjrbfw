@@ -44,24 +44,8 @@ class Knj::Retry
 			end
 			
 			if doraise
-				if !args[:clean_backtrace]
-					#Clean backtrace so its easier to debug.
-					newtrace = []
-					bt = e.backtrace
-					
-					bt.each do |trace|
-						if trace.index("/retry.rb") == nil
-							newtrace << trace
-						end
-					end
-					
-					e.set_backtrace(newtrace)
-				end
-				
 				if args[:return_error]
-					tries << {
-						:error => error
-					}
+					tries << {:error => error}
 					return {
 						:tries => tries,
 						:result => false
@@ -70,9 +54,7 @@ class Knj::Retry
 					raise e
 				end
 			elsif error
-				tries << {
-					:error => error
-				}
+				tries << {:error => error}
 			end
 			
 			break if dobreak

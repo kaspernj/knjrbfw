@@ -1,4 +1,5 @@
 require "knj/autoload"
+require "knj/web"
 
 class Appserver_cli
 	def self.loadfile(filepath)
@@ -7,6 +8,14 @@ class Appserver_cli
 	
 	def self._(str)
 		return str
+	end
+	
+	def self.gettext
+		return self
+	end
+	
+	def self.lang_opts
+		return []
 	end
 end
 

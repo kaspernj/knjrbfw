@@ -1,14 +1,16 @@
 class KnjDB_mysql
-	attr_reader :knjdb, :conn, :escape_table, :escape_col, :escape_val, :esc_table, :esc_col
+	attr_reader :knjdb, :conn, :escape_table, :escape_col, :escape_val, :esc_table
 	attr_accessor :tables, :cols, :indexes
 	
 	def initialize(knjdb_ob)
 		@knjdb = knjdb_ob
+		@encoding = @knjdb.opts[:encoding]
 		@escape_table = "`"
 		@escape_col = "`"
 		@escape_val = "'"
 		@esc_table = "`"
 		@esc_col = "`"
+		@mutex = Mutex.new
 		
 		if @knjdb.opts.has_key?(:port)
 			@port = @knjdb.opts[:port].to_i
@@ -17,8 +19,7 @@ class KnjDB_mysql
 		end
 		
 		@subtype = @knjdb.opts[:subtype]
-		
-		self.reconnect
+		reconnect
 	end
 	
 	def reconnect
@@ -50,57 +51,74 @@ class KnjDB_mysql
 			end
 			
 			@conn = java.sql::DriverManager.getConnection("jdbc:mysql://#{@knjdb.opts[:host]}:#{@port}/#{@knjdb.opts[:db]}?user=#{@knjdb.opts[:user]}&password=#{@knjdb.opts[:pass]}&populateInsertRowWithDefaultValues=true&zeroDateTimeBehavior=round")
-			self.query("SET SQL_MODE = ''")
+			query("SET SQL_MODE = ''")
 		else
 			raise "Unknown subtype: #{@subtype}"
 		end
 		
-		if @knjdb.opts[:encoding]
-			@conn.query("SET NAMES '#{self.esc(@knjdb.opts[:encoding])}'")
+		query_conn(@conn, "SET NAMES '#{esc(@encoding)}'") if @encoding
+	end
+	
+	def query_conn(conn, str)
+		if @subtype == "java"
+			stmt = conn.createStatement
+			
+			if str.match(/insert\s+into\s+/i) or str.match(/update\s+/i) or str.match(/^\s*delete\s+/i)
+				return stmt.execute(str)
+			else
+				return stmt.executeQuery(str)
+			end
+		elsif conn.respond_to?(:query)
+			return conn.query(str)
+		else
+			raise "Could not figure out the way to execute the query on #{conn.class.name}."
 		end
 	end
 	
 	def query(string)
-		if !@subtype or @subtype == "mysql"
-			begin
-				return KnjDB_mysql_result.new(self, @conn.query(string))
-			rescue Mysql::Error => e
-				if e.message == "MySQL server has gone away"
-					self.reconnect
-					return KnjDB_mysql_result.new(@conn.query(string))
-				else
-					print "SQL: #{string}\n\n"
-					
-					puts e.message
-					puts e.backtrace
-					
-					raise e
+		string = string.to_s
+		string = string.force_encoding("UTF-8") if @encoding == "utf8" and string.respond_to?(:force_encoding)
+		
+		@mutex.synchronize do
+			if !@subtype or @subtype == "mysql"
+				begin
+					return KnjDB_mysql_result.new(self, @conn.query(string))
+				rescue Mysql::Error => e
+					if e.message == "MySQL server has gone away"
+						reconnect
+						retry
+					else
+						raise e
+					end
 				end
-			end
-		elsif @subtype == "mysql2"
-			begin
-				return KnjDB_mysql2_result.new(@conn.query(string))
-			rescue Mysql2::Error => e
-				if e.message == "MySQL server has gone away"
-					self.reconnect
+			elsif @subtype == "mysql2"
+				begin
 					return KnjDB_mysql2_result.new(@conn.query(string))
-				elsif e.message == "This connection is still waiting for a result, try again once you have the result"
-					sleep 0.1
-					retry
-				else
+				rescue Mysql2::Error => e
+					if e.message == "MySQL server has gone away" or e.message == "closed MySQL connection"
+						reconnect
+						retry
+					elsif e.message == "This connection is still waiting for a result, try again once you have the result"
+						sleep 0.1
+						retry
+					else
+						raise e
+					end
+				end
+			elsif @subtype == "java"
+				begin
+					return KnjDB_java_mysql_result.new(@knjdb, query_conn(@conn, string))
+				rescue => e
+					if e.to_s.index("No operations allowed after connection closed") != nil
+						reconnect
+						retry
+					end
+					
 					raise e
 				end
-			end
-		elsif @subtype == "java"
-			stmt = @conn.createStatement
-			
-			if string.match(/insert\s+into\s+/i) or string.match(/update\s+/i)
-				rs = stmt.execute(string)
 			else
-				rs = stmt.executeQuery(string)
+				raise "Unknown subtype: '#{@subtype}'."
 			end
-			
-			return KnjDB_java_mysql_result.new(@knjdb, rs)
 		end
 	end
 	
@@ -110,7 +128,18 @@ class KnjDB_mysql
 		elsif @subtype == "mysql2"
 			return @conn.escape(string.to_s)
 		elsif @subtype == "java"
-			return string.to_s.gsub("'", "\\'")
+			#This is copied from the Ruby/MySQL framework at: http://www.tmtm.org/en/ruby/mysql/
+			return string.to_s.gsub(/([\0\n\r\032\'\"\\])/) do
+				case $1
+					when "\0" then "\\0"
+					when "\n" then "\\n"
+					when "\r" then "\\r"
+					when "\032" then "\\Z"
+					else "\\"+$1
+				end
+			end
+		else
+			raise "Unknown subtype: '#{@subtype}'."
 		end
 	end
 	
@@ -125,15 +154,24 @@ class KnjDB_mysql
 	
 	def lastID
 		if !@subtype or @subtype == "mysql"
-			return @conn.insert_id
+			@mutex.synchronize do
+				return @conn.insert_id
+			end
+		elsif @subtype == "mysql2"
+			@mutex.synchronize do
+				return @conn.last_id
+			end
 		else
-			data = query("SELECT LAST_INSERT_ID() AS id").fetch
+			data = self.query("SELECT LAST_INSERT_ID() AS id").fetch
 			return data[:id] if data.has_key?(:id)
+			raise "Could not figure out last inserted ID."
 		end
 	end
 	
 	def close
-		@conn.close
+		@mutex.synchronize do
+			@conn.close
+		end
 	end
 	
 	def destroy
@@ -168,7 +206,7 @@ class KnjDB_mysql
 		
 		sql += ")"
 		
-		self.query(sql)
+		query(sql)
 	end
 end
 
@@ -176,6 +214,7 @@ class KnjDB_mysql_result
 	def initialize(driver, result)
 		@driver = driver
 		@result = result
+		@mutex = Mutex.new
 		
 		if @result
 			@keys = []
@@ -187,26 +226,30 @@ class KnjDB_mysql_result
 	end
 	
 	def fetch
-		return self.fetch_hash_symbols if @driver.knjdb.opts[:return_keys] == "symbols"
-		return self.fetch_hash_strings
+		return fetch_hash_symbols if @driver.knjdb.opts[:return_keys] == "symbols"
+		return fetch_hash_strings
 	end
 	
 	def fetch_hash_strings
-		return @result.fetch_hash
+		@mutex.synchronize do
+			return @result.fetch_hash
+		end
 	end
 	
 	def fetch_hash_symbols
-		fetched = @result.fetch_row
-		return false if !fetched
-		
-		ret = {}
-		count = 0
-		@keys.each do |key|
-			ret[key] = fetched[count]
-			count += 1
+		@mutex.synchronize do
+			fetched = @result.fetch_row
+			return false if !fetched
+			
+			ret = {}
+			count = 0
+			@keys.each do |key|
+				ret[key] = fetched[count]
+				count += 1
+			end
+			
+			return ret
 		end
-		
-		return ret
 	end
 end
 
@@ -214,19 +257,22 @@ class KnjDB_mysql2_result
 	def initialize(result)
 		@result = result.to_a
 		@count = 0
+		@mutex = Mutex.new
 	end
 	
 	def fetch
-		ret = @result[@count]
-		return false if !ret
-		
-		realret = {}
-		ret.each do |key, val|
-			realret[key.to_sym] = val
+		@mutex.synchronize do
+			ret = @result[@count]
+			return false if !ret
+			
+			realret = {}
+			ret.each do |key, val|
+				realret[key.to_sym] = val
+			end
+			
+			@count += 1
+			return realret
 		end
-		
-		@count += 1
-		return realret
 	end
 end
 
@@ -234,6 +280,7 @@ class KnjDB_java_mysql_result
 	def initialize(knjdb, result)
 		@knjdb = knjdb
 		@result = result
+		@mutex = Mutex.new
 	end
 	
 	def read_meta
@@ -247,15 +294,17 @@ class KnjDB_java_mysql_result
 	end
 	
 	def fetch
-		self.read_meta if !@keys
-		status = @result.next
-		return false if !status
-		
-		ret = {}
-		0.upto(@keys.length - 1) do |count|
-			ret[@keys[count].to_sym] = @result.string(count + 1)
+		@mutex.synchronize do
+			read_meta if !@keys
+			status = @result.next
+			return false if !status
+			
+			ret = {}
+			0.upto(@keys.length - 1) do |count|
+				ret[@keys[count].to_sym] = @result.string(count + 1)
+			end
+			
+			return ret
 		end
-		
-		return ret
 	end
 end

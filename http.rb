@@ -2,9 +2,7 @@ class Knj::Http
 	attr_reader :cookies
 	
 	def self.isgdlink(url)
-		http = Knj::Http.new(
-			"host" => "is.gd"
-		)
+		http = Knj::Http.new("host" => "is.gd")
 		http.connect
 		resp = http.get("/api.php?longurl=" + url)
 		
@@ -12,9 +10,19 @@ class Knj::Http
 	end
 	
 	def initialize(opts = {})
+		require "webrick"
+		require "cgi"
+		require "net/http"
+		
 		@opts = opts
 		@cookies = {}
-		@useragent = "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.0.1) Gecko/20060111 Firefox/1.5.0.1"
+		@mutex = Mutex.new
+		
+		if opts["useragent"]
+			@useragent = opts["useragent"]
+		else
+			@useragent = "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.0.1; knj:true) Gecko/20060111 Firefox/3.6.0.1"
+		end
 	end
 	
 	def opts
@@ -56,10 +64,14 @@ class Knj::Http
 				cookiestr += "; "
 			end
 			
-			cookiestr += key + "=" + value
+			cookiestr += value.to_s
 		end
 		
 		return cookiestr
+	end
+	
+	def cookie_add(cgi_cookie)
+		@cookies[cgi_cookie.name] = cgi_cookie
 	end
 	
 	def headers
@@ -70,29 +82,28 @@ class Knj::Http
 	end
 	
 	def setcookie(set_data)
-		if set_data and set_data.length > 0
-			set_data.split(", ").each do |cookiestr|
-				cookiedata = cookiestr.split(";")[0].split("=")
-				@cookies[cookiedata[0]] = cookiedata[1]
-			end
+		WEBrick::Cookie.parse_set_cookies(set_data.to_s).each do |cookie|
+			@cookies[cookie.name] = cookie
 		end
 	end
 	
 	def get(addr)
 		check_connected
 		
-		resp, data = @http.get(addr, self.headers)
-		self.setcookie(resp.response["set-cookie"])
-		
-		raise "Could not find that page: " + addr.to_s if resp.is_a?(Net::HTTPNotFound)
-		
-		#in some cases (like in IronRuby) the data is set like this.
-		data = resp.body if !data
-		
-		return {
-			"response" => resp,
-			"data" => data
-		}
+		@mutex.synchronize do
+			resp, data = @http.get(addr, self.headers)
+			self.setcookie(resp.response["set-cookie"])
+			
+			raise "Could not find that page: '#{addr}'." if resp.is_a?(Net::HTTPNotFound)
+			
+			#in some cases (like in IronRuby) the data is set like this.
+			data = resp.body if !data
+			
+			return {
+				"response" => resp,
+				"data" => data
+			}
+		end
 	end
 	
 	def post(addr, posthash, files = [])
@@ -107,13 +118,15 @@ class Knj::Http
 			postdata += CGI.escape(key) + "=" + CGI.escape(value)
 		end
 		
-		resp, data = @http.post2(addr, postdata, self.headers)
-		self.setcookie(resp.response["set-cookie"])
-		
-		return {
-			"response" => resp,
-			"data" => data
-		}
+		@mutex.synchronize do
+			resp, data = @http.post2(addr, postdata, self.headers)
+			self.setcookie(resp.response["set-cookie"])
+			
+			return {
+				"response" => resp,
+				"data" => data
+			}
+		end
 	end
 	
 	def post_file(addr, files)
@@ -139,16 +152,18 @@ class Knj::Http
 			postdata += "\r\n--#{boundary}--\r\n"
 		end
 		
-		request = Net::HTTP::Post.new(addr)
-		request.body = postdata
-		request["Content-Type"] = "multipart/form-data, boundary=#{boundary}"
-		
-		resp, data = @http.request(request)
-		self.setcookie(resp.response["set-cookie"])
-		
-		return {
-			"response" => resp,
-			"data" => data
-		}
+		@mutex.synchronize do
+			request = Net::HTTP::Post.new(addr)
+			request.body = postdata
+			request["Content-Type"] = "multipart/form-data, boundary=#{boundary}"
+			
+			resp, data = @http.request(request)
+			self.setcookie(resp.response["set-cookie"])
+			
+			return {
+				"response" => resp,
+				"data" => data
+			}
+		end
 	end
 end

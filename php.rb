@@ -273,7 +273,7 @@ module Knj::Php
 	
 	def self.file_put_contents(filepath, content)
 		File.open(filepath.untaint, "w") do |file|
-			file.write content
+			file.write(content)
 		end
 	end
 	
@@ -464,18 +464,34 @@ module Knj::Php
 	end
 	
 	def self.utf8_encode(str)
-		begin
-			return Iconv.conv("iso-8859-1", "utf-8", str.to_s)
-		rescue
-			return Iconv.conv("iso-8859-1//ignore", "utf-8", str.to_s + "  ").slice(0..-2)
+		str = str.to_s if str.respond_to?(:to_s)
+		
+		if str.respond_to?(:encode)
+			return str.encode("iso-8859-1", "utf-8")
+		elsif Knj::Php.class_exists("Iconv")
+			begin
+				return Iconv.conv("iso-8859-1", "utf-8", str)
+			rescue
+				return Iconv.conv("iso-8859-1//ignore", "utf-8", str + "  ").slice(0..-2)
+			end
+		else
+			raise "Could not figure out how to utf8-encode string."
 		end
 	end
 	
 	def self.utf8_decode(str)
-		begin
-			return Iconv.conv("utf-8", "iso-8859-1", str.to_s)
-		rescue
-			return Iconv.conv("utf-8//ignore", "iso-8859-1", str.to_s)
+		str = str.to_s if str.respond_to?(:to_s)
+		
+		if str.respond_to?(:encode)
+			return str.encode("utf-8", "iso-8859-1")
+		elsif Knj::Php.class_exists("Iconv")
+			begin
+				return Iconv.conv("utf-8", "iso-8859-1", str.to_s)
+			rescue
+				return Iconv.conv("utf-8//ignore", "iso-8859-1", str.to_s)
+			end
+		else
+			raise "Could not figure out how to utf8-decode string."
 		end
 	end
 	
@@ -643,6 +659,23 @@ module Knj::Php
 		end
 		
 		ip.reverse.join(".")
+	end
+	
+	def self.gzcompress(str, level = 3)
+		zstream = Zlib::Deflate.new
+		gzip_str = zstream.deflate(str.to_s, Zlib::FINISH)
+		zstream.close
+		
+		return gzip_str
+	end
+	
+	def self.gzuncompress(str, length = 0)
+		zstream = Zlib::Inflate.new
+		plain_str = zstream.inflate(str.to_s)
+		zstream.finish
+		zstream.close
+		
+		return plain_str.to_s
 	end
 	
 	Knj::Php.singleton_methods.each do |methodname|

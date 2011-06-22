@@ -1,5 +1,5 @@
 class Knj::Objects
-	attr_reader :objects
+	attr_reader :objects, :args
 	
 	def initialize(args)
 		@callbacks = {}
@@ -8,6 +8,7 @@ class Knj::Objects
 		@args[:class_pre] = "class_" if !@args[:class_pre]
 		@args[:module] = Kernel if !@args[:module]
 		@objects = {}
+		@objects_mutex = Mutex.new
 		
 		raise "No DB given." if !@args[:db]
 		raise "No class path given." if !@args[:class_path]
@@ -19,9 +20,11 @@ class Knj::Objects
 	
 	def count_objects
 		count = 0
-		@objects.clone.each do |key, value|
-			value.each do |id, object|
-				count += 1
+		@objects_mutex.synchronize do
+			@objects.each do |key, value|
+				value.each do |id, object|
+					count += 1
+				end
 			end
 		end
 		
@@ -99,25 +102,30 @@ class Knj::Objects
 			raise Knj::Errors::InvalidData.new("Unknown data: #{data.class.to_s}.")
 		end
 		
-		if !@objects[classname]
-			self.requireclass(classname)
-			@objects[classname] = {}
-		end
-		
-		if !@objects[classname][id]
-			if @args[:datarow]
-				@objects[classname][id] = @args[:module].const_get(classname).new(Knj::Hash_methods.new(
-					:ob => self,
-					:data => data
-				))
-			else
-				args = [data]
-				args = args | @args[:extra_args] if @args[:extra_args]
-				@objects[classname][id] = @args[:module].const_get(classname).new(*args)
+		retobj = nil
+		@objects_mutex.synchronize do
+			if !@objects[classname]
+				self.requireclass(classname)
+				@objects[classname] = {}
 			end
+			
+			if !@objects[classname][id]
+				if @args[:datarow]
+					@objects[classname][id] = @args[:module].const_get(classname).new(Knj::Hash_methods.new(
+						:ob => self,
+						:data => data
+					))
+				else
+					args = [data]
+					args = args | @args[:extra_args] if @args[:extra_args]
+					@objects[classname][id] = @args[:module].const_get(classname).new(*args)
+				end
+			end
+			
+			retobj = @objects[classname][id]
 		end
 		
-		return @objects[classname][id]
+		return retobj
 	end
 	
 	def get_by(classname, args = {})
@@ -204,27 +212,26 @@ class Knj::Objects
 			selected = false
 			if args[:selected].is_a?(Array) and args[:selected].index(object) != nil
 				selected = true
-			elsif args[:selected] and args[:selected].is_a?(Knj::Db_row) and args[:selected][@args[:col_id]] == object.id
+			elsif args[:selected] and args[:selected].respond_to?("is_knj?") and args[:selected].id.to_s == object.id.to_s
 				selected = true
 			end
 			
 			html += " selected=\"selected\"" if selected
 			
+			obj_methods = object.class.instance_methods(false)
+			
 			begin
-				print "Ext: #{Encoding.default_external}\n"
-				print "Int: #{Encoding.default_internal}\n"
-				
-				objhtml = object.title.html
-				
-				print "ObjEnc: #{objhtml.encoding}\n"
-				print "Enc: #{html.encoding}\n"
+				if obj_methods.index("name") != nil
+					objhtml = object.name.html
+				elsif obj_methods.index("title") != nil
+					objhtml = object.title.html
+				else
+					raise "Could not figure out which name-method to call?"
+				end
 				
 				html += ">#{objhtml}</option>"
 			rescue Exception => e
-				puts e.inspect
-				puts e.backtrace
-				
-				html += ">[#{_("invalid title")}]</option>"
+				html += ">[#{object.class.name}: #{e.message}]</option>"
 			end
 		end
 		
@@ -265,14 +272,13 @@ class Knj::Objects
 	end
 	
 	# Returns a list of a specific object by running specific SQL against the database.
-	def list_bysql(classname, sql, &block)
+	def list_bysql(classname, sql)
 		classname = classname.to_sym
 		
-		ret = []
-		q_obs = @args[:db].query(sql)
-		while d_obs = q_obs.fetch
+		ret = [] if !block_given?
+		@args[:db].q(sql) do |d_obs|
 			if block_given?
-				block.call(self.get(classname, d_obs))
+				yield(self.get(classname, d_obs))
 			else
 				ret << self.get(classname, d_obs)
 			end
@@ -298,13 +304,16 @@ class Knj::Objects
 				))
 			end
 			
-			@args[:db].insert(classname, data)
-			retob = self.get(classname, @args[:db].last_id)
+			ins_id = @args[:db].insert(classname, data, {:return_id => true})
+			retob = self.get(classname, ins_id)
 		else
 			retob = @args[:module].const_get(classname).add(*args)
 		end
 		
 		self.call("object" => retob, "signal" => "add")
+		if retob.respond_to?(:add_after)
+			retob.send(:add_after, {})
+		end
 		
 		return retob
 	end
@@ -330,8 +339,37 @@ class Knj::Objects
 		end
 	end
 	
+	def static(class_name, method_name, *args)
+		raise "Only available with datarow enabled." if !@args[:datarow]
+		class_name = class_name.to_sym
+		method_name = method_name.to_sym
+		
+		class_obj = @args[:module].const_get(class_name)
+		raise "The class '#{class_obj.name}' has no such method: '#{method_name}'." if !class_obj.respond_to?(method_name)
+		method_obj = class_obj.method(method_name)
+		
+		pass_args = []
+		pass_args << Knj::Hash_methods.new(
+			:ob => self,
+			:db => self.db
+		)
+		
+		args.each do |arg|
+			pass_args << arg
+		end
+		
+		method_obj.call(*pass_args)
+	end
+	
 	# Unset object. Do this if you are sure, that there are no more references left. This will be done automatically when deleting it.
 	def unset(object)
+		if object.is_a?(Array)
+			object.each do |obj|
+				unset(obj)
+			end
+			return nil
+		end
+		
 		classname = object.class.name
 		
 		if @args[:module]
@@ -340,17 +378,38 @@ class Knj::Objects
 		
 		classname = classname.to_sym
 		
-		if !@objects.has_key?(classname)
-			raise "Could not find object class in cache: #{classname}."
-		elsif !@objects[classname].has_key?(object.id.to_i)
-			errstr = ""
-			errstr += "Could not unset object from cache.\n"
-			errstr += "Class: #{object.class.name}.\n"
-			errstr += "ID: #{object.id}.\n"
-			errstr += "Could not find object ID in cache."
-			raise errstr
-		else
-			@objects[classname].delete(object.id.to_i)
+		@objects_mutex.synchronize do
+			if !@objects.has_key?(classname)
+				#raise "Could not find object class in cache: #{classname}."
+			elsif !@objects[classname].has_key?(object.id.to_i)
+				#errstr = ""
+				#errstr += "Could not unset object from cache.\n"
+				#errstr += "Class: #{object.class.name}.\n"
+				#errstr += "ID: #{object.id}.\n"
+				#errstr += "Could not find object ID in cache."
+				#raise errstr
+			else
+				@objects[classname].delete(object.id.to_i)
+			end
+		end
+	end
+	
+	def unset_class(classname)
+		if classname.is_a?(Array)
+			classname.each do |classn|
+				self.unset_class(classn)
+			end
+			
+			return false
+		end
+		
+		classname = classname.to_sym
+		
+		@objects_mutex.synchronize do
+			return false if !@objects.has_key?(classname)
+			@objects[classname] = {}
+			
+			GC.start
 		end
 	end
 	
@@ -401,33 +460,39 @@ class Knj::Objects
 				self.clean(realclassn)
 			end
 		else
-			if !@objects[classn]
-				return false
-			else
-				@objects[classn] = {}
-				GC.start
+			@objects_mutex.synchronize do
+				if !@objects[classn]
+					return false
+				else
+					@objects[classn] = {}
+					GC.start
+				end
 			end
 		end
 	end
 	
 	def clean_all
 		classnames = []
-		@objects.clone.each do |classn, hash_list|
-			classnames << classn
-		end
-		
-		classnames.each do |classn|
-			@objects[classn] = {}
+		@objects_mutex.synchronize do
+			@objects.each do |classn, hash_list|
+				classnames << classn
+			end
+			
+			classnames.each do |classn|
+				@objects[classn] = {}
+			end
 		end
 		
 		GC.start
 	end
 	
 	def clean_recover
-		@objects.clone.each do |classn, hash_list|
-			classobj = Kernel.const_get(classn)
-			ObjectSpace.each_object(classobj) do |obj|
-				@objects[classn][obj.id] = obj
+		@objects_mutex.synchronize do
+			@objects.each do |classn, hash_list|
+				classobj = Kernel.const_get(classn)
+				ObjectSpace.each_object(classobj) do |obj|
+					@objects[classn][obj.id] = obj
+				end
 			end
 		end
 	end
@@ -456,6 +521,7 @@ class Knj::Objects
 		cols_num_has = args.has_key?(:cols_num)
 		cols_date_has = args.has_key?(:cols_date)
 		cols_dbrows_has = args.has_key?(:cols_dbrows)
+		cols_bools_has = args.has_key?(:cols_bools)
 		
 		if list_args.has_key?("orderby")
 			orders = []
@@ -507,6 +573,7 @@ class Knj::Objects
 					found = true if !found and cols_str_has and args[:cols_str].index(orderstr) != nil
 					found = true if !found and cols_date_has and args[:cols_date].index(orderstr) != nil
 					found = true if !found and cols_num_has and args[:cols_num].index(orderstr) != nil
+					found = true if !found and cols_bools_has and args[:cols_bools].index(orderstr) != nil
 					
 					raise "Column not found for ordering: #{orderstr}." if !found
 					orders << "#{table}`#{db.esc_col(orderstr)}`#{ordermode}"
@@ -522,10 +589,10 @@ class Knj::Objects
 		list_args.each do |key, val|
 			found = false
 			
-			if (cols_str_has and args[:cols_str].index(key) != nil) or (cols_num_has and args[:cols_num].index(key) != nil)
+			if (cols_str_has and args[:cols_str].index(key) != nil) or (cols_num_has and args[:cols_num].index(key) != nil) or (cols_dbrows_has and args[:cols_dbrows].index(key) != nil)
 				sql_where += " AND #{table}`#{db.esc_col(key)}` = '#{db.esc(val)}'"
 				found = true
-			elsif args.has_key?(:cols_bools) and args[:cols_bools].index(key) != nil
+			elsif cols_bools_has and args[:cols_bools].index(key) != nil
 				if val.is_a?(TrueClass) or (val.is_a?(Integer) and val.to_i == 1) or (val.is_a?(String) and (val == "true" or val == "1"))
 					realval = "1"
 				elsif val.is_a?(FalseClass) or (val.is_a?(Integer) and val.to_i == 0) or (val.is_a?(String) and (val == "false" or val == "0"))
@@ -547,7 +614,7 @@ class Knj::Objects
 				limit_to = val.to_i
 				found = true
 			elsif cols_dbrows_has and args[:cols_dbrows].index(key.to_s + "_id") != nil
-				sql_where += " AND #{table}`#{db.esc_col(key.to_s + "_id")}` = '#{db.esc(val.id.to_s.sql)}'"
+				sql_where += " AND #{table}`#{db.esc_col(key.to_s + "_id")}` = '#{db.esc(val.id)}'"
 				found = true
 			elsif cols_str_has and match = key.match(/^([A-z_\d]+)_(search|has)$/) and args[:cols_str].index(match[1]) != nil
 				if match[2] == "search"
