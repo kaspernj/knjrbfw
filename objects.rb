@@ -1,5 +1,5 @@
 class Knj::Objects
-	attr_reader :objects, :args
+	attr_reader :args
 	
 	def initialize(args)
 		@callbacks = {}
@@ -12,6 +12,19 @@ class Knj::Objects
 		
 		raise "No DB given." if !@args[:db]
 		raise "No class path given." if !@args[:class_path]
+	end
+	
+	#Returns a cloned version of the @objects variable. Cloned because iteration on it may crash some of the other methods in Ruby 1.9+
+	def objects
+		objs_cloned = {}
+		
+		@objects_mutex.synchronize do
+			@objects.each do |classn, newhash|
+				objs_cloned[classn] = newhash.clone
+			end
+		end
+		
+		return objs_cloned
 	end
 	
 	def db
