@@ -80,7 +80,7 @@ module Knj::ArrayExt
 			combined_val += "#{key}:#{val}"
 		end
 		
-		return Knj::Php.md5(combined_val)
+		return Digest::MD5.hexdigest(combined_val)
 	end
 	
 	#Compares the keys and values of two hashes and returns true if they are different.

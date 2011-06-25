@@ -31,8 +31,6 @@ class Knj::Db
 	end
 	
 	def connect
-		@conn = self.spawn
-		
 		if @opts[:threadsafe]
 			@conns = Knj::Threadhandler.new
 			
@@ -47,6 +45,8 @@ class Knj::Db
 			@conns.on_activate do |data|
 				data[:obj].reconnect
 			end
+		else
+			@conn = self.spawn
 		end
 	end
 	
@@ -73,14 +73,9 @@ class Knj::Db
 		raise "KnjDB-object is not in threadding mode." if !@conns
 		
 		db = @conns.get_and_lock
-		
-		begin
-			tid = self.__id__
-			Thread.current[:knjdb] = {} if !Thread.current[:knjdb]
-			Thread.current[:knjdb][tid] = db
-		ensure
-			@conns.free(db)
-		end
+		tid = self.__id__
+		Thread.current[:knjdb] = {} if !Thread.current[:knjdb]
+		Thread.current[:knjdb][tid] = db
 	end
 	
 	def free_thread
@@ -97,8 +92,10 @@ class Knj::Db
 		@conn.close if @conn
 		
 		if @conns
-			@conns.objects.each do |data|
-				data[:object].close
+			@conns.mutex.synchronize do
+				@conns.objects.each do |data|
+					data[:object].close
+				end
 			end
 		end
 	end
@@ -154,129 +151,112 @@ class Knj::Db
 	end
 	
 	def insert(tablename, arr_insert, args = {})
-		sql = "INSERT INTO #{@conn.escape_table}#{tablename.to_s}#{@conn.escape_table} ("
+		sql = ""
 		
-		first = true
-		arr_insert.each do |key, value|
-			if first
-				first = false
-			else
-				sql += ", "
-			end
+		conn_exec do |driver|
+			sql += "INSERT INTO #{driver.escape_table}#{tablename.to_s}#{driver.escape_table} ("
 			
-			sql += "#{@conn.escape_col}#{key.to_s}#{@conn.escape_col}"
-		end
-		
-		sql += ") VALUES ("
-		
-		first = true
-		arr_insert.each do |key, value|
-			if first
-				first = false
-			else
-				sql += ", "
-			end
-			
-			sql += "#{@conn.escape_val}#{@conn.escape(value.to_s)}#{@conn.escape_val}"
-		end
-		
-		sql += ")"
-		
-		if args[:return_id]
-			tid = self.__id__
-			
-			if Thread.current[:knjdb] and Thread.current[:knjdb].has_key?(tid)
-				conn = Thread.current[:knjdb][tid]
-				conn.query(sql)
-				return conn.lastID
-			end
-			
-			if @conns
-				conn = @conns.get_and_lock
-				
-				begin
-					conn.query(sql)
-					return conn.lastID
-				ensure
-					@conns.free(conn)
+			first = true
+			arr_insert.each do |key, value|
+				if first
+					first = false
+				else
+					sql += ", "
 				end
-			else
-				sleep 0.1 while @working
-				@working = true
 				
-				begin
-					@conn.query(sql)
-					return @conn.lastID
-				ensure
-					@working = false
-				end
+				sql += "#{driver.escape_col}#{key.to_s}#{driver.escape_col}"
 			end
-		else
-			self.query(sql)
+			
+			sql += ") VALUES ("
+			
+			first = true
+			arr_insert.each do |key, value|
+				if first
+					first = false
+				else
+					sql += ", "
+				end
+				
+				sql += "#{driver.escape_val}#{driver.escape(value.to_s)}#{driver.escape_val}"
+			end
+			
+			sql += ")"
+			
+			driver.query(sql)
+			return driver.lastID if args[:return_id]
 		end
 	end
 	
 	def insert_multi(tablename, arr_hashes)
-		if @conn.respond_to?(:insert_multi)
-			return false if arr_hashes.empty?
-			@conn.insert_multi(tablename, arr_hashes)
-		else
-			arr_hashes.each do |hash|
-				self.insert(tablename, hash)
+		conn_exec do |driver|
+			if driver.respond_to?(:insert_multi)
+				return false if arr_hashes.empty?
+				driver.insert_multi(tablename, arr_hashes)
+			else
+				arr_hashes.each do |hash|
+					self.insert(tablename, hash)
+				end
 			end
 		end
 	end
 	
 	def update(tablename, arr_update, arr_terms = {})
 		return false if arr_update.empty?
+		sql = ""
 		
-		sql = "UPDATE #{@conn.escape_col}#{tablename.to_s}#{@conn.escape_col} SET "
-		
-		first = true
-		arr_update.each do |key, value|
-			if first
-				first = false
-			else
-				sql += ", "
+		conn_exec do |driver|
+			sql += "UPDATE #{driver.escape_col}#{tablename.to_s}#{driver.escape_col} SET "
+			
+			first = true
+			arr_update.each do |key, value|
+				if first
+					first = false
+				else
+					sql += ", "
+				end
+				
+				sql += "#{driver.escape_col}#{key.to_s}#{driver.escape_col} = "
+				sql += "#{driver.escape_val}#{driver.escape(value.to_s)}#{driver.escape_val}"
 			end
 			
-			sql += "#{@conn.escape_col}#{key.to_s}#{@conn.escape_col} = "
-			sql += "#{@conn.escape_val}#{@conn.escape(value.to_s)}#{@conn.escape_val}"
+			if arr_terms and arr_terms.length > 0
+				sql += " WHERE #{self.makeWhere(arr_terms, driver)}"
+			end
+			
+			driver.query(sql)
 		end
-		
-		if arr_terms and arr_terms.length > 0
-			sql += " WHERE #{self.makeWhere(arr_terms)}"
-		end
-		
-		self.query(sql)
 	end
 	
 	def select(tablename, arr_terms = nil, args = nil)
-		sql = "SELECT * FROM #{@conn.escape_table}#{tablename.to_s}#{@conn.escape_table}"
+		sql = ""
 		
-		if arr_terms != nil and !arr_terms.empty?
-			sql += " WHERE #{self.makeWhere(arr_terms)}"
-		end
-		
-		if args != nil
-			if args["orderby"]
-				sql += " ORDER BY "
-				sql += args["orderby"]
+		conn_exec do |driver|
+			sql += "SELECT * FROM #{driver.escape_table}#{tablename.to_s}#{driver.escape_table}"
+			
+			if arr_terms != nil and !arr_terms.empty?
+				sql += " WHERE #{self.makeWhere(arr_terms, driver)}"
 			end
 			
-			if args["limit"]
-				sql += " LIMIT " + args["limit"].to_s
-			end
-			
-			if args["limit_from"] and args["limit_to"]
-				raise "'limit_from' was not numeric: '#{args["limit_from"]}'." if !Knj::Php.is_numeric(args["limit_from"])
-				raise "'limit_to' was not numeric: '#{args["limit_to"]}'." if !Knj::Php.is_numeric(args["limit_to"])
+			if args != nil
+				if args["orderby"]
+					sql += " ORDER BY "
+					sql += args["orderby"]
+				end
 				
-				sql += " LIMIT #{args["limit_from"]}, #{args["limit_to"]}"
+				if args["limit"]
+					sql += " LIMIT " + args["limit"].to_s
+				end
+				
+				if args["limit_from"] and args["limit_to"]
+					raise "'limit_from' was not numeric: '#{args["limit_from"]}'." if !Knj::Php.is_numeric(args["limit_from"])
+					raise "'limit_to' was not numeric: '#{args["limit_to"]}'." if !Knj::Php.is_numeric(args["limit_to"])
+					
+					sql += " LIMIT #{args["limit_from"]}, #{args["limit_to"]}"
+				end
 			end
+			
+			return driver.query(sql)
 		end
-		
-		return self.query(sql)
 	end
 	
 	def selectsingle(tablename, arr_terms = nil, args = {})
@@ -290,16 +270,20 @@ class Knj::Db
 	end
 	
 	def delete(tablename, arr_terms)
-		sql = "DELETE FROM #{@conn.escape_table}#{tablename.to_s}#{@conn.escape_table}"
+		sql = ""
 		
-		if arr_terms != nil
-			sql += " WHERE #{self.makeWhere(arr_terms)}"
+		conn_exec do |driver|
+			sql += "DELETE FROM #{driver.escape_table}#{tablename.to_s}#{driver.escape_table}"
+			
+			if arr_terms != nil
+				sql += " WHERE #{self.makeWhere(arr_terms, driver)}"
+			end
+			
+			driver.query(sql)
 		end
-		
-		self.query(sql)
 	end
 	
-	def makeWhere(arr_terms)
+	def makeWhere(arr_terms, driver)
 		sql = ""
 		
 		first = true
@@ -310,49 +294,41 @@ class Knj::Db
 				sql += " AND "
 			end
 			
-			sql += "#{@conn.escape_col}#{key.to_s}#{@conn.escape_col} = #{@conn.escape_val}#{@conn.escape(value)}#{@conn.escape_val}"
+			sql += "#{driver.escape_col}#{key.to_s}#{driver.escape_col} = #{driver.escape_val}#{driver.escape(value)}#{driver.escape_val}"
 		end
 		
 		return sql
 	end
 	
-	def query(string)
+	def conn_exec
 		if Thread.current[:knjdb]
 			tid = self.__id__
-			return Thread.current[:knjdb][tid].query(string) if Thread.current[:knjdb] and Thread.current[:knjdb].has_key?(tid)
-		end
-		
-		if !@working
-			begin
-				@working = true
-				return @conn.query(string)
-			ensure
-				@working = false
-			end
-		end
-		
-		if !@conns
-			sleep 0.1 while @working
-			
-			begin
-				@working = true
-				return @conn.query(string)
-			ensure
-				@working = false
-			end
+			yield(Thread.current[:knjdb][tid]) if Thread.current[:knjdb] and Thread.current[:knjdb].has_key?(tid)
 		else
-			conn = @conns.get_and_lock
-			
-			begin
-				return conn.query(string)
-			ensure
-				@conns.free(conn)
+			if @conns
+				conn = @conns.get_and_lock
+				
+				begin
+					yield(conn)
+				ensure
+					@conns.free(conn)
+				end
+			elsif @conn
+				yield(@conn)
+			else
+				raise "Could not figure out how to find a driver to use?"
 			end
 		end
 	end
 	
+	def query(string)
+		conn_exec do |driver|
+			return driver.query(string)
+		end
+	end
+	
 	def q(str)
-		ret = query(str)
+		ret = self.query(str)
 		
 		if block_given?
 			while data = ret.fetch
@@ -364,23 +340,31 @@ class Knj::Db
 	end
 	
 	def lastID
-		return @conn.lastID
+		conn_exec do |driver|
+			return driver.lastID
+		end
 	end
 	
 	alias :last_id :lastID
 	
 	def escape(string)
-		return @conn.escape(string)
+		conn_exec do |driver|
+			return driver.escape(string)
+		end
 	end
 	
 	alias :esc :escape
 	
 	def esc_col(str)
-		return @conn.esc_col(str)
+		conn_exec do |driver|
+			return driver.esc_col(str)
+		end
 	end
 	
 	def esc_table(str)
-		return @conn.esc_table(str)
+		conn_exec do |driver|
+			return driver.esc_table(str)
+		end
 	end
 	
 	def date_out(date_obj)
@@ -392,15 +376,17 @@ class Knj::Db
 	end
 	
 	def tables
-		if !@conn.tables
-			require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_tables" if (!@opts.has_key?(:require) or @opts[:require])
-			@conn.tables = Kernel.const_get("KnjDB_#{@opts[:type]}".to_sym).const_get(:Tables).new(
-				:driver => @conn,
-				:db => self
-			)
+		conn_exec do |driver|
+			if !driver.tables
+				require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_tables" if (!@opts.has_key?(:require) or @opts[:require])
+				driver.tables = Kernel.const_get("KnjDB_#{@opts[:type]}".to_sym).const_get(:Tables).new(
+					:driver => driver,
+					:db => self
+				)
+			end
+			
+			return driver.tables
 		end
-		
-		return @conn.tables
 	end
 	
 	def cols
@@ -428,8 +414,10 @@ class Knj::Db
 	end
 	
 	def method_missing(method_name, *args)
-		if @conn.respond_to?(method_name.to_sym)
-			return @conn.send(method_name, *args)
+		conn_exec do |driver|
+			if driver.respond_to?(method_name.to_sym)
+				return driver.send(method_name, *args)
+			end
 		end
 		
 		raise "Method not found: #{method_name}"

@@ -16,6 +16,7 @@ class Knj::Http
 		
 		@opts = opts
 		@cookies = {}
+		@mutex = Mutex.new
 		
 		if opts["useragent"]
 			@useragent = opts["useragent"]
@@ -89,18 +90,20 @@ class Knj::Http
 	def get(addr)
 		check_connected
 		
-		resp, data = @http.get(addr, self.headers)
-		self.setcookie(resp.response["set-cookie"])
-		
-		raise "Could not find that page: " + addr.to_s if resp.is_a?(Net::HTTPNotFound)
-		
-		#in some cases (like in IronRuby) the data is set like this.
-		data = resp.body if !data
-		
-		return {
-			"response" => resp,
-			"data" => data
-		}
+		@mutex.synchronize do
+			resp, data = @http.get(addr, self.headers)
+			self.setcookie(resp.response["set-cookie"])
+			
+			raise "Could not find that page: '#{addr}'." if resp.is_a?(Net::HTTPNotFound)
+			
+			#in some cases (like in IronRuby) the data is set like this.
+			data = resp.body if !data
+			
+			return {
+				"response" => resp,
+				"data" => data
+			}
+		end
 	end
 	
 	def post(addr, posthash, files = [])
@@ -115,13 +118,15 @@ class Knj::Http
 			postdata += CGI.escape(key) + "=" + CGI.escape(value)
 		end
 		
-		resp, data = @http.post2(addr, postdata, self.headers)
-		self.setcookie(resp.response["set-cookie"])
-		
-		return {
-			"response" => resp,
-			"data" => data
-		}
+		@mutex.synchronize do
+			resp, data = @http.post2(addr, postdata, self.headers)
+			self.setcookie(resp.response["set-cookie"])
+			
+			return {
+				"response" => resp,
+				"data" => data
+			}
+		end
 	end
 	
 	def post_file(addr, files)
@@ -147,16 +152,18 @@ class Knj::Http
 			postdata += "\r\n--#{boundary}--\r\n"
 		end
 		
-		request = Net::HTTP::Post.new(addr)
-		request.body = postdata
-		request["Content-Type"] = "multipart/form-data, boundary=#{boundary}"
-		
-		resp, data = @http.request(request)
-		self.setcookie(resp.response["set-cookie"])
-		
-		return {
-			"response" => resp,
-			"data" => data
-		}
+		@mutex.synchronize do
+			request = Net::HTTP::Post.new(addr)
+			request.body = postdata
+			request["Content-Type"] = "multipart/form-data, boundary=#{boundary}"
+			
+			resp, data = @http.request(request)
+			self.setcookie(resp.response["set-cookie"])
+			
+			return {
+				"response" => resp,
+				"data" => data
+			}
+		end
 	end
 end

@@ -1,5 +1,5 @@
 class Knj::Objects
-	attr_reader :objects, :args
+	attr_reader :args
 	
 	def initialize(args)
 		@callbacks = {}
@@ -8,9 +8,23 @@ class Knj::Objects
 		@args[:class_pre] = "class_" if !@args[:class_pre]
 		@args[:module] = Kernel if !@args[:module]
 		@objects = {}
+		@objects_mutex = Mutex.new
 		
 		raise "No DB given." if !@args[:db]
 		raise "No class path given." if !@args[:class_path]
+	end
+	
+	#Returns a cloned version of the @objects variable. Cloned because iteration on it may crash some of the other methods in Ruby 1.9+
+	def objects
+		objs_cloned = {}
+		
+		@objects_mutex.synchronize do
+			@objects.each do |classn, newhash|
+				objs_cloned[classn] = newhash.clone
+			end
+		end
+		
+		return objs_cloned
 	end
 	
 	def db
@@ -19,9 +33,11 @@ class Knj::Objects
 	
 	def count_objects
 		count = 0
-		@objects.clone.each do |key, value|
-			value.each do |id, object|
-				count += 1
+		@objects_mutex.synchronize do
+			@objects.each do |key, value|
+				value.each do |id, object|
+					count += 1
+				end
 			end
 		end
 		
@@ -99,25 +115,30 @@ class Knj::Objects
 			raise Knj::Errors::InvalidData.new("Unknown data: #{data.class.to_s}.")
 		end
 		
-		if !@objects[classname]
-			self.requireclass(classname)
-			@objects[classname] = {}
-		end
-		
-		if !@objects[classname][id]
-			if @args[:datarow]
-				@objects[classname][id] = @args[:module].const_get(classname).new(Knj::Hash_methods.new(
-					:ob => self,
-					:data => data
-				))
-			else
-				args = [data]
-				args = args | @args[:extra_args] if @args[:extra_args]
-				@objects[classname][id] = @args[:module].const_get(classname).new(*args)
+		retobj = nil
+		@objects_mutex.synchronize do
+			if !@objects[classname]
+				self.requireclass(classname)
+				@objects[classname] = {}
 			end
+			
+			if !@objects[classname][id]
+				if @args[:datarow]
+					@objects[classname][id] = @args[:module].const_get(classname).new(Knj::Hash_methods.new(
+						:ob => self,
+						:data => data
+					))
+				else
+					args = [data]
+					args = args | @args[:extra_args] if @args[:extra_args]
+					@objects[classname][id] = @args[:module].const_get(classname).new(*args)
+				end
+			end
+			
+			retobj = @objects[classname][id]
 		end
 		
-		return @objects[classname][id]
+		return retobj
 	end
 	
 	def get_by(classname, args = {})
@@ -213,9 +234,9 @@ class Knj::Objects
 			obj_methods = object.class.instance_methods(false)
 			
 			begin
-				if obj_methods.index(:name) != nil
+				if obj_methods.index("name") != nil
 					objhtml = object.name.html
-				elsif obj_methods.index(:title) != nil
+				elsif obj_methods.index("title") != nil
 					objhtml = object.title.html
 				else
 					raise "Could not figure out which name-method to call?"
@@ -223,7 +244,7 @@ class Knj::Objects
 				
 				html += ">#{objhtml}</option>"
 			rescue Exception => e
-				html += ">[#{_("invalid title")}]</option>"
+				html += ">[#{object.class.name}: #{e.message}]</option>"
 			end
 		end
 		
@@ -303,6 +324,9 @@ class Knj::Objects
 		end
 		
 		self.call("object" => retob, "signal" => "add")
+		if retob.respond_to?(:add_after)
+			retob.send(:add_after, {})
+		end
 		
 		return retob
 	end
@@ -367,17 +391,19 @@ class Knj::Objects
 		
 		classname = classname.to_sym
 		
-		if !@objects.has_key?(classname)
-			#raise "Could not find object class in cache: #{classname}."
-		elsif !@objects[classname].has_key?(object.id.to_i)
-			#errstr = ""
-			#errstr += "Could not unset object from cache.\n"
-			#errstr += "Class: #{object.class.name}.\n"
-			#errstr += "ID: #{object.id}.\n"
-			#errstr += "Could not find object ID in cache."
-			#raise errstr
-		else
-			@objects[classname].delete(object.id.to_i)
+		@objects_mutex.synchronize do
+			if !@objects.has_key?(classname)
+				#raise "Could not find object class in cache: #{classname}."
+			elsif !@objects[classname].has_key?(object.id.to_i)
+				#errstr = ""
+				#errstr += "Could not unset object from cache.\n"
+				#errstr += "Class: #{object.class.name}.\n"
+				#errstr += "ID: #{object.id}.\n"
+				#errstr += "Could not find object ID in cache."
+				#raise errstr
+			else
+				@objects[classname].delete(object.id.to_i)
+			end
 		end
 	end
 	
@@ -391,9 +417,13 @@ class Knj::Objects
 		end
 		
 		classname = classname.to_sym
-		return false if !@objects.has_key?(classname)
-		@objects[classname] = {}
-		GC.start
+		
+		@objects_mutex.synchronize do
+			return false if !@objects.has_key?(classname)
+			@objects[classname] = {}
+			
+			GC.start
+		end
 	end
 	
 	# Delete an object. Both from the database and from the cache.
@@ -443,33 +473,39 @@ class Knj::Objects
 				self.clean(realclassn)
 			end
 		else
-			if !@objects[classn]
-				return false
-			else
-				@objects[classn] = {}
-				GC.start
+			@objects_mutex.synchronize do
+				if !@objects[classn]
+					return false
+				else
+					@objects[classn] = {}
+					GC.start
+				end
 			end
 		end
 	end
 	
 	def clean_all
 		classnames = []
-		@objects.clone.each do |classn, hash_list|
-			classnames << classn
-		end
-		
-		classnames.each do |classn|
-			@objects[classn] = {}
+		@objects_mutex.synchronize do
+			@objects.each do |classn, hash_list|
+				classnames << classn
+			end
+			
+			classnames.each do |classn|
+				@objects[classn] = {}
+			end
 		end
 		
 		GC.start
 	end
 	
 	def clean_recover
-		@objects.clone.each do |classn, hash_list|
-			classobj = Kernel.const_get(classn)
-			ObjectSpace.each_object(classobj) do |obj|
-				@objects[classn][obj.id] = obj
+		@objects_mutex.synchronize do
+			@objects.each do |classn, hash_list|
+				classobj = Kernel.const_get(classn)
+				ObjectSpace.each_object(classobj) do |obj|
+					@objects[classn][obj.id] = obj
+				end
 			end
 		end
 	end

@@ -1,4 +1,5 @@
 require "knj/autoload"
+require "knj/web"
 
 class Appserver_cli
 	def self.loadfile(filepath)

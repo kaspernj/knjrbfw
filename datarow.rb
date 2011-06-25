@@ -40,6 +40,7 @@ class Knj::Datarow
 				}
 				cols.each do |col_name, col_obj|
 					col_type = col_obj.type
+					col_type = "int" if col_type == "bigint" or col_type == "tinyint" or col_type == "mediumint" or col_type == "smallint"
 					
 					if col_type == "enum" and col_obj.maxlength == "'0','1'"
 						sqlhelper_args[:cols_bools] << col_name
@@ -165,6 +166,6 @@ class Knj::Datarow
 			end
 		end
 		
-		raise sprintf("No such method: %s", func_name)
+		raise "No such method: '#{func_name}' on '#{self.class.name}'"
 	end
 end

@@ -461,7 +461,7 @@ class Knj::Web
 		else
 			html += "<tr>"
 			html += "<td class=\"tdt\">"
-			html += args[:title].html
+			html += args[:title].to_s.html
 			html += "</td>"
 			html += "<td class=\"tdc\">"
 			
@@ -725,9 +725,13 @@ class Knj::Web
 			browser = "bot"
 			title = "Bot"
 			version = "SiteBot"
-		elsif agent.match(/java\/([\d\.]+)/)
+		elsif match = agent.match(/java\/([\d\.]+)/)
 			browser = "bot"
 			title = "Java"
+			version = match[1]
+		elsif match = agent.match(/ezooms\/([\d\.]+)/)
+			browser = "bot"
+			title = "Ezooms"
 			version = match[1]
 		else
 			browser = "unknown"
