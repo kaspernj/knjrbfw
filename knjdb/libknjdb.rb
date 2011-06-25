@@ -202,9 +202,9 @@ class Knj::Db
 	
 	def update(tablename, arr_update, arr_terms = {})
 		return false if arr_update.empty?
-		sql = ""
 		
 		conn_exec do |driver|
+			sql = ""
 			sql += "UPDATE #{driver.escape_col}#{tablename.to_s}#{driver.escape_col} SET "
 			
 			first = true
@@ -257,6 +257,8 @@ class Knj::Db
 			
 			return driver.query(sql)
 		end
+		
+		raise "Something went wrong."
 	end
 	
 	def selectsingle(tablename, arr_terms = nil, args = {})
@@ -303,22 +305,28 @@ class Knj::Db
 	def conn_exec
 		if Thread.current[:knjdb]
 			tid = self.__id__
-			yield(Thread.current[:knjdb][tid]) if Thread.current[:knjdb] and Thread.current[:knjdb].has_key?(tid)
-		else
-			if @conns
-				conn = @conns.get_and_lock
-				
-				begin
-					yield(conn)
-				ensure
-					@conns.free(conn)
-				end
-			elsif @conn
-				yield(@conn)
-			else
-				raise "Could not figure out how to find a driver to use?"
+			
+			if Thread.current[:knjdb].has_key?(tid)
+				yield(Thread.current[:knjdb][tid])
+				return nil
 			end
 		end
+		
+		if @conns
+			conn = @conns.get_and_lock
+			
+			begin
+				yield(conn)
+				return nil
+			ensure
+				@conns.free(conn)
+			end
+		elsif @conn
+			yield(@conn)
+			return nil
+		end
+		
+		raise "Could not figure out how to find a driver to use?"
 	end
 	
 	def query(string)
