@@ -8,6 +8,7 @@ class Knj::Eruby
 		@inseq_cache = false
 		@inseq_rbc = false
 		@java_compile = false
+		@compiler = Knj::Compiler.new
 		@filepath = File.dirname(Knj::Os::realpath(__FILE__))
 		@connects = {}
 		
@@ -51,11 +52,9 @@ class Knj::Eruby
 			if @java_compile
 				if !@eruby_java_cache[cachename] or reload_cache
 					@eruby_java_cache[cachename] = File.read(cachename)
-					#@eruby_java_cache[cachename] = Knj::Jruby_compiler.new(:path => cachename)
 				end
 				
 				eval(@eruby_java_cache[cachename])
-				#@eruby_java_cache[cachename].run
 			elsif @inseq_cache
 				if @inseq_rbc
 					pi = Knj::Php.pathinfo(filename)
@@ -180,7 +179,7 @@ class Knj::Eruby
 		end
 		
 		@args = args
-		self.load(filename, args)
+		self.load_filename(filename, args)
 		
 		if !args[:custom_io]
 			retio.rewind
@@ -188,7 +187,7 @@ class Knj::Eruby
 		end
 	end
 	
-	def load(filename, args = {})
+	def load_filename(filename, args = {})
 		begin
 			if !args[:custom_io]
 				tmp_out = StringIO.new

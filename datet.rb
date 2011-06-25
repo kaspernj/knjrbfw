@@ -126,15 +126,11 @@ class Knj::Datet
 		return self
 	end
 	
+	#Returns the number of days in the current month.
 	def days_in_month
-		if @time.respond_to?(:days_in_month)
-			return @time.days_in_month
-		end
-		
-		dateob = Kernel.const_get(:Date).new(@time.year, 12, 31)
-		if dateob.respond_to? "<<"
-			return (dateob << (12 - @time.month)).day.to_i
-		end
+		#Thanks to ActiveSupport: http://rubydoc.info/docs/rails/2.3.8/ActiveSupport/CoreExtensions/Time/Calculations
+		days_in_months = [nil, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+		return days_in_months[@time.month]
 	end
 	
 	def day_in_week

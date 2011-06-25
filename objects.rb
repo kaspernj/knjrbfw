@@ -115,30 +115,30 @@ class Knj::Objects
 			raise Knj::Errors::InvalidData.new("Unknown data: #{data.class.to_s}.")
 		end
 		
+		return @objects[classname][id] if @objects.has_key?(classname) and @objects[classname].has_key?(id)
+		
 		retobj = nil
 		@objects_mutex.synchronize do
-			if !@objects[classname]
+			if !@objects.has_key?(classname)
 				self.requireclass(classname)
 				@objects[classname] = {}
 			end
 			
-			if !@objects[classname][id]
-				if @args[:datarow]
-					@objects[classname][id] = @args[:module].const_get(classname).new(Knj::Hash_methods.new(
-						:ob => self,
-						:data => data
-					))
-				else
-					args = [data]
-					args = args | @args[:extra_args] if @args[:extra_args]
-					@objects[classname][id] = @args[:module].const_get(classname).new(*args)
-				end
+			if @args[:datarow]
+				@objects[classname][id] = @args[:module].const_get(classname).new(Knj::Hash_methods.new(
+					:ob => self,
+					:data => data
+				))
+			else
+				args = [data]
+				args = args | @args[:extra_args] if @args[:extra_args]
+				@objects[classname][id] = @args[:module].const_get(classname).new(*args)
 			end
 			
-			retobj = @objects[classname][id]
+			return @objects[classname][id]
 		end
 		
-		return retobj
+		raise "Something went wrong."
 	end
 	
 	def get_by(classname, args = {})
@@ -391,20 +391,20 @@ class Knj::Objects
 		
 		classname = classname.to_sym
 		
-		@objects_mutex.synchronize do
-			if !@objects.has_key?(classname)
-				#raise "Could not find object class in cache: #{classname}."
-			elsif !@objects[classname].has_key?(object.id.to_i)
-				#errstr = ""
-				#errstr += "Could not unset object from cache.\n"
-				#errstr += "Class: #{object.class.name}.\n"
-				#errstr += "ID: #{object.id}.\n"
-				#errstr += "Could not find object ID in cache."
-				#raise errstr
-			else
+		#if !@objects.has_key?(classname)
+			#raise "Could not find object class in cache: #{classname}."
+		#elsif !@objects[classname].has_key?(object.id.to_i)
+			#errstr = ""
+			#errstr += "Could not unset object from cache.\n"
+			#errstr += "Class: #{object.class.name}.\n"
+			#errstr += "ID: #{object.id}.\n"
+			#errstr += "Could not find object ID in cache."
+			#raise errstr
+		#else
+			@objects_mutex.synchronize do
 				@objects[classname].delete(object.id.to_i)
 			end
-		end
+		#end
 	end
 	
 	def unset_class(classname)
@@ -418,11 +418,9 @@ class Knj::Objects
 		
 		classname = classname.to_sym
 		
+		return false if !@objects.has_key?(classname)
 		@objects_mutex.synchronize do
-			return false if !@objects.has_key?(classname)
 			@objects[classname] = {}
-			
-			GC.start
 		end
 	end
 	
@@ -473,13 +471,10 @@ class Knj::Objects
 				self.clean(realclassn)
 			end
 		else
+			return false if !@objects.has_key?(classn)
 			@objects_mutex.synchronize do
-				if !@objects[classn]
-					return false
-				else
-					@objects[classn] = {}
-					GC.start
-				end
+				@objects[classn] = {}
+				GC.start
 			end
 		end
 	end

@@ -5,6 +5,7 @@ module Knj
 	autoload :ArrayExt, $knjpath + "arrayext.rb"
 	autoload :Datestamp, $knjpath + "datestamp.rb"
 	autoload :Datet, $knjpath + "datet.rb"
+	autoload :Compiler, $knjpath + "compiler.rb"
 	autoload :Cpufreq, $knjpath + "cpufreq.rb"
 	autoload :Datarow, $knjpath + "datarow.rb"
 	autoload :Db, $knjpath + "knjdb/libknjdb.rb"
