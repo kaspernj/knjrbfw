@@ -123,7 +123,7 @@ class Knj::Translations::Translation < Knj::Datarow
 	end
 	
 	def self.list(d)
-		sql = "SELECT * FROM #{d.db.conn.escape_col}#{d.db.esc_col(table)}#{d.db.conn.escape_col} WHERE 1=1"
+		sql = "SELECT * FROM #{d.db.escape_col}#{d.db.esc_col(table)}#{d.db.escape_col} WHERE 1=1"
 		ret = list_helper(d)
 		
 		d.args.each do |key, val|

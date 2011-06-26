@@ -357,6 +357,7 @@ class Knj::Objects
 		class_name = class_name.to_sym
 		method_name = method_name.to_sym
 		
+		self.requireclass(class_name)
 		class_obj = @args[:module].const_get(class_name)
 		raise "The class '#{class_obj.name}' has no such method: '#{method_name}'." if !class_obj.respond_to?(method_name)
 		method_obj = class_obj.method(method_name)

@@ -255,6 +255,8 @@ class Knj::Web
 			realvalue = value.to_s
 		end
 		
+		realvalue = Knj::Php.urldecode(realvalue) if args[:urldecode]
+		
 		if varname and varname.index("[") != nil
 			if match = varname.match(/\[(.*?)\]/)
 				namepos = varname.index(match[0])
@@ -414,6 +416,8 @@ class Knj::Web
 				value = cback.call(value)
 			elsif cback.is_a?(Array)
 				value = Knj::Php.call_user_func(args[:value_func], value)
+			elsif cback.is_a?(Proc)
+				value = cback.call(value)
 			else
 				raise "Unknown class: #{cback.class.name}."
 			end

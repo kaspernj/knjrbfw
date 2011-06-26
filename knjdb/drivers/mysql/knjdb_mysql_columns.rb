@@ -21,11 +21,11 @@ class KnjDB_mysql::Columns
 		if data.has_key?("default_func")
 			sql += " DEFAULT #{data["default_func"]}"
 		elsif data.has_key?("default") and data["default"] != false
-			sql += " DEFAULT '#{@driver.escape(data["default"])}'"
+			sql += " DEFAULT '#{@db.escape(data["default"])}'"
 		end
 		
-		sql += " COMMENT '#{@driver.escape(data["comment"])}'" if data.has_key?("comment")
-		sql += " AFTER `#{@driver.esc_col(data["after"])}`" if data["after"] and !data["first"]
+		sql += " COMMENT '#{@db.escape(data["comment"])}'" if data.has_key?("comment")
+		sql += " AFTER `#{@db.esc_col(data["after"])}`" if data["after"] and !data["first"]
 		sql += " FIRST" if data["first"]
 		
 		return sql
