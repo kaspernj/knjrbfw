@@ -363,13 +363,13 @@ class Knj::Web
 	
 	def self.checkval(value, val1, val2 = nil)
 		if val2 != nil
-			if !value or value == ""
+			if !value or value == "" or value == "false"
 				return val2
 			else
 				return val1
 			end
 		else
-			if !value or value == ""
+			if !value or value == "" or value == "false"
 				return val1
 			else
 				return value
