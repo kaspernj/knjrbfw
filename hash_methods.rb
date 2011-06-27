@@ -7,6 +7,22 @@ class Knj::Hash_methods
 		return @data[key]
 	end
 	
+	def db
+		return @data[:db]
+	end
+	
+	def ob
+		return @data[:ob]
+	end
+	
+	def args
+		return @data[:args]
+	end
+	
+	def data
+		return @data[:data]
+	end
+	
 	def method_missing(method, *paras)
 		if !@data.has_key?(method)
 			raise "No such method '#{method}' on class '#{self.class.name}'"

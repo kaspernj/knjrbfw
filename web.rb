@@ -255,7 +255,7 @@ class Knj::Web
 			realvalue = value.to_s
 		end
 		
-		realvalue = Knj::Php.urldecode(realvalue) if args[:urldecode]
+		realvalue = Knj::Php.urldecode(realvalue) if args[:urldecode] and !value.respond_to?(:filename)
 		
 		if varname and varname.index("[") != nil
 			if match = varname.match(/\[(.*?)\]/)
