@@ -234,14 +234,23 @@ class Knj::Objects
 			obj_methods = object.class.instance_methods(false)
 			
 			begin
-				if obj_methods.index("name") != nil
+				objhtml = ""
+				
+				if obj_methods.index("name") != nil or obj_methods.index(:name) != nil
 					objhtml = object.name.html
-				elsif obj_methods.index("title") != nil
+				elsif obj_methods.index("title") != nil or obj_methods.index(:title) != nil
 					objhtml = object.title.html
-				else
-					raise "Could not figure out which name-method to call?"
+				elsif object.respond_to?(:data)
+					obj_data = object.data
+					
+					if obj_data.has_key?(:name)
+						objhtml = obj_data[:name]
+					elsif obj_data.has_key?(:title)
+						objhtml = obj_data[:title]
+					end
 				end
 				
+				raise "Could not figure out which name-method to call?" if !objhtml
 				html += ">#{objhtml}</option>"
 			rescue Exception => e
 				html += ">[#{object.class.name}: #{e.message}]</option>"
