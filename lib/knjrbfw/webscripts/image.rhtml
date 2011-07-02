@@ -1,0 +1,82 @@
+<%
+	idstr = Knj::Php.md5("#{_get["path"]}_#{_get["smartsize"].to_i}_#{_get["width"].to_i}_#{_get["height"].to_i}_#{_get["maxwidth"].to_i}_#{_get["maxheight"].to_i}")
+	
+	tmp_use = false
+	tmp_write = false
+	if $knj_webscripts_image_config
+		tmp_use = true
+		tmp_path = "#{$knj_webscripts_image_config["tmp_path"]}/#{idstr}"
+		tmp_exists = File.exists?(tmp_path)
+		tmp_write = true if !tmp_exists
+		
+		if !tmp_write and tmp_exists
+			time_orig = File.mtime(_get["path"])
+			time_cache = File.mtime(tmp_path)
+			
+			if time_orig > time_cache
+				tmp_write = true
+			end
+		end
+	end
+	
+	if !tmp_use or tmp_write or _get["force"].to_i > 0
+		pic = Magick::ImageList.new(_get["path"])
+		width = pic.columns
+		height = pic.rows
+		
+		height = _get["height"].to_i if _get["height"]
+		width = _get["width"].to_i if _get["width"]
+		
+		if _get["smartsize"]
+			if pic.columns > pic.rows
+				width = _get["smartsize"].to_i
+				height = (pic.rows.to_f / (pic.columns.to_f / width.to_f)).to_i
+			else
+				height = _get["smartsize"].to_i
+				width = (pic.columns.to_f / (pic.rows.to_f / height.to_f)).to_i
+			end
+		end
+		
+		if _get["maxwidth"]
+			maxwidth = _get["maxwidth"].to_i
+			
+			if width > maxwidth
+				height = (pic.rows.to_f / (pic.columns.to_f / maxwidth.to_f)).to_i
+				width = maxwidth
+			end
+		end
+		
+		if _get["maxheight"]
+			maxheight = _get["maxheight"].to_i
+			
+			if height > maxheight
+				width = (pic.columns.to_f / (pic.rows.to_f / maxheight.to_f)).to_i
+				height = maxheight
+			end
+		end
+		
+		if _get["width"] and _get["height"]
+			width = _get["width"].to_i
+			height = _get["height"].to_i
+		end
+		
+		if height != pic.rows or width != pic.columns
+			pic = pic.resize_to_fit(width.to_i, height.to_i)
+		end
+		
+		pic.format = "png"
+		blob_cont = pic.to_blob
+	end
+	
+	if tmp_write and blob_cont
+		Knj::Php.file_put_contents(tmp_path, blob_cont)
+	end
+	
+	if tmp_use
+		Knj::Php.header("Content-Type: image/png")
+		print File.read(tmp_path)
+	else
+		Knj::Php.header("Content-Type: image/png")
+		print blob_cont
+	end
+%>
