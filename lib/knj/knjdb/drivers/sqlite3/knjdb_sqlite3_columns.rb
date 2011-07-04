@@ -11,7 +11,7 @@ class KnjDB_sqlite3::Columns
 		raise "No type given." if !data["type"]
 		
 		data["maxlength"] = 255 if data["type"] == "varchar" and !data.has_key?("maxlength")
-		data["type"] = "integer" if data["type"] == "int"
+		data["type"] = "integer" if data["type"] == "int" or data["type"] == "bigint"
 		
 		sql = "`#{data["name"]}` #{data["type"]}"
 		sql += "(#{data["maxlength"]})" if data["maxlength"] and !data["autoincr"]
