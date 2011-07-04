@@ -31,7 +31,7 @@ class Gtk::Dialog
 	end
 	
 	def has_separator=(newval)
-		#FIXME: No way to do this in Java-GTK?
+		# FIXME: No way to do this in Java-GTK?
 	end
 	
 	def destroy
