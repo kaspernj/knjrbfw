@@ -5,9 +5,7 @@ class Knj::Eruby
   def initialize(args = {})
     require "tmpdir"
     @tmpdir = "#{Dir.tmpdir}/knj_erb"
-    if !File.exists?(@tmpdir)
-      Dir.mkdir(@tmpdir)
-    end
+    Dir.mkdir(@tmpdir) if !File.exists?(@tmpdir)
     
     @args = args
     @settings_loaded = true
@@ -37,6 +35,7 @@ class Knj::Eruby
   end
   
   def import(filename)
+    Dir.mkdir(@tmpdir) if !File.exists?(@tmpdir)
     filename = File.expand_path(filename)
     filetime = File.mtime(filename)
     filepath = Knj::Php.realpath(filename)
