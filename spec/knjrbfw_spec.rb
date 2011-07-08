@@ -31,6 +31,17 @@ describe "Knjrbfw" do
       
       indexes = table.indexes
       raise "Could not find the sample-index 'category_id' that should have been created." if !indexes["category_id"]
+      
+      
+      #If we insert a row the ID should increase and the name should be the same as inserted (or something is very very wrong)...
+      db.insert("test_table", {
+        "name" => "Kasper"
+      })
+      
+      db.q("SELECT * FROM test_table") do |d|
+        raise "Somehow name was not Kasper?" if d[:name] != "Kasper"
+        raise "ID was not set?" if d[:id].to_i <= 0
+      end
     ensure
       File.unlink(db_path) if File.exists?(db_path)
     end

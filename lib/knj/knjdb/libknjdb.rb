@@ -1,8 +1,10 @@
 class Knj::Db
-  attr_reader :opts, :conn, :conns
+  attr_reader :opts, :conn, :conns, :int_types
   
   def initialize(opts)
     self.setOpts(opts) if opts != nil
+    
+    @int_types = ["int", "bigint", "tinyint", "smallint", "mediumint"]
     
     if !@opts[:threadsafe]
       @mutex = Mutex.new
