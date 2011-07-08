@@ -381,7 +381,7 @@ class Knj::Datet
 		elsif match = timestr.to_s.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{5})$/)
 			#Datet.code format
 			return Knj::Datet.new(Time.gm(match[1], match[2], match[3], match[4], match[5], match[6], match[7]))
-		elsif match = timestr.to_s.match(/^\s*(\d{4})-(\d{1,2})-(\d{1,2})(|\s+(\d{2}):(\d{2}):(\d{2})(|\.\d+)\s*)$/)
+		elsif match = timestr.to_s.match(/^\s*(\d{4})-(\d{1,2})-(\d{1,2})(|\s+(\d{2}):(\d{2}):(\d{2})(|\.\d+)\s*)(|\s+(UTC))$/)
 			#Database date format (with possibility of .0 in the end - miliseconds? -knj.
 			return Knj::Datet.new(Time.gm(match[1].to_i, match[2].to_i, match[3].to_i, match[5].to_i, match[6].to_i, match[7].to_i, match[8].to_i))
 		end

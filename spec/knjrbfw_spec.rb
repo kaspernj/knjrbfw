@@ -46,4 +46,11 @@ describe "Knjrbfw" do
       File.unlink(db_path) if File.exists?(db_path)
     end
   end
+  
+  it "should be able to parse various date formats." do
+    date = Knj::Datet.in("2011-07-09 00:00:00 UTC")
+    date = Knj::Datet.in("1985-06-17 01:00:00")
+    date = Knj::Datet.in("1985-06-17")
+    date = Knj::Datet.in("17/06 1985")
+  end
 end
