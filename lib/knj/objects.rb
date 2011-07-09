@@ -318,12 +318,26 @@ class Knj::Objects
 		args = args | @args[:extra_args] if @args[:extra_args]
 		
 		if @args[:datarow]
-			if @args[:module].const_get(classname).respond_to?(:add)
-				@args[:module].const_get(classname).add(Knj::Hash_methods.new(
+      classobj = @args[:module].const_get(classname)
+			if classobj.respond_to?(:add)
+				classobj.add(Knj::Hash_methods.new(
 					:ob => self,
 					:db => self.db,
 					:data => data
 				))
+			end
+			
+			required_data = classobj.required_data
+			required_data.each do |req_data|
+        if !data.has_key?(req_data[:colname])
+          raise "No '#{req_data[:classname]}' given by the data '#{req_data[:colname]}'."
+        end
+        
+        begin
+          obj = self.get(req_data[:classname], data[req_data[:colname]])
+        rescue Knj::Errors::NotFound
+          raise "The '#{req_data[:classname]}' by ID '#{data[req_data[:colname]]}' could not be found with the data '#{req_data[:colname]}'."
+        end
 			end
 			
 			ins_id = @args[:db].insert(classname, data, {:return_id => true})

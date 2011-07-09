@@ -6,7 +6,7 @@ describe "Knjrbfw" do
     require "knj/autoload"
     require "tmpdir"
     
-    db_path = "/tmp/knjrbfw_test_sqlite3.sqlite3"
+    db_path = "#{Dir.tmpdir}/knjrbfw_test_sqlite3.sqlite3"
     
     begin
       db = Knj::Db.new(
@@ -56,14 +56,6 @@ describe "Knjrbfw" do
       db.insert("Project", {
         "name" => "Test project"
       })
-      db.insert("Task", {
-        "name" => "Test task",
-        "user_id" => 1,
-        "project_id" => 1
-      })
-      db.insert("User", {
-        "name" => "Kasper"
-      })
       
       db.q("SELECT * FROM Project") do |d|
         raise "Somehow name was not 'Test project'" if d[:name] != "Test project"
@@ -71,8 +63,9 @@ describe "Knjrbfw" do
       end
       
       $db = db
-    ensure
+    rescue => e
       File.unlink(db_path) if File.exists?(db_path)
+      raise e
     end
   end
   
@@ -89,7 +82,7 @@ describe "Knjrbfw" do
     end
     
     class Task < Knj::Datarow
-      has_one [:User, :Project]
+      has_one [{:classname => :User, :required => true}, :Project]
       
       def self.list(d)
         sql = "SELECT * FROM Task WHERE 1=1"
@@ -108,10 +101,20 @@ describe "Knjrbfw" do
     end
     
     class User < Knj::Datarow
-      
+      has_one [:Project]
     end
     
     $ob = Knj::Objects.new(:db => $db, :datarow => true, :require => false)
+    
+    $ob.add(:User, {
+      :name => "Kasper"
+    })
+    $ob.add(:Task, {
+      :name => "Test task",
+      :user_id => 1,
+      :project_id => 1
+    })
+    
     project = $ob.get(:Project, 1)
     
     tasks = project.tasks
@@ -122,5 +125,10 @@ describe "Knjrbfw" do
     
     raise "Returned object was not a user on task." if !user.is_a?(User)
     raise "Returned object was not a project on task." if !project_second.is_a?(Project)
+  end
+  
+  it "should delete the temp database again." do
+    db_path = "#{Dir.tmpdir}/knjrbfw_test_sqlite3.sqlite3"
+    File.unlink(db_path) if File.exists?(db_path)
   end
 end
