@@ -381,9 +381,18 @@ class Knj::Datet
 		elsif match = timestr.to_s.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{5})$/)
 			#Datet.code format
 			return Knj::Datet.new(Time.gm(match[1], match[2], match[3], match[4], match[5], match[6], match[7]))
-		elsif match = timestr.to_s.match(/^\s*(\d{4})-(\d{1,2})-(\d{1,2})(|\s+(\d{2}):(\d{2}):(\d{2})(|\.\d+)\s*)(|\s+(UTC))$/)
+		elsif match = timestr.to_s.match(/^\s*(\d{4})-(\d{1,2})-(\d{1,2})(|\s+(\d{2}):(\d{2}):(\d{2})(|\.\d+)\s*)(|\s+(UTC))(|\s+(\+|\-)(\d{2})(\d{2}))$/)
 			#Database date format (with possibility of .0 in the end - miliseconds? -knj.
-			return Knj::Datet.new(Time.gm(match[1].to_i, match[2].to_i, match[3].to_i, match[5].to_i, match[6].to_i, match[7].to_i, match[8].to_i))
+			
+			if match[11]
+        utc_str = "+#{match[13]}:#{match[14]}"
+      elsif match[8]
+        utc_str = match[8].to_i
+      else
+        utc_str = nil
+      end
+			
+			return Knj::Datet.new(Time.gm(match[1].to_i, match[2].to_i, match[3].to_i, match[5].to_i, match[6].to_i, match[7].to_i,utc_str))
 		end
 		
 		raise Knj::Errors::InvalidData.new("Wrong format: '#{timestr}', class: '#{timestr.class.name}'")

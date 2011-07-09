@@ -74,6 +74,11 @@ describe "Knjrbfw" do
     date = Knj::Datet.in("1985-06-17 01:00:00")
     date = Knj::Datet.in("1985-06-17")
     date = Knj::Datet.in("17/06 1985")
+    
+    date = Knj::Datet.in("2011-07-09 13:05:04 +0200")
+    if date.time.localtime.to_s != "2011-07-09 15:05:04 +0200"
+      raise "Datet didnt return expected result: '#{date.time.localtime}'."
+    end
   end
   
   it "should be able to automatic generate methods on datarow-classes (has_many, has_one)." do
