@@ -16,7 +16,7 @@ describe "Knjrbfw" do
         :index_append_table_name => true
       )
       
-      db.tables.create("test_table", {
+      db.tables.create("Project", {
         "columns" => [
           {"name" => "id", "type" => "int", "autoincr" => true, "primarykey" => true},
           {"name" => "category_id", "type" => "int"},
@@ -27,21 +27,50 @@ describe "Knjrbfw" do
         ]
       })
       
-      table = db.tables["test_table"]
+      db.tables.create("Task", {
+        "columns" => [
+          {"name" => "id", "type" => "int", "autoincr" => true, "primarykey" => true},
+          {"name" => "project_id", "type" => "int"},
+          {"name" => "user_id", "type" => "int"},
+          {"name" => "name", "type" => "varchar"}
+        ],
+        "indexes" => [
+          {"name" => "project_id", "columns" => ["project_id"]}
+        ]
+      })
+      
+      db.tables.create("User", {
+        "columns" => [
+          {"name" => "id", "type" => "int", "autoincr" => true, "primarykey" => true},
+          {"name" => "name", "type" => "varchar"}
+        ]
+      })
+      
+      table = db.tables["Project"]
       
       indexes = table.indexes
       raise "Could not find the sample-index 'category_id' that should have been created." if !indexes["category_id"]
       
       
       #If we insert a row the ID should increase and the name should be the same as inserted (or something is very very wrong)...
-      db.insert("test_table", {
+      db.insert("Project", {
+        "name" => "Test project"
+      })
+      db.insert("Task", {
+        "name" => "Test task",
+        "user_id" => 1,
+        "project_id" => 1
+      })
+      db.insert("User", {
         "name" => "Kasper"
       })
       
-      db.q("SELECT * FROM test_table") do |d|
-        raise "Somehow name was not Kasper?" if d[:name] != "Kasper"
+      db.q("SELECT * FROM Project") do |d|
+        raise "Somehow name was not 'Test project'" if d[:name] != "Test project"
         raise "ID was not set?" if d[:id].to_i <= 0
       end
+      
+      $db = db
     ensure
       File.unlink(db_path) if File.exists?(db_path)
     end
@@ -52,5 +81,47 @@ describe "Knjrbfw" do
     date = Knj::Datet.in("1985-06-17 01:00:00")
     date = Knj::Datet.in("1985-06-17")
     date = Knj::Datet.in("17/06 1985")
+  end
+  
+  it "should be able to automatic generate methods on datarow-classes (has_many, has_one)." do
+    class Project < Knj::Datarow
+      has_many :Task, :project_id
+    end
+    
+    class Task < Knj::Datarow
+      has_one :User, :user_id
+      has_one :Project, :project_id
+      
+      def self.list(d)
+        sql = "SELECT * FROM Task WHERE 1=1"
+        
+        ret = list_helper(d)
+        d.args.each do |key, val|
+          raise sprintf("Invalid key: %s.", key)
+        end
+        
+        sql += ret[:sql_where]
+        sql += ret[:sql_order]
+        sql += ret[:sql_limit]
+        
+        return d.ob.list_bysql(:Task, sql)
+      end
+    end
+    
+    class User < Knj::Datarow
+      
+    end
+    
+    $ob = Knj::Objects.new(:db => $db, :datarow => true, :require => false)
+    project = $ob.get(:Project, 1)
+    
+    tasks = project.tasks
+    raise "No tasks were found on project?" if tasks.empty?
+    
+    user = tasks[0].user
+    project_second = tasks[0].project
+    
+    raise "Returned object was not a user on task." if !user.is_a?(User)
+    raise "Returned object was not a project on task." if !project_second.is_a?(Project)
   end
 end

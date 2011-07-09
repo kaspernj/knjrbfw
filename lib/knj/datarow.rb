@@ -3,6 +3,26 @@ class Knj::Datarow
 	
 	def is_knj?; return true; end
 	
+	def self.has_many(classname, colname, methodname = nil)
+    if !methodname
+      methodname = "#{classname.to_s.downcase}s".to_sym
+    end
+    
+    define_method(methodname) do |args = {}|
+      return ob.list(classname, {colname.to_s => self.id}.merge(args))
+    end
+	end
+	
+	def self.has_one(classname, colname, methodname = nil)
+    if !methodname
+      methodname = classname.to_s.downcase
+    end
+    
+    define_method(methodname) do |args = {}|
+      return ob.get_try(self, colname, classname)
+    end
+	end
+	
 	def self.table
 		return self.name.split("::").last
 	end

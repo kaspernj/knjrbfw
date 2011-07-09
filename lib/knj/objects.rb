@@ -11,7 +11,7 @@ class Knj::Objects
 		@objects_mutex = Mutex.new
 		
 		raise "No DB given." if !@args[:db]
-		raise "No class path given." if !@args[:class_path]
+		raise "No class path given." if !@args[:class_path] and (@args[:require] or !@args.has_key?(:require))
 	end
 	
 	#Returns a cloned version of the @objects variable. Cloned because iteration on it may crash some of the other methods in Ruby 1.9+
