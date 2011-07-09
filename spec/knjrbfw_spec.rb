@@ -85,12 +85,11 @@ describe "Knjrbfw" do
   
   it "should be able to automatic generate methods on datarow-classes (has_many, has_one)." do
     class Project < Knj::Datarow
-      has_many :Task, :project_id
+      has_many [[:Task, :project_id]]
     end
     
     class Task < Knj::Datarow
-      has_one :User, :user_id
-      has_one :Project, :project_id
+      has_one [:User, :Project]
       
       def self.list(d)
         sql = "SELECT * FROM Task WHERE 1=1"
