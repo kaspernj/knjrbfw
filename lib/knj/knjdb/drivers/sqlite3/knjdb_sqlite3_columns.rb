@@ -12,7 +12,7 @@ class KnjDB_sqlite3::Columns
 		type = data["type"]
 		
 		data["maxlength"] = 255 if type == "varchar" and !data.has_key?("maxlength")
-		type = "integer" if @db.int_types.index(type)
+		type = "integer" if @db.int_types.index(type) and (data["autoincr"] or data["primarykey"])
 		
 		sql = "`#{data["name"]}` #{type}"
 		sql += "(#{data["maxlength"]})" if data["maxlength"] and !data["autoincr"]

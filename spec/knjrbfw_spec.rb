@@ -146,4 +146,31 @@ describe "Knjrbfw" do
     db_path = "#{Dir.tmpdir}/knjrbfw_test_sqlite3.sqlite3"
     File.unlink(db_path) if File.exists?(db_path)
   end
+  
+  it "should be able to execute various Knj::Php functions correctly." do
+    str = "Kasper Johansen"
+    
+    #substr
+    teststr = Knj::Php.substr(str, 7, 8)
+    if teststr != "Johansen"
+      raise "substr did not return expected result: '#{teststr}'"
+    end
+    
+    teststr = Knj::Php.substr(str, -8, 8)
+    if teststr != "Johansen"
+      raise "substr did not returned expected result when using negative positions: '#{teststr}'."
+    end
+    
+    #strtoupper
+    teststr = Knj::Php.strtoupper(str)
+    if teststr != "KASPER JOHANSEN"
+      raise "strtoupper did not return expected result: '#{teststr}'."
+    end
+    
+    #strtolower
+    teststr = Knj::Php.strtolower(str)
+    if teststr != "kasper johansen"
+      raise "strtolower did not return expected result: '#{teststr}'."
+    end
+  end
 end
