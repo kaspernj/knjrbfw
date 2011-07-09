@@ -1,5 +1,5 @@
 class Knj::Objects
-	attr_reader :args
+	attr_reader :args, :events
 	
 	def initialize(args)
 		@callbacks = {}
@@ -9,6 +9,12 @@ class Knj::Objects
 		@args[:module] = Kernel if !@args[:module]
 		@objects = {}
 		@objects_mutex = Mutex.new
+		
+		@events = Knj::Event_handler.new
+		@events.add_event(
+      :name => :no_html,
+      :connections_max => 1
+		)
 		
 		raise "No DB given." if !@args[:db]
 		raise "No class path given." if !@args[:class_path] and (@args[:require] or !@args.has_key?(:require))

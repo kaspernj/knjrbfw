@@ -102,6 +102,10 @@ describe "Knjrbfw" do
     
     class User < Knj::Datarow
       has_one [:Project]
+      
+      def html
+        return self[:name]
+      end
     end
     
     $ob = Knj::Objects.new(:db => $db, :datarow => true, :require => false)
@@ -125,6 +129,17 @@ describe "Knjrbfw" do
     
     raise "Returned object was not a user on task." if !user.is_a?(User)
     raise "Returned object was not a project on task." if !project_second.is_a?(Project)
+  end
+  
+  it "should be able to connect to objects 'no-html' callback and test it." do
+    task = $ob.get(:Task, 1)
+    $ob.events.connect(:no_html) do |event, classname|
+      "[no #{classname.to_s.downcase}]"
+    end
+    
+    print "Test 1: #{task.user_html}\n"
+    task.update(:user_id => 0)
+    print "Test 2: #{task.user_html}\n"
   end
   
   it "should delete the temp database again." do
