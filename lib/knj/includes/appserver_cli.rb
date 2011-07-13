@@ -27,4 +27,13 @@ def _db
 	return $db
 end
 
-require "../include/autoinclude.rb"
+def _ob
+  return $ob
+end
+
+autoinc_cli_path = "../include/autoinclude_cli.rb"
+if File.exists?(autoinc_cli_path)
+  require autoinc_cli_path
+else
+  require "../include/autoinclude.rb"
+end

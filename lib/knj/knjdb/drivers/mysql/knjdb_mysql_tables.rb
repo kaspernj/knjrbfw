@@ -153,6 +153,23 @@ class KnjDB_mysql::Tables::Table
 			
 			q_indexes = @db.query("SHOW INDEX FROM `#{self.name}`")
 			while d_indexes = q_indexes.fetch
+        if @subtype == "java"
+          d_indexes = {
+            :Table => d_indexes[:TABLE_NAME],
+            :Non_unique => d_indexes[:NON_UNIQUE],
+            :Key_name => d_indexes[:INDEX_NAME],
+            :Seq_in_index => d_indexes[:SEQ_IN_INDEX],
+            :Column_name => d_indexes[:COLUMN_NAME],
+            :Collation => d_indexes[:COLLATION],
+            :Cardinality => d_indexes[:CARDINALITY],
+            :Sub_part => d_indexes[:SUB_PART],
+            :Packed => d_indexes[:PACKED],
+            :Null => d_indexes[:NULLABLE],
+            :Index_type => d_indexes[:INDEX_TYPE],
+            :Comment => d_indexes[:COMMENT]
+          }
+        end
+        
 				next if d_indexes[:Key_name] == "PRIMARY"
 				
 				if !@indexes_list[d_indexes[:Key_name]]

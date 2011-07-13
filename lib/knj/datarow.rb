@@ -15,8 +15,10 @@ class Knj::Datarow
         methodname = "#{classname.to_s.downcase}s".to_sym
       end
       
-      define_method(methodname) do |args = {}|
-        return ob.list(classname, {colname.to_s => self.id}.merge(args))
+      define_method(methodname) do |*args|
+        merge_args = args[0] if args and args[0]
+        merge_args = {} if !merge_args
+        return ob.list(classname, {colname.to_s => self.id}.merge(merge_args))
       end
     end
 	end
@@ -52,12 +54,12 @@ class Knj::Datarow
       methodname = classname.to_s.downcase if !methodname
       colname = "#{classname.to_s.downcase}_id".to_sym if !colname
       
-      define_method(methodname) do |args = {}|
+      define_method(methodname) do
         return ob.get_try(self, colname, classname)
       end
       
       methodname_html = "#{methodname.to_s}_html".to_sym
-      define_method(methodname_html) do |args = {}|
+      define_method(methodname_html) do
         obj = self.send(methodname)
         if !obj
           return ob.events.call(:no_html, classname)

@@ -63,7 +63,7 @@ class KnjDB_mysql
 		if @subtype == "java"
 			stmt = conn.createStatement
 			
-			if str.match(/insert\s+into\s+/i) or str.match(/update\s+/i) or str.match(/^\s*delete\s+/i)
+			if str.match(/insert\s+into\s+/i) or str.match(/update\s+/i) or str.match(/^\s*delete\s+/i) or str.match(/^\s*create\s*/i)
 				return stmt.execute(str)
 			else
 				return stmt.executeQuery(str)
