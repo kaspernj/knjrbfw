@@ -1,7 +1,73 @@
 class Knj::Datarow
 	attr_reader :data, :ob
 	
+	def self.required_data
+    @required_data = [] if !@required_data
+    return @required_data
+  end
+	
 	def is_knj?; return true; end
+	
+	def self.has_many(arr)
+    arr.each do |val|
+      classname, colname, methodname = *val
+      if !methodname
+        methodname = "#{classname.to_s.downcase}s".to_sym
+      end
+      
+      define_method(methodname) do |args = {}|
+        return ob.list(classname, {colname.to_s => self.id}.merge(args))
+      end
+    end
+	end
+	
+	def self.has_one(arr)
+    arr.each do |val|
+      methodname = nil
+      colname = nil
+      classname = nil
+      
+      if val.is_a?(Symbol)
+        classname = val
+        methodname = val.to_s.downcase.to_sym
+        colname = "#{val.to_s.downcase}_id".to_sym
+      elsif val.is_a?(Array)
+        classname, colname, methodname = *val
+      elsif val.is_a?(Hash)
+        classname = val[:classname]
+        colname = val[:colname]
+        methodname = val[:methodname]
+        
+        if val[:required]
+          colname = "#{classname.to_s.downcase}_id".to_sym if !colname
+          required_data << {
+            :colname => colname,
+            :classname => classname
+          }
+        end
+      else
+        raise "Unknown argument-type: '#{arr.class.name}'."
+      end
+      
+      methodname = classname.to_s.downcase if !methodname
+      colname = "#{classname.to_s.downcase}_id".to_sym if !colname
+      
+      define_method(methodname) do |args = {}|
+        return ob.get_try(self, colname, classname)
+      end
+      
+      methodname_html = "#{methodname.to_s}_html".to_sym
+      define_method(methodname_html) do |args = {}|
+        obj = self.send(methodname)
+        if !obj
+          return ob.events.call(:no_html, classname)
+        end
+        
+        raise "Class '#{classname}' does not have a 'html'-method." if !obj.respond_to?(:html)
+        return obj.html
+      end
+    end
+	end
 	
 	def self.table
 		return self.name.split("::").last

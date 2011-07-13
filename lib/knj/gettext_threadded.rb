@@ -56,9 +56,9 @@ class Knj::Gettext_threadded
 			@dirs.each do |dir|
 				title_file_path = "#{dir}/#{lang}/title.txt"
 				if File.exists?(title_file_path)
-					title = File.read(title_file_path)
+					title = File.read(title_file_path).to_s.strip
 				else
-					title = lang
+					title = lang.strip
 				end
 				
 				break if title
