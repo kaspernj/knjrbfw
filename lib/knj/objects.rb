@@ -1,5 +1,5 @@
 class Knj::Objects
-	attr_reader :args
+	attr_reader :args, :events
 	
 	def initialize(args)
 		@callbacks = {}
@@ -10,8 +10,14 @@ class Knj::Objects
 		@objects = {}
 		@objects_mutex = Mutex.new
 		
+		@events = Knj::Event_handler.new
+		@events.add_event(
+      :name => :no_html,
+      :connections_max => 1
+		)
+		
 		raise "No DB given." if !@args[:db]
-		raise "No class path given." if !@args[:class_path]
+		raise "No class path given." if !@args[:class_path] and (@args[:require] or !@args.has_key?(:require))
 	end
 	
 	#Returns a cloned version of the @objects variable. Cloned because iteration on it may crash some of the other methods in Ruby 1.9+
@@ -234,8 +240,6 @@ class Knj::Objects
 			obj_methods = object.class.instance_methods(false)
 			
 			begin
-				objhtml = ""
-				
 				if obj_methods.index("name") != nil or obj_methods.index(:name) != nil
 					objhtml = object.name.html
 				elsif obj_methods.index("title") != nil or obj_methods.index(:title) != nil
@@ -248,7 +252,9 @@ class Knj::Objects
 					elsif obj_data.has_key?(:title)
 						objhtml = obj_data[:title]
 					end
-				end
+				else
+          objhtml = ""
+        end
 				
 				raise "Could not figure out which name-method to call?" if !objhtml
 				html += ">#{objhtml}</option>"
@@ -318,12 +324,26 @@ class Knj::Objects
 		args = args | @args[:extra_args] if @args[:extra_args]
 		
 		if @args[:datarow]
-			if @args[:module].const_get(classname).respond_to?(:add)
-				@args[:module].const_get(classname).add(Knj::Hash_methods.new(
+      classobj = @args[:module].const_get(classname)
+			if classobj.respond_to?(:add)
+				classobj.add(Knj::Hash_methods.new(
 					:ob => self,
 					:db => self.db,
 					:data => data
 				))
+			end
+			
+			required_data = classobj.required_data
+			required_data.each do |req_data|
+        if !data.has_key?(req_data[:colname])
+          raise "No '#{req_data[:classname]}' given by the data '#{req_data[:colname]}'."
+        end
+        
+        begin
+          obj = self.get(req_data[:classname], data[req_data[:colname]])
+        rescue Knj::Errors::NotFound
+          raise "The '#{req_data[:classname]}' by ID '#{data[req_data[:colname]]}' could not be found with the data '#{req_data[:colname]}'."
+        end
 			end
 			
 			ins_id = @args[:db].insert(classname, data, {:return_id => true})

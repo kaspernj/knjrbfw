@@ -9,11 +9,12 @@ class KnjDB_sqlite3::Columns
 	
 	def data_sql(data)
 		raise "No type given." if !data["type"]
+		type = data["type"]
 		
-		data["maxlength"] = 255 if data["type"] == "varchar" and !data.has_key?("maxlength")
-		data["type"] = "integer" if data["type"] == "int" or data["type"] == "bigint"
+		data["maxlength"] = 255 if type == "varchar" and !data.has_key?("maxlength")
+		type = "integer" if @db.int_types.index(type) and (data["autoincr"] or data["primarykey"])
 		
-		sql = "`#{data["name"]}` #{data["type"]}"
+		sql = "`#{data["name"]}` #{type}"
 		sql += "(#{data["maxlength"]})" if data["maxlength"] and !data["autoincr"]
 		sql += "(11)" if !data.has_key?("maxlength") and !data["autoincr"]
 		sql += " PRIMARY KEY" if data["primarykey"]
@@ -137,6 +138,9 @@ class KnjDB_sqlite3::Columns::Column
 		newdata["null"] = self.null? if !newdata.has_key?("null")
 		newdata["default"] = self.default if !newdata.has_key?("default")
 		newdata.delete("primarykey") if newdata.has_key?("primarykey")
+		
+		@type = nil
+		@maxlength = nil
 		
 		new_table = self.table.copy(
 			"alter_columns" => {

@@ -1,10 +1,14 @@
 class Knj::Hash_methods
-	def initialize(data)
+	def initialize(data = {})
 		@data = data
 	end
 	
 	def [](key)
 		return @data[key]
+	end
+	
+	def []=(key, val)
+    return @data[key] = val
 	end
 	
 	def db

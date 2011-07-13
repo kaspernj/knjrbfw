@@ -58,6 +58,10 @@ class KnjDB_sqlite3
   def lastID
     return @conn.last_insert_row_id
   end
+  
+  def close
+    @conn.close
+  end
 end
 
 class KnjDB_sqlite3_result

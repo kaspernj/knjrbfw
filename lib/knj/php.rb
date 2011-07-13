@@ -186,6 +186,14 @@ module Knj::Php
 		return string.to_s.split(" ").select {|w| w.capitalize! || w }.join(" ")
 	end
 	
+	def self.strtoupper(str)
+    return str.to_s.upcase
+	end
+	
+	def self.strtolower(str)
+    return str.to_s.downcase
+	end
+	
 	def self.htmlspecialchars(string)
 		require "cgi"
 		return CGI.escapeHTML(string)
@@ -204,8 +212,11 @@ module Knj::Php
 	
 	def self.substr(string, from, to = -1)
 		string = string.to_s.slice(from.to_i, to.to_i)
-		ic = Iconv.new("UTF-8//IGNORE", "UTF-8")
-		string = ic.iconv(string + "  ")[0..-2]
+		
+		if Knj::Php.class_exists("Iconv")
+      ic = Iconv.new("UTF-8//IGNORE", "UTF-8")
+      string = ic.iconv(string + "  ")[0..-2]
+    end
 		
 		return string
 	end
@@ -496,20 +507,18 @@ module Knj::Php
 	end
 	
 	def self.setcookie(cname, cvalue, expire = nil, domain = nil)
-		paras = {
+		args = {
 			"name" => cname,
 			"value" => cvalue,
 			"path" => "/"
 		}
-		paras["expires"] = Time.at(expire) if expire
-		paras["domain"] = domain if domain
+		args["expires"] = Time.at(expire) if expire
+		args["domain"] = domain if domain
 		
-		cookie = CGI::Cookie.new(paras)
-		Knj::Php.header("Set-Cookie: #{cookie.to_s}")
-		
-		if $_COOKIE
-			$_COOKIE[cname] = cvalue
-		end
+		cookie = CGI::Cookie.new(args)
+		status = Knj::Php.header("Set-Cookie: #{cookie.to_s}")
+		$_COOKIE[cname] = cvalue if $_COOKIE
+		return status
 	end
 	
 	def self.explode(expl, strexp)
