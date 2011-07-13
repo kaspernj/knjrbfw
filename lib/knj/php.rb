@@ -507,20 +507,18 @@ module Knj::Php
 	end
 	
 	def self.setcookie(cname, cvalue, expire = nil, domain = nil)
-		paras = {
+		args = {
 			"name" => cname,
 			"value" => cvalue,
 			"path" => "/"
 		}
-		paras["expires"] = Time.at(expire) if expire
-		paras["domain"] = domain if domain
+		args["expires"] = Time.at(expire) if expire
+		args["domain"] = domain if domain
 		
-		cookie = CGI::Cookie.new(paras)
-		Knj::Php.header("Set-Cookie: #{cookie.to_s}")
-		
-		if $_COOKIE
-			$_COOKIE[cname] = cvalue
-		end
+		cookie = CGI::Cookie.new(args)
+		status = Knj::Php.header("Set-Cookie: #{cookie.to_s}")
+		$_COOKIE[cname] = cvalue if $_COOKIE
+		return status
 	end
 	
 	def self.explode(expl, strexp)
