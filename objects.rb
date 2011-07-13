@@ -234,9 +234,9 @@ class Knj::Objects
 			obj_methods = object.class.instance_methods(false)
 			
 			begin
-				if obj_methods.index("name") != nil
+				if obj_methods.index("name") != nil or obj_methods.index(:name) != nil
 					objhtml = object.name.html
-				elsif obj_methods.index("title") != nil
+				elsif obj_methods.index("title") != nil or obj_methods.index(:title) != nil
 					objhtml = object.title.html
 				else
 					raise "Could not figure out which name-method to call?"
