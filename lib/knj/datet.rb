@@ -1,7 +1,7 @@
 class Knj::Datet
 	attr_accessor :time
 	
-	def initialize(time = Time.new)
+	def initialize(time = Time.now)
 		@time = time
 	end
 	
@@ -23,9 +23,7 @@ class Knj::Datet
 			end
 			
 			count += 1
-			if count > 999
-				raise "Endless loop?"
-			end
+			raise "Endless loop?" if count > 999
 		end
 	end
 	
@@ -329,6 +327,11 @@ class Knj::Datet
 		return Knj::Datet.from_dbstr(str)
 	end
 	
+	def self.is_nullstamp?(stamp)
+    return true if !stamp or stamp == "0000-00-00" or stamp == "0000-00-00 00:00:00"
+    return false
+	end
+	
 	def out(args = {})
 		str = ""
 		date_shown = false
@@ -378,6 +381,8 @@ class Knj::Datet
 			end
 			
 			return Knj::Datet.new(Time.gm(year, month, date, hour, minute))
+    elsif match = timestr.to_s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+      return Knj::Datet.new(Time.gm(match[3], match[2], match[1]))
 		elsif match = timestr.to_s.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{5})$/)
 			#Datet.code format
 			return Knj::Datet.new(Time.gm(match[1], match[2], match[3], match[4], match[5], match[6], match[7]))

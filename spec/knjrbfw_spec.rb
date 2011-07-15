@@ -75,6 +75,11 @@ describe "Knjrbfw" do
     date = Knj::Datet.in("1985-06-17")
     date = Knj::Datet.in("17/06 1985")
     
+    raise "Couldnt register type 1 nullstamp." if !Knj::Datet.is_nullstamp?("0000-00-00")
+    raise "Couldnt register type 2 nullstamp." if !Knj::Datet.is_nullstamp?("0000-00-00 00:00:00")
+    raise "Registered nullstamp on valid date." if Knj::Datet.is_nullstamp?("1985-06-17")
+    raise "Registered nullstamp on valid date." if Knj::Datet.is_nullstamp?("1985-06-17 10:30:00")
+    
     date = Knj::Datet.in("2011-07-09 13:05:04 +0200")
     if date.time.localtime.to_s != "2011-07-09 15:05:04 +0200"
       raise "Datet didnt return expected result: '#{date.time.localtime}'."
@@ -142,9 +147,9 @@ describe "Knjrbfw" do
       "[no #{classname.to_s.downcase}]"
     end
     
-    print "Test 1: #{task.user_html}\n"
+    raise "Unexpected user_html from task (should have been 'Kasper')." if task.user_html != "Kasper"
     task.update(:user_id => 0)
-    print "Test 2: #{task.user_html}\n"
+    raise "Unexpected user_html from task (should have been '[no user]')." if task.user_html != "[no user]"
   end
   
   it "should delete the temp database again." do
@@ -177,5 +182,20 @@ describe "Knjrbfw" do
     if teststr != "kasper johansen"
       raise "strtolower did not return expected result: '#{teststr}'."
     end
+  end
+  
+  it "should be able to join arrays with callbacks." do
+    res = Knj::ArrayExt.join(:arr => [1, 2, 3], :sep => ",", :callback => proc{|value| "'#{value}'"})
+    raise "Unexpected result from ArrayExt." if res != "'1','2','3'"
+  end
+  
+  it "should be able to generate valid SQL based on arrays." do
+    ret = $ob.sqlhelper({
+      "test_col" => [1, 2, 3]
+    },{
+      :cols_str => ["test_col"]
+    })
+    
+    raise "Unexpected SQL for generating based on array: '#{ret[:sql_where]}'" if ret[:sql_where] != " AND `test_col` IN ('1','2','3')"
   end
 end

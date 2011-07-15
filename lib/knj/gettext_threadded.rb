@@ -48,6 +48,11 @@ class Knj::Gettext_threadded
 		return @langs[locale][str]
 	end
 	
+	#This function can be used to make your string be recognized by gettext tools.
+	def gettext(str, locale)
+    return trans(locale, str)
+	end
+	
 	def lang_opts
 		langs = {}
 		@langs.keys.sort.each do |lang|

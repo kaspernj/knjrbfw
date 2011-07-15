@@ -8,6 +8,11 @@ class Knj::Datarow
 	
 	def is_knj?; return true; end
 	
+	def self.is_nullstamp?(stamp)
+    return true if !stamp or stamp == "0000-00-00 00:00:00" or stamp == "0000-00-00"
+    return false
+	end
+	
 	def self.has_many(arr)
     arr.each do |val|
       classname, colname, methodname = *val

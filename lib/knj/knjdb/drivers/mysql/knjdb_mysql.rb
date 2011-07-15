@@ -28,14 +28,25 @@ class KnjDB_mysql
 		elsif @subtype == "mysql2"
 			require "rubygems"
 			require "mysql2"
-			@conn = Mysql2::Client.new(
-				:host => @knjdb.opts[:host],
-				:username => @knjdb.opts[:user],
-				:password => @knjdb.opts[:pass],
-				:database => @knjdb.opts[:db],
-				:port => @port,
-				:symbolize_keys => true
-			)
+			
+			args = {
+        :host => @knjdb.opts[:host],
+        :username => @knjdb.opts[:user],
+        :password => @knjdb.opts[:pass],
+        :database => @knjdb.opts[:db],
+        :port => @port,
+        :symbolize_keys => true
+			}
+			
+			@query_args = @knjdb.opts[:query_args]
+			@query_args = {} if !@query_args
+			
+			pos_args = [:as, :async, :cast_booleans, :database_timezone, :application_timezone, :cache_rows, :connect_flags, :cast]
+			pos_args.each do |key|
+        args[key] = @knjdb.opts[key] if @knjdb.opts.has_key?(key)
+			end
+			
+			@conn = Mysql2::Client.new(args)
 		elsif @subtype == "java"
 			if !@jdbc_loaded
 				require "java"
@@ -93,7 +104,7 @@ class KnjDB_mysql
 				end
 			elsif @subtype == "mysql2"
 				begin
-					return KnjDB_mysql2_result.new(@conn.query(string))
+					return KnjDB_mysql2_result.new(@conn.query(string, @query_args))
 				rescue Mysql2::Error => e
 					if e.message == "MySQL server has gone away" or e.message == "closed MySQL connection"
 						reconnect

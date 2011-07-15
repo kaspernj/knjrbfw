@@ -628,7 +628,19 @@ class Knj::Objects
 			found = false
 			
 			if (cols_str_has and args[:cols_str].index(key) != nil) or (cols_num_has and args[:cols_num].index(key) != nil) or (cols_dbrows_has and args[:cols_dbrows].index(key) != nil)
-				sql_where += " AND #{table}`#{db.esc_col(key)}` = '#{db.esc(val)}'"
+        if val.is_a?(Array)
+          escape_sql = Knj::ArrayExt.join(
+            :arr => val,
+            :callback => proc{|value|
+              db.escape(value)
+            },
+            :sep => ",",
+            :surr => "'")
+          sql_where += " AND #{table}`#{db.esc_col(key)}` IN (#{escape_sql})"
+        else
+          sql_where += " AND #{table}`#{db.esc_col(key)}` = '#{db.esc(val)}'"
+        end
+        
 				found = true
 			elsif cols_bools_has and args[:cols_bools].index(key) != nil
 				if val.is_a?(TrueClass) or (val.is_a?(Integer) and val.to_i == 1) or (val.is_a?(String) and (val == "true" or val == "1"))
