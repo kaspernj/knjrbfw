@@ -1,4 +1,5 @@
 class Knj::Db
+  autoload :Dbtime, "#{File.dirname(__FILE__)}/dbtime.rb"
   attr_reader :opts, :conn, :conns, :int_types
   
   def initialize(opts)
