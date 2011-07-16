@@ -5,6 +5,11 @@ class Knj::Datarow
     @required_data = [] if !@required_data
     return @required_data
   end
+  
+  def self.depending_data
+    @depending_data = [] if !@depending_data
+    return @depending_data
+  end
 	
 	def is_knj?; return true; end
 	
@@ -15,7 +20,23 @@ class Knj::Datarow
 	
 	def self.has_many(arr)
     arr.each do |val|
-      classname, colname, methodname = *val
+      if val.is_a?(Array)
+        classname, colname, methodname = *val
+      elsif val.is_a?(Hash)
+        classname = val[:classname]
+        colname = val[:colname]
+        methodname = val[:methodname]
+        
+        if val[:depends]
+          depending_data << {
+            :colname => colname,
+            :classname => classname
+          }
+        end
+      else
+        raise "Unknown argument: '#{val.class.name}'."
+      end
+      
       if !methodname
         methodname = "#{classname.to_s.downcase}s".to_sym
       end
@@ -66,9 +87,7 @@ class Knj::Datarow
       methodname_html = "#{methodname.to_s}_html".to_sym
       define_method(methodname_html) do
         obj = self.send(methodname)
-        if !obj
-          return ob.events.call(:no_html, classname)
-        end
+        return ob.events.call(:no_html, classname) if !obj
         
         raise "Class '#{classname}' does not have a 'html'-method." if !obj.respond_to?(:html)
         return obj.html
@@ -178,11 +197,6 @@ class Knj::Datarow
 		end
 	end
 	
-	def delete
-		self.db.delete(self.table, {:id => @data[:id]})
-		self.destroy
-	end
-	
 	def destroy
 		@ob = nil
 		@data = nil
@@ -205,6 +219,7 @@ class Knj::Datarow
 	end
 	
 	def id
+    raise "No data on object." if !@data
 		return @data[:id]
 	end
 	

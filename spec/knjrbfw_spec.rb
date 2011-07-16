@@ -88,11 +88,16 @@ describe "Knjrbfw" do
   
   it "should be able to automatic generate methods on datarow-classes (has_many, has_one)." do
     class Project < Knj::Datarow
-      has_many [[:Task, :project_id]]
+      has_many [
+        {:classname => :Task, :colname => :project_id, :depends => true}
+      ]
     end
     
     class Task < Knj::Datarow
-      has_one [{:classname => :User, :required => true}, :Project]
+      has_one [
+        {:classname => :User, :required => true},
+        :Project
+      ]
       
       def self.list(d)
         sql = "SELECT * FROM Task WHERE 1=1"
@@ -139,6 +144,13 @@ describe "Knjrbfw" do
     
     raise "Returned object was not a user on task." if !user.is_a?(User)
     raise "Returned object was not a project on task." if !project_second.is_a?(Project)
+    
+    begin
+      $ob.delete(project)
+      raise "It was possible to delete project 1 even though task 1 depended on it!"
+    rescue
+      #this should happen - it should not possible to delete project 1 because task 1 depends on it."
+    end
   end
   
   it "should be able to connect to objects 'no-html' callback and test it." do

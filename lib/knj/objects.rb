@@ -462,6 +462,13 @@ class Knj::Objects
 		object.delete if object.respond_to?(:delete)
 		
 		if @args[:datarow]
+      object.class.depending_data.each do |dep_data|
+        objs = self.list(dep_data[:classname], {dep_data[:colname].to_s => object.id, "limit" => 1})
+        if !objs.empty?
+          raise "Cannot delete <#{object.class.name}:#{object.id}> because <#{dep_data[:classname]}:#{objs[0].id}> depends on it."
+        end
+      end
+      
 			@args[:db].delete(object.table, {:id => obj_id})
 		end
 		
