@@ -145,6 +145,8 @@ describe "Knjrbfw" do
     raise "Returned object was not a user on task." if !user.is_a?(User)
     raise "Returned object was not a project on task." if !project_second.is_a?(Project)
     
+    
+    #Check that has_many-depending is actually working.
     begin
       $ob.delete(project)
       raise "It was possible to delete project 1 even though task 1 depended on it!"

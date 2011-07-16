@@ -465,7 +465,7 @@ class Knj::Objects
       object.class.depending_data.each do |dep_data|
         objs = self.list(dep_data[:classname], {dep_data[:colname].to_s => object.id, "limit" => 1})
         if !objs.empty?
-          raise "Cannot delete <#{object.class.name}:#{object.id}> because <#{dep_data[:classname]}:#{objs[0].id}> depends on it."
+          raise "Cannot delete <#{object.class.name}:#{object.id}> because <#{objs[0].class.name}:#{objs[0].id}> depends on it."
         end
       end
       
