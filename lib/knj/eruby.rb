@@ -4,8 +4,6 @@ class Knj::Eruby
   
   def initialize(args = {})
     @args = args
-    @connects = {}
-    @headers = []
     
     require "tmpdir"
     @tmpdir = "#{Dir.tmpdir}/knj_erb"
@@ -102,11 +100,11 @@ class Knj::Eruby
   end
   
   def reset_connects
-    @connects.clear if @connects.is_a?(Hash)
+    @connects = {}
   end
   
   def reset_headers
-    @headers.clear
+    @headers = []
   end
   
   def header(key, value)
