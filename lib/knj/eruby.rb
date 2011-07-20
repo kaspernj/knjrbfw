@@ -5,6 +5,7 @@ class Knj::Eruby
   def initialize(args = {})
     @args = args
     @connects = {}
+    @headers = []
     
     require "tmpdir"
     @tmpdir = "#{Dir.tmpdir}/knj_erb"
