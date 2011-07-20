@@ -3,32 +3,26 @@ class Knj::Eruby
   attr_reader :connects, :headers
   
   def initialize(args = {})
+    @args = args
+    @connects = {}
+    
     require "tmpdir"
     @tmpdir = "#{Dir.tmpdir}/knj_erb"
     Dir.mkdir(@tmpdir) if !File.exists?(@tmpdir)
     
-    @args = args
-    @settings_loaded = true
-    @inseq_cache = false
-    @inseq_rbc = false
-    @java_compile = false
-    @compiler = Knj::Compiler.new
-    @filepath = File.dirname(Knj::Os::realpath(__FILE__))
-    @connects = {}
     
-    if RUBY_PLATFORM == "java"
-      @java_compile = true
-      @eruby_java_cache = {}
-    elsif RUBY_VERSION.slice(0..2) == "1.9" and RubyVM::InstructionSequence.respond_to?(:compile_file)
-      @eruby_rbyte = {}
-      @inseq_cache = true
-      
-      if RubyVM::InstructionSequence.respond_to?(:load)
-        @inseq_rbc = true
-      end
+    #This argument can be used if a shared cache should be used to speed up performance.
+    if args[:cache_hash]
+      @cache = args[:cache_hash]
+    else
+      @cache = {}
     end
     
-    @inseq_rbc = false #this is not possible yet in Ruby... maybe in 1.9.3?
+    if RUBY_PLATFORM == "java"
+      @cache_mode = :code_eval
+    elsif RUBY_VERSION.slice(0..2) == "1.9" and RubyVM::InstructionSequence.respond_to?(:compile_file)
+      @cache_mode = :inseq
+    end
     
     self.reset_headers
     self.reset_connects
@@ -37,62 +31,36 @@ class Knj::Eruby
   def import(filename)
     Dir.mkdir(@tmpdir) if !File.exists?(@tmpdir)
     filename = File.expand_path(filename)
+    raise "File does not exist: #{filename}" if !File.exists?(filename)
     filetime = File.mtime(filename)
-    filepath = Knj::Php.realpath(filename)
-    fpath = "#{@tmpdir}/#{filename.gsub("/", "_").gsub(".", "_")}"
-    
-    cachename = "#{fpath}.cache"
-    cacheexists = File.exists?(cachename)
+    cachename = "#{@tmpdir}/#{filename.gsub("/", "_").gsub(".", "_")}.cache"
     cachetime = File.mtime(cachename) if File.exists?(cachename)
     
-    raise "File does not exist: #{filename}" if !File.exists?(filename)
-    
     begin
-      if !cacheexists or filetime > cachetime
-        Knj::Eruby::Handler.load_file(filepath, {:cachename => cachename})
+      if !File.exists?(cachename) or filetime > cachetime
+        Knj::Eruby::Handler.load_file(filename, {:cachename => cachename})
         cachetime = File.mtime(cachename)
+        reload_cache = true
+      elsif !@cache.has_key?(cachename)
         reload_cache = true
       end
       
-      if @java_compile
-        if !@eruby_java_cache[cachename] or reload_cache
-          @eruby_java_cache[cachename] = File.read(cachename)
-        end
-        
-        eval(@eruby_java_cache[cachename])
-      elsif @inseq_cache
-        if @inseq_rbc
-          pi = Knj::Php.pathinfo(filename)
-          bytepath = pi["dirname"] + "/" + pi["basename"] + ".rbc"
-          byteexists = File.exists?(bytepath)
-          bytetime = File.mtime(bytepath) if File.exists?(bytepath)
-          pi.clear
-          
-          if !File.exists?(bytepath) or cachetime > bytetime
-            res = RubyVM::InstructionSequence.compile_file(filename)
-            data = Marshal.dump(res.to_a)
-            File.open(bytepath, "w+") do |fp|
-              fp.write(data)
-            end
-          end
-        end
-        
-        if @inseq_rbc
-          res = Marshal.load(File.read(bytepath))
-          RubyVM::InstructionSequence.load(res).eval
-        else
-          if !@eruby_rbyte[cachename] or @eruby_rbyte[cachename][:time] < filetime
-            @eruby_rbyte[cachename] = {
+      case @cache_mode
+        when :code_eval
+          @cache[cachename] = File.read(cachename) if reload_cache
+          eval(@cache[cachename], nil, filename)
+        when :inseq
+          if reload_cache or @cache[cachename][:time] < cachetime
+            @cache[cachename] = {
               :inseq => RubyVM::InstructionSequence.compile(File.read(cachename), filename, nil, 1),
               :time => Time.new
             }
           end
           
-          @eruby_rbyte[cachename][:inseq].eval
-        end
-      else
-        loaded_content = Knj::Eruby::Handler.load_file(filepath, {:cachename => cachename})
-        print loaded_content.evaluate
+          @cache[cachename][:inseq].eval
+        else
+          loaded_content = Knj::Eruby::Handler.load_file(filename, {:cachename => cachename})
+          print loaded_content.evaluate
       end
     rescue SystemExit
       #do nothing.
@@ -104,17 +72,12 @@ class Knj::Eruby
   def destroy
     @connects.clear if @connects.is_a?(Hash)
     @headers.clear if @headers.is_a?(Array)
-    @eruby_rbyte.clear if @eruby_rbyte.is_a?(Hash)
-    @eruby_java_cache.clear if @eruby_java_cache.is_a?(Hash)
+    @cache.clear if @cache.is_a?(Hash) and !@args.has_key?(:cache_hash)
     @args.clear if @args.is_a?(Hash)
     
     @connects = nil
     @headers = nil
-    @eruby_rbyte = nil
-    @eruby_java_cache = nil
     @args = nil
-    @inseq_rbc = nil
-    @java_compile = nil
   end
   
   def print_headers(args = {})
@@ -139,11 +102,10 @@ class Knj::Eruby
   
   def reset_connects
     @connects.clear if @connects.is_a?(Hash)
-    @connects = {}
   end
   
   def reset_headers
-    @headers = []
+    @headers.clear
   end
   
   def header(key, value)
@@ -151,7 +113,7 @@ class Knj::Eruby
   end
   
   def connect(signal, &block)
-    @connects[signal] = [] if !@connects[signal]
+    @connects[signal] = [] if !@connects.has_key?(signal)
     @connects[signal] << block
   end
   
