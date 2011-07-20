@@ -1,5 +1,5 @@
 class Knj::Objects
-	attr_reader :args
+	attr_reader :args, :events
 	
 	def initialize(args)
 		@callbacks = {}
@@ -10,8 +10,14 @@ class Knj::Objects
 		@objects = {}
 		@objects_mutex = Mutex.new
 		
+		@events = Knj::Event_handler.new
+		@events.add_event(
+      :name => :no_html,
+      :connections_max => 1
+		)
+		
 		raise "No DB given." if !@args[:db]
-		raise "No class path given." if !@args[:class_path]
+		raise "No class path given." if !@args[:class_path] and (@args[:require] or !@args.has_key?(:require))
 	end
 	
 	#Returns a cloned version of the @objects variable. Cloned because iteration on it may crash some of the other methods in Ruby 1.9+
@@ -111,8 +117,7 @@ class Knj::Objects
 		elsif data.is_a?(Integer) or data.is_a?(String) or data.is_a?(Fixnum)
 			id = data.to_i
 		elsif
-			Knj::Php.print_r(data)
-			raise Knj::Errors::InvalidData.new("Unknown data: #{data.class.to_s}.")
+			raise Knj::Errors::InvalidData, "Unknown data: '#{data.class.to_s}'."
 		end
 		
 		return @objects[classname][id] if @objects.has_key?(classname) and @objects[classname].has_key?(id)
@@ -234,8 +239,6 @@ class Knj::Objects
 			obj_methods = object.class.instance_methods(false)
 			
 			begin
-				objhtml = ""
-				
 				if obj_methods.index("name") != nil or obj_methods.index(:name) != nil
 					objhtml = object.name.html
 				elsif obj_methods.index("title") != nil or obj_methods.index(:title) != nil
@@ -248,7 +251,9 @@ class Knj::Objects
 					elsif obj_data.has_key?(:title)
 						objhtml = obj_data[:title]
 					end
-				end
+				else
+          objhtml = ""
+        end
 				
 				raise "Could not figure out which name-method to call?" if !objhtml
 				html += ">#{objhtml}</option>"
@@ -318,12 +323,26 @@ class Knj::Objects
 		args = args | @args[:extra_args] if @args[:extra_args]
 		
 		if @args[:datarow]
-			if @args[:module].const_get(classname).respond_to?(:add)
-				@args[:module].const_get(classname).add(Knj::Hash_methods.new(
+      classobj = @args[:module].const_get(classname)
+			if classobj.respond_to?(:add)
+				classobj.add(Knj::Hash_methods.new(
 					:ob => self,
 					:db => self.db,
 					:data => data
 				))
+			end
+			
+			required_data = classobj.required_data
+			required_data.each do |req_data|
+        if !data.has_key?(req_data[:colname])
+          raise "No '#{req_data[:classname]}' given by the data '#{req_data[:colname]}'."
+        end
+        
+        begin
+          obj = self.get(req_data[:classname], data[req_data[:colname]])
+        rescue Knj::Errors::NotFound
+          raise "The '#{req_data[:classname]}' by ID '#{data[req_data[:colname]]}' could not be found with the data '#{req_data[:colname]}'."
+        end
 			end
 			
 			ins_id = @args[:db].insert(classname, data, {:return_id => true})
@@ -442,6 +461,13 @@ class Knj::Objects
 		object.delete if object.respond_to?(:delete)
 		
 		if @args[:datarow]
+      object.class.depending_data.each do |dep_data|
+        objs = self.list(dep_data[:classname], {dep_data[:colname].to_s => object.id, "limit" => 1})
+        if !objs.empty?
+          raise "Cannot delete <#{object.class.name}:#{object.id}> because <#{objs[0].class.name}:#{objs[0].id}> depends on it."
+        end
+      end
+      
 			@args[:db].delete(object.table, {:id => obj_id})
 		end
 		
@@ -608,7 +634,19 @@ class Knj::Objects
 			found = false
 			
 			if (cols_str_has and args[:cols_str].index(key) != nil) or (cols_num_has and args[:cols_num].index(key) != nil) or (cols_dbrows_has and args[:cols_dbrows].index(key) != nil)
-				sql_where += " AND #{table}`#{db.esc_col(key)}` = '#{db.esc(val)}'"
+        if val.is_a?(Array)
+          escape_sql = Knj::ArrayExt.join(
+            :arr => val,
+            :callback => proc{|value|
+              db.escape(value)
+            },
+            :sep => ",",
+            :surr => "'")
+          sql_where += " AND #{table}`#{db.esc_col(key)}` IN (#{escape_sql})"
+        else
+          sql_where += " AND #{table}`#{db.esc_col(key)}` = '#{db.esc(val)}'"
+        end
+        
 				found = true
 			elsif cols_bools_has and args[:cols_bools].index(key) != nil
 				if val.is_a?(TrueClass) or (val.is_a?(Integer) and val.to_i == 1) or (val.is_a?(String) and (val == "true" or val == "1"))

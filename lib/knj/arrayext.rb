@@ -8,6 +8,8 @@ module Knj::ArrayExt
 			}
 		end
 		
+		raise "No seperator given." if !args[:sep]
+		
 		str = ""
 		first = true
 		
@@ -20,7 +22,14 @@ module Knj::ArrayExt
 			
 			value = value[key] if args[:key]
 			value = value if !args[:key]
-			value = Knj::Php.call_user_func(args[:callback], value) if args[:callback]
+			
+			if args[:callback]
+        if args[:callback].is_a?(Proc)
+          value = args[:callback].call(value)
+        else
+          value = Knj::Php.call_user_func(args[:callback], value) if args[:callback]
+        end
+      end
 			
 			raise "Callback returned nothing." if args[:callback] and !value
 			

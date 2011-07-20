@@ -1,7 +1,99 @@
 class Knj::Datarow
 	attr_reader :data, :ob
 	
+	def self.required_data
+    @required_data = [] if !@required_data
+    return @required_data
+  end
+  
+  def self.depending_data
+    @depending_data = [] if !@depending_data
+    return @depending_data
+  end
+	
 	def is_knj?; return true; end
+	
+	def self.is_nullstamp?(stamp)
+    return true if !stamp or stamp == "0000-00-00 00:00:00" or stamp == "0000-00-00"
+    return false
+	end
+	
+	def self.has_many(arr)
+    arr.each do |val|
+      if val.is_a?(Array)
+        classname, colname, methodname = *val
+      elsif val.is_a?(Hash)
+        classname = val[:classname]
+        colname = val[:colname]
+        methodname = val[:methodname]
+        
+        if val[:depends]
+          depending_data << {
+            :colname => colname,
+            :classname => classname
+          }
+        end
+      else
+        raise "Unknown argument: '#{val.class.name}'."
+      end
+      
+      if !methodname
+        methodname = "#{classname.to_s.downcase}s".to_sym
+      end
+      
+      define_method(methodname) do |*args|
+        merge_args = args[0] if args and args[0]
+        merge_args = {} if !merge_args
+        return ob.list(classname, {colname.to_s => self.id}.merge(merge_args))
+      end
+    end
+	end
+	
+	def self.has_one(arr)
+    arr.each do |val|
+      methodname = nil
+      colname = nil
+      classname = nil
+      
+      if val.is_a?(Symbol)
+        classname = val
+        methodname = val.to_s.downcase.to_sym
+        colname = "#{val.to_s.downcase}_id".to_sym
+      elsif val.is_a?(Array)
+        classname, colname, methodname = *val
+      elsif val.is_a?(Hash)
+        classname = val[:classname]
+        colname = val[:colname]
+        methodname = val[:methodname]
+        
+        if val[:required]
+          colname = "#{classname.to_s.downcase}_id".to_sym if !colname
+          required_data << {
+            :colname => colname,
+            :classname => classname
+          }
+        end
+      else
+        raise "Unknown argument-type: '#{arr.class.name}'."
+      end
+      
+      methodname = classname.to_s.downcase if !methodname
+      colname = "#{classname.to_s.downcase}_id".to_sym if !colname
+      
+      define_method(methodname) do
+        return ob.get_try(self, colname, classname)
+      end
+      
+      methodname_html = "#{methodname.to_s}_html".to_sym
+      define_method(methodname_html) do
+        obj = self.send(methodname)
+        return ob.events.call(:no_html, classname) if !obj
+        
+        raise "Class '#{classname}' does not have a 'html'-method." if !obj.respond_to?(:html)
+        return obj.html
+      end
+    end
+	end
 	
 	def self.table
 		return self.name.split("::").last
@@ -78,8 +170,7 @@ class Knj::Datarow
 			@data = {:id => d.data}
 			self.reload
 		else
-			Knj::Php.print_r(d.data)
-			raise "Could not figure out the data."
+			raise Knj::Errors::InvalidData, "Could not figure out the data from '#{d.data.class.name}'."
 		end
 	end
 	
@@ -90,7 +181,7 @@ class Knj::Datarow
 	def reload
 		data = self.db.single(self.table, {:id => @data[:id]})
 		if !data
-			raise Knj::Errors::NotFound.new("Could not find any data for the object with ID: '#{@data[:id]}' in the table '#{self.table}'.")
+			raise Knj::Errors::NotFound, "Could not find any data for the object with ID: '#{@data[:id]}' in the table '#{self.table}'."
 		end
 		
 		@data = data
@@ -103,11 +194,6 @@ class Knj::Datarow
 		if self.ob
 			self.ob.call("object" => self, "signal" => "update")
 		end
-	end
-	
-	def delete
-		self.db.delete(self.table, {:id => @data[:id]})
-		self.destroy
 	end
 	
 	def destroy
@@ -132,6 +218,7 @@ class Knj::Datarow
 	end
 	
 	def id
+    raise "No data on object." if !@data
 		return @data[:id]
 	end
 	

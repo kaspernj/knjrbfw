@@ -7,6 +7,7 @@ class KnjDB_mysql::Tables
 		@db = @args[:db]
 		@driver = @args[:driver]
 		@subtype = @db.opts[:subtype]
+		@list_mutex = Mutex.new
 	end
 	
 	def [](table_name)
@@ -17,39 +18,42 @@ class KnjDB_mysql::Tables
 	
 	def list
 		if !@list
-			@list = {}
-			q_tables = @db.query("SHOW TABLE STATUS")
-			while d_tables = q_tables.fetch
-				if @subtype == "java"
-					d_tables = {
-						:Name => d_tables[:TABLE_NAME],
-						:Engine => d_tables[:ENGINE],
-						:Version => d_tables[:VERSION],
-						:Row_format => d_tables[:ROW_FORMAT],
-						:Rows => d_tables[:TABLE_ROWS],
-						:Avg_row_length => d_tables[:AVG_ROW_LENGTH],
-						:Data_length => d_tables[:DATA_LENGTH],
-						:Max_data_length => d_tables[:MAX_DATA_LENGTH],
-						:Index_length => d_tables[:INDEX_LENGTH],
-						:Data_free => d_tables[:DATA_FREE],
-						:Auto_increment => d_tables[:AUTO_INCREMENT],
-						:Create_time => d_tables[:CREATE_TIME],
-						:Update_time => d_tables[:UPDATE_TIME],
-						:Check_time => d_tables[:CHECK_TIME],
-						:Collation => d_tables[:TABLE_COLLATION],
-						:Checksum => d_tables[:CHECKSUM],
-						:Create_options => d_tables[:CREATE_OPTIONS],
-						:Comment => d_tables[:TABLE_COMMENT]
-					}
-				end
-				
-				@list[d_tables[:Name]] = KnjDB_mysql::Tables::Table.new(
-					:db => @db,
-					:driver => @driver,
-					:data => d_tables,
-					:tables => self
-				)
-			end
+      @list_mutex.synchronize do
+        list = {}
+        @db.q("SHOW TABLE STATUS") do |d_tables|
+          if @subtype == "java"
+            d_tables = {
+              :Name => d_tables[:TABLE_NAME],
+              :Engine => d_tables[:ENGINE],
+              :Version => d_tables[:VERSION],
+              :Row_format => d_tables[:ROW_FORMAT],
+              :Rows => d_tables[:TABLE_ROWS],
+              :Avg_row_length => d_tables[:AVG_ROW_LENGTH],
+              :Data_length => d_tables[:DATA_LENGTH],
+              :Max_data_length => d_tables[:MAX_DATA_LENGTH],
+              :Index_length => d_tables[:INDEX_LENGTH],
+              :Data_free => d_tables[:DATA_FREE],
+              :Auto_increment => d_tables[:AUTO_INCREMENT],
+              :Create_time => d_tables[:CREATE_TIME],
+              :Update_time => d_tables[:UPDATE_TIME],
+              :Check_time => d_tables[:CHECK_TIME],
+              :Collation => d_tables[:TABLE_COLLATION],
+              :Checksum => d_tables[:CHECKSUM],
+              :Create_options => d_tables[:CREATE_OPTIONS],
+              :Comment => d_tables[:TABLE_COMMENT]
+            }
+          end
+          
+          list[d_tables[:Name]] = KnjDB_mysql::Tables::Table.new(
+            :db => @db,
+            :driver => @driver,
+            :data => d_tables,
+            :tables => self
+          )
+        end
+        
+        @list = list
+      end
 		end
 		
 		return @list
@@ -153,6 +157,23 @@ class KnjDB_mysql::Tables::Table
 			
 			q_indexes = @db.query("SHOW INDEX FROM `#{self.name}`")
 			while d_indexes = q_indexes.fetch
+        if @subtype == "java"
+          d_indexes = {
+            :Table => d_indexes[:TABLE_NAME],
+            :Non_unique => d_indexes[:NON_UNIQUE],
+            :Key_name => d_indexes[:INDEX_NAME],
+            :Seq_in_index => d_indexes[:SEQ_IN_INDEX],
+            :Column_name => d_indexes[:COLUMN_NAME],
+            :Collation => d_indexes[:COLLATION],
+            :Cardinality => d_indexes[:CARDINALITY],
+            :Sub_part => d_indexes[:SUB_PART],
+            :Packed => d_indexes[:PACKED],
+            :Null => d_indexes[:NULLABLE],
+            :Index_type => d_indexes[:INDEX_TYPE],
+            :Comment => d_indexes[:COMMENT]
+          }
+        end
+        
 				next if d_indexes[:Key_name] == "PRIMARY"
 				
 				if !@indexes_list[d_indexes[:Key_name]]
