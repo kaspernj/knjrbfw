@@ -82,9 +82,8 @@ class Knj::Eruby
           RubyVM::InstructionSequence.load(res).eval
         else
           if !@eruby_rbyte[cachename] or @eruby_rbyte[cachename][:time] < filetime
-            #@eruby_rbyte[cachename] = RubyVM::InstructionSequence.compile_file(cachename)
             @eruby_rbyte[cachename] = {
-              :inseq => RubyVM::InstructionSequence.new(File.read(cachename)),
+              :inseq => RubyVM::InstructionSequence.compile(File.read(cachename), filename, nil, 1),
               :time => Time.new
             }
           end
