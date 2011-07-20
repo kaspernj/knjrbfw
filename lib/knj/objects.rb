@@ -315,7 +315,7 @@ class Knj::Objects
 	end
 	
 	# Add a new object to the database and to the cache.
-	def add(classname, data)
+	def add(classname, data = {})
 		classname = classname.to_sym
 		self.requireclass(classname)
 		
