@@ -170,8 +170,7 @@ class Knj::Datarow
 			@data = {:id => d.data}
 			self.reload
 		else
-			Knj::Php.print_r(d.data)
-			raise "Could not figure out the data."
+			raise Knj::Errors::InvalidData, "Could not figure out the data from '#{d.data.class.name}'."
 		end
 	end
 	
@@ -182,7 +181,7 @@ class Knj::Datarow
 	def reload
 		data = self.db.single(self.table, {:id => @data[:id]})
 		if !data
-			raise Knj::Errors::NotFound.new("Could not find any data for the object with ID: '#{@data[:id]}' in the table '#{self.table}'.")
+			raise Knj::Errors::NotFound, "Could not find any data for the object with ID: '#{@data[:id]}' in the table '#{self.table}'."
 		end
 		
 		@data = data

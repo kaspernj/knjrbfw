@@ -117,8 +117,7 @@ class Knj::Objects
 		elsif data.is_a?(Integer) or data.is_a?(String) or data.is_a?(Fixnum)
 			id = data.to_i
 		elsif
-			Knj::Php.print_r(data)
-			raise Knj::Errors::InvalidData.new("Unknown data: #{data.class.to_s}.")
+			raise Knj::Errors::InvalidData, "Unknown data: '#{data.class.to_s}'."
 		end
 		
 		return @objects[classname][id] if @objects.has_key?(classname) and @objects[classname].has_key?(id)
