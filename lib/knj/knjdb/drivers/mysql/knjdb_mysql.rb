@@ -147,7 +147,7 @@ class KnjDB_mysql
 					when "\n" then "\\n"
 					when "\r" then "\\r"
 					when "\032" then "\\Z"
-					else "\\"+$1
+					else "\\" + $1
 				end
 			end
 		else
