@@ -83,12 +83,12 @@ class Knj::Datarow
       end
       
       methodname_html = "#{methodname.to_s}_html".to_sym
-      define_method(methodname_html) do
+      define_method(methodname_html) do |*args|
         obj = self.send(methodname)
         return ob.events.call(:no_html, classname) if !obj
         
         raise "Class '#{classname}' does not have a 'html'-method." if !obj.respond_to?(:html)
-        return obj.html
+        return obj.html(*args)
       end
     end
 	end
