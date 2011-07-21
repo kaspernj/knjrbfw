@@ -23,9 +23,9 @@ class Knj::Datarow
       if val.is_a?(Array)
         classname, colname, methodname = *val
       elsif val.is_a?(Hash)
-        classname = val[:classname]
-        colname = val[:colname]
-        methodname = val[:methodname]
+        classname = val[:class]
+        colname = val[:col]
+        methodname = val[:method]
         
         if val[:depends]
           depending_data << {
