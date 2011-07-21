@@ -686,7 +686,7 @@ class Knj::Objects
 				end
 				
 				found = true
-			elsif cols_str_has and match = key.match(/^([A-z_\d]+)_not$/) and args[:cols_str].index(match[1]) != nil
+			elsif match = key.match(/^([A-z_\d]+)_not$/) and ((cols_str_has and args[:cols_str].index(match[1]) != nil) or (cols_num_has and args[:cols_num].index(match[1]) != nil))
 				sql_where += " AND #{table}`#{db.esc_col(match[1])}` != '#{db.esc(val)}'"
 				found = true
 			elsif cols_date_has and match = key.match(/^(.+)_(day|month|from|to)$/) and args[:cols_date].index(match[1]) != nil
