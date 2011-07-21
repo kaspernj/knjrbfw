@@ -1,5 +1,5 @@
 class Knj::Thread2
-	def initialize(args = {}, &block = nil)
+	def initialize(args = {}, &block)
 		@args = args
 		@block = block if block_given?
 		@callbacks = {}
