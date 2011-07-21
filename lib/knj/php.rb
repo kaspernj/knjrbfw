@@ -186,15 +186,15 @@ module Knj::Php
 		return string.to_s.split(" ").select {|w| w.capitalize! || w }.join(" ")
 	end
 	
-	def self.strtoupper(str)
+	def strtoupper(str)
     return str.to_s.upcase
 	end
 	
-	def self.strtolower(str)
+	def strtolower(str)
     return str.to_s.downcase
 	end
 	
-	def self.htmlspecialchars(string)
+	def htmlspecialchars(string)
 		require "cgi"
 		return CGI.escapeHTML(string)
 	end
@@ -713,7 +713,5 @@ module Knj::Php
 		return plain_str.to_s
 	end
 	
-	instance_methods.each do |methodname|
-    module_function methodname
-	end
+  module_function(*instance_methods)
 end
