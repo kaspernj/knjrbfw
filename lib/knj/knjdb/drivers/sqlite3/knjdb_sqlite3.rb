@@ -59,6 +59,10 @@ class KnjDB_sqlite3
     return @conn.last_insert_row_id if @conn.respond_to?(:last_insert_row_id)
     return self.query("SELECT last_insert_rowid() AS id").fetch[:id].to_i
   end
+  
+  def close
+    @conn.close
+  end
 end
 
 class KnjDB_sqlite3_result

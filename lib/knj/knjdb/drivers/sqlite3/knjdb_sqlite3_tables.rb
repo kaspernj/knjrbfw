@@ -229,14 +229,26 @@ class KnjDB_sqlite3::Tables::Table
 			
 			q_indexes = @db.query("PRAGMA index_list(`#{self.name}`)")
 			while d_indexes = q_indexes.fetch
-				@indexes_list[d_indexes[:name]] = KnjDB_sqlite3::Indexes::Index.new(
+        if @db.opts[:index_append_table_name]
+          match_name = d_indexes[:name].match(/__(.+)$/)
+          
+          if match_name
+            name = match_name[1]
+          else
+            name = d_indexes[:name]
+          end
+        else
+          name = d_indexes[:name]
+        end
+        
+				@indexes_list[name] = KnjDB_sqlite3::Indexes::Index.new(
 					:table => self,
 					:db => @db,
 					:driver => @driver,
 					:data => d_indexes
 				)
 				
-				@indexes_list[d_indexes[:name]].columns << d_indexes[:name]
+				@indexes_list[name].columns << name
 			end
 		end
 		

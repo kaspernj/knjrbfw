@@ -1,5 +1,5 @@
 class Knj::Threadhandler
-	attr_reader :inactive_blocks, :args, :activate_blocks, :objects, :mutex
+	attr_reader :inactive_blocks, :args, :activate_blocks, :mutex
 	
 	def initialize(args = {})
 		@args = args

@@ -46,6 +46,3 @@ pkg
 
 # For rubinius:
 #*.rbc
-
-
-lib/knjdbfw/erb/cache/*

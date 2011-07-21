@@ -208,6 +208,17 @@ class Knj::Web
 		return @session[key.to_sym] = value
 	end
 	
+	def self.parse_cookies(str)
+    ret = {}
+    
+    str.split("; ").each do |cookie_str|
+      splitted = cookie_str.split("=")
+      ret[Knj::Php.urldecode(splitted[0])] = Knj::Php.urldecode(splitted[1])
+    end
+    
+    return ret
+	end
+	
 	def self.parse_urlquery(querystr, args = {})
 		get = {}
 		Knj::Php.urldecode(querystr).split("&").each do |value|
@@ -729,7 +740,7 @@ class Knj::Web
 			browser = "bot"
 			title = "Bot"
 			version = "Facebook Externalhit"
-		elsif agent.index("SiteBot") != nil
+		elsif agent.index("sitebot") != nil
 			browser = "bot"
 			title = "Bot"
 			version = "SiteBot"
@@ -853,6 +864,12 @@ class String
 		rescue NameError
 			#ignore - not in KnjAppServer HTTP-session.
 		end
+		
+		begin
+      return _db.escape(self)
+    rescue NameError
+      #ignore - not i KnjAppServer HTTP-session.
+    end
 		
 		return $db.escape(self) if $db
 		raise "Could not figure out where to find db object."
