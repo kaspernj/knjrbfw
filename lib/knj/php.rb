@@ -277,7 +277,7 @@ module Knj::Php
     #return CGI.unescape(string)
     
     #Thanks to CGI framework
-    str=string.tr('+', ' ').gsub(/((?:%[0-9a-fA-F]{2})+)/) do
+    str = string.to_s.tr('+', ' ').gsub(/((?:%[0-9a-fA-F]{2})+)/) do
       [$1.delete('%')].pack('H*')
     end
   end
@@ -287,7 +287,7 @@ module Knj::Php
     #return CGI.escape(string.to_s)
     
     #Thanks to CGI framework
-    string.gsub(/([^ a-zA-Z0-9_.-]+)/) do
+    string.to_s.gsub(/([^ a-zA-Z0-9_.-]+)/) do
       '%' + $1.unpack('H2' * $1.bytesize).join('%').upcase
     end.tr(' ', '+')
   end
