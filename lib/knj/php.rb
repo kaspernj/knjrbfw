@@ -1,9 +1,9 @@
 # coding: utf-8
 
 module Knj::Php
-	def self.is_numeric(n) Float n rescue false end
+	def is_numeric(n) Float n rescue false end
 	
-	def self.call_user_func(*paras)
+	def call_user_func(*paras)
 		if paras[0].is_a?(String)
 			send_paras = [paras[0].to_sym]
 			send_paras << paras[1] if paras[1]
@@ -17,7 +17,7 @@ module Knj::Php
 		end
 	end
 	
-	def self.print_r(argument, ret = false, count = 1)
+	def print_r(argument, ret = false, count = 1)
 		retstr = ""
 		cstr = argument.class.to_s
 		supercl = argument.class.superclass
@@ -130,15 +130,15 @@ module Knj::Php
 		end
 	end
 	
-	def self.gtext(string)
+	def gtext(string)
 		return GetText._(string)
 	end
 	
-	def self.gettext(string)
+	def gettext(string)
 		return GetText._(string)
 	end
 	
-	def self.number_format(number, precision = 2, seperator = ".", delimiter = ",")
+	def number_format(number, precision = 2, seperator = ".", delimiter = ",")
 		if !number.is_a?(Float)
 			number = number.to_f
 		end
@@ -182,27 +182,27 @@ module Knj::Php
 		return numberstr
 	end
 	
-	def self.ucwords(string)
+	def ucwords(string)
 		return string.to_s.split(" ").select {|w| w.capitalize! || w }.join(" ")
 	end
 	
-	def self.htmlspecialchars(string)
+	def htmlspecialchars(string)
 		require "cgi"
 		return CGI.escapeHTML(string)
 	end
 	
-	def self.isset(var)
+	def isset(var)
 		return false if var == nil or var == false
 		return true
 	end
 	
-	def self.strpos(haystack, needle)
+	def strpos(haystack, needle)
 		return false if !haystack
 		return false if !haystack.to_s.include?(needle)
 		return haystack.index(needle)
 	end
 	
-	def self.substr(string, from, to = -1)
+	def substr(string, from, to = -1)
 		string = string.to_s.slice(from.to_i, to.to_i)
 		ic = Iconv.new("UTF-8//IGNORE", "UTF-8")
 		string = ic.iconv(string + "  ")[0..-2]
@@ -210,11 +210,11 @@ module Knj::Php
 		return string
 	end
 	
-	def self.md5(string)
+	def md5(string)
 		return Digest::MD5.hexdigest(string.to_s)
 	end
 	
-	def self.header(headerstr)
+	def header(headerstr)
 		match = headerstr.to_s.match(/(.*): (.*)/)
 		if match
 			key = match[1]
@@ -257,27 +257,37 @@ module Knj::Php
 		return sent
 	end
 	
-	def self.nl2br(string)
+	def nl2br(string)
 		return string.to_s.gsub("\n", "<br />\n")
 	end
 	
-	def self.urldecode(string)
-		require "cgi"
-		return CGI.unescape(string)
-	end
+  def urldecode(string)
+    #require "cgi"
+    #return CGI.unescape(string)
+    
+    #Thanks to CGI framework
+    str=string.tr('+', ' ').gsub(/((?:%[0-9a-fA-F]{2})+)/) do
+      [$1.delete('%')].pack('H*')
+    end
+  end
+  
+  def urlencode(string)
+    #require "cgi"
+    #return CGI.escape(string.to_s)
+    
+    #Thanks to CGI framework
+    string.gsub(/([^ a-zA-Z0-9_.-]+)/) do
+      '%' + $1.unpack('H2' * $1.bytesize).join('%').upcase
+    end.tr(' ', '+')
+  end
 	
-	def self.urlencode(string)
-		require "cgi"
-		return CGI.escape(string.to_s)
-	end
-	
-	def self.file_put_contents(filepath, content)
+	def file_put_contents(filepath, content)
 		File.open(filepath.untaint, "w") do |file|
 			file.write(content)
 		end
 	end
 	
-	def self.file_get_contents(filepath)
+	def file_get_contents(filepath)
 		filepath = filepath.to_s
 		
 		if http_match = filepath.match(/^http(s|):\/\/([A-z_\d\.]+)(|:(\d+))(\/(.+))$/)
@@ -308,7 +318,7 @@ module Knj::Php
 		return File.read(filepath.untaint)
 	end
 	
-	def self.is_file(filepath)
+	def is_file(filepath)
 		begin
 			if File.file?(filepath)
 				return true
@@ -320,7 +330,7 @@ module Knj::Php
 		return false
 	end
 	
-	def self.is_dir(filepath)
+	def is_dir(filepath)
 		begin
 			if File.directory?(filepath)
 				return true
@@ -332,16 +342,16 @@ module Knj::Php
 		return false
 	end
 	
-	def self.unlink(filepath)
+	def unlink(filepath)
 		FileUtils.rm(filepath)
 	end
 	
-	def self.file_exists(filepath)
+	def file_exists(filepath)
 		return true if File.exists?(filepath.to_s.untaint)
 		return false
 	end
 	
-	def self.strtotime(date_string, cur = nil)
+	def strtotime(date_string, cur = nil)
 		if !cur
 			cur = Time.new
 		else
@@ -390,7 +400,7 @@ module Knj::Php
 		return cur.to_i
 	end
 	
-	def self.class_exists(classname)
+	def class_exists(classname)
 		begin
 			Kernel.const_get(classname)
 			return true
@@ -399,14 +409,14 @@ module Knj::Php
 		end
 	end
 	
-	def self.html_entity_decode(string)
+	def html_entity_decode(string)
 		require "cgi"
 		string = CGI.unescapeHTML(string.to_s)
 		string = string.gsub("&oslash;", "ø").gsub("&aelig;", "æ").gsub("&aring;", "å").gsub("&euro;", "€").gsub("#39;", "'")
 		return string
 	end
 	
-	def self.strip_tags(htmlstr)
+	def strip_tags(htmlstr)
 		htmlstr.scan(/(<([\/A-z]+).*?>)/) do |match|
 			htmlstr = htmlstr.gsub(match[0], "")
 		end
@@ -414,12 +424,12 @@ module Knj::Php
 		return htmlstr.gsub("&nbsp;", " ")
 	end
 	
-	def self.die(msg)
+	def die(msg)
 		print msg
 		exit
 	end
 	
-	def self.fopen(filename, mode)
+	def fopen(filename, mode)
 		begin
 			return File.open(filename, mode)
 		rescue Exception
@@ -427,7 +437,7 @@ module Knj::Php
 		end
 	end
 	
-	def self.fwrite(fp, str)
+	def fwrite(fp, str)
 		begin
 			fp.print str
 		rescue Exception
@@ -437,7 +447,7 @@ module Knj::Php
 		return true
 	end
 	
-	def self.fputs(fp, str)
+	def fputs(fp, str)
 		begin
 			fp.print str
 		rescue Exception
@@ -447,23 +457,23 @@ module Knj::Php
 		return true
 	end
 	
-	def self.fread(fp, length = 4096)
+	def fread(fp, length = 4096)
 		return fp.read(length)
 	end
 	
-	def self.fgets(fp, length = 4096)
+	def fgets(fp, length = 4096)
 		return fp.read(length)
 	end
 	
-	def self.fclose(fp)
+	def fclose(fp)
 		fp.close
 	end
 	
-	def self.move_uploaded_file(tmp_path, new_path)
+	def move_uploaded_file(tmp_path, new_path)
 		FileUtils.mv(tmp_path.untaint, new_path.untaint)
 	end
 	
-	def self.utf8_encode(str)
+	def utf8_encode(str)
 		str = str.to_s if str.respond_to?(:to_s)
 		
 		if str.respond_to?(:encode)
@@ -479,7 +489,7 @@ module Knj::Php
 		end
 	end
 	
-	def self.utf8_decode(str)
+	def utf8_decode(str)
 		str = str.to_s if str.respond_to?(:to_s)
 		
 		if str.respond_to?(:encode)
@@ -495,7 +505,7 @@ module Knj::Php
 		end
 	end
 	
-	def self.setcookie(cname, cvalue, expire = nil, domain = nil)
+	def setcookie(cname, cvalue, expire = nil, domain = nil)
 		paras = {
 			"name" => cname,
 			"value" => cvalue,
@@ -512,51 +522,65 @@ module Knj::Php
 		end
 	end
 	
-	def self.explode(expl, strexp)
+	def explode(expl, strexp)
 		return strexp.to_s.split(expl)
 	end
 	
-	def self.dirname(filename)
+	def dirname(filename)
 		File.dirname(filename)
 	end
 	
-	def self.chdir(dirname)
+	def chdir(dirname)
 		Dir.chdir(dirname)
 	end
 	
-	def self.include_once(filename)
+	def include_once(filename)
 		require filename
 	end
 	
-	def self.require_once(filename)
+	def require_once(filename)
 		require filename
 	end
 	
-	def self.echo(string)
+	def echo(string)
 		print string
 	end
 	
-	def self.msgbox(title, msg, type)
+	def msgbox(title, msg, type)
 		Knj::Gtk2.msgbox(msg, type, title)
 	end
 	
-	def self.count(array)
+	def count(array)
 		return array.length
 	end
 	
-	def self.json_encode(obj)
-		return JSON.generate(obj)
+	def json_encode(obj)
+    if Knj::Php.class_exists("Rho")
+      return Rho::JSON.generate(obj)
+    elsif Knj::Php.class_exists("JSON")
+      return JSON.generate(obj)
+    else
+      raise "Could not figure out which JSON lib to use."
+    end
 	end
 	
-	def self.json_decode(data)
-		return JSON.parse(data)
+	def json_decode(data)
+    raise "String was not given to 'Knj::Php.json_decode'." if !data.is_a?(String)
+    
+    if Knj::Php.class_exists("Rho")
+      return Rho::JSON.parse(data)        
+    elsif Knj::Php.class_exists("JSON")  
+      return JSON.parse(data)
+    else
+      raise "Could not figure out which JSON lib to use."
+    end
 	end
 	
-	def self.time
+	def time
 		return Time.new.to_i
 	end
 	
-	def self.microtime(get_as_float = false)
+	def microtime(get_as_float = false)
 		microtime = Time.now.to_f
 		
 		return microtime if get_as_float
@@ -565,7 +589,7 @@ module Knj::Php
 		return "#{splitted[0]} #{splitted[1]}"
 	end
 	
-	def self.mktime(hour = nil, min = nil, sec = nil, date = nil, month = nil, year = nil, is_dst = -1)
+	def mktime(hour = nil, min = nil, sec = nil, date = nil, month = nil, year = nil, is_dst = -1)
 		cur_time = Time.new
 		
 		hour = cur_time.hour if hour == nil
@@ -579,7 +603,7 @@ module Knj::Php
 		return new_time.to_i
 	end
 	
-	def self.date(date_format, date_unixt = nil)
+	def date(date_format, date_unixt = nil)
 		date_unixt = Time.now.to_i if date_unixt == nil
 		
 		date_object = Time.at(date_unixt.to_i)
@@ -595,7 +619,7 @@ module Knj::Php
 		return date_format
 	end
 	
-	def self.basename(filepath)
+	def basename(filepath)
 		splitted = filepath.to_s.split("/").last
 		return false if !splitted
 		
@@ -604,15 +628,15 @@ module Knj::Php
 		return ret.join(".")
 	end
 	
-	def self.base64_encode(str)
+	def base64_encode(str)
 		return Base64.encode64(str.to_s)
 	end
 	
-	def self.base64_decode(str)
+	def base64_decode(str)
 		return Base64.decode64(str.to_s)
 	end
 	
-	def self.pathinfo(filepath)
+	def pathinfo(filepath)
 		filepath = filepath.to_s
 		
 		dirname = File.dirname(filepath)
@@ -626,7 +650,7 @@ module Knj::Php
 		}
 	end
 	
-	def self.realpath(pname)
+	def realpath(pname)
 		begin
 			return Pathname.new(pname.to_s).realpath.to_s
 		rescue => e
@@ -635,23 +659,23 @@ module Knj::Php
 	end
 	
 	# Returns the scripts current memory usage.
-	def self.memory_get_usage
+	def memory_get_usage
 		# FIXME: This only works on Linux at the moment, since we are doing this by command line - knj.
 		memory_usage = `ps -o rss= -p #{Process.pid}`.to_i * 1024
 		return memory_usage
 	end
 	
 	# Should return the peak usage of the running script, but I have found no way to detect this... Instead returns the currently memory usage.
-	def self.memory_get_peak_usage
+	def memory_get_peak_usage
 		return self.memory_get_usage
 	end
 	
-	def self.ip2long(ip)
+	def ip2long(ip)
 		return IPAddr.new(ip).to_i
 	end
 	
 	# Thanks to this link for the following functions: http://snippets.dzone.com/posts/show/4509
-	def self.long2ip(long)
+	def long2ip(long)
 		ip = []
 		4.times do |i|
 			ip.push(long.to_i & 255)
@@ -661,7 +685,7 @@ module Knj::Php
 		ip.reverse.join(".")
 	end
 	
-	def self.gzcompress(str, level = 3)
+	def gzcompress(str, level = 3)
 		zstream = Zlib::Deflate.new
 		gzip_str = zstream.deflate(str.to_s, Zlib::FINISH)
 		zstream.close
@@ -669,7 +693,7 @@ module Knj::Php
 		return gzip_str
 	end
 	
-	def self.gzuncompress(str, length = 0)
+	def gzuncompress(str, length = 0)
 		zstream = Zlib::Inflate.new
 		plain_str = zstream.inflate(str.to_s)
 		zstream.finish
@@ -678,9 +702,7 @@ module Knj::Php
 		return plain_str.to_s
 	end
 	
-	Knj::Php.singleton_methods.each do |methodname|
-		define_method methodname.to_sym do |*paras|
-			return Knj::Php.send(methodname, *paras)
-		end
+	instance_methods.each do |methodname|
+    module_function methodname
 	end
 end

@@ -10,8 +10,7 @@ class Knj::Http
 	end
 	
 	def initialize(opts = {})
-		require "webrick"
-		require "cgi"
+		require "webrick" if !opts["skip_webrick"]
 		require "net/http"
 		
 		@opts = opts
@@ -82,9 +81,13 @@ class Knj::Http
 	end
 	
 	def setcookie(set_data)
-		WEBrick::Cookie.parse_set_cookies(set_data.to_s).each do |cookie|
-			@cookies[cookie.name] = cookie
-		end
+    if @opts["skip_webrick"]
+      print "SetData: #{set_data}\n"
+    else
+      WEBrick::Cookie.parse_set_cookies(set_data.to_s).each do |cookie|
+        @cookies[cookie.name] = cookie
+      end
+    end
 	end
 	
 	def get(addr)
@@ -115,7 +118,7 @@ class Knj::Http
 				postdata += "&"
 			end
 			
-			postdata += CGI.escape(key) + "=" + CGI.escape(value)
+			postdata += "#{Knj::Php.urldecode(key)}=#{Knj::Php.urldecode(value)}"
 		end
 		
 		@mutex.synchronize do

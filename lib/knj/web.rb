@@ -390,10 +390,14 @@ class Knj::Web
 		Knj::ArrayExt.hash_sym(args)
 		
 		if args.has_key?(:value)
-			if args[:value].is_a?(Array)
-				if !args[:value][0].is_a?(NilClass)
-					value = args[:value][0][args[:value][1]]
-				end
+      if args[:value].is_a?(Array) and args[:value][0].is_a?(NilClass)
+        value = ""
+			elsif args[:value].is_a?(Array)
+        if !args[:value][2] or args[:value][2] == :key
+          value = args[:value][0][args[:value][1]]
+        elsif args[:value][2] == :callb
+          value = args[:value][0].send(args[:value][1])
+        end
 			elsif args[:value].is_a?(String) or args[:value].is_a?(Integer)
 				value = args[:value].to_s
 			else
