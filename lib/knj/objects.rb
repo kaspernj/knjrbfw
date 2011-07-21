@@ -334,14 +334,14 @@ class Knj::Objects
 			
 			required_data = classobj.required_data
 			required_data.each do |req_data|
-        if !data.has_key?(req_data[:colname])
-          raise "No '#{req_data[:classname]}' given by the data '#{req_data[:colname]}'."
+        if !data.has_key?(req_data[:col])
+          raise "No '#{req_data[:class]}' given by the data '#{req_data[:col]}'."
         end
         
         begin
-          obj = self.get(req_data[:classname], data[req_data[:colname]])
+          obj = self.get(req_data[:class], data[req_data[:col]])
         rescue Knj::Errors::NotFound
-          raise "The '#{req_data[:classname]}' by ID '#{data[req_data[:colname]]}' could not be found with the data '#{req_data[:colname]}'."
+          raise "The '#{req_data[:class]}' by ID '#{data[req_data[:col]]}' could not be found with the data '#{req_data[:col]}'."
         end
 			end
 			
