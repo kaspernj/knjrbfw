@@ -536,6 +536,37 @@ class Knj::Web
 				html += "<input type=\"#{args[:type].to_s}\" class=\"input_#{args[:type].to_s}\" name=\"#{args[:name].html}\" /></td>"
 			elsif args[:type] == :textshow or args[:type] == :info
 				html += "#{value}</td>"
+      elsif args[:type] == :editarea
+        css = {
+          "width" => "100%"
+        }
+        css["height"] = args[:height] if args.has_key?(:height)
+        
+        styleadd = " style=\""
+        css.each do |key, val|
+          styleadd += "#{key}: #{val};"
+        end
+        styleadd += "\""
+        
+        styleadd += "width=\"100%\""
+        styleadd += "height=\"#{args[:height]}\"" if args[:height]
+        html += "<textarea#{styleadd} id=\"#{args[:id]}\" name=\"#{args[:name]}\">#{value}</textarea>"
+        
+        jshash = {
+          "id" => args[:id],
+          "start_highlight" => true
+        }
+        
+        pos_keys = [:skip_init, :allow_toggle, :replace_tab_by_spaces, :toolbar, :syntax]
+        pos_keys.each do |key|
+          jshash[key.to_s] = args[key] if args.has_key?(key)
+        end
+        
+        html += "<script type=\"text/javascript\">"
+        html += "function knj_web_init_#{args[:name]}(){"
+        html += "editAreaLoader.init(#{Knj::Php.json_encode(jshash)});"
+        html += "}"
+        html += "</script>"
 			else
 				html += "<input #{disabled}type=\"#{args[:type].to_s.html}\" class=\"input_#{args[:type].html}\" id=\"#{args[:id].html}\" name=\"#{args[:name].html}\" value=\"#{value.html}\" /></td>"
 				html += "</td>"
