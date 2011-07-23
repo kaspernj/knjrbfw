@@ -89,13 +89,13 @@ describe "Knjrbfw" do
   it "should be able to automatic generate methods on datarow-classes (has_many, has_one)." do
     class Project < Knj::Datarow
       has_many [
-        {:classname => :Task, :colname => :project_id, :depends => true}
+        {:class => :Task, :col => :project_id, :depends => true}
       ]
     end
     
     class Task < Knj::Datarow
       has_one [
-        {:classname => :User, :required => true},
+        {:class => :User, :required => true},
         :Project
       ]
       
@@ -211,5 +211,59 @@ describe "Knjrbfw" do
     })
     
     raise "Unexpected SQL for generating based on array: '#{ret[:sql_where]}'" if ret[:sql_where] != " AND `test_col` IN ('1','2','3')"
+  end
+  
+  it "should be able to execute various forms of Web.input methods." do
+    html = Knj::Web.inputs([{
+      :title => "Test 1",
+      :name => :textest1,
+      :type => :text,
+      :default => "hmm",
+      :value => "trala"
+    },{
+      :title => "Test 2",
+      :name => :chetest2,
+      :type => :checkbox,
+      :default => true
+    },{
+      :title => "Test 3",
+      :name => :seltest3,
+      :type => :select,
+      :default => 1,
+      :opts => $ob.list_optshash(:Task)
+    },{
+      :title => "Test 4",
+      :name => :textest4,
+      :type => :textarea,
+      :height => 300,
+      :default => "Hmm",
+      :value => "Trala"
+    },{
+      :title => "Test 5",
+      :name => :filetest5,
+      :type => :file
+    },{
+      :title => "Test 6",
+      :type => :info,
+      :value => "Argh"
+    }])
+  end
+  
+  it "should be able to use alert and back." do
+    Knj::Web.alert("Trala")
+    
+    begin
+      Knj::Web.back
+      raise "It should have called exit which it didnt."
+    rescue SystemExit
+      #ignore.
+    end
+    
+    begin
+      Knj::Web.redirect("?show=test")
+      raise "It should have called exit which it didnt."
+    rescue SystemExit
+      #ignore.
+    end
   end
 end
