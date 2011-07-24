@@ -10,9 +10,32 @@ class Knj::Threadpool
 		@events = Knj::Event_handler.new
 		@events.add_event(:name => :on_error)
 		
-		1.upto(@args[:threads]) do |count|
-			@workers << Knj::Threadpool::Worker.new(:threadpool => self, :id => count)
-		end
+		self.start
+	end
+	
+	def start
+    @mutex.synchronize do
+      if !@running
+        @workers.length.upto(@args[:threads]) do |count|
+          @workers << Knj::Threadpool::Worker.new(:threadpool => self, :id => count)
+        end
+        
+        @running = true
+      end
+    end
+	end
+	
+	def stop
+    if @running
+      @workers.each do |worker|
+        if !worker.running
+          worker.kill
+          @workers.delete(worker)
+        end
+      end
+      
+      @running = false
+    end
 	end
 	
 	def run(*args, &block)
@@ -49,6 +72,8 @@ class Knj::Threadpool
 	end
 	
 	def get_block
+    return false if !@running
+    
 		@mutex.synchronize do
 			@blocks.each do |blockdata|
 				if !blockdata[:running] and !blockdata[:runned]
@@ -63,11 +88,14 @@ class Knj::Threadpool
 end
 
 class Knj::Threadpool::Worker
+  attr_reader :running
+  
 	def initialize(args)
 		@args = args
 		@tp = @args[:threadpool]
 		@mutex_tp = @tp.mutex
 		@sleep = @tp.args[:sleep]
+		@running = false
 		
 		@thread = Knj::Thread.new do
 			loop do
@@ -83,12 +111,15 @@ class Knj::Threadpool::Worker
 				
 				if @blockdata.has_key?(:result)
 					begin
+            @running = true
 						res = @blockdata[:block].call(*@blockdata[:args])
 					rescue Exception => e
 						@mutex_tp.synchronize do
 							@blockdata[:error] = e
 						end
 					ensure
+            @running = false
+            
 						@mutex_tp.synchronize do
 							@blockdata[:result] = res
 							@blockdata[:runned] = true
@@ -128,5 +159,19 @@ class Knj::Threadpool::Worker
 	
 	def id
 		return @args[:id]
+	end
+	
+	def kill
+    return false if !@mutex_tp
+    
+    @mutex_tp.synchronize do
+      @thread.kill
+      @args = nil
+      @tp = nil
+      @mutex_tp = nil
+      @sleep = nil
+      @blockdata = nil
+      @thread = nil
+    end
 	end
 end

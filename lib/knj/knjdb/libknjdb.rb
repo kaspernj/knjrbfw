@@ -97,14 +97,10 @@ class Knj::Db
   
   def close
     @conn.close if @conn
+    @conns.destroy if @conns
     
-    if @conns
-      @conns.mutex.synchronize do
-        @conns.objects.each do |data|
-          data[:object].close
-        end
-      end
-    end
+    @conn = nil
+    @conns = nil
   end
   
   def clone_conn

@@ -12,24 +12,51 @@ class Knj::Threadhandler
 		@thread_timeout = Knj::Thread.new do
 			loop do
 				sleep @args[:timeout]
+				break if !@mutex
 				check_inactive
 			end
 		end
 	end
 	
 	def on_spawn_new(&block)
+    raise "Destroyed Knj::Threadhandler." if !@mutex
 		@spawn_new_block = block
 	end
 	
 	def on_inactive(&block)
+    raise "Destroyed Knj::Threadhandler." if !@mutex
 		@inactive_blocks << block
 	end
 	
 	def on_activate(&block)
+    raise "Destroyed Knj::Threadhandler." if !@mutex
 		@activate_blocks << block
 	end
 	
+	def destroy
+    return false if !@mutex
+    
+    @thread_timeout.kill if @thread_timeout and @thread_timeout.alive?
+    @thread_timeout = nil
+    
+    @mutex.synchronize do
+      @objects.each do |data|
+        @inactive_blocks.each do |block|
+          data[:inactive] = true
+          block.call(:obj => data[:object])
+        end
+      end
+    end
+    
+    @args = nil
+    @objects = nil
+    @inactive_blocks = nil
+    @activate_blocks = nil
+    @mutex = nil
+	end
+	
 	def check_inactive
+    raise "Destroyed Knj::Threadhandler." if !@mutex
 		@mutex.synchronize do
 			cur_time = Time.new.to_i - @args[:timeout]
 			@objects.each do |data|
@@ -44,6 +71,7 @@ class Knj::Threadhandler
 	end
 	
 	def get_and_lock
+    raise "Destroyed Knj::Threadhandler." if !@mutex
 		newobj = nil
 		
 		@mutex.synchronize do
@@ -83,6 +111,8 @@ class Knj::Threadhandler
 	end
 	
 	def free(obj)
+    raise "Destroyed Knj::Threadhandler." if !@mutex
+    
 		@mutex.synchronize do
 			freedata = false
 			@objects.each do |data|

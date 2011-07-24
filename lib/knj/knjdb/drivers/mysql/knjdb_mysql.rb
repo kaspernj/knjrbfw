@@ -189,6 +189,11 @@ class KnjDB_mysql
 	def destroy
 		@conn = nil
 		@knjdb = nil
+		@mutex = nil
+		@subtype = nil
+		@encoding = nil
+		@query_args = nil
+		@port = nil
 	end
 	
 	def insert_multi(tablename, arr_hashes)
