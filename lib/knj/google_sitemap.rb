@@ -1,7 +1,9 @@
 class Knj::Google_sitemap
 	attr_reader :doc
 	
-	def initialize
+	def initialize(args = {})
+    @args = args
+    
 		#used for Time.iso8601.
 		require "time"
 		
@@ -23,6 +25,10 @@ class Knj::Google_sitemap
 		end
 		
 		lm = el.add_element("lastmod")
+		if @args.has_key?(:date_min) and @args[:date_min] > lastmod_value
+      lastmod_value = @args[:date_min]
+    end
+		
 		lm.text = lastmod_value.iso8601
 		
 		if cf_value
