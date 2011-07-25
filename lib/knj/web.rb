@@ -402,7 +402,7 @@ class Knj::Web
 		
 		if args.has_key?(:value)
       if args[:value].is_a?(Array) and args[:value][0].is_a?(NilClass)
-        value = ""
+        value = nil
 			elsif args[:value].is_a?(Array)
         if !args[:value][2] or args[:value][2] == :key
           value = args[:value][0][args[:value][1]]
