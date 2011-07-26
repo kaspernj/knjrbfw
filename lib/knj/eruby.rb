@@ -11,16 +11,22 @@ class Knj::Eruby
     
     
     #This argument can be used if a shared cache should be used to speed up performance.
-    if args[:cache_hash]
-      @cache = args[:cache_hash]
+    if @args[:cache_hash]
+      @cache = @args[:cache_hash]
     else
       @cache = {}
     end
     
     if RUBY_PLATFORM == "java"
-      @cache_mode = :code_eval
+      #@cache_mode = :code_eval
+      @cache_mode = :compile_knj
     elsif RUBY_VERSION.slice(0..2) == "1.9" and RubyVM::InstructionSequence.respond_to?(:compile_file)
-      @cache_mode = :inseq
+      #@cache_mode = :inseq
+      @cache_mode = :compile_knj
+    end
+    
+    if @cache_mode == :compile_knj
+      @compiler = Knj::Compiler.new(:cache_hash => @cache)
     end
     
     self.reset_headers
@@ -45,6 +51,8 @@ class Knj::Eruby
       end
       
       case @cache_mode
+        when :compile_knj
+          @compiler.eval_file(:filepath => cachename, :fileident => filename)
         when :code_eval
           @cache[cachename] = File.read(cachename) if reload_cache
           eval(@cache[cachename], nil, filename)
@@ -71,12 +79,13 @@ class Knj::Eruby
   def destroy
     @connects.clear if @connects.is_a?(Hash)
     @headers.clear if @headers.is_a?(Array)
-    @cache.clear if @cache.is_a?(Hash) and !@args.has_key?(:cache_hash)
-    @args.clear if @args.is_a?(Hash)
     
+    @cache.clear if @cache.is_a?(Hash) and @args and !@args.has_key?(:cache_hash)
+    @args.clear if @args.is_a?(Hash)
+    @args = nil
+    @cache = nil
     @connects = nil
     @headers = nil
-    @args = nil
   end
   
   def print_headers(args = {})
@@ -143,7 +152,6 @@ class Knj::Eruby
       args[:io] = retio
     end
     
-    @args = args
     self.load_filename(filename, args)
     
     if !args[:custom_io]

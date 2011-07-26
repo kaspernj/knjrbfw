@@ -91,7 +91,7 @@ class Knj::Db
     if Thread.current[:knjdb] and Thread.current[:knjdb].has_key?(tid)
       db = Thread.current[:knjdb][tid]
       Thread.current[:knjdb].delete(tid)
-      @conns.free(db)
+      @conns.free(db) if @conns
     end
   end
   
