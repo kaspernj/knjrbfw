@@ -221,14 +221,14 @@ class Knj::Web
 	
 	def self.parse_urlquery(querystr, args = {})
 		get = {}
-		Knj::Php.urldecode(querystr).split("&").each do |value|
+		querystr.to_s.split("&").each do |value|
 			pos = value.index("=")
 			
 			if pos != nil
 				name = value[0..pos-1]
 				name = name.to_sym if args[:syms]
 				valuestr = value.slice(pos+1..-1)
-				Knj::Web.parse_name(get, name, valuestr, args)
+				Knj::Web.parse_name(get, Knj::Php.urldecode(name), valuestr, args)
 			end
 		end
 		
