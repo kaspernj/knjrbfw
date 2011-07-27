@@ -870,6 +870,10 @@ class Knj::Web
 		
 		return html
 	end
+	
+	def self.ahref_parse(str)
+    return str.to_s.gsub("&", "&amp;")
+	end
 end
 
 def alert(string)
