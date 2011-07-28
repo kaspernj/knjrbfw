@@ -109,6 +109,24 @@ class Knj::Http
 		end
 	end
 	
+	def head(addr)
+    check_connected
+    @mutex.synchronize do
+      resp, data = @http.head(addr, self.headers)
+      self.setcookie(resp.response["set-cookie"])
+      
+      raise "Could not find that page: '#{addr}'." if resp.is_a?(Net::HTTPNotFound)
+      
+      #in some cases (like in IronRuby) the data is set like this.
+      data = resp.body if !data
+      
+      return {
+        "response" => resp,
+        "data" => data
+      }
+    end
+	end
+	
 	def post(addr, posthash, files = [])
 		check_connected
 		
