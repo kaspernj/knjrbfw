@@ -27,6 +27,7 @@ module Knj
 	autoload :Opts, $knjpath + "opts.rb"
 	autoload :Mail, $knjpath + "mail.rb"
 	autoload :Mailobj, $knjpath + "mailobj.rb"
+	autoload :Mutexcl, $knjpath + "mutexcl.rb"
 	autoload :Mount, $knjpath + "mount.rb"
 	autoload :Mplayer, $knjpath + "mplayer.rb"
 	autoload :Notify, $knjpath + "notify.rb"
