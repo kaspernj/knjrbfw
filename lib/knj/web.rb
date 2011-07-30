@@ -865,6 +865,16 @@ class Knj::Web
 		html = ""
 		
 		hidden_arr.each do |hidden_hash|
+      if hidden_hash[:value].is_a?(Array)
+        if !hidden_hash[:value][0]
+          hidden_hash[:value] = nil
+        else
+          key = hidden_hash[:value][1]
+          obj = hidden_hash[:value][0]
+          hidden_hash[:value] = obj[key]
+        end
+      end
+      
 			html += "<input type=\"hidden\" name=\"#{hidden_hash[:name].to_s.html}\" value=\"#{hidden_hash[:value].to_s.html}\" />"
 		end
 		
