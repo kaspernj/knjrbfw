@@ -380,6 +380,16 @@ class Knj::Db
     end
   end
   
+  def enc_table
+    if !@enc_table
+      conn_exec do |driver|
+        @enc_table = driver.escape_table
+      end
+    end
+    
+    return @enc_table
+  end
+  
   def date_out(date_obj)
     return Knj::Datet.in(date_obj).dbstr
   end

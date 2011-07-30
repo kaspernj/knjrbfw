@@ -111,6 +111,21 @@ class Knj::Datarow
 		return @columns_sqlhelper_args
 	end
 	
+	def self.list(d)
+    sql = "SELECT * FROM #{d.db.enc_table}#{table}#{d.db.enc_table} WHERE 1=1"
+    
+    ret = list_helper(d)
+    d.args.each do |key, val|
+      raise "Invalid key: '#{key}'."
+    end
+    
+    sql += ret[:sql_where]
+    sql += ret[:sql_order]
+    sql += ret[:sql_limit]
+    
+    return d.ob.list_bysql(table, sql)
+	end
+	
 	def self.list_helper(d)
 		sleep 0.1 while @columns_sqlhelper_args_working
 		
