@@ -4,6 +4,7 @@ class Knj::Event_filemod
 	def initialize(args, &block)
 		@args = args
 		@run = true
+		@mutex = Mutex.new
 		
 		@args[:wait] = 1 if !@args.has_key?(:wait)
 		
@@ -16,7 +17,8 @@ class Knj::Event_filemod
 			while @run do
 				break if !@args or !@args[:paths] or @args[:paths].empty?
 				
-				@args[:paths].clone.each do |path|
+				@mutex.synchronize do
+				@args[:paths].each do |path|
 					changed = false
 					
 					if @mtimes and !@mtimes.has_key?(path) and @mtimes.is_a?(Hash)
@@ -49,5 +51,9 @@ class Knj::Event_filemod
 		@mtimes = {}
 		@run = false
 		@args = nil
+	end
+	
+	def add_path(fpath)
+    @args[:paths] << fpath
 	end
 end
