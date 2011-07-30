@@ -266,4 +266,72 @@ describe "Knjrbfw" do
       #ignore.
     end
   end
+  
+  it "should be able to use Knj::Mutexcl with advanced arguments." do
+    mutex = Knj::Mutexcl.new(
+      :modes => {
+        :reader => {
+          :blocks => [:writer]
+        },
+        :writer => {
+          :blocks => [:reader, :writer]
+        }
+      }
+    )
+    
+    $count = 0
+    
+    Knj::Thread.new do
+      mutex.sync(:reader) do
+        sleep 0.2
+        $count += 1
+      end
+    end
+    
+    mutex.sync(:reader) do
+      $count += 1
+    end
+    
+    raise "Count should be 1 by now but it wasnt: '#{$count}'." if $count != 1
+    sleep 0.3
+    raise "Count should be 2 by now but it wasnt: '#{$count}'." if $count != 2
+    
+    
+    $count = 0
+    Knj::Thread.new do
+      mutex.sync(:reader) do
+        sleep 2
+        $count += 1
+      end
+    end
+    sleep 0.1
+    
+    Knj::Thread.new do
+      mutex.sync(:writer) do
+        $count += 1
+      end
+    end
+    
+    sleep 1
+    raise "Count should be 0 but it wasnt: '#{$count}'." if $count != 0
+    sleep 1.1
+    raise "Count should be 2 but it wasnt: '#{$count}'." if $count != 2
+    
+    Knj::Thread.new do
+      mutex.sync(:reader) do
+        sleep 0.2
+        $count += 1
+      end
+    end
+    
+    Knj::Thread.new do
+      mutex.sync(:reader) do
+        sleep 0.2
+        $count += 1
+      end
+    end
+    
+    sleep 0.35
+    raise "Count should be 4 but it wasnt: '#{$count}'." if $count != 4
+  end
 end
