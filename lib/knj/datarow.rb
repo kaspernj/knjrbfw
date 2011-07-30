@@ -136,6 +136,8 @@ class Knj::Datarow
       @columns_sqlhelper_args_working = true
       cols = self.columns(d)
       
+      inst_methods = instance_methods(false)
+      
       sqlhelper_args = {
         :db => d.db,
         :table => table,
@@ -151,11 +153,13 @@ class Knj::Datarow
         
         if col_type == "enum" and col_obj.maxlength == "'0','1'"
           sqlhelper_args[:cols_bools] << col_name
-          method_name = "#{col_name}?"
+          method_name = "#{col_name}?".to_sym
           
-          define_method(method_name.to_sym) do
-            return true if self[col_name.to_sym].to_s == "1"
-            return false
+          if !inst_methods.index(method_name)
+            define_method(method_name) do
+              return true if self[col_name.to_sym].to_s == "1"
+              return false
+            end
           end
         elsif col_type == "int" and col_name.slice(-3, 3) == "_id"
           sqlhelper_args[:cols_dbrows] << col_name
@@ -167,12 +171,14 @@ class Knj::Datarow
           sqlhelper_args[:cols_date] << col_name
           method_name = "#{col_name}_str".to_sym
           
-          define_method(method_name) do |*args|
-            if Knj::Datet.is_nullstamp?(self[col_name.to_sym])
-              return ob.events.call(:no_date, classname)
+          if !inst_methods.index(method_name)
+            define_method(method_name) do |*args|
+              if Knj::Datet.is_nullstamp?(self[col_name.to_sym])
+                return ob.events.call(:no_date, classname)
+              end
+              
+              return Knj::Datet.in(self[col_name.to_sym]).out(*args)
             end
-            
-            return Knj::Datet.in(self[col_name.to_sym]).out(*args)
           end
         end
       end
