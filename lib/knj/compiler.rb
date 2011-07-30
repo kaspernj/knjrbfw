@@ -14,15 +14,14 @@ class Knj::Compiler
 	#Compiles file into cache as a method.
 	def compile_file(args)
 		raise "File does not exist." if !File.exist?(args[:filepath])
-		filepath = Knj::Php.realpath(args[:filepath])
-		defname = def_name_for_file_path(filepath)
+		defname = def_name_for_file_path(args[:filepath])
 		
 		evalcont = "class Knj::Compiler::Container; def self.#{defname};"
-		evalcont += File.read(filepath)
+		evalcont += File.read(args[:filepath])
 		evalcont += ";end;end"
 		
 		eval(evalcont, nil, args[:fileident])
-    @compiled[filepath] = Time.new
+    @compiled[args[:filepath]] = Time.new
 	end
 	
 	#Returns the method name for a filepath.
@@ -32,19 +31,23 @@ class Knj::Compiler
 	
 	#Compile and evaluate a file - it will be cached.
 	def eval_file(args)
-    filepath = Knj::Php.realpath(args[:filepath])
-    
 		#Compile if it hasnt been compiled yet.
-		@mutex.synchronize do
-      compile_file(args) if !@compiled.has_key?(filepath)
-      
-      #Compile if modified time has been changed.
-      mtime = File.mtime(filepath)
-      compile_file(args) if @compiled[filepath] < mtime
+    if !@compiled.has_key?(args[:filepath])
+      @mutex.synchronize do
+        compile_file(args) if !@compiled.has_key?(args[:filepath])
+      end
+    end
+    
+    #Compile if modified time has been changed.
+    mtime = File.mtime(args[:filepath])
+    if @compiled[args[:filepath]] < mtime
+      @mutex.synchronize do
+        compile_file(args)
+      end
     end
     
 		#Call the compiled function.
-		defname = def_name_for_file_path(filepath)
+		defname = def_name_for_file_path(args[:filepath])
 		Knj::Compiler::Container.send(defname)
 	end
 	
