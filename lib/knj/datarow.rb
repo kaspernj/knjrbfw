@@ -37,14 +37,18 @@ class Knj::Datarow
         raise "Unknown argument: '#{val.class.name}'."
       end
       
-      if !methodname
-        methodname = "#{classname.to_s.downcase}s".to_sym
-      end
+      methodname = "#{classname.to_s.downcase}s".to_sym if !methodname
       
       define_method(methodname) do |*args|
         merge_args = args[0] if args and args[0]
         merge_args = {} if !merge_args
         return ob.list(classname, {colname.to_s => self.id}.merge(merge_args))
+      end
+      
+      define_method("#{methodname}_count".to_sym) do |*args|
+        merge_args = args[0] if args and args[0]
+        merge_args = {} if !merge_args
+        return ob.list(classname, {"count" => true, colname.to_s => self.id}.merge(merge_args))
       end
     end
 	end
@@ -112,7 +116,15 @@ class Knj::Datarow
 	end
 	
 	def self.list(d)
-    sql = "SELECT * FROM #{d.db.enc_table}#{table}#{d.db.enc_table} WHERE 1=1"
+    if d.args["count"]
+      count = true
+      d.args.delete("count")
+      sql = "SELECT COUNT(*) AS count"
+    else
+      sql = "SELECT *"
+    end
+    
+    sql += " FROM #{d.db.enc_table}#{table}#{d.db.enc_table} WHERE 1=1"
     
     ret = list_helper(d)
     d.args.each do |key, val|
@@ -123,6 +135,7 @@ class Knj::Datarow
     sql += ret[:sql_order]
     sql += ret[:sql_limit]
     
+    return d.db.query(sql).fetch[:count].to_i if count
     return d.ob.list_bysql(table, sql)
 	end
 	
@@ -190,7 +203,6 @@ class Knj::Datarow
 	end
 	
 	def self.list_helper(d)
-		
 		load_columns(d) if !@columns_sqlhelper_args
 		return d.ob.sqlhelper(d.args, @columns_sqlhelper_args)
 	end
