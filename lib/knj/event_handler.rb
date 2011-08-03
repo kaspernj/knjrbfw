@@ -22,7 +22,7 @@ class Knj::Event_handler
 	end
 	
 	def connect(name, &block)
-		raise "No such event." if !@events.has_key?(name)
+		raise "No such event: '#{name}'." if !@events.has_key?(name)
 		
 		event = @events[name]
 		

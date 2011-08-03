@@ -174,7 +174,7 @@ class Knj::Datarow
           if !inst_methods.index(method_name)
             define_method(method_name) do |*args|
               if Knj::Datet.is_nullstamp?(self[col_name.to_sym])
-                return ob.events.call(:no_date, classname)
+                return ob.events.call(:no_date, self.class.name)
               end
               
               return Knj::Datet.in(self[col_name.to_sym]).out(*args)

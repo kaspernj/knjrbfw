@@ -14,6 +14,10 @@ class Knj::Objects
       :name => :no_html,
       :connections_max => 1
 		)
+		@events.add_event(
+      :name => :no_date,
+      :connections_max => 1
+		)
 		
 		raise "No DB given." if !@args[:db]
 		raise "No class path given." if !@args[:class_path] and (@args[:require] or !@args.has_key?(:require))
