@@ -59,11 +59,8 @@ class Knj::Http
 	def cookiestr
 		cookiestr = ""
 		@cookies.each do |key, value|
-			if cookiestr != ""
-				cookiestr += "; "
-			end
-			
-			cookiestr += value.to_s
+			cookiestr += "; " if cookiestr != ""
+			cookiestr += "#{key}=#{value.to_s}"
 		end
 		
 		return cookiestr
@@ -76,16 +73,16 @@ class Knj::Http
 	def headers
 		tha_headers = {"User-Agent" => @useragent}
 		tha_headers["Referer"] = @lasturl if @lasturl
-		tha_headers["Cookie"] = self.cookiestr if cookiestr != ""
+		tha_headers["Cookie"] = cookiestr if cookiestr != ""
 		return tha_headers
 	end
 	
 	def setcookie(set_data)
-    if @opts["skip_webrick"]
-      print "SetData: #{set_data}\n"
-    else
-      WEBrick::Cookie.parse_set_cookies(set_data.to_s).each do |cookie|
-        @cookies[cookie.name] = cookie
+    return nil if !set_data
+    
+    set_data.each do |cookie_str|
+      Knj::Web.parse_set_cookies(cookie_str.to_s).each do |cookie|
+        @cookies[cookie["name"]] = cookie["value"]
       end
     end
 	end
@@ -95,7 +92,7 @@ class Knj::Http
 		
 		@mutex.synchronize do
 			resp, data = @http.get(addr, self.headers)
-			self.setcookie(resp.response["set-cookie"])
+			self.setcookie(resp.response.to_hash["set-cookie"])
 			
 			raise "Could not find that page: '#{addr}'." if resp.is_a?(Net::HTTPNotFound)
 			
@@ -113,7 +110,7 @@ class Knj::Http
     check_connected
     @mutex.synchronize do
       resp, data = @http.head(addr, self.headers)
-      self.setcookie(resp.response["set-cookie"])
+      self.setcookie(resp.response.to_hash["set-cookie"])
       
       raise "Could not find that page: '#{addr}'." if resp.is_a?(Net::HTTPNotFound)
       
@@ -141,7 +138,7 @@ class Knj::Http
 		
 		@mutex.synchronize do
 			resp, data = @http.post2(addr, postdata, self.headers)
-			self.setcookie(resp.response["set-cookie"])
+			self.setcookie(resp.response.to_hash["set-cookie"])
 			
 			return {
 				"response" => resp,
@@ -179,7 +176,7 @@ class Knj::Http
 			request["Content-Type"] = "multipart/form-data, boundary=#{boundary}"
 			
 			resp, data = @http.request(request)
-			self.setcookie(resp.response["set-cookie"])
+			self.setcookie(resp.response.to_hash["set-cookie"])
 			
 			return {
 				"response" => resp,
