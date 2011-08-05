@@ -175,7 +175,7 @@ class Knj::Web
 				if @data[:user_agent] != @server["HTTP_USER_AGENT"] or @data[:ip] != @server["REMOTE_ADDR"]
 					@data = nil
 				else
-					@db.update(:sessions, {"last_url" => @server["REQUEST_URI"].to_s, "date_active" => Datestamp.dbstr}, {"id" => @data[:id]})
+					@db.update(:sessions, {"last_url" => @server["REQUEST_URI"].to_s, "date_active" => Time.new}, {"id" => @data[:id]})
 					session_id = @args[:id] + "_" + @data[:id]
 				end
 			end
@@ -183,8 +183,8 @@ class Knj::Web
 		
 		if !@data or !session_id
 			@db.insert(:sessions,
-				:date_start => Knj::Datet.new.dbstr,
-				:date_active => Knj::Datet.new.dbstr,
+				:date_start => Time.new,
+				:date_active => Time.new,
 				:user_agent => @server["HTTP_USER_AGENT"],
 				:ip => @server["REMOTE_ADDR"],
 				:last_url => @server["REQUEST_URI"].to_s
@@ -211,12 +211,33 @@ class Knj::Web
 	def self.parse_cookies(str)
     ret = {}
     
-    str.split("; ").each do |cookie_str|
+    str.split(/;\s*/).each do |cookie_str|
       splitted = cookie_str.split("=")
       ret[Knj::Php.urldecode(splitted[0])] = Knj::Php.urldecode(splitted[1])
     end
     
     return ret
+	end
+	
+	def self.parse_set_cookies(str)
+    str = String.new(str.to_s)
+    return [] if str.length <= 0
+    args = {}
+    cookie_start_regex = /^(.+?)=(.*?)(;\s*|$)/
+    
+    match = str.match(cookie_start_regex)
+    raise "Could not match cookie: '#{str}'." if !match
+    str.gsub!(cookie_start_regex, "")
+    
+    args["name"] = match[1].to_s
+    args["value"] = match[2].to_s
+    
+    while match = str.match(/(.+?)=(.*?)(;\s*|$)/)
+      str = str.gsub(match[0], "")
+      args[match[1].to_s.downcase] = match[2].to_s
+    end
+    
+    return [args]
 	end
 	
 	def self.parse_urlquery(querystr, args = {})
