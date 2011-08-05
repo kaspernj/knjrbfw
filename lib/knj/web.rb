@@ -229,8 +229,8 @@ class Knj::Web
     raise "Could not match cookie: '#{str}'." if !match
     str.gsub!(cookie_start_regex, "")
     
-    args["name"] = match[1].to_s
-    args["value"] = match[2].to_s
+    args["name"] = Knj::Php.urldecode(match[1].to_s)
+    args["value"] = Knj::Php.urldecode(match[2].to_s)
     
     while match = str.match(/(.+?)=(.*?)(;\s*|$)/)
       str = str.gsub(match[0], "")
@@ -238,6 +238,18 @@ class Knj::Web
     end
     
     return [args]
+	end
+	
+	def self.cookie_str(cookie_data)
+    raise "Not a hash: '#{cookie_data.class.name}', '#{cookie_data}'." unless cookie_data.is_a?(Hash)
+    cookiestr = "#{Knj::Php.urlencode(cookie_data["name"])}=#{Knj::Php.urlencode(cookie_data["value"])}"
+    
+    cookie_data.each do |key, val|
+      next if key == "name" or key == "value"
+      cookiestr += "; #{key}=#{val}"
+    end
+    
+    return cookiestr
 	end
 	
 	def self.parse_urlquery(querystr, args = {})

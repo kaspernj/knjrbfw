@@ -98,7 +98,7 @@ class Knj::Eruby
     end
     
     @cookies.each do |cookie|
-      header_str += "Set-Cookie: #{cookie.to_s}\n"
+      header_str += "Set-Cookie: #{Knj::Web.cookie_str(cookie)}\n"
     end
     
     header_str += "\n"
@@ -127,9 +127,8 @@ class Knj::Eruby
     @headers << [key, value]
   end
   
-  def cookie(cgi_cookie)
-    raise "Not a CGI::Cookie" if !cgi_cookie.is_a?(CGI::Cookie)
-    @cookies << cgi_cookie
+  def cookie(cookie_data)
+    @cookies << cookie_data
   end
   
   def connect(signal, &block)

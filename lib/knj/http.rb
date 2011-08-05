@@ -60,14 +60,20 @@ class Knj::Http
 		cookiestr = ""
 		@cookies.each do |key, value|
 			cookiestr += "; " if cookiestr != ""
-			cookiestr += "#{key}=#{value.to_s}"
+			cookiestr += "#{Knj::Php.urlencode(key)}=#{Knj::Php.urlencode(value.to_s)}"
 		end
 		
 		return cookiestr
 	end
 	
 	def cookie_add(cgi_cookie)
-		@cookies[cgi_cookie.name] = cgi_cookie
+    if cgi_cookie.class.name == "CGI::Cookie"
+      @cookies[cgi_cookie.name] = cgi_cookie.value
+    elsif cgi_cookie.is_a?(Hash)
+      @cookies[cgi_cookie["name"]] = cgi_cookie["value"]
+    else
+      raise "Unknown object: '#{cgi_cookie.class.name}'."
+    end
 	end
 	
 	def headers
@@ -93,7 +99,6 @@ class Knj::Http
 		@mutex.synchronize do
 			resp, data = @http.get(addr, self.headers)
 			self.setcookie(resp.response.to_hash["set-cookie"])
-			
 			raise "Could not find that page: '#{addr}'." if resp.is_a?(Net::HTTPNotFound)
 			
 			#in some cases (like in IronRuby) the data is set like this.
