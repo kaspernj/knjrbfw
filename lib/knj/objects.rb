@@ -110,7 +110,7 @@ class Knj::Objects
 			filename_req = @args[:class_path] + "/#{@args[:class_pre]}#{classname.downcase}"
 			raise "Class file could not be found: #{filename}." if !File.exists?(filename)
 			require filename_req
-			@args[:module].const_get(classname).load_columns(Knj::Hash_methods.new(:args => args, :ob => self, :db => @args[:db]))
+			@args[:module].const_get(classname).load_columns(Knj::Hash_methods.new(:args => args, :ob => self, :db => @args[:db])) if @args[:module].const_get(classname).respond_to?(:load_columns)
 			@objects[classname] = {}
 		end
 	end
