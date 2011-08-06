@@ -917,6 +917,24 @@ class Knj::Web
 	def self.ahref_parse(str)
     return str.to_s.gsub("&", "&amp;")
 	end
+	
+  def self.urlenc(string)
+    #Thanks to CGI framework
+    string.to_s.gsub(/([^ a-zA-Z0-9_.-]+)/) do
+      '%' + $1.unpack('H2' * $1.bytesize).join('%').upcase
+    end.tr(' ', '+')
+  end
+  
+  def self.urldec(string)
+    #Thanks to CGI framework
+    str = string.to_s.tr('+', ' ').gsub(/((?:%[0-9a-fA-F]{2})+)/) do
+      [$1.delete('%')].pack('H*')
+    end
+  end
+  
+  def self.html(string)
+    return string.to_s.gsub(/&/, "&amp;").gsub(/\"/, "&quot;").gsub(/>/, "&gt;").gsub(/</, "&lt;")
+  end
 end
 
 def alert(string)
@@ -933,7 +951,7 @@ end
 
 class String
 	def html
-		return self.to_s.gsub(/&/, "&amp;").gsub(/\"/, "&quot;").gsub(/>/, "&gt;").gsub(/</, "&lt;")
+		return Knj::Web.html(self)
 	end
 	
 	def sql
