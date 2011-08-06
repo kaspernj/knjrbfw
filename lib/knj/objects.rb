@@ -524,7 +524,7 @@ class Knj::Objects
 	def clean_recover
     @objects.keys.each do |classn|
       data = @objects[classn]
-      classobj = Kernel.const_get(classn)
+      classobj = @args[:module].const_get(classn)
       ObjectSpace.each_object(classobj) do |obj|
         data[obj.id] = obj
       end
