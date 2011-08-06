@@ -216,6 +216,8 @@ class Knj::Eruby
     e.backtrace.each do |line|
       print CGI.escapeHTML(line) + "\n"
     end
+    
+    print "</pre>"
   end
 end
 
