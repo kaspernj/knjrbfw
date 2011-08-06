@@ -175,7 +175,7 @@ class Knj::Web
 				if @data[:user_agent] != @server["HTTP_USER_AGENT"] or @data[:ip] != @server["REMOTE_ADDR"]
 					@data = nil
 				else
-					@db.update(:sessions, {"last_url" => @server["REQUEST_URI"].to_s, "date_active" => Datestamp.dbstr}, {"id" => @data[:id]})
+					@db.update(:sessions, {"last_url" => @server["REQUEST_URI"].to_s, "date_active" => Time.new}, {"id" => @data[:id]})
 					session_id = @args[:id] + "_" + @data[:id]
 				end
 			end
@@ -183,8 +183,8 @@ class Knj::Web
 		
 		if !@data or !session_id
 			@db.insert(:sessions,
-				:date_start => Knj::Datet.new.dbstr,
-				:date_active => Knj::Datet.new.dbstr,
+				:date_start => Time.new,
+				:date_active => Time.new,
 				:user_agent => @server["HTTP_USER_AGENT"],
 				:ip => @server["REMOTE_ADDR"],
 				:last_url => @server["REQUEST_URI"].to_s
@@ -211,7 +211,7 @@ class Knj::Web
 	def self.parse_cookies(str)
     ret = {}
     
-    str.split("; ").each do |cookie_str|
+    str.split(/;\s*/).each do |cookie_str|
       splitted = cookie_str.split("=")
       ret[Knj::Php.urldecode(splitted[0])] = Knj::Php.urldecode(splitted[1])
     end
@@ -219,16 +219,49 @@ class Knj::Web
     return ret
 	end
 	
+	def self.parse_set_cookies(str)
+    str = String.new(str.to_s)
+    return [] if str.length <= 0
+    args = {}
+    cookie_start_regex = /^(.+?)=(.*?)(;\s*|$)/
+    
+    match = str.match(cookie_start_regex)
+    raise "Could not match cookie: '#{str}'." if !match
+    str.gsub!(cookie_start_regex, "")
+    
+    args["name"] = Knj::Php.urldecode(match[1].to_s)
+    args["value"] = Knj::Php.urldecode(match[2].to_s)
+    
+    while match = str.match(/(.+?)=(.*?)(;\s*|$)/)
+      str = str.gsub(match[0], "")
+      args[match[1].to_s.downcase] = match[2].to_s
+    end
+    
+    return [args]
+	end
+	
+	def self.cookie_str(cookie_data)
+    raise "Not a hash: '#{cookie_data.class.name}', '#{cookie_data}'." unless cookie_data.is_a?(Hash)
+    cookiestr = "#{Knj::Php.urlencode(cookie_data["name"])}=#{Knj::Php.urlencode(cookie_data["value"])}"
+    
+    cookie_data.each do |key, val|
+      next if key == "name" or key == "value"
+      cookiestr += "; #{key}=#{val}"
+    end
+    
+    return cookiestr
+	end
+	
 	def self.parse_urlquery(querystr, args = {})
 		get = {}
-		Knj::Php.urldecode(querystr).split("&").each do |value|
+		querystr.to_s.split("&").each do |value|
 			pos = value.index("=")
 			
 			if pos != nil
 				name = value[0..pos-1]
 				name = name.to_sym if args[:syms]
 				valuestr = value.slice(pos+1..-1)
-				Knj::Web.parse_name(get, name, valuestr, args)
+				Knj::Web.parse_name(get, Knj::Php.urldecode(name), valuestr, args)
 			end
 		end
 		
@@ -865,10 +898,24 @@ class Knj::Web
 		html = ""
 		
 		hidden_arr.each do |hidden_hash|
+      if hidden_hash[:value].is_a?(Array)
+        if !hidden_hash[:value][0]
+          hidden_hash[:value] = nil
+        else
+          key = hidden_hash[:value][1]
+          obj = hidden_hash[:value][0]
+          hidden_hash[:value] = obj[key]
+        end
+      end
+      
 			html += "<input type=\"hidden\" name=\"#{hidden_hash[:name].to_s.html}\" value=\"#{hidden_hash[:value].to_s.html}\" />"
 		end
 		
 		return html
+	end
+	
+	def self.ahref_parse(str)
+    return str.to_s.gsub("&", "&amp;")
 	end
 end
 

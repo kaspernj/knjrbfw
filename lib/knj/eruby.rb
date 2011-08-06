@@ -1,6 +1,6 @@
 class Knj::Eruby
   attr_reader :fcgi
-  attr_reader :connects, :headers
+  attr_reader :connects, :headers, :cookies
   
   def initialize(args = {})
     @args = args
@@ -79,6 +79,7 @@ class Knj::Eruby
   def destroy
     @connects.clear if @connects.is_a?(Hash)
     @headers.clear if @headers.is_a?(Array)
+    @cookies.clear if @cookies.is_a?(Array)
     
     @cache.clear if @cache.is_a?(Hash) and @args and !@args.has_key?(:cache_hash)
     @args.clear if @args.is_a?(Hash)
@@ -86,6 +87,7 @@ class Knj::Eruby
     @cache = nil
     @connects = nil
     @headers = nil
+    @cookies = nil
   end
   
   def print_headers(args = {})
@@ -93,6 +95,10 @@ class Knj::Eruby
     
     @headers.each do |header|
       header_str += "#{header[0]}: #{header[1]}\n"
+    end
+    
+    @cookies.each do |cookie|
+      header_str += "Set-Cookie: #{Knj::Web.cookie_str(cookie)}\n"
     end
     
     header_str += "\n"
@@ -114,10 +120,15 @@ class Knj::Eruby
   
   def reset_headers
     @headers = []
+    @cookies = []
   end
   
   def header(key, value)
     @headers << [key, value]
+  end
+  
+  def cookie(cookie_data)
+    @cookies << cookie_data
   end
   
   def connect(signal, &block)

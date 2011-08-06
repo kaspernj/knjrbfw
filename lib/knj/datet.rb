@@ -420,6 +420,18 @@ class Knj::Datet
 		]
 	end
 	
+	def self.days_arr
+    return {
+      1 => _("Monday"),
+      2 => _("Tuesday"),
+      3 => _("Wednesday"),
+      4 => _("Thursday"),
+      5 => _("Friday"),
+      6 => _("Saturday"),
+      0 => _("Sunday")
+    }
+	end
+	
 	def loc_wday
 		return _(@time.strftime("%A"))
 	end

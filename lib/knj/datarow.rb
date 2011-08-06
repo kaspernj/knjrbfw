@@ -37,14 +37,18 @@ class Knj::Datarow
         raise "Unknown argument: '#{val.class.name}'."
       end
       
-      if !methodname
-        methodname = "#{classname.to_s.downcase}s".to_sym
-      end
+      methodname = "#{classname.to_s.downcase}s".to_sym if !methodname
       
       define_method(methodname) do |*args|
         merge_args = args[0] if args and args[0]
         merge_args = {} if !merge_args
         return ob.list(classname, {colname.to_s => self.id}.merge(merge_args))
+      end
+      
+      define_method("#{methodname}_count".to_sym) do |*args|
+        merge_args = args[0] if args and args[0]
+        merge_args = {} if !merge_args
+        return ob.list(classname, {"count" => true, colname.to_s => self.id}.merge(merge_args))
       end
     end
 	end
@@ -111,46 +115,95 @@ class Knj::Datarow
 		return @columns_sqlhelper_args
 	end
 	
+	def self.list(d)
+    if d.args["count"]
+      count = true
+      d.args.delete("count")
+      sql = "SELECT COUNT(*) AS count"
+    else
+      sql = "SELECT *"
+    end
+    
+    sql += " FROM #{d.db.enc_table}#{table}#{d.db.enc_table} WHERE 1=1"
+    
+    ret = list_helper(d)
+    d.args.each do |key, val|
+      raise "Invalid key: '#{key}'."
+    end
+    
+    sql += ret[:sql_where]
+    sql += ret[:sql_order]
+    sql += ret[:sql_limit]
+    
+    return d.db.query(sql).fetch[:count].to_i if count
+    return d.ob.list_bysql(table, sql)
+	end
+	
+	def self.load_columns(d)
+    if @columns_sqlhelper_args_working
+      sleep 0.1 while @columns_sqlhelper_args_working
+      return false
+    end
+    
+    begin
+      @columns_sqlhelper_args_working = true
+      cols = self.columns(d)
+      
+      inst_methods = instance_methods(false)
+      
+      sqlhelper_args = {
+        :db => d.db,
+        :table => table,
+        :cols_bools => [],
+        :cols_date => [],
+        :cols_dbrows => [],
+        :cols_num => [],
+        :cols_str => []
+      }
+      cols.each do |col_name, col_obj|
+        col_type = col_obj.type
+        col_type = "int" if col_type == "bigint" or col_type == "tinyint" or col_type == "mediumint" or col_type == "smallint"
+        
+        if col_type == "enum" and col_obj.maxlength == "'0','1'"
+          sqlhelper_args[:cols_bools] << col_name
+          method_name = "#{col_name}?".to_sym
+          
+          if !inst_methods.index(method_name)
+            define_method(method_name) do
+              return true if self[col_name.to_sym].to_s == "1"
+              return false
+            end
+          end
+        elsif col_type == "int" and col_name.slice(-3, 3) == "_id"
+          sqlhelper_args[:cols_dbrows] << col_name
+        elsif col_type == "int" or col_type == "bigint"
+          sqlhelper_args[:cols_num] << col_name
+        elsif col_type == "varchar" or col_type == "text" or col_type == "enum"
+          sqlhelper_args[:cols_str] << col_name
+        elsif col_type == "date" or col_type == "datetime"
+          sqlhelper_args[:cols_date] << col_name
+          method_name = "#{col_name}_str".to_sym
+          
+          if !inst_methods.index(method_name)
+            define_method(method_name) do |*args|
+              if Knj::Datet.is_nullstamp?(self[col_name.to_sym])
+                return ob.events.call(:no_date, self.class.name)
+              end
+              
+              return Knj::Datet.in(self[col_name.to_sym]).out(*args)
+            end
+          end
+        end
+      end
+      
+      @columns_sqlhelper_args = sqlhelper_args
+    ensure
+      @columns_sqlhelper_args_working = false
+    end
+	end
+	
 	def self.list_helper(d)
-		sleep 0.1 while @columns_sqlhelper_args_working
-		
-		if !@columns_sqlhelper_args
-			begin
-				@columns_sqlhelper_args_working = true
-				cols = self.columns(d)
-				
-				sqlhelper_args = {
-					:db => d.db,
-					:table => table,
-					:cols_bools => [],
-					:cols_date => [],
-					:cols_dbrows => [],
-					:cols_num => [],
-					:cols_str => []
-				}
-				cols.each do |col_name, col_obj|
-					col_type = col_obj.type
-					col_type = "int" if col_type == "bigint" or col_type == "tinyint" or col_type == "mediumint" or col_type == "smallint"
-					
-					if col_type == "enum" and col_obj.maxlength == "'0','1'"
-						sqlhelper_args[:cols_bools] << col_name
-					elsif col_type == "int" and col_name.slice(-3, 3) == "_id"
-						sqlhelper_args[:cols_dbrows] << col_name
-					elsif col_type == "int" or col_type == "bigint"
-						sqlhelper_args[:cols_num] << col_name
-					elsif col_type == "varchar" or col_type == "text" or col_type == "enum"
-						sqlhelper_args[:cols_str] << col_name
-					elsif col_type == "date" or col_type == "datetime"
-						sqlhelper_args[:cols_date] << col_name
-					end
-				end
-				
-				@columns_sqlhelper_args = sqlhelper_args
-			ensure
-				@columns_sqlhelper_args_working = false
-			end
-		end
-		
+		load_columns(d) if !@columns_sqlhelper_args
 		return d.ob.sqlhelper(d.args, @columns_sqlhelper_args)
 	end
 	
@@ -239,18 +292,5 @@ class Knj::Datarow
 	
 	def each(&args)
 		return @data.each(&args)
-	end
-	
-	def method_missing(*args)
-		func_name = args[0].to_s
-		if match = func_name.match(/^(\S+)\?$/) and @data.has_key?(match[1].to_sym)
-			if @data[match[1].to_sym] == "1" or @data[match[1].to_sym] == "yes"
-				return true
-			elsif @data[match[1].to_sym] == "0" or @data[match[1].to_sym] == "no"
-				return false
-			end
-		end
-		
-		raise "No such method: '#{func_name}' on '#{self.class.name}'"
 	end
 end

@@ -610,7 +610,7 @@ module Knj::Php
 		month = cur_time.month if month == nil
 		year = cur_time.year if year == nil
 		
-		new_time = Datestamp.from_dbstr("#{year.to_s}-#{month.to_s}-#{date.to_s} #{hour.to_s}:#{min.to_s}:#{sec.to_s}")
+		new_time = Knj::Datet.in("#{year.to_s}-#{month.to_s}-#{date.to_s} #{hour.to_s}:#{min.to_s}:#{sec.to_s}")
 		return new_time.to_i
 	end
 	
