@@ -514,7 +514,7 @@ class Knj::Objects
       classnames << classn
     end
     
-    classnames.each do |classn|
+    classnames.keys.each do |classn|
       @objects[classn] = {}
     end
 		
@@ -526,7 +526,7 @@ class Knj::Objects
       data = @objects[classn]
       classobj = @args[:module].const_get(classn)
       ObjectSpace.each_object(classobj) do |obj|
-        data[obj.id] = obj
+        data[obj.id.to_i] = obj
       end
     end
 	end
