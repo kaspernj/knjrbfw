@@ -207,7 +207,7 @@ class Knj::Eruby
     rescue Exception => e
       #An error occurred while trying to run the on-error-block - show this as an normal error.
       print "\n\n<pre>\n\n"
-      print "<b>#{CGI.escapeHTML(e.class.name)}: #{CGI.escapeHTML(e.message)}</b>\n\n"
+      print "<b>#{Knj::Web.html(e.class.name)}: #{Knj::Web.html(e.message)}</b>\n\n"
       
       #Lets hide all the stuff in what is not the users files to make it easier to debug.
       bt = e.backtrace
@@ -215,18 +215,20 @@ class Knj::Eruby
       #bt = bt[0..to]
       
       bt.each do |line|
-        print CGI.escapeHTML(line) + "\n"
+        print Knj::Web.html(line) + "\n"
       end
       
       print "</pre>"
     end
     
     print "\n\n<pre>\n\n"
-    print "<b>#{CGI.escapeHTML(e.class.name)}: #{CGI.escapeHTML(e.message)}</b>\n\n"
+    print "<b>#{Knj::Web.html(e.class.name)}: #{Knj::Web.html(e.message)}</b>\n\n"
     
     e.backtrace.each do |line|
-      print CGI.escapeHTML(line) + "\n"
+      print Knj::Web.html(line) + "\n"
     end
+    
+    print "</pre>"
   end
 end
 

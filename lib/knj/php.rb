@@ -195,8 +195,7 @@ module Knj::Php
 	end
 	
 	def htmlspecialchars(string)
-		require "cgi"
-		return CGI.escapeHTML(string)
+		return Knj::Web.html(string)
 	end
 	
 	def isset(var)
@@ -256,10 +255,10 @@ module Knj::Php
 			if $knj_eruby
 				$knj_eruby.header(key, value)
 				sent = true
-			elsif $cgi.is_a?(CGI)
+			elsif $cgi.class.name == "CGI"
 				sent = true
 				$cgi.header(key => value)
-			elsif $_CGI.is_a?(CGI)
+			elsif $_CGI.class.name == "CGI"
 				sent = true
 				$_CGI.header(key => value)
 			end
@@ -273,23 +272,11 @@ module Knj::Php
 	end
 	
   def urldecode(string)
-    #require "cgi"
-    #return CGI.unescape(string)
-    
-    #Thanks to CGI framework
-    str = string.to_s.tr('+', ' ').gsub(/((?:%[0-9a-fA-F]{2})+)/) do
-      [$1.delete('%')].pack('H*')
-    end
+    return Knj::Web.urldec(string)
   end
   
   def urlencode(string)
-    #require "cgi"
-    #return CGI.escape(string.to_s)
-    
-    #Thanks to CGI framework
-    string.to_s.gsub(/([^ a-zA-Z0-9_.-]+)/) do
-      '%' + $1.unpack('H2' * $1.bytesize).join('%').upcase
-    end.tr(' ', '+')
+    return Knj::Web.urlenc(string)
   end
 	
 	def file_put_contents(filepath, content)
@@ -421,8 +408,7 @@ module Knj::Php
 	end
 	
 	def html_entity_decode(string)
-		require "cgi"
-		string = CGI.unescapeHTML(string.to_s)
+		string = Knj::Web.html(string)
 		string = string.gsub("&oslash;", "ø").gsub("&aelig;", "æ").gsub("&aring;", "å").gsub("&euro;", "€").gsub("#39;", "'")
 		return string
 	end
@@ -527,9 +513,14 @@ module Knj::Php
 		args["expires"] = Time.at(expire) if expire
 		args["domain"] = domain if domain
 		
-		cookie = CGI::Cookie.new(args)
-		status = Knj::Php.header("Set-Cookie: #{cookie.to_s}")
-		$_COOKIE[cname] = cvalue if $_COOKIE
+		begin
+      _kas.cookie(args)
+		rescue NameError
+      cookie = CGI::Cookie.new(args)
+      status = Knj::Php.header("Set-Cookie: #{cookie.to_s}")
+      $_COOKIE[cname] = cvalue if $_COOKIE
+    end
+    
 		return status
 	end
 	
