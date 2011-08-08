@@ -514,7 +514,7 @@ class Knj::Objects
       classnames << classn
     end
     
-    classnames.keys.each do |classn|
+    classnames.each do |classn|
       @objects[classn] = {}
     end
 		
