@@ -526,7 +526,16 @@ class Knj::Objects
       data = @objects[classn]
       classobj = @args[:module].const_get(classn)
       ObjectSpace.each_object(classobj) do |obj|
-        data[obj.id.to_i] = obj
+        begin
+          data[obj.id.to_i] = obj
+        rescue => e
+          if e.message == "No data on object."
+            #Object has been unset - skip it.
+            next
+          end
+          
+          raise e
+        end
       end
     end
 	end
