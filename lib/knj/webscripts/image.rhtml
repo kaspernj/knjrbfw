@@ -20,7 +20,7 @@
 	end
 	
 	if !tmp_use or tmp_write or _get["force"].to_i > 0
-		pic = Magick::ImageList.new(_get["path"])
+    pic = Magick::ImageList.new(_get["path"])
 		width = pic.columns
 		height = pic.rows
 		
