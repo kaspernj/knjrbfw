@@ -90,11 +90,11 @@
 	end
 	
 	if tmp_use
-    Knj::Php.header("Last-Modified: #{time_orig.httpdate} GMT")
+    Knj::Php.header("Last-Modified: #{time_orig.httpdate} GMT") if time_orig
 		Knj::Php.header("Content-Type: image/png")
 		print File.read(tmp_path)
 	else
-    Knj::Php.header("Last-Modified: #{time_orig.httpdate} GMT")
+    Knj::Php.header("Last-Modified: #{time_orig.httpdate} GMT") if time_orig
 		Knj::Php.header("Content-Type: image/png")
 		print blob_cont
 	end
