@@ -522,6 +522,8 @@ class Knj::Objects
 	end
 	
 	def clean_recover
+    return false if RUBY_ENGINE == "jruby" and !JRuby.objectspace
+    
     @objects.keys.each do |classn|
       data = @objects[classn]
       classobj = @args[:module].const_get(classn)

@@ -200,6 +200,8 @@ class Knj::Datarow
     ensure
       @columns_sqlhelper_args_working = false
     end
+    
+    self.init_class(d) if self.respond_to?(:init_class)
 	end
 	
 	def self.list_helper(d)
