@@ -279,6 +279,18 @@ describe "Knjrbfw" do
     raise "Unexpected expire:' #{data[0]["expire"]}'." if data[0]["expires"] != "Fri, 05 Aug 2011 10:58:17 GMT"
   end
   
+  it "should be able to draw rounded transparent corners on images." do
+    pic = Magick::Image.read("#{File.dirname(__FILE__)}/../testfiles/image.jpg").first
+    pic.format = "png"
+    
+    Knj::Image.rounded_corners(
+      :img => pic,
+      :radius => 10
+    )
+    
+    blob_cont = pic.to_blob
+  end
+  
 =begin
   it "should be able to use Knj::Mutexcl with advanced arguments." do
     mutex = Knj::Mutexcl.new(

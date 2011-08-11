@@ -20,6 +20,7 @@ module Knj
 	autoload :Filesystem, $knjpath + "filesystem.rb"
 	autoload :Gettext_threadded, $knjpath + "gettext_threadded.rb"
 	autoload :Hash_methods, $knjpath + "hash_methods.rb"
+	autoload :Image, $knjpath + "image.rb"
 	autoload :Ip2location, $knjpath + "ip2location.rb"
 	autoload :Jruby_compiler, $knjpath + "jruby_compiler.rb"
 	autoload :Locales, $knjpath + "locales.rb"
