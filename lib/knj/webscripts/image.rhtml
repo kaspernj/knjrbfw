@@ -1,5 +1,5 @@
 <%
-	idstr = Knj::Php.md5("#{_get["path"]}_#{_get["smartsize"].to_i}_#{_get["width"].to_i}_#{_get["height"].to_i}_#{_get["maxwidth"].to_i}_#{_get["maxheight"].to_i}")
+	idstr = Knj::Php.md5("#{_get["path"]}_#{_get["smartsize"].to_i}_#{_get["width"].to_i}_#{_get["height"].to_i}_#{_get["maxwidth"].to_i}_#{_get["maxheight"].to_i}_#{_get["border"].to_i}_#{_get["border_color"]}")
 	
 	tmp_use = false
 	tmp_write = false
@@ -63,6 +63,17 @@
 		if height != pic.rows or width != pic.columns
 			pic = pic.resize_to_fit(width.to_i, height.to_i)
 		end
+		
+		if _get["rounded_corners"]
+      args = {:img => pic, :radius => _get["rounded_corners"].to_i}
+      
+      if _get["border"] and _get["border_color"]
+        args[:border] = _get["border"].to_i
+        args[:border_color] = _get["border_color"]
+      end
+      
+      Knj::Image.rounded_corners(args)
+    end
 		
 		pic.format = "png"
 		blob_cont = pic.to_blob
