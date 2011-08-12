@@ -86,6 +86,13 @@ describe "Knjrbfw" do
     end
   end
   
+  it "should be able to compare dates" do
+    date1 = Knj::Datet.in("17/06 1985")
+    date2 = Knj::Datet.in("18/06 1985")
+    
+    raise "Date1 was wrongly higher than date2." if date1 > date2
+  end
+  
   it "should be able to automatic generate methods on datarow-classes (has_many, has_one)." do
     class Project < Knj::Datarow
       has_many [

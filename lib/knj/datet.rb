@@ -247,9 +247,9 @@ class Knj::Datet
 		secs = arg_to_time(timeobj).to_i
 		
 		if secs > @time.to_i
-			return 1
-		elsif secs < @time.to_i
 			return -1
+		elsif secs < @time.to_i
+			return 1
 		else
 			return 0
 		end
@@ -385,7 +385,7 @@ class Knj::Datet
 			return Knj::Datet.new(Time.gm(year, month, date, hour, minute))
     elsif match = timestr.to_s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
       return Knj::Datet.new(Time.gm(match[3], match[2], match[1]))
-		elsif match = timestr.to_s.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{5})$/)
+		elsif match = timestr.to_s.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{5,6})$/)
 			#Datet.code format
 			return Knj::Datet.new(Time.gm(match[1], match[2], match[3], match[4], match[5], match[6], match[7]))
 		elsif match = timestr.to_s.match(/^\s*(\d{4})-(\d{1,2})-(\d{1,2})(|\s+(\d{2}):(\d{2}):(\d{2})(|\.\d+)\s*)(|\s+(UTC))(|\s+(\+|\-)(\d{2})(\d{2}))$/)
