@@ -640,6 +640,8 @@ class Knj::Web
 					html += " selected=\"selected\""
 				elsif curvalue.to_s == key.to_s
 					html += " selected=\"selected\""
+        elsif curvalue and curvalue.respond_to?(:is_knj?) and curvalue.id.to_s == key.to_s
+          html += " selected=\"selected\""
 				end
 				
 				html += " value=\"#{key.html}\">#{value.html}</option>"

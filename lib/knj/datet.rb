@@ -126,6 +126,8 @@ class Knj::Datet
 	
 	#Returns the number of days in the current month.
 	def days_in_month
+    return 29 if month == 2 and Date.gregorian_leap?(self.year)
+    
 		#Thanks to ActiveSupport: http://rubydoc.info/docs/rails/2.3.8/ActiveSupport/CoreExtensions/Time/Calculations
 		days_in_months = [nil, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 		return days_in_months[@time.month]
