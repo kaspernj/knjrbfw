@@ -193,6 +193,14 @@ class Knj::Datarow
               return Knj::Datet.in(self[col_name.to_sym]).out(*args)
             end
           end
+          
+          method_name = "#{col_name}".to_sym
+          if !inst_methods.index(method_name)
+            define_method(method_name) do |*args|
+              return false if Knj::Datet.is_nullstamp?(self[col_name.to_sym])
+              return Knj::Datet.in(self[col_name.to_sym])
+            end
+          end
         end
       end
       

@@ -62,4 +62,20 @@ module Knj::Strings
 		str = str.slice(0..(maxlength - 1)).strip + "..." if str.length > maxlength
 		return str
 	end
+	
+	def self.html_links(str, args = {})
+    str.to_s.html.scan(/(http:\/\/([A-z]+)\S*\.([A-z]{2,4})\S+)/) do |match|
+      if args["target"]
+        html = "<a target=\"#{args["target"]}\""
+      else
+        html = "<a"
+      end
+      
+      html += " href=\"#{match[0]}\">#{match[0]}</a>"
+      
+      str = str.gsub(match[0], html)
+    end
+    
+    return str
+	end
 end
