@@ -89,8 +89,19 @@ describe "Knjrbfw" do
   it "should be able to compare dates" do
     date1 = Knj::Datet.in("17/06 1985")
     date2 = Knj::Datet.in("18/06 1985")
+    date3 = Knj::Datet.in("17/06 1985")
     
     raise "Date1 was wrongly higher than date2." if date1 > date2
+    
+    if date2 > date1
+      #do nothing.
+    else
+      raise "Date2 was wrongly not higher than date1."
+    end
+    
+    
+    raise "Date1 was wrongly not the same as date3." if date1 != date3
+    raise "Date1 was the same as date2?" if date1 == date2
   end
   
   it "should be able to automatic generate methods on datarow-classes (has_many, has_one)." do
