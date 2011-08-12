@@ -18,31 +18,32 @@ class Knj::Event_filemod
 				break if !@args or !@args[:paths] or @args[:paths].empty?
 				
 				@mutex.synchronize do
-				@args[:paths].each do |path|
-					changed = false
-					
-					if @mtimes and !@mtimes.has_key?(path) and @mtimes.is_a?(Hash)
-						@mtimes[path] = File.mtime(path)
-					end
-					
-					begin
-						newdate = File.mtime(path)
-					rescue Errno::ENOENT
-						#file does not exist.
-						changed = true
-					end
-					
-					if !changed and newdate and @mtimes and newdate > @mtimes[path]
-						changed = true
-					end
-					
-					if changed
-						block.call(self, path)
-						@args[:paths].delete(path) if @args and @args[:break_when_changed]
-					end
-				end
-				
-				sleep @args[:wait] if @args and @run
+          @args[:paths].each do |path|
+            changed = false
+            
+            if @mtimes and !@mtimes.has_key?(path) and @mtimes.is_a?(Hash)
+              @mtimes[path] = File.mtime(path)
+            end
+            
+            begin
+              newdate = File.mtime(path)
+            rescue Errno::ENOENT
+              #file does not exist.
+              changed = true
+            end
+            
+            if !changed and newdate and @mtimes and newdate > @mtimes[path]
+              changed = true
+            end
+            
+            if changed
+              block.call(self, path)
+              @args[:paths].delete(path) if @args and @args[:break_when_changed]
+            end
+          end
+          
+          sleep @args[:wait] if @args and @run
+        end
 			end
 		end
 	end
