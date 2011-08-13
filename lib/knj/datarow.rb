@@ -128,13 +128,19 @@ class Knj::Datarow
     
     ret = list_helper(d)
     d.args.each do |key, val|
-      raise "Invalid key: '#{key}'."
+      case key
+        when "return_sql"
+          #ignore
+        else
+          raise "Invalid key: '#{key}'."
+      end
     end
     
     sql += ret[:sql_where]
     sql += ret[:sql_order]
     sql += ret[:sql_limit]
     
+    return sql if d.args["return_sql"]
     return d.db.query(sql).fetch[:count].to_i if count
     return d.ob.list_bysql(table, sql)
 	end
@@ -199,6 +205,15 @@ class Knj::Datarow
             define_method(method_name) do |*args|
               return false if Knj::Datet.is_nullstamp?(self[col_name.to_sym])
               return Knj::Datet.in(self[col_name.to_sym])
+            end
+          end
+        end
+        
+        if col_type == "int" or col_type == "varchar"
+          method_name = "by_#{col_name}".to_sym
+          if !inst_methods.index(method_name)
+            define_singleton_method(method_name) do |arg|
+              return d.ob.get_by(self.table, {col_name.to_s => arg})
             end
           end
         end
