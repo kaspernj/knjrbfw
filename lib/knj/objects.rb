@@ -690,14 +690,14 @@ class Knj::Objects
 			elsif match = key.match(/^([A-z_\d]+)_not$/) and ((cols_str_has and args[:cols_str].index(match[1]) != nil) or (cols_num_has and args[:cols_num].index(match[1]) != nil))
 				sql_where += " AND #{table}`#{db.esc_col(match[1])}` != '#{db.esc(val)}'"
 				found = true
-			elsif cols_date_has and match = key.match(/^(.+)_(day|month|from|to)$/) and args[:cols_date].index(match[1]) != nil
+			elsif cols_date_has and match = key.match(/^(.+)_(day|month|from|to|below|above)$/) and args[:cols_date].index(match[1]) != nil
 				if match[2] == "day"
 					sql_where += " AND DATE_FORMAT(#{table}`#{db.esc_col(match[1])}`, '%d %m %Y') = DATE_FORMAT('#{db.esc(val.dbstr)}', '%d %m %Y')"
 				elsif match[2] == "month"
 					sql_where += " AND DATE_FORMAT(#{table}`#{db.esc_col(match[1])}`, '%m %Y') = DATE_FORMAT('#{db.esc(val.dbstr)}', '%m %Y')"
-				elsif match[2] == "from"
+				elsif match[2] == "from" or match[2] == "above"
 					sql_where += " AND #{table}`#{db.esc_col(match[1])}` >= '#{db.esc(val.dbstr)}'"
-				elsif match[2] == "to"
+				elsif match[2] == "to" or match[2] == "below"
 					sql_where += " AND #{table}`#{db.esc_col(match[1])}` <= '#{db.esc(val.dbstr)}'"
 				else
 					raise "Unknown date-key: #{match[2]}."
