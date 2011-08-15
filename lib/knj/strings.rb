@@ -64,16 +64,20 @@ module Knj::Strings
 	end
 	
 	def self.html_links(str, args = {})
-    str.to_s.html.scan(/(http:\/\/([A-z]+)\S*\.([A-z]{2,4})\S+)/) do |match|
-      if args["target"]
-        html = "<a target=\"#{args["target"]}\""
+    str.to_s.html.scan(/(http:\/\/([A-z]+)\S*\.([A-z]{2,4})(\S+))/) do |match|
+      if block_given?
+        str = yield(:str => str, :args => args, :match => match)
       else
-        html = "<a"
+        if args["target"]
+          html = "<a target=\"#{args["target"]}\""
+        else
+          html = "<a"
+        end
+        
+        html += " href=\"#{match[0]}\">#{match[0]}</a>"
+        
+        str = str.gsub(match[0], html)
       end
-      
-      html += " href=\"#{match[0]}\">#{match[0]}</a>"
-      
-      str = str.gsub(match[0], html)
     end
     
     return str

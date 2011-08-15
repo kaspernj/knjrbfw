@@ -309,6 +309,23 @@ describe "Knjrbfw" do
     blob_cont = pic.to_blob
   end
   
+  it "should be possible to use Strings.html_links-method." do
+    teststr = "This is a test. http://www.google.com This is a test."
+    
+    
+    #Test normal usage.
+    test1 = Knj::Strings.html_links(teststr)
+    raise "Unexpected string: '#{teststr}'" if test1 != "This is a test. <a href=\"http://www.google.com\">http://www.google.com</a> This is a test."
+    
+    
+    #Test with a block.
+    test2 = Knj::Strings.html_links(teststr) do |data|
+      data[:str].gsub(data[:match][0], "TEST")
+    end
+    
+    raise "Unexpected string: '#{test2}'." if test2 != "This is a test. TEST This is a test."
+  end
+  
 =begin
   it "should be able to use Knj::Mutexcl with advanced arguments." do
     mutex = Knj::Mutexcl.new(
