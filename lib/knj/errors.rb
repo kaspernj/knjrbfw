@@ -6,11 +6,13 @@ module Knj::Errors
 	class NoAccess < StandardError; end
 	
 	def self.error_str(err, args = {})
+    str = ""
+    
 		if args[:html]
 			str += "<b>#{err.class.name}</b>: #{err.message}<br />\n<br />\n"
 			str += err.backtrace.join("<br />\n")
 		else
-			str = "#{err.class.name}: #{err.message}\n\n"
+			str += "#{err.class.name}: #{err.message}\n\n"
 			str += err.backtrace.join("\n")
 		end
 		
