@@ -818,6 +818,10 @@ class Knj::Web
 			browser = "bot"
 			title = "Ezooms"
 			version = match[1]
+    elsif match = agent.match(/ahrefsbot\/([\d\.]+)/)
+      browser = "bot"
+      title = "AhrefsBot"
+      version = match[1]
 		else
 			browser = "unknown"
 			title = "(unknown browser)"
