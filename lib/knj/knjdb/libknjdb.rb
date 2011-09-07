@@ -390,8 +390,8 @@ class Knj::Db
     return @enc_table
   end
   
-  def date_out(date_obj)
-    return Knj::Datet.in(date_obj).dbstr
+  def date_out(date_obj, args = {})
+    return Knj::Datet.in(date_obj).dbstr(args)
   end
   
   def date_in(date_obj)
