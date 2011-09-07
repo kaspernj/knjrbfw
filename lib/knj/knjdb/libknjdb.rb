@@ -325,7 +325,13 @@ class Knj::Db
         @conns.free(conn)
       end
     elsif @conn
-      @mutex.synchronize do
+      begin
+        @mutex.synchronize do
+          yield(@conn)
+          return nil
+        end
+      rescue ThreadError => e
+        raise e if e.message != "deadlock; recursive locking"
         yield(@conn)
         return nil
       end
