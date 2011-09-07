@@ -430,6 +430,20 @@ class Knj::Web
 		return html
 	end
 	
+	def self.style_html(css)
+    return "" if css.length <= 0
+    
+    str = " style=\""
+    
+    css.each do |key, val|
+      str += "#{key}: #{val};"
+    end
+    
+    str += "\""
+    
+    return str
+	end
+	
 	def self.input(args)
 		Knj::ArrayExt.hash_sym(args)
 		
@@ -494,6 +508,9 @@ class Knj::Web
 			disabled = ""
 		end
 		
+		css = {}
+		css["text-align"] = args[:align] if args.has_key?(:align)
+		
 		raise "No name given to the Web::input()-method." if !args[:name] and args[:type] != :info and args[:type] != :textshow
 		
 		checked = ""
@@ -515,16 +532,12 @@ class Knj::Web
 			html += "<td class=\"tdt\">"
 			html += args[:title].to_s.html
 			html += "</td>"
-			html += "<td class=\"tdc\">"
+			html += "<td#{self.style_html(css)} class=\"tdc\">"
 			
 			if args[:type] == :textarea
-				if args.has_key?(:height)
-					styleadd = " style=\"height: #{args[:height].html}px;\""
-				else
-					styleadd = ""
-				end
+        css["height"] = "#{args[:height]}px" if args.has_key?(:height)
 				
-				html += "<textarea#{styleadd} class=\"input_textarea\" name=\"#{args[:name].html}\" id=\"#{args[:id].html}\">#{value}</textarea>"
+				html += "<textarea#{self.style_html(css)} class=\"input_textarea\" name=\"#{args[:name].html}\" id=\"#{args[:id].html}\">#{value}</textarea>"
 				html += "</td>"
 			elsif args[:type] == :fckeditor
 				args[:height] = 400 if !args[:height]
@@ -570,20 +583,9 @@ class Knj::Web
 			elsif args[:type] == :textshow or args[:type] == :info
 				html += "#{value}</td>"
       elsif args[:type] == :editarea
-        css = {
-          "width" => "100%"
-        }
+        css["width"] = "100%"
         css["height"] = args[:height] if args.has_key?(:height)
-        
-        styleadd = " style=\""
-        css.each do |key, val|
-          styleadd += "#{key}: #{val};"
-        end
-        styleadd += "\""
-        
-        styleadd += "width=\"100%\""
-        styleadd += "height=\"#{args[:height]}\"" if args[:height]
-        html += "<textarea#{styleadd} id=\"#{args[:id]}\" name=\"#{args[:name]}\">#{value}</textarea>"
+        html += "<textarea#{self.style_html(css)} id=\"#{args[:id]}\" name=\"#{args[:name]}\">#{value}</textarea>"
         
         jshash = {
           "id" => args[:id],
