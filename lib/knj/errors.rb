@@ -4,6 +4,7 @@ module Knj::Errors
 	class InvalidData < StandardError; end
 	class Retry < StandardError; end
 	class NoAccess < StandardError; end
+	class Exists < StandardError; end
 	
 	def self.error_str(err, args = {})
     str = ""
