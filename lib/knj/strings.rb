@@ -82,4 +82,46 @@ module Knj::Strings
     
     return str
 	end
+	
+	def self.strip(origstr, args)
+    newstr = "#{origstr}<br>"
+    
+    if !args.has_key?(:right) or args[:right]
+      loop do
+        changed = false
+        args[:strips].each do |str|
+          len = str.length
+          endstr = newstr.slice(-len, len)
+          next if !endstr
+          
+          if endstr == str
+            changed = true
+            newstr = newstr.slice(0..newstr.length-len-1)
+          end
+        end
+        
+        break if !changed
+      end
+    end
+    
+    if !args.has_key?(:left) or args[:left]
+      loop do
+        changed = false
+        args[:strips].each do |str|
+          len = str.length
+          endstr = newstr.slice(0, len)
+          next if !endstr
+          
+          if endstr == str
+            changed = true
+            newstr = newstr.slice(len..-1)
+          end
+        end
+        
+        break if !changed
+      end
+    end
+    
+    return newstr
+	end
 end
