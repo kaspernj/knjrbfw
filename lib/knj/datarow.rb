@@ -217,6 +217,15 @@ class Knj::Datarow
             end
           end
         end
+        
+        if col_type == "time"
+          method_name = "#{col_name}_dbt"
+          if !inst_methods.index(method_name)
+            define_method(method_name) do
+              return Knj::Db::Dbtime.new(self[col_name.to_sym])
+            end
+          end
+        end
       end
       
       @columns_sqlhelper_args = sqlhelper_args
