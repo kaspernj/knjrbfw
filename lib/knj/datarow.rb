@@ -50,6 +50,11 @@ class Knj::Datarow
         merge_args = {} if !merge_args
         return ob.list(classname, {"count" => true, colname.to_s => self.id}.merge(merge_args))
       end
+      
+      define_method("#{methodname}_last".to_sym) do |args|
+        args = {} if !args
+        return ob.list(classname, {"orderby" => [["id", "desc"]], "limit" => 1}.merge(args))
+      end
     end
 	end
 	
