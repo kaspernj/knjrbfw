@@ -297,9 +297,9 @@ class Knj::Web
 			realvalue = value
 		else
 			realvalue = value.to_s
+			realvalue = Knj::Php.urldecode(realvalue) if args[:urldecode]
+			realvalue = realvalue.force_encoding("utf-8") if args[:force_utf8]
 		end
-		
-		realvalue = Knj::Php.urldecode(realvalue) if args[:urldecode] and !value.respond_to?(:filename)
 		
 		if varname and varname.index("[") != nil
 			if match = varname.match(/\[(.*?)\]/)
@@ -332,6 +332,7 @@ class Knj::Web
 			realvalue = value
 		else
 			realvalue = value.to_s
+			realvalue = realvalue.force_encoding("utf-8") if args[:force_utf8]
 		end
 		
 		match = varname.match(/^\[(.*?)\]/)
