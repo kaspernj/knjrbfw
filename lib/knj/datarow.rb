@@ -214,6 +214,15 @@ class Knj::Datarow
           end
         end
         
+        if col_type == "int" or col_type == "decimal"
+          method_name = "#{col_name}_format"
+          if inst_methods.index(method_name) == nil
+            define_method(method_name) do |*args|
+              return Knj::Locales.number_out(self[col_name.to_sym], *args)
+            end
+          end
+        end
+        
         if col_type == "int" or col_type == "varchar"
           method_name = "by_#{col_name}".to_sym
           if !inst_methods.index(method_name)
