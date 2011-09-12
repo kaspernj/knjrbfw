@@ -569,7 +569,7 @@ class Knj::Web
 				
 				path = args[:path].gsub("%value%", value.to_s).untaint
 				if File.exists?(path)
-					html += "<img src=\"image.php?picture=#{Knj::Php.urlencode(path).html}&smartsize=100&edgesize=25&force=true&ts=#{Time.new.to_f}\" alt=\"Image\" />"
+					html += "<img src=\"image.rhtml?path=#{Knj::Php.urlencode(path).html}&smartsize=100&rounded_corners=10&border_color=black&force=true&ts=#{Time.new.to_f}\" alt=\"Image\" />"
 					
 					if args[:dellink]
 						dellink = args[:dellink].gsub("%value%", value.to_s)
