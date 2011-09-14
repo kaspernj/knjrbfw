@@ -465,7 +465,7 @@ class Knj::Web
 		
 		checked = ""
 		checked += " value=\"#{args[:value_active]}\"" if args.has_key?(:value_active)
-		checked += " checked" if value.is_a?(String) and value == "1" or value.to_s == "1"
+		checked += " checked" if value.is_a?(String) and value == "1" or value.to_s == "1" or value.to_s == "on" or value.to_s == "true"
 		checked += " checked" if value.is_a?(TrueClass)
 		
 		html = ""
