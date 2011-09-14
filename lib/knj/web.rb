@@ -494,7 +494,7 @@ class Knj::Web
 			disabled = ""
 		end
 		
-		raise "No name given to the Web::input()-method." if !args[:name] and args[:type] != :info and args[:type] != :textshow
+		raise "No name given to the Web::input()-method." if !args[:name] and args[:type] != :info and args[:type] != :textshow and args[:type] != :plain
 		
 		checked = ""
 		checked += " value=\"#{args[:value_active]}\"" if args.has_key?(:value_active)
@@ -569,6 +569,8 @@ class Knj::Web
 				html += "<input type=\"#{args[:type].to_s}\" class=\"input_#{args[:type].to_s}\" name=\"#{args[:name].html}\" /></td>"
 			elsif args[:type] == :textshow or args[:type] == :info
 				html += "#{value}</td>"
+      elsif args[:type] == :plain
+        html += "#{Knj::Web.html(value)}"
       elsif args[:type] == :editarea
         css = {
           "width" => "100%"
