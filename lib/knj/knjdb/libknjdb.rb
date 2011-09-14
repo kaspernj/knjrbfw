@@ -325,7 +325,13 @@ class Knj::Db
         @conns.free(conn)
       end
     elsif @conn
-      @mutex.synchronize do
+      begin
+        @mutex.synchronize do
+          yield(@conn)
+          return nil
+        end
+      rescue ThreadError => e
+        raise e if e.message != "deadlock; recursive locking"
         yield(@conn)
         return nil
       end
@@ -390,8 +396,8 @@ class Knj::Db
     return @enc_table
   end
   
-  def date_out(date_obj)
-    return Knj::Datet.in(date_obj).dbstr
+  def date_out(date_obj, args = {})
+    return Knj::Datet.in(date_obj).dbstr(args)
   end
   
   def date_in(date_obj)

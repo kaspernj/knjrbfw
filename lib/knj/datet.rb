@@ -310,8 +310,14 @@ class Knj::Datet
 		return time
 	end
 	
-	def dbstr
-		return "%04d" % @time.year.to_s + "-" + "%02d" % @time.month.to_s + "-" + "%02d" % @time.day.to_s + " " + "%02d" % @time.hour.to_s + ":" + "%02d" % @time.min.to_s + ":" + "%02d" % @time.sec.to_s
+	def dbstr(args = {})
+    str = "%04d" % @time.year.to_s + "-" + "%02d" % @time.month.to_s + "-" + "%02d" % @time.day.to_s
+    
+    if !args.has_key?(:time) or args[:time]
+      str += " " + "%02d" % @time.hour.to_s + ":" + "%02d" % @time.min.to_s + ":" + "%02d" % @time.sec.to_s
+    end
+    
+    return str
 	end
 	
 	def self.from_dbstr(date_string)

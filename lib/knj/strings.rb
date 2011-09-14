@@ -64,17 +64,63 @@ module Knj::Strings
 	end
 	
 	def self.html_links(str, args = {})
-    str.to_s.html.scan(/(http:\/\/([A-z]+)\S*\.([A-z]{2,4})\S+)/) do |match|
-      if args["target"]
-        html = "<a target=\"#{args["target"]}\""
+    str.to_s.html.scan(/(http:\/\/([A-z]+)\S*\.([A-z]{2,4})(\S+))/) do |match|
+      if block_given?
+        str = yield(:str => str, :args => args, :match => match)
       else
-        html = "<a"
+        if args["target"]
+          html = "<a target=\"#{args["target"]}\""
+        else
+          html = "<a"
+        end
+        
+        html += " href=\"#{match[0]}\">#{match[0]}</a>"
+        str = str.gsub(match[0], html)
       end
-      
-      html += " href=\"#{match[0]}\">#{match[0]}</a>"
-      str = str.gsub(match[0], html)
     end
     
     return str
+	end
+	
+	def self.strip(origstr, args)
+    newstr = "#{origstr}<br>"
+    
+    if !args.has_key?(:right) or args[:right]
+      loop do
+        changed = false
+        args[:strips].each do |str|
+          len = str.length
+          endstr = newstr.slice(-len, len)
+          next if !endstr
+          
+          if endstr == str
+            changed = true
+            newstr = newstr.slice(0..newstr.length-len-1)
+          end
+        end
+        
+        break if !changed
+      end
+    end
+    
+    if !args.has_key?(:left) or args[:left]
+      loop do
+        changed = false
+        args[:strips].each do |str|
+          len = str.length
+          endstr = newstr.slice(0, len)
+          next if !endstr
+          
+          if endstr == str
+            changed = true
+            newstr = newstr.slice(len..-1)
+          end
+        end
+        
+        break if !changed
+      end
+    end
+    
+    return newstr
 	end
 end

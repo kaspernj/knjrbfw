@@ -297,9 +297,9 @@ class Knj::Web
 			realvalue = value
 		else
 			realvalue = value.to_s
+			realvalue = Knj::Php.urldecode(realvalue) if args[:urldecode]
+			realvalue = realvalue.force_encoding("utf-8") if args[:force_utf8]
 		end
-		
-		realvalue = Knj::Php.urldecode(realvalue) if args[:urldecode] and !value.respond_to?(:filename)
 		
 		if varname and varname.index("[") != nil
 			if match = varname.match(/\[(.*?)\]/)
@@ -332,6 +332,7 @@ class Knj::Web
 			realvalue = value
 		else
 			realvalue = value.to_s
+			realvalue = realvalue.force_encoding("utf-8") if args[:force_utf8]
 		end
 		
 		match = varname.match(/^\[(.*?)\]/)
@@ -430,6 +431,20 @@ class Knj::Web
 		return html
 	end
 	
+	def self.style_html(css)
+    return "" if css.length <= 0
+    
+    str = " style=\""
+    
+    css.each do |key, val|
+      str += "#{key}: #{val};"
+    end
+    
+    str += "\""
+    
+    return str
+	end
+	
 	def self.input(args)
 		Knj::ArrayExt.hash_sym(args)
 		
@@ -496,6 +511,9 @@ class Knj::Web
 		
 		raise "No name given to the Web::input()-method." if !args[:name] and args[:type] != :info and args[:type] != :textshow and args[:type] != :plain
 		
+		css = {}
+		css["text-align"] = args[:align] if args.has_key?(:align)
+		
 		checked = ""
 		checked += " value=\"#{args[:value_active]}\"" if args.has_key?(:value_active)
 		checked += " checked" if value.is_a?(String) and value == "1" or value.to_s == "1"
@@ -515,16 +533,12 @@ class Knj::Web
 			html += "<td class=\"tdt\">"
 			html += args[:title].to_s.html
 			html += "</td>"
-			html += "<td class=\"tdc\">"
+			html += "<td#{self.style_html(css)} class=\"tdc\">"
 			
 			if args[:type] == :textarea
-				if args.has_key?(:height)
-					styleadd = " style=\"height: #{args[:height].html}px;\""
-				else
-					styleadd = ""
-				end
+        css["height"] = "#{args[:height]}px" if args.has_key?(:height)
 				
-				html += "<textarea#{styleadd} class=\"input_textarea\" name=\"#{args[:name].html}\" id=\"#{args[:id].html}\">#{value}</textarea>"
+				html += "<textarea#{self.style_html(css)} class=\"input_textarea\" name=\"#{args[:name].html}\" id=\"#{args[:id].html}\">#{value}</textarea>"
 				html += "</td>"
 			elsif args[:type] == :fckeditor
 				args[:height] = 400 if !args[:height]
@@ -555,7 +569,7 @@ class Knj::Web
 				
 				path = args[:path].gsub("%value%", value.to_s).untaint
 				if File.exists?(path)
-					html += "<img src=\"image.php?picture=#{Knj::Php.urlencode(path).html}&smartsize=100&edgesize=25&force=true&ts=#{Time.new.to_f}\" alt=\"Image\" />"
+					html += "<img src=\"image.rhtml?path=#{Knj::Php.urlencode(path).html}&smartsize=100&rounded_corners=10&border_color=black&force=true&ts=#{Time.new.to_f}\" alt=\"Image\" />"
 					
 					if args[:dellink]
 						dellink = args[:dellink].gsub("%value%", value.to_s)
@@ -572,20 +586,9 @@ class Knj::Web
       elsif args[:type] == :plain
         html += "#{Knj::Web.html(value)}"
       elsif args[:type] == :editarea
-        css = {
-          "width" => "100%"
-        }
+        css["width"] = "100%"
         css["height"] = args[:height] if args.has_key?(:height)
-        
-        styleadd = " style=\""
-        css.each do |key, val|
-          styleadd += "#{key}: #{val};"
-        end
-        styleadd += "\""
-        
-        styleadd += "width=\"100%\""
-        styleadd += "height=\"#{args[:height]}\"" if args[:height]
-        html += "<textarea#{styleadd} id=\"#{args[:id]}\" name=\"#{args[:name]}\">#{value}</textarea>"
+        html += "<textarea#{self.style_html(css)} id=\"#{args[:id]}\" name=\"#{args[:name]}\">#{value}</textarea>"
         
         jshash = {
           "id" => args[:id],
@@ -820,6 +823,10 @@ class Knj::Web
 			browser = "bot"
 			title = "Ezooms"
 			version = match[1]
+    elsif match = agent.match(/ahrefsbot\/([\d\.]+)/)
+      browser = "bot"
+      title = "AhrefsBot"
+      version = match[1]
 		else
 			browser = "unknown"
 			title = "(unknown browser)"
