@@ -1,5 +1,5 @@
 <%
-	idstr = Knj::Php.md5("#{_get["path"]}_#{_get["smartsize"].to_i}_#{_get["width"].to_i}_#{_get["height"].to_i}_#{_get["maxwidth"].to_i}_#{_get["maxheight"].to_i}")
+	idstr = Knj::Php.md5("#{_get["path"]}_#{_get["smartsize"].to_i}_#{_get["width"].to_i}_#{_get["height"].to_i}_#{_get["maxwidth"].to_i}_#{_get["maxheight"].to_i}_#{_get["rounded_corners"].to_i}_#{_get["border"].to_i}_#{_get["border_color"]}")
 	
 	tmp_use = false
 	tmp_write = false
@@ -19,8 +19,15 @@
 		end
 	end
 	
+	if !_get["path"] or !File.exists?(_get["path"])
+    print "File does not exist: '#{_get["path"]}'.\n"
+    exit
+  end
+	
 	if !tmp_use or tmp_write or _get["force"].to_i > 0
-		pic = Magick::ImageList.new(_get["path"])
+    pic = Magick::Image.read(_get["path"]).first
+    pic.format = "png"
+    
 		width = pic.columns
 		height = pic.rows
 		
@@ -64,7 +71,17 @@
 			pic = pic.resize_to_fit(width.to_i, height.to_i)
 		end
 		
-		pic.format = "png"
+		if _get["rounded_corners"]
+      args = {:img => pic, :radius => _get["rounded_corners"].to_i}
+      
+      if _get["border"] and _get["border_color"]
+        args[:border] = _get["border"].to_i
+        args[:border_color] = _get["border_color"]
+      end
+      
+      Knj::Image.rounded_corners(args)
+    end
+		
 		blob_cont = pic.to_blob
 	end
 	
@@ -73,9 +90,11 @@
 	end
 	
 	if tmp_use
+    Knj::Php.header("Last-Modified: #{time_orig.httpdate} GMT") if time_orig
 		Knj::Php.header("Content-Type: image/png")
 		print File.read(tmp_path)
 	else
+    Knj::Php.header("Last-Modified: #{time_orig.httpdate} GMT") if time_orig
 		Knj::Php.header("Content-Type: image/png")
 		print blob_cont
 	end

@@ -8,11 +8,14 @@ class Knj::Objects
 		@args[:class_pre] = "class_" if !@args[:class_pre]
 		@args[:module] = Kernel if !@args[:module]
 		@objects = {}
-		@objects_mutex = Mutex.new
 		
 		@events = Knj::Event_handler.new
 		@events.add_event(
       :name => :no_html,
+      :connections_max => 1
+		)
+		@events.add_event(
+      :name => :no_date,
       :connections_max => 1
 		)
 		
@@ -20,15 +23,18 @@ class Knj::Objects
 		raise "No class path given." if !@args[:class_path] and (@args[:require] or !@args.has_key?(:require))
 	end
 	
+	def init_class(classname)
+    return false if @objects.has_key?(classname)
+    @objects[classname] = {}
+	end
+	
 	#Returns a cloned version of the @objects variable. Cloned because iteration on it may crash some of the other methods in Ruby 1.9+
 	def objects
 		objs_cloned = {}
 		
-		@objects_mutex.synchronize do
-			@objects.each do |classn, newhash|
-				objs_cloned[classn] = newhash.clone
-			end
-		end
+    @objects.keys.each do |key|
+      objs_cloned[key] = @objects[key].clone
+    end
 		
 		return objs_cloned
 	end
@@ -39,13 +45,9 @@ class Knj::Objects
 	
 	def count_objects
 		count = 0
-		@objects_mutex.synchronize do
-			@objects.each do |key, value|
-				value.each do |id, object|
-					count += 1
-				end
-			end
-		end
+    @objects.keys.each do |key|
+      count += @objects[key].length
+    end
 		
 		return count
 	end
@@ -96,14 +98,20 @@ class Knj::Objects
 	end
 	
 	def requireclass(classname)
-		return nil if !@args[:require] and @args.has_key?(:require)
-		classname = classname.to_s
-		
-		if !Knj::Php.class_exists(classname)
+    classname = classname.to_sym
+    
+    if !@args[:require] and @args.has_key?(:require)
+      @objects[classname] = {} if !@objects.has_key?(classname)
+      return nil
+    end
+    
+		if !@objects.has_key?(classname)
 			filename = @args[:class_path] + "/#{@args[:class_pre]}#{classname.downcase}.rb"
 			filename_req = @args[:class_path] + "/#{@args[:class_pre]}#{classname.downcase}"
 			raise "Class file could not be found: #{filename}." if !File.exists?(filename)
 			require filename_req
+			@args[:module].const_get(classname).load_columns(Knj::Hash_methods.new(:args => args, :ob => self, :db => @args[:db])) if @args[:module].const_get(classname).respond_to?(:load_columns)
+			@objects[classname] = {}
 		end
 	end
 	
@@ -120,30 +128,21 @@ class Knj::Objects
 			raise Knj::Errors::InvalidData, "Unknown data: '#{data.class.to_s}'."
 		end
 		
-		return @objects[classname][id] if @objects.has_key?(classname) and @objects[classname].has_key?(id)
-		
-		retobj = nil
-		@objects_mutex.synchronize do
-			if !@objects.has_key?(classname)
-				self.requireclass(classname)
-				@objects[classname] = {}
-			end
-			
-			if @args[:datarow]
-				@objects[classname][id] = @args[:module].const_get(classname).new(Knj::Hash_methods.new(
-					:ob => self,
-					:data => data
-				))
-			else
-				args = [data]
-				args = args | @args[:extra_args] if @args[:extra_args]
-				@objects[classname][id] = @args[:module].const_get(classname).new(*args)
-			end
-			
-			return @objects[classname][id]
-		end
-		
-		raise "Something went wrong."
+    return @objects[classname][id] if @objects.has_key?(classname) and @objects[classname].has_key?(id)
+    self.requireclass(classname) if !@objects.has_key?(classname)
+    
+    if @args[:datarow]
+      @objects[classname][id] = @args[:module].const_get(classname).new(Knj::Hash_methods.new(
+        :ob => self,
+        :data => data
+      ))
+    else
+      args = [data]
+      args = args | @args[:extra_args] if @args[:extra_args]
+      @objects[classname][id] = @args[:module].const_get(classname).new(*args)
+    end
+    
+    return @objects[classname][id]
 	end
 	
 	def get_by(classname, args = {})
@@ -275,10 +274,10 @@ class Knj::Objects
 			obs = self.list(classname)
 		end
 		
-		if Knj::Php.class_exists("Dictionary")
+		if RUBY_VERSION[0..2] == 1.8 and Knj::Php.class_exists("Dictionary")
 			list = Dictionary.new
 		else
-			list = Hash.new
+			list = {}
 		end
 		
 		if args[:addnew] or args[:add]
@@ -430,9 +429,7 @@ class Knj::Objects
 			#errstr += "Could not find object ID in cache."
 			#raise errstr
 		#else
-			@objects_mutex.synchronize do
-				@objects[classname].delete(object.id.to_i)
-			end
+      @objects[classname].delete(object.id.to_i)
 		#end
 	end
 	
@@ -448,9 +445,7 @@ class Knj::Objects
 		classname = classname.to_sym
 		
 		return false if !@objects.has_key?(classname)
-		@objects_mutex.synchronize do
-			@objects[classname] = {}
-		end
+    @objects[classname] = {}
 	end
 	
 	# Delete an object. Both from the database and from the cache.
@@ -508,37 +503,43 @@ class Knj::Objects
 			end
 		else
 			return false if !@objects.has_key?(classn)
-			@objects_mutex.synchronize do
-				@objects[classn] = {}
-				GC.start
-			end
+      @objects[classn] = {}
+      GC.start
 		end
 	end
 	
 	def clean_all
 		classnames = []
-		@objects_mutex.synchronize do
-			@objects.each do |classn, hash_list|
-				classnames << classn
-			end
-			
-			classnames.each do |classn|
-				@objects[classn] = {}
-			end
-		end
+    @objects.keys.each do |classn|
+      classnames << classn
+    end
+    
+    classnames.each do |classn|
+      @objects[classn] = {}
+    end
 		
 		GC.start
 	end
 	
 	def clean_recover
-		@objects_mutex.synchronize do
-			@objects.each do |classn, hash_list|
-				classobj = Kernel.const_get(classn)
-				ObjectSpace.each_object(classobj) do |obj|
-					@objects[classn][obj.id] = obj
-				end
-			end
-		end
+    return false if RUBY_ENGINE == "jruby" and !JRuby.objectspace
+    
+    @objects.keys.each do |classn|
+      data = @objects[classn]
+      classobj = @args[:module].const_get(classn)
+      ObjectSpace.each_object(classobj) do |obj|
+        begin
+          data[obj.id.to_i] = obj
+        rescue => e
+          if e.message == "No data on object."
+            #Object has been unset - skip it.
+            next
+          end
+          
+          raise e
+        end
+      end
+    end
 	end
 	
 	def sqlhelper(list_args, args)
@@ -686,17 +687,24 @@ class Knj::Objects
 				end
 				
 				found = true
-			elsif match = key.match(/^([A-z_\d]+)_not$/) and ((cols_str_has and args[:cols_str].index(match[1]) != nil) or (cols_num_has and args[:cols_num].index(match[1]) != nil))
-				sql_where += " AND #{table}`#{db.esc_col(match[1])}` != '#{db.esc(val)}'"
+			elsif match = key.match(/^([A-z_\d]+)_(not|lower)$/) and ((cols_str_has and args[:cols_str].index(match[1]) != nil) or (cols_num_has and args[:cols_num].index(match[1]) != nil))
+        if match[2] == "not"
+          sql_where += " AND #{table}`#{db.esc_col(match[1])}` != '#{db.esc(val)}'"
+        elsif match[2] == "lower"
+          sql_where += " AND LOWER(#{table}`#{db.esc_col(match[1])}`) = LOWER('#{db.esc(val)}')"
+        else
+          raise "Unknown mode: '#{match[2]}'."
+        end
+        
 				found = true
-			elsif cols_date_has and match = key.match(/^(.+)_(day|month|from|to)$/) and args[:cols_date].index(match[1]) != nil
+			elsif cols_date_has and match = key.match(/^(.+)_(day|month|from|to|below|above)$/) and args[:cols_date].index(match[1]) != nil
 				if match[2] == "day"
 					sql_where += " AND DATE_FORMAT(#{table}`#{db.esc_col(match[1])}`, '%d %m %Y') = DATE_FORMAT('#{db.esc(val.dbstr)}', '%d %m %Y')"
 				elsif match[2] == "month"
 					sql_where += " AND DATE_FORMAT(#{table}`#{db.esc_col(match[1])}`, '%m %Y') = DATE_FORMAT('#{db.esc(val.dbstr)}', '%m %Y')"
-				elsif match[2] == "from"
+				elsif match[2] == "from" or match[2] == "above"
 					sql_where += " AND #{table}`#{db.esc_col(match[1])}` >= '#{db.esc(val.dbstr)}'"
-				elsif match[2] == "to"
+				elsif match[2] == "to" or match[2] == "below"
 					sql_where += " AND #{table}`#{db.esc_col(match[1])}` <= '#{db.esc(val.dbstr)}'"
 				else
 					raise "Unknown date-key: #{match[2]}."

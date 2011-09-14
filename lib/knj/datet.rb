@@ -126,6 +126,8 @@ class Knj::Datet
 	
 	#Returns the number of days in the current month.
 	def days_in_month
+    return 29 if month == 2 and Date.gregorian_leap?(self.year)
+    
 		#Thanks to ActiveSupport: http://rubydoc.info/docs/rails/2.3.8/ActiveSupport/CoreExtensions/Time/Calculations
 		days_in_months = [nil, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 		return days_in_months[@time.month]
@@ -245,9 +247,9 @@ class Knj::Datet
 		secs = arg_to_time(timeobj).to_i
 		
 		if secs > @time.to_i
-			return 1
-		elsif secs < @time.to_i
 			return -1
+		elsif secs < @time.to_i
+			return 1
 		else
 			return 0
 		end
@@ -308,8 +310,14 @@ class Knj::Datet
 		return time
 	end
 	
-	def dbstr
-		return "%04d" % @time.year.to_s + "-" + "%02d" % @time.month.to_s + "-" + "%02d" % @time.day.to_s + " " + "%02d" % @time.hour.to_s + ":" + "%02d" % @time.min.to_s + ":" + "%02d" % @time.sec.to_s
+	def dbstr(args = {})
+    str = "%04d" % @time.year.to_s + "-" + "%02d" % @time.month.to_s + "-" + "%02d" % @time.day.to_s
+    
+    if !args.has_key?(:time) or args[:time]
+      str += " " + "%02d" % @time.hour.to_s + ":" + "%02d" % @time.min.to_s + ":" + "%02d" % @time.sec.to_s
+    end
+    
+    return str
 	end
 	
 	def self.from_dbstr(date_string)
@@ -383,7 +391,7 @@ class Knj::Datet
 			return Knj::Datet.new(Time.gm(year, month, date, hour, minute))
     elsif match = timestr.to_s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
       return Knj::Datet.new(Time.gm(match[3], match[2], match[1]))
-		elsif match = timestr.to_s.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{5})$/)
+		elsif match = timestr.to_s.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{5,6})$/)
 			#Datet.code format
 			return Knj::Datet.new(Time.gm(match[1], match[2], match[3], match[4], match[5], match[6], match[7]))
 		elsif match = timestr.to_s.match(/^\s*(\d{4})-(\d{1,2})-(\d{1,2})(|\s+(\d{2}):(\d{2}):(\d{2})(|\.\d+)\s*)(|\s+(UTC))(|\s+(\+|\-)(\d{2})(\d{2}))$/)
@@ -418,6 +426,18 @@ class Knj::Datet
 			11, _("November"),
 			12, _("December")
 		]
+	end
+	
+	def self.days_arr
+    return {
+      1 => _("Monday"),
+      2 => _("Tuesday"),
+      3 => _("Wednesday"),
+      4 => _("Thursday"),
+      5 => _("Friday"),
+      6 => _("Saturday"),
+      0 => _("Sunday")
+    }
 	end
 	
 	def loc_wday

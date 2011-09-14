@@ -86,6 +86,24 @@ describe "Knjrbfw" do
     end
   end
   
+  it "should be able to compare dates" do
+    date1 = Knj::Datet.in("17/06 1985")
+    date2 = Knj::Datet.in("18/06 1985")
+    date3 = Knj::Datet.in("17/06 1985")
+    
+    raise "Date1 was wrongly higher than date2." if date1 > date2
+    
+    if date2 > date1
+      #do nothing.
+    else
+      raise "Date2 was wrongly not higher than date1."
+    end
+    
+    
+    raise "Date1 was wrongly not the same as date3." if date1 != date3
+    raise "Date1 was the same as date2?" if date1 == date2
+  end
+  
   it "should be able to automatic generate methods on datarow-classes (has_many, has_one)." do
     class Project < Knj::Datarow
       has_many [
@@ -266,4 +284,115 @@ describe "Knjrbfw" do
       #ignore.
     end
   end
+  
+  it "should be able to properly parse 'Set-Cookie' headers." do
+    data = Knj::Web.parse_set_cookies("TestCookie=TestValue+; Expires=Fri, 05 Aug 2011 10:58:17 GMT; Path=\n")
+    
+    raise "No data returned?" if !data or !data.respond_to?(:length)
+    raise "Wrong number of cookies returned: '#{data.length}'." if data.length != 1
+    
+    raise "Unexpected name: '#{data[0]["name"]}'." if data[0]["name"] != "TestCookie"
+    raise "Unexpected value: '#{data[0]["value"]}'." if data[0]["value"] != "TestValue "
+    raise "Unexpected path: '#{data[0]["path"]}'." if data[0]["path"] != ""
+    raise "Unexpected expire:' #{data[0]["expire"]}'." if data[0]["expires"] != "Fri, 05 Aug 2011 10:58:17 GMT"
+  end
+  
+  it "should be able to draw rounded transparent corners on images." do
+    pic = Magick::Image.read("#{File.dirname(__FILE__)}/../testfiles/image.jpg").first
+    pic.format = "png"
+    
+    Knj::Image.rounded_corners(
+      :img => pic,
+      :radius => 10
+    )
+    
+    blob_cont = pic.to_blob
+  end
+  
+  it "should be possible to use Strings.html_links-method." do
+    teststr = "This is a test. http://www.google.com This is a test."
+    
+    
+    #Test normal usage.
+    test1 = Knj::Strings.html_links(teststr)
+    raise "Unexpected string: '#{teststr}'" if test1 != "This is a test. <a href=\"http://www.google.com\">http://www.google.com</a> This is a test."
+    
+    
+    #Test with a block.
+    test2 = Knj::Strings.html_links(teststr) do |data|
+      data[:str].gsub(data[:match][0], "TEST")
+    end
+    
+    raise "Unexpected string: '#{test2}'." if test2 != "This is a test. TEST This is a test."
+  end
+  
+=begin
+  it "should be able to use Knj::Mutexcl with advanced arguments." do
+    mutex = Knj::Mutexcl.new(
+      :modes => {
+        :reader => {
+          :blocks => [:writer]
+        },
+        :writer => {
+          :blocks => [:reader, :writer]
+        }
+      }
+    )
+    
+    $count = 0
+    
+    Knj::Thread.new do
+      mutex.sync(:reader) do
+        sleep 0.2
+        $count += 1
+      end
+    end
+    
+    mutex.sync(:reader) do
+      $count += 1
+    end
+    
+    raise "Count should be 1 by now but it wasnt: '#{$count}'." if $count != 1
+    sleep 0.3
+    raise "Count should be 2 by now but it wasnt: '#{$count}'." if $count != 2
+    
+    
+    $count = 0
+    Knj::Thread.new do
+      mutex.sync(:reader) do
+        sleep 2
+        $count += 1
+      end
+    end
+    sleep 0.1
+    
+    Knj::Thread.new do
+      mutex.sync(:writer) do
+        $count += 1
+      end
+    end
+    
+    sleep 1
+    raise "Count should be 0 but it wasnt: '#{$count}'." if $count != 0
+    sleep 1.1
+    raise "Count should be 2 but it wasnt: '#{$count}'." if $count != 2
+    
+    Knj::Thread.new do
+      mutex.sync(:reader) do
+        sleep 0.2
+        $count += 1
+      end
+    end
+    
+    Knj::Thread.new do
+      mutex.sync(:reader) do
+        sleep 0.2
+        $count += 1
+      end
+    end
+    
+    sleep 0.35
+    raise "Count should be 4 but it wasnt: '#{$count}'." if $count != 4
+  end
+=end
 end

@@ -63,7 +63,7 @@ class Knj::Gettext_threadded
 				if File.exists?(title_file_path)
 					title = File.read(title_file_path).to_s.strip
 				else
-					title = lang.strip
+					title = lang.to_s.strip
 				end
 				
 				break if title

@@ -175,7 +175,7 @@ class Knj::Web
 				if @data[:user_agent] != @server["HTTP_USER_AGENT"] or @data[:ip] != @server["REMOTE_ADDR"]
 					@data = nil
 				else
-					@db.update(:sessions, {"last_url" => @server["REQUEST_URI"].to_s, "date_active" => Datestamp.dbstr}, {"id" => @data[:id]})
+					@db.update(:sessions, {"last_url" => @server["REQUEST_URI"].to_s, "date_active" => Time.new}, {"id" => @data[:id]})
 					session_id = @args[:id] + "_" + @data[:id]
 				end
 			end
@@ -183,8 +183,8 @@ class Knj::Web
 		
 		if !@data or !session_id
 			@db.insert(:sessions,
-				:date_start => Knj::Datet.new.dbstr,
-				:date_active => Knj::Datet.new.dbstr,
+				:date_start => Time.new,
+				:date_active => Time.new,
 				:user_agent => @server["HTTP_USER_AGENT"],
 				:ip => @server["REMOTE_ADDR"],
 				:last_url => @server["REQUEST_URI"].to_s
@@ -211,12 +211,45 @@ class Knj::Web
 	def self.parse_cookies(str)
     ret = {}
     
-    str.split("; ").each do |cookie_str|
+    str.split(/;\s*/).each do |cookie_str|
       splitted = cookie_str.split("=")
       ret[Knj::Php.urldecode(splitted[0])] = Knj::Php.urldecode(splitted[1])
     end
     
     return ret
+	end
+	
+	def self.parse_set_cookies(str)
+    str = String.new(str.to_s)
+    return [] if str.length <= 0
+    args = {}
+    cookie_start_regex = /^(.+?)=(.*?)(;\s*|$)/
+    
+    match = str.match(cookie_start_regex)
+    raise "Could not match cookie: '#{str}'." if !match
+    str.gsub!(cookie_start_regex, "")
+    
+    args["name"] = Knj::Php.urldecode(match[1].to_s)
+    args["value"] = Knj::Php.urldecode(match[2].to_s)
+    
+    while match = str.match(/(.+?)=(.*?)(;\s*|$)/)
+      str = str.gsub(match[0], "")
+      args[match[1].to_s.downcase] = match[2].to_s
+    end
+    
+    return [args]
+	end
+	
+	def self.cookie_str(cookie_data)
+    raise "Not a hash: '#{cookie_data.class.name}', '#{cookie_data}'." unless cookie_data.is_a?(Hash)
+    cookiestr = "#{Knj::Php.urlencode(cookie_data["name"])}=#{Knj::Php.urlencode(cookie_data["value"])}"
+    
+    cookie_data.each do |key, val|
+      next if key == "name" or key == "value"
+      cookiestr += "; #{key}=#{val}"
+    end
+    
+    return cookiestr
 	end
 	
 	def self.parse_urlquery(querystr, args = {})
@@ -264,9 +297,9 @@ class Knj::Web
 			realvalue = value
 		else
 			realvalue = value.to_s
+			realvalue = Knj::Php.urldecode(realvalue) if args[:urldecode]
+			realvalue = realvalue.force_encoding("utf-8") if args[:force_utf8]
 		end
-		
-		realvalue = Knj::Php.urldecode(realvalue) if args[:urldecode] and !value.respond_to?(:filename)
 		
 		if varname and varname.index("[") != nil
 			if match = varname.match(/\[(.*?)\]/)
@@ -299,6 +332,7 @@ class Knj::Web
 			realvalue = value
 		else
 			realvalue = value.to_s
+			realvalue = realvalue.force_encoding("utf-8") if args[:force_utf8]
 		end
 		
 		match = varname.match(/^\[(.*?)\]/)
@@ -397,6 +431,20 @@ class Knj::Web
 		return html
 	end
 	
+	def self.style_html(css)
+    return "" if css.length <= 0
+    
+    str = " style=\""
+    
+    css.each do |key, val|
+      str += "#{key}: #{val};"
+    end
+    
+    str += "\""
+    
+    return str
+	end
+	
 	def self.input(args)
 		Knj::ArrayExt.hash_sym(args)
 		
@@ -461,7 +509,10 @@ class Knj::Web
 			disabled = ""
 		end
 		
-		raise "No name given to the Web::input()-method." if !args[:name] and args[:type] != :info and args[:type] != :textshow
+		raise "No name given to the Web::input()-method." if !args[:name] and args[:type] != :info and args[:type] != :textshow and args[:type] != :plain
+		
+		css = {}
+		css["text-align"] = args[:align] if args.has_key?(:align)
 		
 		checked = ""
 		checked += " value=\"#{args[:value_active]}\"" if args.has_key?(:value_active)
@@ -482,16 +533,12 @@ class Knj::Web
 			html += "<td class=\"tdt\">"
 			html += args[:title].to_s.html
 			html += "</td>"
-			html += "<td class=\"tdc\">"
+			html += "<td#{self.style_html(css)} class=\"tdc\">"
 			
 			if args[:type] == :textarea
-				if args.has_key?(:height)
-					styleadd = " style=\"height: #{args[:height].html}px;\""
-				else
-					styleadd = ""
-				end
+        css["height"] = "#{args[:height]}px" if args.has_key?(:height)
 				
-				html += "<textarea#{styleadd} class=\"input_textarea\" name=\"#{args[:name].html}\" id=\"#{args[:id].html}\">#{value}</textarea>"
+				html += "<textarea#{self.style_html(css)} class=\"input_textarea\" name=\"#{args[:name].html}\" id=\"#{args[:id].html}\">#{value}</textarea>"
 				html += "</td>"
 			elsif args[:type] == :fckeditor
 				args[:height] = 400 if !args[:height]
@@ -522,7 +569,7 @@ class Knj::Web
 				
 				path = args[:path].gsub("%value%", value.to_s).untaint
 				if File.exists?(path)
-					html += "<img src=\"image.php?picture=#{Knj::Php.urlencode(path).html}&smartsize=100&edgesize=25&force=true&ts=#{Time.new.to_f}\" alt=\"Image\" />"
+					html += "<img src=\"image.rhtml?path=#{Knj::Php.urlencode(path).html}&smartsize=100&rounded_corners=10&border_color=black&force=true&ts=#{Time.new.to_f}\" alt=\"Image\" />"
 					
 					if args[:dellink]
 						dellink = args[:dellink].gsub("%value%", value.to_s)
@@ -536,21 +583,12 @@ class Knj::Web
 				html += "<input type=\"#{args[:type].to_s}\" class=\"input_#{args[:type].to_s}\" name=\"#{args[:name].html}\" /></td>"
 			elsif args[:type] == :textshow or args[:type] == :info
 				html += "#{value}</td>"
+      elsif args[:type] == :plain
+        html += "#{Knj::Web.html(value)}"
       elsif args[:type] == :editarea
-        css = {
-          "width" => "100%"
-        }
+        css["width"] = "100%"
         css["height"] = args[:height] if args.has_key?(:height)
-        
-        styleadd = " style=\""
-        css.each do |key, val|
-          styleadd += "#{key}: #{val};"
-        end
-        styleadd += "\""
-        
-        styleadd += "width=\"100%\""
-        styleadd += "height=\"#{args[:height]}\"" if args[:height]
-        html += "<textarea#{styleadd} id=\"#{args[:id]}\" name=\"#{args[:name]}\">#{value}</textarea>"
+        html += "<textarea#{self.style_html(css)} id=\"#{args[:id]}\" name=\"#{args[:name]}\">#{value}</textarea>"
         
         jshash = {
           "id" => args[:id],
@@ -607,6 +645,8 @@ class Knj::Web
 					html += " selected=\"selected\""
 				elsif curvalue.to_s == key.to_s
 					html += " selected=\"selected\""
+        elsif curvalue and curvalue.respond_to?(:is_knj?) and curvalue.id.to_s == key.to_s
+          html += " selected=\"selected\""
 				end
 				
 				html += " value=\"#{key.html}\">#{value.html}</option>"
@@ -783,6 +823,10 @@ class Knj::Web
 			browser = "bot"
 			title = "Ezooms"
 			version = match[1]
+    elsif match = agent.match(/ahrefsbot\/([\d\.]+)/)
+      browser = "bot"
+      title = "AhrefsBot"
+      version = match[1]
 		else
 			browser = "unknown"
 			title = "(unknown browser)"
@@ -865,11 +909,43 @@ class Knj::Web
 		html = ""
 		
 		hidden_arr.each do |hidden_hash|
+      if hidden_hash[:value].is_a?(Array)
+        if !hidden_hash[:value][0]
+          hidden_hash[:value] = nil
+        else
+          key = hidden_hash[:value][1]
+          obj = hidden_hash[:value][0]
+          hidden_hash[:value] = obj[key]
+        end
+      end
+      
 			html += "<input type=\"hidden\" name=\"#{hidden_hash[:name].to_s.html}\" value=\"#{hidden_hash[:value].to_s.html}\" />"
 		end
 		
 		return html
 	end
+	
+	def self.ahref_parse(str)
+    return str.to_s.gsub("&", "&amp;")
+	end
+	
+  def self.urlenc(string)
+    #Thanks to CGI framework
+    string.to_s.gsub(/([^ a-zA-Z0-9_.-]+)/) do
+      '%' + $1.unpack('H2' * $1.bytesize).join('%').upcase
+    end.tr(' ', '+')
+  end
+  
+  def self.urldec(string)
+    #Thanks to CGI framework
+    str = string.to_s.tr('+', ' ').gsub(/((?:%[0-9a-fA-F]{2})+)/) do
+      [$1.delete('%')].pack('H*')
+    end
+  end
+  
+  def self.html(string)
+    return string.to_s.gsub(/&/, "&amp;").gsub(/\"/, "&quot;").gsub(/>/, "&gt;").gsub(/</, "&lt;")
+  end
 end
 
 def alert(string)
@@ -886,7 +962,7 @@ end
 
 class String
 	def html
-		return self.to_s.gsub(/&/, "&amp;").gsub(/\"/, "&quot;").gsub(/>/, "&gt;").gsub(/</, "&lt;")
+		return Knj::Web.html(self)
 	end
 	
 	def sql
