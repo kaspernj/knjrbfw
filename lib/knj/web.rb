@@ -297,9 +297,9 @@ class Knj::Web
 			realvalue = value
 		else
 			realvalue = value.to_s
+			realvalue = Knj::Php.urldecode(realvalue) if args[:urldecode]
+			realvalue = realvalue.force_encoding("utf-8") if args[:force_utf8]
 		end
-		
-		realvalue = Knj::Php.urldecode(realvalue) if args[:urldecode] and !value.respond_to?(:filename)
 		
 		if varname and varname.index("[") != nil
 			if match = varname.match(/\[(.*?)\]/)
@@ -332,6 +332,7 @@ class Knj::Web
 			realvalue = value
 		else
 			realvalue = value.to_s
+			realvalue = realvalue.force_encoding("utf-8") if args[:force_utf8]
 		end
 		
 		match = varname.match(/^\[(.*?)\]/)
@@ -508,14 +509,14 @@ class Knj::Web
 			disabled = ""
 		end
 		
+		raise "No name given to the Web::input()-method." if !args[:name] and args[:type] != :info and args[:type] != :textshow and args[:type] != :plain
+		
 		css = {}
 		css["text-align"] = args[:align] if args.has_key?(:align)
 		
-		raise "No name given to the Web::input()-method." if !args[:name] and args[:type] != :info and args[:type] != :textshow
-		
 		checked = ""
 		checked += " value=\"#{args[:value_active]}\"" if args.has_key?(:value_active)
-		checked += " checked" if value.is_a?(String) and value == "1" or value.to_s == "1"
+		checked += " checked" if value.is_a?(String) and value == "1" or value.to_s == "1" or value.to_s == "on" or value.to_s == "true"
 		checked += " checked" if value.is_a?(TrueClass)
 		
 		html = ""
@@ -568,7 +569,7 @@ class Knj::Web
 				
 				path = args[:path].gsub("%value%", value.to_s).untaint
 				if File.exists?(path)
-					html += "<img src=\"image.php?picture=#{Knj::Php.urlencode(path).html}&smartsize=100&edgesize=25&force=true&ts=#{Time.new.to_f}\" alt=\"Image\" />"
+					html += "<img src=\"image.rhtml?path=#{Knj::Php.urlencode(path).html}&smartsize=100&rounded_corners=10&border_color=black&force=true&ts=#{Time.new.to_f}\" alt=\"Image\" />"
 					
 					if args[:dellink]
 						dellink = args[:dellink].gsub("%value%", value.to_s)
@@ -582,6 +583,8 @@ class Knj::Web
 				html += "<input type=\"#{args[:type].to_s}\" class=\"input_#{args[:type].to_s}\" name=\"#{args[:name].html}\" /></td>"
 			elsif args[:type] == :textshow or args[:type] == :info
 				html += "#{value}</td>"
+      elsif args[:type] == :plain
+        html += "#{Knj::Web.html(value)}"
       elsif args[:type] == :editarea
         css["width"] = "100%"
         css["height"] = args[:height] if args.has_key?(:height)

@@ -687,8 +687,15 @@ class Knj::Objects
 				end
 				
 				found = true
-			elsif match = key.match(/^([A-z_\d]+)_not$/) and ((cols_str_has and args[:cols_str].index(match[1]) != nil) or (cols_num_has and args[:cols_num].index(match[1]) != nil))
-				sql_where += " AND #{table}`#{db.esc_col(match[1])}` != '#{db.esc(val)}'"
+			elsif match = key.match(/^([A-z_\d]+)_(not|lower)$/) and ((cols_str_has and args[:cols_str].index(match[1]) != nil) or (cols_num_has and args[:cols_num].index(match[1]) != nil))
+        if match[2] == "not"
+          sql_where += " AND #{table}`#{db.esc_col(match[1])}` != '#{db.esc(val)}'"
+        elsif match[2] == "lower"
+          sql_where += " AND LOWER(#{table}`#{db.esc_col(match[1])}`) = LOWER('#{db.esc(val)}')"
+        else
+          raise "Unknown mode: '#{match[2]}'."
+        end
+        
 				found = true
 			elsif cols_date_has and match = key.match(/^(.+)_(day|month|from|to|below|above)$/) and args[:cols_date].index(match[1]) != nil
 				if match[2] == "day"

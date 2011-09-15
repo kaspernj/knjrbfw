@@ -75,7 +75,6 @@ module Knj::Strings
         end
         
         html += " href=\"#{match[0]}\">#{match[0]}</a>"
-        
         str = str.gsub(match[0], html)
       end
     end

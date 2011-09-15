@@ -50,6 +50,11 @@ class Knj::Datarow
         merge_args = {} if !merge_args
         return ob.list(classname, {"count" => true, colname.to_s => self.id}.merge(merge_args))
       end
+      
+      define_method("#{methodname}_last".to_sym) do |args|
+        args = {} if !args
+        return ob.list(classname, {"orderby" => [["id", "desc"]], "limit" => 1}.merge(args))
+      end
     end
 	end
 	
@@ -209,11 +214,29 @@ class Knj::Datarow
           end
         end
         
+        if col_type == "int" or col_type == "decimal"
+          method_name = "#{col_name}_format"
+          if inst_methods.index(method_name) == nil
+            define_method(method_name) do |*args|
+              return Knj::Locales.number_out(self[col_name.to_sym], *args)
+            end
+          end
+        end
+        
         if col_type == "int" or col_type == "varchar"
           method_name = "by_#{col_name}".to_sym
           if !inst_methods.index(method_name)
             define_singleton_method(method_name) do |arg|
               return d.ob.get_by(self.table, {col_name.to_s => arg})
+            end
+          end
+        end
+        
+        if col_type == "time"
+          method_name = "#{col_name}_dbt"
+          if !inst_methods.index(method_name)
+            define_method(method_name) do
+              return Knj::Db::Dbtime.new(self[col_name.to_sym])
             end
           end
         end
