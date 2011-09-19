@@ -64,7 +64,7 @@ class Knj::Objects
 	def call(args, &block)
 		classstr = args["object"].class.to_s
 		
-		if @callbacks[classstr]
+		if @callbacks.has_key?(classstr)
 			@callbacks[classstr].clone.each do |callback_key, callback|
 				docall = false
 				
@@ -106,11 +106,17 @@ class Knj::Objects
     end
     
 		if !@objects.has_key?(classname)
-			filename = @args[:class_path] + "/#{@args[:class_pre]}#{classname.downcase}.rb"
-			filename_req = @args[:class_path] + "/#{@args[:class_pre]}#{classname.downcase}"
+			filename = "#{@args[:class_path]}/#{@args[:class_pre]}#{classname.downcase}.rb"
+			filename_req = "#{@args[:class_path]}/#{@args[:class_pre]}#{classname.downcase}"
 			raise "Class file could not be found: #{filename}." if !File.exists?(filename)
 			require filename_req
-			@args[:module].const_get(classname).load_columns(Knj::Hash_methods.new(:args => args, :ob => self, :db => @args[:db])) if @args[:module].const_get(classname).respond_to?(:load_columns)
+			
+			pass_arg = Knj::Hash_methods.new(:args => args, :ob => self, :db => @args[:db])
+			classob = @args[:module].const_get(classname)
+			
+			classob.load_columns(pass_arg) if classob.respond_to?(:load_columns)
+			classob.datarow_init(pass_arg) if classob.respond_to?(:datarow_init)
+			
 			@objects[classname] = {}
 		end
 	end
