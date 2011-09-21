@@ -107,8 +107,8 @@ class Knj::Objects
     end
     
 		if !@objects.has_key?(classname)
-			filename = "#{@args[:class_path]}/#{@args[:class_pre]}#{classname.downcase}.rb"
-			filename_req = "#{@args[:class_path]}/#{@args[:class_pre]}#{classname.downcase}"
+			filename = "#{@args[:class_path]}/#{@args[:class_pre]}#{classname.to_s.downcase}.rb"
+			filename_req = "#{@args[:class_path]}/#{@args[:class_pre]}#{classname.to_s.downcase}"
 			raise "Class file could not be found: #{filename}." if !File.exists?(filename)
 			require filename_req
 			
@@ -140,8 +140,14 @@ class Knj::Objects
         when :weak
           begin
             obj = @objects[classname][id]
-            return obj.__getobj__ if obj.is_a?(WeakRef)
-            return obj
+            obj = obj.__getobj__ if obj.is_a?(WeakRef)
+            
+            #This actually happens sometimes... WTF!? - knj
+            if obj.is_a?(Knj::Datarow) and obj.respond_to?(:table) and obj.respond_to?(:id) and obj.table.to_sym == classname and obj.id.to_i == id
+              return obj
+            else
+              raise WeakRef::RefError
+            end
           rescue WeakRef::RefError
             @objects[classname].delete(id)
           end

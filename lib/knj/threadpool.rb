@@ -76,7 +76,7 @@ class Knj::Threadpool
     
 		@mutex.synchronize do
 			@blocks.each do |blockdata|
-				if !blockdata[:running] and !blockdata[:runned]
+				if blockdata and !blockdata[:running] and !blockdata[:runned]
 					blockdata[:running] = true
 					return blockdata
 				end
