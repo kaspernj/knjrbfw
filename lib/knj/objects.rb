@@ -7,6 +7,7 @@ class Knj::Objects
 		@args[:col_id] = :id if !@args[:col_id]
 		@args[:class_pre] = "class_" if !@args[:class_pre]
 		@args[:module] = Kernel if !@args[:module]
+		@args[:cache] = :weak if !@args.has_key?(:cache)
 		@objects = {}
 		
 		@events = Knj::Event_handler.new
@@ -124,31 +125,57 @@ class Knj::Objects
 	def get(classname, data)
 		classname = classname.to_sym
 		
-		if data.is_a?(Hash) and data[@args[:col_id].to_sym]
+		if data.is_a?(Integer) or data.is_a?(String) or data.is_a?(Fixnum)
+      id = data.to_i
+		elsif data.is_a?(Hash) and data[@args[:col_id].to_sym]
 			id = data[@args[:col_id].to_sym].to_i
 		elsif data.is_a?(Hash) and data[@args[:col_id].to_s]
 			id = data[@args[:col_id].to_s].to_i
-		elsif data.is_a?(Integer) or data.is_a?(String) or data.is_a?(Fixnum)
-			id = data.to_i
 		elsif
 			raise Knj::Errors::InvalidData, "Unknown data: '#{data.class.to_s}'."
 		end
 		
-    return @objects[classname][id] if @objects.has_key?(classname) and @objects[classname].has_key?(id)
+		if @objects.has_key?(classname) and @objects[classname].has_key?(id)
+      case @args[:cache]
+        when :weak
+          begin
+            obj = @objects[classname][id]
+            return obj.__getobj__ if obj.is_a?(WeakRef)
+            return obj
+          rescue WeakRef::RefError
+            @objects[classname].delete(id)
+          end
+        else
+          return @objects[classname][id]
+      end
+    end
+    
     self.requireclass(classname) if !@objects.has_key?(classname)
     
     if @args[:datarow]
-      @objects[classname][id] = @args[:module].const_get(classname).new(Knj::Hash_methods.new(
-        :ob => self,
-        :data => data
-      ))
+      obj = @args[:module].const_get(classname).new(Knj::Hash_methods.new(:ob => self, :data => data))
     else
       args = [data]
       args = args | @args[:extra_args] if @args[:extra_args]
-      @objects[classname][id] = @args[:module].const_get(classname).new(*args)
+      obj = @args[:module].const_get(classname).new(*args)
     end
     
-    return @objects[classname][id]
+    case @args[:cache]
+      when :weak
+        @objects[classname][id] = WeakRef.new(obj)
+      else
+        @objects[classname][id] = obj
+    end
+    
+    return obj
+	end
+	
+	def object_finalizer(id)
+    classname = @objects_idclass[id]
+    if classname
+      @objects[classname].delete(id)
+      @objects_idclass.delete(id)
+    end
 	end
 	
 	def get_by(classname, args = {})
@@ -503,6 +530,8 @@ class Knj::Objects
 	
 	# Try to clean up objects by unsetting everything, start the garbagecollector, get all the remaining objects via ObjectSpace and set them again. Some (if not all) should be cleaned up and our cache should still be safe... dirty but works.
 	def clean(classn)
+    return false if @args[:cache] == :weak
+    
 		if classn.is_a?(Array)
 			classn.each do |realclassn|
 				self.clean(realclassn)
@@ -515,6 +544,8 @@ class Knj::Objects
 	end
 	
 	def clean_all
+    return false if @args[:cache] == :weak
+    
 		classnames = []
     @objects.keys.each do |classn|
       classnames << classn
@@ -528,6 +559,7 @@ class Knj::Objects
 	end
 	
 	def clean_recover
+    return false if @args[:cache] == :weak
     return false if RUBY_ENGINE == "jruby" and !JRuby.objectspace
     
     @objects.keys.each do |classn|
