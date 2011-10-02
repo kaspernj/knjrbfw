@@ -13,7 +13,7 @@ module Knj::Php
 			send_paras << paras[1] if paras[1]
 			paras[0][0].send(*send_paras)
 		else
-			raise "Unknown user-func."
+			raise "Unknown user-func: '#{paras[0].class.name}'."
 		end
 	end
 	

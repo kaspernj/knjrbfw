@@ -24,7 +24,7 @@ module Knj::ArrayExt
 			value = value if !args[:key]
 			
 			if args[:callback]
-        if args[:callback].is_a?(Proc)
+        if args[:callback].is_a?(Proc) or args[:callback].is_a?(Method)
           value = args[:callback].call(value)
         else
           value = Knj::Php.call_user_func(args[:callback], value) if args[:callback]
