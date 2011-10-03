@@ -1,5 +1,5 @@
 class Knj::Objects
-	attr_reader :args, :events
+	attr_reader :args, :events, :data
 	
 	def initialize(args)
 		@callbacks = {}
@@ -9,6 +9,7 @@ class Knj::Objects
 		@args[:module] = Kernel if !@args[:module]
 		@args[:cache] = :weak if !@args.has_key?(:cache)
 		@objects = {}
+		@data = {}
 		
 		@events = Knj::Event_handler.new
 		@events.add_event(
