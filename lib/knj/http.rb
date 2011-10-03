@@ -99,7 +99,7 @@ class Knj::Http
 		@mutex.synchronize do
 			resp, data = @http.get(addr, self.headers)
 			self.setcookie(resp.response.to_hash["set-cookie"])
-			raise "Could not find that page: '#{addr}'." if resp.is_a?(Net::HTTPNotFound)
+			raise Knj::Errors::NotFound, "Could not find that page: '#{addr}'." if resp.is_a?(Net::HTTPNotFound)
 			
 			#in some cases (like in IronRuby) the data is set like this.
 			data = resp.body if !data
