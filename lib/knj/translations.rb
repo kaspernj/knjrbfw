@@ -121,19 +121,4 @@ class Knj::Translations::Translation < Knj::Datarow
 			d.data.delete(:object)
 		end
 	end
-	
-	def self.listt(d)
-		sql = "SELECT * FROM #{d.db.escape_col}#{d.db.esc_col(table)}#{d.db.escape_col} WHERE 1=1"
-		ret = list_helper(d)
-		
-		d.args.each do |key, val|
-			raise "No such key: #{key}."
-		end
-		
-		sql += ret[:sql_where]
-		sql += ret[:sql_order]
-		sql += ret[:sql_limit]
-		
-		return d.ob.list_bysql(:Translation, sql)
-	end
 end
