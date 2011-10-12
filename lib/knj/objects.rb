@@ -99,28 +99,41 @@ class Knj::Objects
 		end
 	end
 	
-	def requireclass(classname)
+	def requireclass(classname, args = {})
     classname = classname.to_sym
     
-    if !@args[:require] and @args.has_key?(:require)
-      @objects[classname] = {} if !@objects.has_key?(classname)
-      return nil
-    end
-    
 		if !@objects.has_key?(classname)
-			filename = "#{@args[:class_path]}/#{@args[:class_pre]}#{classname.to_s.downcase}.rb"
-			filename_req = "#{@args[:class_path]}/#{@args[:class_pre]}#{classname.to_s.downcase}"
-			raise "Class file could not be found: #{filename}." if !File.exists?(filename)
-			require filename_req
+      if (@args[:require] or !@args.has_key?(:require)) and (!args.has_key?(:require) or args[:require])
+        filename = "#{@args[:class_path]}/#{@args[:class_pre]}#{classname.to_s.downcase}.rb"
+        filename_req = "#{@args[:class_path]}/#{@args[:class_pre]}#{classname.to_s.downcase}"
+        raise "Class file could not be found: #{filename}." if !File.exists?(filename)
+        require filename_req
+      end
+      
+      if args[:class]
+        classob = args[:class]
+      else
+        classob = @args[:module].const_get(classname)
+      end
 			
-			pass_arg = Knj::Hash_methods.new(:args => args, :ob => self, :db => @args[:db])
-			classob = @args[:module].const_get(classname)
-			
-			classob.load_columns(pass_arg) if classob.respond_to?(:load_columns)
-			classob.datarow_init(pass_arg) if classob.respond_to?(:datarow_init)
+			if (classob.respond_to?(:load_columns) or classob.respond_to?(:datarow_init)) and (!args.has_key?(:load) or args[:load])
+        self.load_class(classname, args)
+			end
 			
 			@objects[classname] = {}
 		end
+	end
+	
+	def load_class(classname, args = {})
+    if args[:class]
+      classob = args[:class]
+    else
+      classob = @args[:module].const_get(classname)
+    end
+    
+    pass_arg = Knj::Hash_methods.new(:ob => self, :db => @args[:db])
+    classob.load_columns(pass_arg) if classob.respond_to?(:load_columns)
+    classob.datarow_init(pass_arg) if classob.respond_to?(:datarow_init)
 	end
 	
 	def get(classname, data)
@@ -587,41 +600,41 @@ class Knj::Objects
     end
 	end
 	
-	def sqlhelper(list_args, args)
+	def sqlhelper(list_args, args_def)
 		if args[:db]
 			db = args[:db]
 		else
 			db = @args[:db]
 		end
 		
+		args = args_def
+		
 		if args[:table]
-			table = "`#{db.esc_table(args[:table])}`."
+			table_def = "`#{db.esc_table(args[:table])}`."
 		else
-			table = ""
+			table_def = ""
 		end
 		
+		sql_joins = ""
 		sql_where = ""
 		sql_order = ""
 		sql_limit = ""
 		
+		do_joins = {}
+		
 		limit_from = nil
 		limit_to = nil
-		
-		cols_str_has = args.has_key?(:cols_str)
-		cols_num_has = args.has_key?(:cols_num)
-		cols_date_has = args.has_key?(:cols_date)
-		cols_dbrows_has = args.has_key?(:cols_dbrows)
-		cols_bools_has = args.has_key?(:cols_bools)
 		
 		if list_args.has_key?("orderby")
 			orders = []
 			orderstr = list_args["orderby"]
+			list_args["orderby"] = [list_args["orderby"]] if list_args["orderby"].is_a?(Hash)
 			
 			if list_args["orderby"].is_a?(String)
 				found = false
-				found = true if !found and cols_str_has and args[:cols_str].index(orderstr) != nil
-				found = true if !found and cols_date_has and args[:cols_date].index(orderstr) != nil
-				found = true if !found and cols_num_has and args[:cols_num].index(orderstr) != nil
+				found = true if !found and args.has_key?(:cols_str) and args[:cols_str].index(orderstr) != nil
+				found = true if !found and args.has_key?(:cols_date) and args[:cols_date].index(orderstr) != nil
+				found = true if !found and args.has_key?(:cols_num) and args[:cols_num].index(orderstr) != nil
 				
 				if found
 					sql_order += " ORDER BY "
@@ -637,16 +650,20 @@ class Knj::Objects
 						list_args.delete("ordermode")
 					end
 					
-					sql_order += "#{table}`#{db.esc_col(list_args["orderby"])}`#{ordermode}"
+					sql_order += "#{table_def}`#{db.esc_col(list_args["orderby"])}`#{ordermode}"
 					list_args.delete("orderby")
 				end
 			elsif list_args["orderby"].is_a?(Array)
 				sql_order += " ORDER BY "
 				
 				list_args["orderby"].each do |val|
+          ordermode = nil
+          orderstr = nil
+          found = false
+          
 					if val.is_a?(Array)
 						orderstr = val[0]
-						
+            
 						if val[1] == "asc"
 							ordermode = " ASC"
 						elsif val[1] == "desc"
@@ -655,18 +672,36 @@ class Knj::Objects
 					elsif val.is_a?(String)
 						orderstr = val
 						ordermode = " ASC"
+          elsif val.is_a?(Hash)
+            raise "No joined tables." if !args.has_key?(:joined_tables)
+            
+            if val[:mode] == "asc"
+              ordermode = " ASC"
+            elsif val[:mode] == "desc"
+              ordermode = " DESC"
+            end
+            
+            if args[:joined_tables]
+              args[:joined_tables].each do |table_name, table_data|
+                if table_name.to_s == val[:table]
+                  do_joins[table_name] = true
+                  orders << "`#{db.esc_table(table_name)}`.`#{db.esc_col(val[:col])}`#{ordermode}"
+                  found = true
+                  break
+                end
+              end
+            end
 					else
 						raise "Unknown object: #{val.class.name}"
 					end
 					
-					found = false
-					found = true if !found and cols_str_has and args[:cols_str].index(orderstr) != nil
-					found = true if !found and cols_date_has and args[:cols_date].index(orderstr) != nil
-					found = true if !found and cols_num_has and args[:cols_num].index(orderstr) != nil
-					found = true if !found and cols_bools_has and args[:cols_bools].index(orderstr) != nil
+					found = true if !found and args.has_key?(:cols_str) and args[:cols_str].index(orderstr) != nil
+					found = true if !found and args.has_key?(:cols_date) and args[:cols_date].index(orderstr) != nil
+					found = true if !found and args.has_key?(:cols_num) and args[:cols_num].index(orderstr) != nil
+					found = true if !found and args.has_key?(:cols_bools) and args[:cols_bools].index(orderstr) != nil
 					
 					raise "Column not found for ordering: #{orderstr}." if !found
-					orders << "#{table}`#{db.esc_col(orderstr)}`#{ordermode}"
+					orders << "#{table_def}`#{db.esc_col(orderstr)}`#{ordermode}" if orderstr
 				end
 				
 				sql_order += orders.join(", ")
@@ -676,10 +711,27 @@ class Knj::Objects
 			end
 		end
 		
-		list_args.each do |key, val|
+		list_args.each do |realkey, val|
 			found = false
 			
-			if (cols_str_has and args[:cols_str].index(key) != nil) or (cols_num_has and args[:cols_num].index(key) != nil) or (cols_dbrows_has and args[:cols_dbrows].index(key) != nil)
+			if realkey.is_a?(Array)
+        if !args[:joins_skip]
+          datarow_obj = self.datarow_obj_from_args(args_def, list_args, realkey[0])
+          args = datarow_obj.columns_sqlhelper_args
+        else
+          args = args_def
+        end
+        
+        do_joins[realkey[0].to_sym] = true
+        table = "`#{db.esc_table(realkey[0])}`."
+        key = realkey[1]
+      else
+        table = table_def
+        args = args_def
+        key = realkey
+      end
+			
+			if (args.has_key?(:cols_str) and args[:cols_str].index(key) != nil) or (args.has_key?(:cols_num) and args[:cols_num].index(key) != nil) or (args.has_key?(:cols_dbrows) and args[:cols_dbrows].index(key) != nil)
         if val.is_a?(Array)
           escape_sql = Knj::ArrayExt.join(
             :arr => val,
@@ -689,12 +741,20 @@ class Knj::Objects
             :sep => ",",
             :surr => "'")
           sql_where += " AND #{table}`#{db.esc_col(key)}` IN (#{escape_sql})"
+        elsif val.is_a?(Hash) and val[:type] == "col"
+          if !val.has_key?(:table)
+            Knj::Php.print_r(val)
+            raise "No table was given for join."
+          end
+          
+          do_joins[val[:table].to_sym] = true
+          sql_where += " AND #{table}`#{db.esc_col(key)}` = `#{db.esc_table(val[:table])}`.`#{db.esc_col(val[:name])}`"
         else
           sql_where += " AND #{table}`#{db.esc_col(key)}` = '#{db.esc(val)}'"
         end
         
 				found = true
-			elsif cols_bools_has and args[:cols_bools].index(key) != nil
+			elsif args.has_key?(:cols_bools) and args[:cols_bools].index(key) != nil
 				if val.is_a?(TrueClass) or (val.is_a?(Integer) and val.to_i == 1) or (val.is_a?(String) and (val == "true" or val == "1"))
 					realval = "1"
 				elsif val.is_a?(FalseClass) or (val.is_a?(Integer) and val.to_i == 0) or (val.is_a?(String) and (val == "false" or val == "0"))
@@ -715,10 +775,10 @@ class Knj::Objects
 				limit_from = 0
 				limit_to = val.to_i
 				found = true
-			elsif cols_dbrows_has and args[:cols_dbrows].index(key.to_s + "_id") != nil
+			elsif args.has_key?(:cols_dbrows) and args[:cols_dbrows].index(key.to_s + "_id") != nil
 				sql_where += " AND #{table}`#{db.esc_col(key.to_s + "_id")}` = '#{db.esc(val.id)}'"
 				found = true
-			elsif cols_str_has and match = key.match(/^([A-z_\d]+)_(search|has)$/) and args[:cols_str].index(match[1]) != nil
+			elsif args.has_key?(:cols_str) and match = key.match(/^([A-z_\d]+)_(search|has)$/) and args[:cols_str].index(match[1]) != nil
 				if match[2] == "search"
 					Knj::Strings.searchstring(val).each do |str|
 						sql_where += " AND #{table}`#{db.esc_col(match[1])}` LIKE '%#{db.esc(str)}%'"
@@ -732,7 +792,7 @@ class Knj::Objects
 				end
 				
 				found = true
-			elsif match = key.match(/^([A-z_\d]+)_(not|lower)$/) and ((cols_str_has and args[:cols_str].index(match[1]) != nil) or (cols_num_has and args[:cols_num].index(match[1]) != nil))
+			elsif match = key.match(/^([A-z_\d]+)_(not|lower)$/) and ((args.has_key?(:cols_str) and args[:cols_str].index(match[1]) != nil) or (args.has_key?(:cols_num) and args[:cols_num].index(match[1]) != nil))
         if match[2] == "not"
           sql_where += " AND #{table}`#{db.esc_col(match[1])}` != '#{db.esc(val)}'"
         elsif match[2] == "lower"
@@ -742,7 +802,7 @@ class Knj::Objects
         end
         
 				found = true
-			elsif cols_date_has and match = key.match(/^(.+)_(day|month|from|to|below|above)$/) and args[:cols_date].index(match[1]) != nil
+			elsif args.has_key?(:cols_date) and match = key.match(/^(.+)_(day|month|from|to|below|above)$/) and args[:cols_date].index(match[1]) != nil
 				if match[2] == "day"
 					sql_where += " AND DATE_FORMAT(#{table}`#{db.esc_col(match[1])}`, '%d %m %Y') = DATE_FORMAT('#{db.esc(val.dbstr)}', '%d %m %Y')"
 				elsif match[2] == "month"
@@ -756,7 +816,7 @@ class Knj::Objects
 				end
 				
 				found = true
-			elsif cols_num_has and match = key.match(/^(.+)_(from|to)$/) and args[:cols_num].index(match[1]) != nil
+			elsif args.has_key?(:cols_num) and match = key.match(/^(.+)_(from|to)$/) and args[:cols_num].index(match[1]) != nil
 				if match[2] == "from"
 					sql_where += " AND #{table}`#{db.esc_col(match[1])}` <= '#{db.esc(val)}'"
 				elsif match[2] == "to"
@@ -768,17 +828,83 @@ class Knj::Objects
 				found = true
 			end
 			
-			list_args.delete(key) if found
+			list_args.delete(realkey) if found
 		end
+		
+		args = args_def
+		
+		if !args[:joins_skip]
+      raise "No joins defined on '#{args[:table]}' for: '#{args[:table]}'." if !do_joins.empty? and !args[:joined_tables]
+      
+      do_joins.each do |table_name, temp_val|
+        raise "No join defined on table '#{args[:table]}' for table '#{table_name}'." if !args[:joined_tables].has_key?(table_name)
+        table_data = args[:joined_tables][table_name]
+        
+        if table_data.has_key?(:parent_table)
+          sql_joins += " LEFT JOIN `#{table_data[:parent_table]}` AS `#{table_name}` ON 1=1"
+        else
+          sql_joins += " LEFT JOIN `#{table_name}` ON 1=1"
+        end
+        
+        if table_data[:ob]
+          ob = table_data[:ob]
+        else
+          ob = self
+        end
+        
+        class_name = args[:table].to_sym
+        
+        if table_data[:datarow]
+          datarow = table_data[:datarow]
+        else
+          self.requireclass(class_name) if @objects.has_key?(class_name)
+          datarow = @args[:module].const_get(class_name)
+        end
+        
+        if !datarow.columns_sqlhelper_args
+          ob.requireclass(datarow.table.to_sym)
+          raise "No SQL-helper-args on class '#{datarow.table}' ???" if !datarow.columns_sqlhelper_args
+        end
+        
+        newargs = datarow.columns_sqlhelper_args.clone
+        newargs[:table] = table_name
+        newargs[:joins_skip] = true
+        
+        ret = self.sqlhelper(table_data[:where].clone, newargs)
+        sql_joins += ret[:sql_where]
+      end
+    end
 		
 		if limit_from and limit_to
 			sql_limit = " LIMIT #{limit_from}, #{limit_to}"
 		end
 		
 		return {
+      :sql_joins => sql_joins,
 			:sql_where => sql_where,
 			:sql_limit => sql_limit,
 			:sql_order => sql_order
 		}
+	end
+	
+	def datarow_obj_from_args(args, list_args, class_name)
+    class_name = class_name.to_sym
+    
+    if !args.has_key?(:joined_tables)
+      Knj::Php.print_r(list_args)
+      Knj::Php.print_r(args)
+      raise "No joined tables on '#{args[:table]}' to find datarow for: '#{class_name}'."
+    end
+    
+    args[:joined_tables].each do |table_name, table_data|
+      next if table_name.to_sym != class_name
+      
+      return table_data[:datarow] if table_data[:datarow]
+      
+      self.requireclass(class_name) if @objects.has_key?(class_name)
+      return @args[:module].const_get(class_name)
+    end
+    
+    raise "Could not figure out datarow for: '#{class_name}'."
 	end
 end

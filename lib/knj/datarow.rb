@@ -10,7 +10,7 @@ class Knj::Datarow
     @depending_data = [] if !@depending_data
     return @depending_data
   end
-	
+  
 	def is_knj?; return true; end
 	
 	def self.is_nullstamp?(stamp)
@@ -37,18 +37,25 @@ class Knj::Datarow
         raise "Unknown argument: '#{val.class.name}'."
       end
       
+      if val.is_a?(Hash) and val.has_key?(:where)
+        where_args = val[:where]
+      else
+        where_args = {}
+      end
+      
+      raise "No classname given." if !classname
       methodname = "#{classname.to_s.downcase}s".to_sym if !methodname
       
       define_method(methodname) do |*args|
         merge_args = args[0] if args and args[0]
         merge_args = {} if !merge_args
-        return ob.list(classname, {colname.to_s => self.id}.merge(merge_args))
+        return ob.list(classname, where_args.merge(colname.to_s => self.id))
       end
       
       define_method("#{methodname}_count".to_sym) do |*args|
         merge_args = args[0] if args and args[0]
         merge_args = {} if !merge_args
-        return ob.list(classname, {"count" => true, colname.to_s => self.id}.merge(merge_args))
+        return ob.list(classname, where_args.merge(colname.to_s => self.id, "count" => true))
       end
       
       define_method("#{methodname}_last".to_sym) do |args|
@@ -102,6 +109,10 @@ class Knj::Datarow
     end
 	end
 	
+	def self.joined_tables(hash)
+    @columns_joined_tables = hash
+	end
+	
 	def self.table
 		return self.name.split("::").last
 	end
@@ -113,6 +124,7 @@ class Knj::Datarow
 	
 	def self.columns_load(d)
 		return nil if @columns
+		@ob = d.ob
 		@columns = d.db.tables[table].columns
 	end
 	
@@ -124,14 +136,17 @@ class Knj::Datarow
     if d.args["count"]
       count = true
       d.args.delete("count")
-      sql = "SELECT COUNT(*) AS count"
+      sql = "SELECT COUNT(`#{table}`.*) AS count"
     else
-      sql = "SELECT *"
+      sql = "SELECT `#{table}`.*"
     end
     
-    sql += " FROM #{d.db.enc_table}#{table}#{d.db.enc_table} WHERE 1=1"
+    ret = self.list_helper(d)
     
-    ret = list_helper(d)
+    sql += " FROM #{d.db.enc_table}#{table}#{d.db.enc_table}"
+    sql += ret[:sql_joins]
+    sql += " WHERE 1=1"
+    
     d.args.each do |key, val|
       case key
         when "return_sql"
@@ -151,15 +166,10 @@ class Knj::Datarow
 	end
 	
 	def self.load_columns(d)
-    if @columns_sqlhelper_args_working
-      sleep 0.1 while @columns_sqlhelper_args_working
-      return false
-    end
+    @mutex = Mutex.new if !@mutex
     
-    begin
-      @columns_sqlhelper_args_working = true
+    @mutex.synchronize do
       cols = self.columns(d)
-      
       inst_methods = instance_methods(false)
       
       sqlhelper_args = {
@@ -242,16 +252,26 @@ class Knj::Datarow
         end
       end
       
+      if @columns_joined_tables
+        @columns_joined_tables.each do |table_name, table_data|
+          table_data[:where].each do |key, val|
+            val[:table] = self.table.to_sym if val.is_a?(Hash) and !val.has_key?(:table) and val[:type] == "col"
+          end
+          
+          table_data[:datarow] = @ob.args[:module].const_get(table_name.to_sym) if !table_data.has_key?(:datarow)
+        end
+        
+        sqlhelper_args[:joined_tables] = @columns_joined_tables
+      end
+      
       @columns_sqlhelper_args = sqlhelper_args
-    ensure
-      @columns_sqlhelper_args_working = false
     end
     
     self.init_class(d) if self.respond_to?(:init_class)
 	end
 	
 	def self.list_helper(d)
-		load_columns(d) if !@columns_sqlhelper_args
+		self.load_columns(d) if !@columns_sqlhelper_args
 		return d.ob.sqlhelper(d.args, @columns_sqlhelper_args)
 	end
 	

@@ -118,6 +118,19 @@ module Knj::Php
 		elsif cstr == "Knj::Unix_proc"
 			retstr += "#{argument.class.to_s}::data - "
 			retstr += print_r(argument.data, true, count).to_s
+    elsif cstr == "Thread"
+      retstr += "#{argument.class.to_s} - "
+      
+      hash = {}
+      argument.keys.each do |key|
+        hash[key] = argument[key]
+      end
+      
+      retstr += print_r(hash, true, count).to_s
+    elsif cstr == "Class"
+      retstr += "#{argument.class.to_s} - "
+      hash = {"name" => argument.name}
+      retstr += print_r(hash, true, count).to_s
 		else
 			#print argument.to_s, "\n"
 			retstr += "Unknown class: " + cstr + "\n"

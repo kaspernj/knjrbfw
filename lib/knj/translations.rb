@@ -122,7 +122,7 @@ class Knj::Translations::Translation < Knj::Datarow
 		end
 	end
 	
-	def self.list(d)
+	def self.listt(d)
 		sql = "SELECT * FROM #{d.db.escape_col}#{d.db.esc_col(table)}#{d.db.escape_col} WHERE 1=1"
 		ret = list_helper(d)
 		
