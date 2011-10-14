@@ -396,7 +396,17 @@ class Knj::Db
     return @enc_table
   end
   
-  def date_out(date_obj, args = {})
+  def enc_col
+    if !@enc_col
+      conn_exec do |driver|
+        @enc_col = driver.escape_col
+      end
+    end
+    
+    return @enc_col
+  end
+  
+  def date_out(date_obj = Knj::Datet.new, args = {})
     return Knj::Datet.in(date_obj).dbstr(args)
   end
   

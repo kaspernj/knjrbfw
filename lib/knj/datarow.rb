@@ -133,17 +133,22 @@ class Knj::Datarow
 	end
 	
 	def self.list(d)
+    ec_col = d.db.enc_col
+    ec_table = d.db.enc_table
+    
+    table_str = "#{ec_table}#{d.db.esc_table(self.table)}#{ec_table}"
+    
     if d.args["count"]
       count = true
       d.args.delete("count")
-      sql = "SELECT COUNT(`#{table}`.*) AS count"
+      sql = "SELECT COUNT(#{table_str}.#{ec_col}id#{ec_col}) AS count"
     else
-      sql = "SELECT `#{table}`.*"
+      sql = "SELECT #{table_str}.*"
     end
     
     ret = self.list_helper(d)
     
-    sql += " FROM #{d.db.enc_table}#{table}#{d.db.enc_table}"
+    sql += " FROM #{table_str}"
     sql += ret[:sql_joins]
     sql += " WHERE 1=1"
     
@@ -157,12 +162,21 @@ class Knj::Datarow
     end
     
     sql += ret[:sql_where]
+    
+    sql += " GROUP BY #{table_str}.#{ec_col}id#{ec_col}"
+    
     sql += ret[:sql_order]
     sql += ret[:sql_limit]
     
     return sql.to_s if d.args["return_sql"]
-    return d.db.query(sql).fetch[:count].to_i if count
-    return d.ob.list_bysql(table, sql)
+    
+    if count
+      ret = d.db.query(sql).fetch
+      return ret[:count].to_i if ret
+      return 0
+    end
+    
+    return d.ob.list_bysql(self.table, sql)
 	end
 	
 	def self.load_columns(d)
