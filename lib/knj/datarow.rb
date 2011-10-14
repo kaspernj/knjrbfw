@@ -49,13 +49,13 @@ class Knj::Datarow
       define_method(methodname) do |*args|
         merge_args = args[0] if args and args[0]
         merge_args = {} if !merge_args
-        return ob.list(classname, where_args.merge(colname.to_s => self.id))
+        return ob.list(classname, merge_args.merge(colname.to_s => self.id))
       end
       
       define_method("#{methodname}_count".to_sym) do |*args|
         merge_args = args[0] if args and args[0]
         merge_args = {} if !merge_args
-        return ob.list(classname, where_args.merge(colname.to_s => self.id, "count" => true))
+        return ob.list(classname, merge_args.merge(colname.to_s => self.id, "count" => true))
       end
       
       define_method("#{methodname}_last".to_sym) do |args|
@@ -160,7 +160,7 @@ class Knj::Datarow
     sql += ret[:sql_order]
     sql += ret[:sql_limit]
     
-    return sql if d.args["return_sql"]
+    return sql.to_s if d.args["return_sql"]
     return d.db.query(sql).fetch[:count].to_i if count
     return d.ob.list_bysql(table, sql)
 	end
