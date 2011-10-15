@@ -291,6 +291,12 @@ module Knj::Php
   def urlencode(string)
     return Knj::Web.urlenc(string)
   end
+  
+  def parse_str(str, hash)
+    CGI.parse(str).each do |key, val|
+      hash[key] = val
+    end
+  end
 	
 	def file_put_contents(filepath, content)
 		File.open(filepath.untaint, "w") do |file|
@@ -715,6 +721,20 @@ module Knj::Php
 		zstream.close
 		
 		return plain_str.to_s
+	end
+	
+	#Sort methods.
+	def ksort(hash)
+    nhash = hash.sort do |a, b|
+      a[0] <=> b[0]
+    end
+    
+    newhash = {}
+    nhash.each do |val|
+      newhash[val[0]] = val[1][0]
+    end
+    
+    return newhash
 	end
 	
   module_function(*instance_methods)

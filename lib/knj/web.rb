@@ -212,8 +212,11 @@ class Knj::Web
     ret = {}
     
     str.split(/;\s*/).each do |cookie_str|
-      splitted = cookie_str.split("=")
-      ret[Knj::Php.urldecode(splitted[0])] = Knj::Php.urldecode(splitted[1])
+      if !match = cookie_str.match(/^(.*?)=\"(.*)\"$/)
+        match = cookie_str.match(/^(.*?)=(.*)$/)
+      end
+      
+      ret[Knj::Php.urldecode(match[1])] = Knj::Php.urldecode(match[2])
     end
     
     return ret

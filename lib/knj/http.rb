@@ -93,6 +93,18 @@ class Knj::Http
     end
 	end
 	
+	#Shortcut to spawn a new Http-object and running get on the path.
+	def self.get(url)
+    data = URI.parse(url)
+    
+    args = {"host" => data.host}
+    args["ssl"] = true if data.scheme == "https"
+    args["port"] = data.port if data.port
+    
+    http = Knj::Http.new(args)
+    return http.get(data.path)
+	end
+	
 	def get(addr)
 		check_connected
 		
@@ -104,6 +116,8 @@ class Knj::Http
 			#in some cases (like in IronRuby) the data is set like this.
 			data = resp.body if !data
 			
+			return Knj::Http.get(resp["location"]) if resp["location"]
+      
 			return {
 				"response" => resp,
 				"data" => data
