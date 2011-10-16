@@ -46,21 +46,32 @@ class Knj::Datarow
       raise "No classname given." if !classname
       methodname = "#{classname.to_s.downcase}s".to_sym if !methodname
       
-      define_method(methodname) do |*args|
+      define_method(methodname) do |*args, &block|
         merge_args = args[0] if args and args[0]
         merge_args = {} if !merge_args
-        return ob.list(classname, merge_args.merge(colname.to_s => self.id))
+        
+        all_args = []
+        all_args << block if block
+        
+        if block
+          self.ob.list(classname, merge_args.merge(colname.to_s => self.id)) do |obj|
+            block.call(obj)
+          end
+        else
+          return self.ob.list(classname, merge_args.merge(colname.to_s => self.id))
+        end
       end
       
       define_method("#{methodname}_count".to_sym) do |*args|
         merge_args = args[0] if args and args[0]
         merge_args = {} if !merge_args
-        return ob.list(classname, merge_args.merge(colname.to_s => self.id, "count" => true))
+        
+        return self.ob.list(classname, merge_args.merge(colname.to_s => self.id, "count" => true))
       end
       
       define_method("#{methodname}_last".to_sym) do |args|
         args = {} if !args
-        return ob.list(classname, {"orderby" => [["id", "desc"]], "limit" => 1}.merge(args))
+        return self.ob.list(classname, {"orderby" => [["id", "desc"]], "limit" => 1}.merge(args))
       end
     end
 	end
@@ -193,11 +204,13 @@ class Knj::Datarow
         :cols_date => [],
         :cols_dbrows => [],
         :cols_num => [],
-        :cols_str => []
+        :cols_str => [],
+        :cols => {}
       }
       cols.each do |col_name, col_obj|
         col_type = col_obj.type
         col_type = "int" if col_type == "bigint" or col_type == "tinyint" or col_type == "mediumint" or col_type == "smallint"
+        sqlhelper_args[:cols][col_name] = true
         
         if col_type == "enum" and col_obj.maxlength == "'0','1'"
           sqlhelper_args[:cols_bools] << col_name

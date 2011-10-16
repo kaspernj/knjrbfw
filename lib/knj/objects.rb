@@ -749,6 +749,9 @@ class Knj::Objects
           
           do_joins[val[:table].to_sym] = true
           sql_where += " AND #{table}`#{db.esc_col(key)}` = `#{db.esc_table(val[:table])}`.`#{db.esc_col(val[:name])}`"
+        elsif val.is_a?(Proc)
+          call_args = Knj::Hash_methods.new(:ob => self, :db => db)
+          sql_where += " AND #{table}`#{db.esc_col(key)}` = '#{db.esc(val.call(call_args))}'"
         else
           sql_where += " AND #{table}`#{db.esc_col(key)}` = '#{db.esc(val)}'"
         end
@@ -826,6 +829,10 @@ class Knj::Objects
 				end
 				
 				found = true
+			elsif match = key.match(/^(.+)_lookup$/) and args[:cols].has_key?("#{match[1]}_id") and args[:cols].has_key?("#{match[1]}_class")
+        sql_where += " AND #{table}`#{db.esc_col("#{match[1]}_class")}` = '#{db.esc(val.table)}'"
+        sql_where += " AND #{table}`#{db.esc_col("#{match[1]}_id")}` = '#{db.esc(val.id)}'"
+        found = true
 			end
 			
 			list_args.delete(realkey) if found
