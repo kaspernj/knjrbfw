@@ -249,7 +249,12 @@ class Knj::Web
     
     cookie_data.each do |key, val|
       next if key == "name" or key == "value"
-      cookiestr += "; #{key}=#{val}"
+      
+      if key.to_s.downcase == "expires" and val.is_a?(Time)
+        cookiestr += "; Expires=#{val.httpdate}"
+      else
+        cookiestr += "; #{key}=#{val}"
+      end
     end
     
     return cookiestr
@@ -448,7 +453,24 @@ class Knj::Web
     return str
 	end
 	
+	def self.attr_html(attrs)
+    return "" if attrs.length <= 0
+    
+    html = ""
+    attrs.each do |key, val|
+      html += " #{key}=\"#{val.html}\""
+    end
+    
+    return html
+	end
+	
 	def self.input(args)
+    if args[:attr]
+      attr = args[:attr]
+    else
+      attr = {}
+    end
+    
 		Knj::ArrayExt.hash_sym(args)
 		
 		if args.has_key?(:value)
@@ -519,8 +541,16 @@ class Knj::Web
 		
 		checked = ""
 		checked += " value=\"#{args[:value_active]}\"" if args.has_key?(:value_active)
+		
 		checked += " checked" if value.is_a?(String) and value == "1" or value.to_s == "1" or value.to_s == "on" or value.to_s == "true"
 		checked += " checked" if value.is_a?(TrueClass)
+		
+		attr_keys = [:onchange]
+		attr_keys.each do |tag|
+      if args.has_key?(tag)
+        attr[tag] = args[tag]
+      end
+		end
 		
 		html = ""
 		
@@ -554,8 +584,7 @@ class Knj::Web
 				
 				html += "</td>"
 			elsif args[:type] == :select
-				html += "<select name=\"#{args[:name].html}\" id=\"#{args[:id].html}\" class=\"input_select\""
-				html += " onchange=\"#{args[:onchange]}\"" if args[:onchange]
+				html += "<select name=\"#{args[:name].html}\" id=\"#{args[:id].html}\" class=\"input_select\"#{self.attr_html(attr)}"
 				html += " multiple" if args[:multiple]
 				html += " size=\"#{args[:size].to_s}\"" if args[:size]
 				html += ">"
@@ -591,7 +620,7 @@ class Knj::Web
       elsif args[:type] == :editarea
         css["width"] = "100%"
         css["height"] = args[:height] if args.has_key?(:height)
-        html += "<textarea#{self.style_html(css)} id=\"#{args[:id]}\" name=\"#{args[:name]}\">#{value}</textarea>"
+        html += "<textarea#{self.attr_html(attr)}#{self.style_html(css)} id=\"#{args[:id]}\" name=\"#{args[:name]}\">#{value}</textarea>"
         
         jshash = {
           "id" => args[:id],
@@ -609,7 +638,15 @@ class Knj::Web
         html += "}"
         html += "</script>"
 			else
-				html += "<input #{disabled}type=\"#{args[:type].to_s.html}\" class=\"input_#{args[:type].html}\" id=\"#{args[:id].html}\" name=\"#{args[:name].html}\" value=\"#{value.html}\" /></td>"
+        attr = attr.merge(
+          :type => args[:type],
+          :class => "input_#{args[:type]}",
+          :id => args[:id],
+          :name => args[:name],
+          :value => value
+        )
+        
+				html += "<input#{self.attr_html(attr)}#{disabled} /></td>"
 				html += "</td>"
 			end
 			
