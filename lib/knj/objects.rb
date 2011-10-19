@@ -632,9 +632,7 @@ class Knj::Objects
 			
 			if list_args["orderby"].is_a?(String)
 				found = false
-				found = true if !found and args.has_key?(:cols_str) and args[:cols_str].index(orderstr) != nil
-				found = true if !found and args.has_key?(:cols_date) and args[:cols_date].index(orderstr) != nil
-				found = true if !found and args.has_key?(:cols_num) and args[:cols_num].index(orderstr) != nil
+				found = true if args[:cols].has_key?(orderstr)
 				
 				if found
 					sql_order += " ORDER BY "
@@ -695,11 +693,7 @@ class Knj::Objects
 						raise "Unknown object: #{val.class.name}"
 					end
 					
-					found = true if !found and args.has_key?(:cols_str) and args[:cols_str].index(orderstr) != nil
-					found = true if !found and args.has_key?(:cols_date) and args[:cols_date].index(orderstr) != nil
-					found = true if !found and args.has_key?(:cols_num) and args[:cols_num].index(orderstr) != nil
-					found = true if !found and args.has_key?(:cols_bools) and args[:cols_bools].index(orderstr) != nil
-					
+					found = true if args[:cols].has_key?(orderstr)
 					raise "Column not found for ordering: #{orderstr}." if !found
 					orders << "#{table_def}`#{db.esc_col(orderstr)}`#{ordermode}" if orderstr
 				end
@@ -731,7 +725,7 @@ class Knj::Objects
         key = realkey
       end
 			
-			if (args.has_key?(:cols_str) and args[:cols_str].index(key) != nil) or (args.has_key?(:cols_num) and args[:cols_num].index(key) != nil) or (args.has_key?(:cols_dbrows) and args[:cols_dbrows].index(key) != nil)
+			if args[:cols].has_key?(key)
         if val.is_a?(Array)
           escape_sql = Knj::ArrayExt.join(
             :arr => val,
@@ -778,7 +772,7 @@ class Knj::Objects
 				limit_from = 0
 				limit_to = val.to_i
 				found = true
-			elsif args.has_key?(:cols_dbrows) and args[:cols_dbrows].index(key.to_s + "_id") != nil
+			elsif args.has_key?(:cols_dbrows) and args[:cols_dbrows].index("#{key.to_s}_id") != nil
 				sql_where += " AND #{table}`#{db.esc_col(key.to_s + "_id")}` = '#{db.esc(val.id)}'"
 				found = true
 			elsif args.has_key?(:cols_str) and match = key.match(/^([A-z_\d]+)_(search|has)$/) and args[:cols_str].index(match[1]) != nil
@@ -795,7 +789,7 @@ class Knj::Objects
 				end
 				
 				found = true
-			elsif match = key.match(/^([A-z_\d]+)_(not|lower)$/) and ((args.has_key?(:cols_str) and args[:cols_str].index(match[1]) != nil) or (args.has_key?(:cols_num) and args[:cols_num].index(match[1]) != nil))
+			elsif match = key.match(/^([A-z_\d]+)_(not|lower)$/) and args[:cols].has_key?(match[1])
         if match[2] == "not"
           sql_where += " AND #{table}`#{db.esc_col(match[1])}` != '#{db.esc(val)}'"
         elsif match[2] == "lower"
@@ -806,6 +800,8 @@ class Knj::Objects
         
 				found = true
 			elsif args.has_key?(:cols_date) and match = key.match(/^(.+)_(day|month|from|to|below|above)$/) and args[:cols_date].index(match[1]) != nil
+        val = Knj::Datet.in(val) if val.is_a?(Time)
+        
 				if match[2] == "day"
 					sql_where += " AND DATE_FORMAT(#{table}`#{db.esc_col(match[1])}`, '%d %m %Y') = DATE_FORMAT('#{db.esc(val.dbstr)}', '%d %m %Y')"
 				elsif match[2] == "month"
