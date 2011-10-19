@@ -185,7 +185,6 @@ class Knj::Datarow
     return sql.to_s if d.args["return_sql"]
     
     if count
-      print "SQL: #{sql}\n"
       ret = d.db.query(sql).fetch
       return ret[:count].to_i if ret
       return 0
