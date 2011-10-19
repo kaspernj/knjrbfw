@@ -174,7 +174,10 @@ class Knj::Datarow
     
     sql += ret[:sql_where]
     
-    sql += " GROUP BY #{table_str}.#{ec_col}id#{ec_col}"
+    #The count will bug if there is a group-by-statement.
+    if !count
+      sql += " GROUP BY #{table_str}.#{ec_col}id#{ec_col}"
+    end
     
     sql += ret[:sql_order]
     sql += ret[:sql_limit]
@@ -182,6 +185,7 @@ class Knj::Datarow
     return sql.to_s if d.args["return_sql"]
     
     if count
+      print "SQL: #{sql}\n"
       ret = d.db.query(sql).fetch
       return ret[:count].to_i if ret
       return 0
