@@ -131,6 +131,29 @@ module Knj::Php
       retstr += "#{argument.class.to_s} - "
       hash = {"name" => argument.name}
       retstr += print_r(hash, true, count).to_s
+    elsif cstr == "URI::Generic"
+      retstr += "#{argument.class.to_s}{\n"
+      methods = [:host, :port, :scheme, :path]
+      count += 1
+      methods.each do |method|
+        i_spaces = 0
+        while(i_spaces < count - 1)
+          retstr += "   "
+          i_spaces += 1
+        end
+        
+        retstr += "#{method}: #{argument.send(method)}\n"
+      end
+      
+      count -= 1
+      
+      i = 0
+      while(i < count - 1)
+        retstr += "   "
+        i += 1
+      end
+      
+      retstr += "}\n"
 		else
 			#print argument.to_s, "\n"
 			retstr += "Unknown class: " + cstr + "\n"
