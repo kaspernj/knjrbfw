@@ -807,6 +807,10 @@ class Knj::Web
 			browser = "bot"
 			title = "Bot"
 			version = "GIDBot"
+    elsif match = agent.match(/android\s+([\d\.]+)/)
+      browser = "android"
+      title = "Android"
+      version = match[1]
 		elsif match = agent.match(/safari\/(\d+)/)
 			browser = "safari"
 			title = "Safari"
