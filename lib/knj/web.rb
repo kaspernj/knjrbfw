@@ -458,7 +458,7 @@ class Knj::Web
     
     html = ""
     attrs.each do |key, val|
-      html += " #{key}=\"#{val.html}\""
+      html += " #{key}=\"#{val.to_s.html}\""
     end
     
     return html
