@@ -465,12 +465,6 @@ class Knj::Web
 	end
 	
 	def self.input(args)
-    if args[:attr]
-      attr = args[:attr]
-    else
-      attr = {}
-    end
-    
 		Knj::ArrayExt.hash_sym(args)
 		
 		if args.has_key?(:value)
@@ -528,22 +522,19 @@ class Knj::Web
 			args[:type] = args[:type].to_sym
 		end
 		
-		if args.has_key?(:disabled) and args[:disabled]
-			disabled = "disabled "
-		else
-			disabled = ""
-		end
+		attr = {
+      "name" => args[:name],
+      "id" => args[:id],
+      "type" => args[:type],
+      "class" => "input_#{args[:type]}"
+		}
+    attr.merge!(args[:attr]) if args[:attr]
+    attr["disabled"] = "disabled" if args[:disabled]
 		
 		raise "No name given to the Web::input()-method." if !args[:name] and args[:type] != :info and args[:type] != :textshow and args[:type] != :plain
 		
 		css = {}
 		css["text-align"] = args[:align] if args.has_key?(:align)
-		
-		checked = ""
-		checked += " value=\"#{args[:value_active]}\"" if args.has_key?(:value_active)
-		
-		checked += " checked" if value.is_a?(String) and value == "1" or value.to_s == "1" or value.to_s == "on" or value.to_s == "true"
-		checked += " checked" if value.is_a?(TrueClass)
 		
 		attr_keys = [:onchange]
 		attr_keys.each do |tag|
@@ -555,9 +546,13 @@ class Knj::Web
 		html = ""
 		
 		if args[:type] == :checkbox
+      attr["value"] = args["value_active"] if args.has_key?(:value_active)
+      attr["checked"] = "checked" if value.is_a?(String) and value == "1" or value.to_s == "1" or value.to_s == "on" or value.to_s == "true"
+      attr["checked"] = "checked" if value.is_a?(TrueClass)
+      
 			html += "<tr>"
 			html += "<td colspan=\"2\" class=\"tdcheck\">"
-			html += "<input type=\"checkbox\" class=\"input_checkbox\" id=\"#{args[:id].html}\" name=\"#{args[:name].html}\"#{checked} />"
+			html += "<input#{self.attr_html(attr)} />"
 			html += "<label for=\"#{args[:id].html}\">#{args[:title].html}</label>"
 			html += "</td>"
 			html += "</tr>"
@@ -569,7 +564,7 @@ class Knj::Web
 			html += "<td#{self.style_html(css)} class=\"tdc\">"
 			
 			if args[:type] == :textarea
-        css["height"] = "#{args[:height]}px" if args.has_key?(:height)
+        css["height"] = "#{args[:height]}px" if args.key?(:height)
 				
 				html += "<textarea#{self.style_html(css)} class=\"input_textarea\" name=\"#{args[:name].html}\" id=\"#{args[:id].html}\">#{value}</textarea>"
 				html += "</td>"
@@ -584,10 +579,10 @@ class Knj::Web
 				
 				html += "</td>"
 			elsif args[:type] == :select
-				html += "<select name=\"#{args[:name].html}\" id=\"#{args[:id].html}\" class=\"input_select\"#{self.attr_html(attr)}"
-				html += " multiple" if args[:multiple]
-				html += " size=\"#{args[:size].to_s}\"" if args[:size]
-				html += ">"
+        attr["multiple"] = "multiple" if args[:multiple]
+        attr["size"] = args["size"] if args[:size]
+        
+				html += "<select#{self.attr_html(attr)}>"
 				html += Knj::Web.opts(args[:opts], value, args[:opts_args])
 				html += "</select>"
 				html += "</td>"
@@ -638,15 +633,8 @@ class Knj::Web
         html += "}"
         html += "</script>"
 			else
-        attr = attr.merge(
-          :type => args[:type],
-          :class => "input_#{args[:type]}",
-          :id => args[:id],
-          :name => args[:name],
-          :value => value
-        )
-        
-				html += "<input#{self.attr_html(attr)}#{disabled} /></td>"
+        attr[:value] = value
+				html += "<input#{self.attr_html(attr)} /></td>"
 				html += "</td>"
 			end
 			

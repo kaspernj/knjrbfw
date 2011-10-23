@@ -5,7 +5,7 @@ module Knj::Opts
 	
 	def self.init(arr_opts)
 		arr_opts.each do |pair|
-			if (pair[0] == "knjdb" or pair[0] == "table")
+			if pair[0] == "knjdb" or pair[0] == "table"
 				$knjoptions[pair[0]] = pair[1]
 			end
 		end
@@ -18,7 +18,9 @@ module Knj::Opts
 		if !value
 			return ""
 		else
-			return value["value"]
+			return value["value"] if value.has_key?("value")
+			return value[:value] if value.has_key?(:value)
+			raise "Could not figure out of value."
 		end
 	end
 	
@@ -26,13 +28,18 @@ module Knj::Opts
 		db = $knjoptions["knjdb"]
 		result = db.select($knjoptions["table"], {"title" => title}, {"limit" => 1}).fetch
 		
-		if result.class.to_s == "NilClass"
+		if !result
 			db.insert($knjoptions["table"], {
 				"title" => title,
 				"value" => value
 			})
 		else
-			db.update($knjoptions["table"], {"value" => value}, {"id" => result["id"]})
+      id = nil
+      id = result["id"] if result.has_key?("id")
+      id = result[:id] if result.has_key?(:id)
+      raise "Could not figure out of ID." if !id
+      
+			db.update($knjoptions["table"], {"value" => value}, {"id" => id})
 		end
 	end
 end
