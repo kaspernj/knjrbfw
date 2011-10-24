@@ -546,7 +546,7 @@ class Knj::Web
 		html = ""
 		
 		if args[:type] == :checkbox
-      attr["value"] = args["value_active"] if args.has_key?(:value_active)
+      attr["value"] = args[:value_active] if args.has_key?(:value_active)
       attr["checked"] = "checked" if value.is_a?(String) and value == "1" or value.to_s == "1" or value.to_s == "on" or value.to_s == "true"
       attr["checked"] = "checked" if value.is_a?(TrueClass)
       
