@@ -285,7 +285,7 @@ module Knj::Php
 		end
 		
 		begin
-			_httpsession.eruby.header(key, value) #This is for knjAppServer - knj.
+			_kas.header(key, value) #This is for knjAppServer - knj.
 			sent = true
 		rescue NameError => e
 			if $knj_eruby
