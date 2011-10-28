@@ -1,5 +1,5 @@
 class Knj::Datarow
-	attr_reader :data, :ob
+	attr_reader :data, :ob, :db
 	
 	def self.required_data
     @required_data = [] if !@required_data
@@ -54,11 +54,11 @@ class Knj::Datarow
         all_args << block if block
         
         if block
-          self.ob.list(classname, merge_args.merge(colname.to_s => self.id)) do |obj|
+          @ob.list(classname, merge_args.merge(colname.to_s => self.id)) do |obj|
             block.call(obj)
           end
         else
-          return self.ob.list(classname, merge_args.merge(colname.to_s => self.id))
+          return @ob.list(classname, merge_args.merge(colname.to_s => self.id))
         end
       end
       
@@ -66,12 +66,12 @@ class Knj::Datarow
         merge_args = args[0] if args and args[0]
         merge_args = {} if !merge_args
         
-        return self.ob.list(classname, merge_args.merge(colname.to_s => self.id, "count" => true))
+        return @ob.list(classname, merge_args.merge(colname.to_s => self.id, "count" => true))
       end
       
       define_method("#{methodname}_last".to_sym) do |args|
         args = {} if !args
-        return self.ob.list(classname, {"orderby" => [["id", "desc"]], "limit" => 1}.merge(args))
+        return @ob.list(classname, {"orderby" => [["id", "desc"]], "limit" => 1}.merge(args))
       end
     end
 	end
@@ -106,13 +106,13 @@ class Knj::Datarow
       colname = "#{classname.to_s.downcase}_id".to_sym if !colname
       
       define_method(methodname) do
-        return ob.get_try(self, colname, classname)
+        return @ob.get_try(self, colname, classname)
       end
       
       methodname_html = "#{methodname.to_s}_html".to_sym
       define_method(methodname_html) do |*args|
         obj = self.send(methodname)
-        return ob.events.call(:no_html, classname) if !obj
+        return @ob.events.call(:no_html, classname) if !obj
         
         raise "Class '#{classname}' does not have a 'html'-method." if !obj.respond_to?(:html)
         return obj.html(*args)
@@ -238,7 +238,7 @@ class Knj::Datarow
           if !inst_methods.index(method_name)
             define_method(method_name) do |*args|
               if Knj::Datet.is_nullstamp?(self[col_name.to_sym])
-                return ob.events.call(:no_date, self.class.name)
+                return @ob.events.call(:no_date, self.class.name)
               end
               
               return Knj::Datet.in(self[col_name.to_sym]).out(*args)
@@ -311,6 +311,7 @@ class Knj::Datarow
 	
 	def initialize(d)
 		@ob = d.ob
+		@db = d.ob.db
 		raise "No ob given." if !@ob
 		
 		if d.data.is_a?(Hash)
@@ -323,12 +324,8 @@ class Knj::Datarow
 		end
 	end
 	
-	def db
-		return @ob.db
-	end
-	
 	def reload
-		data = self.db.single(self.table, {:id => @data[:id]})
+		data = @db.single(self.table, {:id => @data[:id]})
 		if !data
 			raise Knj::Errors::NotFound, "Could not find any data for the object with ID: '#{@data[:id]}' in the table '#{self.table}'."
 		end
@@ -337,21 +334,26 @@ class Knj::Datarow
 	end
 	
 	def update(newdata)
-		self.db.update(self.table, newdata, {:id => @data[:id]})
+		@db.update(self.table, newdata, {:id => @data[:id]})
 		self.reload
 		
-		if self.ob
-			self.ob.call("object" => self, "signal" => "update")
+		if @ob
+			@ob.call("object" => self, "signal" => "update")
 		end
 	end
 	
 	def destroy
 		@ob = nil
+		@db = nil
 		@data = nil
 	end
 	
 	def has_key?(key)
 		return @data.has_key?(key.to_sym)
+	end
+	
+	def key?(key)
+    return @data.key?(key.to_sym)
 	end
 	
 	def [](key)

@@ -111,9 +111,9 @@ class Knj::Threadhandler
 	end
 	
 	def free(obj)
-    raise "Destroyed Knj::Threadhandler." if !@mutex
-    
 		@mutex.synchronize do
+      return false if !@mutex or !@objects #something is trying to free and object, but the handler is destroyed. Dont crash but return false.
+      
 			freedata = false
 			@objects.each do |data|
 				if data[:object] == obj
