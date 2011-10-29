@@ -303,7 +303,7 @@ class Knj::Datet
 			vars[key.to_sym] = value.to_i if key != :datet
 		end
 		
-		time = Time.gm(vars[:year], vars[:month], vars[:day], vars[:hour], vars[:min], vars[:sec])
+		time = Time.local(vars[:year], vars[:month], vars[:day], vars[:hour], vars[:min], vars[:sec])
 		
 		if !args.has_key?(:datet) or args[:datet]
 			return Knj::Datet.new(time)
@@ -390,16 +390,14 @@ class Knj::Datet
 				minute = match[2]
 			end
 			
-			return Knj::Datet.new(Time.gm(year, month, date, hour, minute))
+			return Knj::Datet.new(Time.local(year, month, date, hour, minute))
     elsif match = timestr.to_s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
-      return Knj::Datet.new(Time.gm(match[3], match[2], match[1]))
+      return Knj::Datet.new(Time.local(match[3], match[2], match[1]))
 		elsif match = timestr.to_s.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{5,6})$/)
 			#Datet.code format
-			return Knj::Datet.new(Time.gm(match[1], match[2], match[3], match[4], match[5], match[6], match[7]))
+			return Knj::Datet.new(Time.local(match[1], match[2], match[3], match[4], match[5], match[6], match[7]))
 		elsif match = timestr.to_s.match(/^\s*(\d{4})-(\d{1,2})-(\d{1,2})(|\s+(\d{2}):(\d{2}):(\d{2})(|\.\d+)\s*)(|\s+(UTC))(|\s+(\+|\-)(\d{2})(\d{2}))$/)
 			#Database date format (with possibility of .0 in the end - miliseconds? -knj.
-			
-			Knj::Php.print_r(match)
 			
 			if match[11] and match[13] and match[14]
         if match[12] == "+" or match[12] == "-"
@@ -415,9 +413,8 @@ class Knj::Datet
         utc_str = nil
       end
       
-      print "UTC: #{utc_str}\n"
-			
-			return Knj::Datet.new(Time.gm(match[1].to_i, match[2].to_i, match[3].to_i, match[5].to_i, match[6].to_i, match[7].to_i, utc_str))
+			time = Time.local(match[1].to_i, match[2].to_i, match[3].to_i, match[5].to_i, match[6].to_i, match[7].to_i, utc_str)
+			return Knj::Datet.new(time)
 		end
 		
 		raise Knj::Errors::InvalidData.new("Wrong format: '#{timestr}', class: '#{timestr.class.name}'")
@@ -476,19 +473,43 @@ class Knj::Datet
 		return @time.to_i
 	end
 	
+	alias :to_i :unixt
+	
 	def httpdate
     require "time"
     return @time.httpdate
 	end
 	
-	#Returns 'localtime' as of 1.9 - even in 1.8 which does it different.
-	def localtime
-    raise "FIXME: 1.8 not supported." if RUBY_VERSION.to_s.slice(0, 3) == "1.8"
-    return @time.localtime
+	def offset_info
+    offset_secs = @time.gmt_offset
     
-    offset = @time.gmt_offset / 3600
-    return "#{"%04d" % @time.year}-#{"%02d" % @time.month}-#{"%02d" % @time.day} #{"%02d" % @time.hour}:#{"%02d" % @time.min}:#{"%02d" % @time.sec}"
+    offset_hours = (offset_secs.to_f / 3600.0).floor
+    offset_secs -= offset_hours * 3600
+    
+    offset_minutes = (offset_secs.to_f / 60.0).floor
+    offset_secs -= offset_minutes * 60
+    
+    if offset_hours > 0
+      sign = "+"
+    else
+      sign = ""
+    end
+    
+    return {
+      :sign => sign,
+      :hours => offset_hours,
+      :mins => offset_minutes,
+      :secs => offset_secs
+    }
 	end
 	
-	alias :to_i :unixt
+	def offset_str
+    offset_info_data = self.offset_info
+    return "#{offset_info_data[:sign]}#{"%02d" % offset_info_data[:hours]}#{"%02d" % offset_info_data[:mins]}"
+	end
+	
+	#Returns 'localtime' as of 1.9 - even in 1.8 which does it different.
+	def localtime_str
+    return "#{"%04d" % @time.year}-#{"%02d" % @time.month}-#{"%02d" % @time.day} #{"%02d" % @time.hour}:#{"%02d" % @time.min}:#{"%02d" % @time.sec} #{self.offset_str}"
+	end
 end

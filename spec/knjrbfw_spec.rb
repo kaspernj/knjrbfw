@@ -81,7 +81,7 @@ describe "Knjrbfw" do
     raise "Registered nullstamp on valid date." if Knj::Datet.is_nullstamp?("1985-06-17 10:30:00")
     
     date = Knj::Datet.in("2011-07-09 13:05:04 +0200")
-    ltime = date.time.localtime.to_s
+    ltime = date.localtime_str
     
     #if RUBY_VERSION.slice(0, 3) == "1.9"
     #  if ltime != date.time.localtime
@@ -89,7 +89,7 @@ describe "Knjrbfw" do
     #  end
     #end
     
-    if ltime != "2011-07-09 15:05:04 +0200"
+    if ltime != "2011-07-09 13:05:04 +0200"
       raise "Datet didnt return expected result: '#{ltime}'."
     end
   end
