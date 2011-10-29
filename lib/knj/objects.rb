@@ -7,9 +7,11 @@ class Knj::Objects
 		@args[:col_id] = :id if !@args[:col_id]
 		@args[:class_pre] = "class_" if !@args[:class_pre]
 		@args[:module] = Kernel if !@args[:module]
-		@args[:cache] = :weak if !@args.has_key?(:cache)
+		@args[:cache] = :weak if !@args.key?(:cache)
 		@objects = {}
 		@data = {}
+		
+		require "weakref" if @args[:cache] == :weak
 		
 		@events = Knj::Event_handler.new
 		@events.add_event(
@@ -22,11 +24,11 @@ class Knj::Objects
 		)
 		
 		raise "No DB given." if !@args[:db]
-		raise "No class path given." if !@args[:class_path] and (@args[:require] or !@args.has_key?(:require))
+		raise "No class path given." if !@args[:class_path] and (@args[:require] or !@args.key?(:require))
 	end
 	
 	def init_class(classname)
-    return false if @objects.has_key?(classname)
+    return false if @objects.key?(classname)
     @objects[classname] = {}
 	end
 	
@@ -56,7 +58,7 @@ class Knj::Objects
 	
 	def connect(args, &block)
 		raise "No object given." if !args["object"]
-		raise "No signals given." if !args.has_key?("signal") and !args.has_key?("signals")
+		raise "No signals given." if !args.key?("signal") and !args.key?("signals")
 		args["block"] = block if block_given?
 		@callbacks[args["object"]] = {} if !@callbacks[args["object"]]
 		conn_id = @callbacks[args["object"]].length.to_s
@@ -66,11 +68,11 @@ class Knj::Objects
 	def call(args, &block)
 		classstr = args["object"].class.to_s
 		
-		if @callbacks.has_key?(classstr)
+		if @callbacks.key?(classstr)
 			@callbacks[classstr].clone.each do |callback_key, callback|
 				docall = false
 				
-				if callback.has_key?("signal") and args.has_key?("signal") and callback["signal"] == args["signal"]
+				if callback.key?("signal") and args.key?("signal") and callback["signal"] == args["signal"]
 					docall = true
 				elsif callback["signals"] and args["signal"] and callback["signals"].index(args["signal"]) != nil
 					docall = true
@@ -102,8 +104,8 @@ class Knj::Objects
 	def requireclass(classname, args = {})
     classname = classname.to_sym
     
-		if !@objects.has_key?(classname)
-      if (@args[:require] or !@args.has_key?(:require)) and (!args.has_key?(:require) or args[:require])
+		if !@objects.key?(classname)
+      if (@args[:require] or !@args.key?(:require)) and (!args.key?(:require) or args[:require])
         filename = "#{@args[:class_path]}/#{@args[:class_pre]}#{classname.to_s.downcase}.rb"
         filename_req = "#{@args[:class_path]}/#{@args[:class_pre]}#{classname.to_s.downcase}"
         raise "Class file could not be found: #{filename}." if !File.exists?(filename)
@@ -116,7 +118,7 @@ class Knj::Objects
         classob = @args[:module].const_get(classname)
       end
 			
-			if (classob.respond_to?(:load_columns) or classob.respond_to?(:datarow_init)) and (!args.has_key?(:load) or args[:load])
+			if (classob.respond_to?(:load_columns) or classob.respond_to?(:datarow_init)) and (!args.key?(:load) or args[:load])
         self.load_class(classname, args)
 			end
 			
@@ -149,7 +151,7 @@ class Knj::Objects
 			raise Knj::Errors::InvalidData, "Unknown data: '#{data.class.to_s}'."
 		end
 		
-		if @objects.has_key?(classname) and @objects[classname].has_key?(id)
+		if @objects.key?(classname) and @objects[classname].key?(id)
       case @args[:cache]
         when :weak
           begin
@@ -170,7 +172,7 @@ class Knj::Objects
       end
     end
     
-    self.requireclass(classname) if !@objects.has_key?(classname)
+    self.requireclass(classname) if !@objects.key?(classname)
     
     if @args[:datarow]
       obj = @args[:module].const_get(classname).new(Knj::Hash_methods.new(:ob => self, :data => data))
@@ -298,9 +300,9 @@ class Knj::Objects
 				elsif object.respond_to?(:data)
 					obj_data = object.data
 					
-					if obj_data.has_key?(:name)
+					if obj_data.key?(:name)
 						objhtml = obj_data[:name]
-					elsif obj_data.has_key?(:title)
+					elsif obj_data.key?(:title)
 						objhtml = obj_data[:title]
 					end
 				else
@@ -386,7 +388,7 @@ class Knj::Objects
 			
 			required_data = classobj.required_data
 			required_data.each do |req_data|
-        if !data.has_key?(req_data[:col])
+        if !data.key?(req_data[:col])
           raise "No '#{req_data[:class]}' given by the data '#{req_data[:col]}'."
         end
         
@@ -472,9 +474,9 @@ class Knj::Objects
 		
 		classname = classname.to_sym
 		
-		#if !@objects.has_key?(classname)
+		#if !@objects.key?(classname)
 			#raise "Could not find object class in cache: #{classname}."
-		#elsif !@objects[classname].has_key?(object.id.to_i)
+		#elsif !@objects[classname].key?(object.id.to_i)
 			#errstr = ""
 			#errstr += "Could not unset object from cache.\n"
 			#errstr += "Class: #{object.class.name}.\n"
@@ -497,7 +499,7 @@ class Knj::Objects
 		
 		classname = classname.to_sym
 		
-		return false if !@objects.has_key?(classname)
+		return false if !@objects.key?(classname)
     @objects[classname] = {}
 	end
 	
@@ -557,7 +559,7 @@ class Knj::Objects
 				self.clean(realclassn)
 			end
 		else
-			return false if !@objects.has_key?(classn)
+			return false if !@objects.key?(classn)
       @objects[classn] = {}
       GC.start
 		end
@@ -625,19 +627,19 @@ class Knj::Objects
 		limit_from = nil
 		limit_to = nil
 		
-		if list_args.has_key?("orderby")
+		if list_args.key?("orderby")
 			orders = []
 			orderstr = list_args["orderby"]
 			list_args["orderby"] = [list_args["orderby"]] if list_args["orderby"].is_a?(Hash)
 			
 			if list_args["orderby"].is_a?(String)
 				found = false
-				found = true if args[:cols].has_key?(orderstr)
+				found = true if args[:cols].key?(orderstr)
 				
 				if found
 					sql_order += " ORDER BY "
 					ordermode = " ASC"
-					if list_args.has_key?("ordermode")
+					if list_args.key?("ordermode")
 						if list_args["ordermode"] == "desc"
 							ordermode = " DESC"
 						elsif list_args["ordermode"] == "asc"
@@ -671,7 +673,7 @@ class Knj::Objects
 						orderstr = val
 						ordermode = " ASC"
           elsif val.is_a?(Hash)
-            raise "No joined tables." if !args.has_key?(:joined_tables)
+            raise "No joined tables." if !args.key?(:joined_tables)
             
             if val[:mode] == "asc"
               ordermode = " ASC"
@@ -693,7 +695,7 @@ class Knj::Objects
 						raise "Unknown object: #{val.class.name}"
 					end
 					
-					found = true if args[:cols].has_key?(orderstr)
+					found = true if args[:cols].key?(orderstr)
 					raise "Column not found for ordering: #{orderstr}." if !found
 					orders << "#{table_def}`#{db.esc_col(orderstr)}`#{ordermode}" if orderstr
 				end
@@ -725,7 +727,7 @@ class Knj::Objects
         key = realkey
       end
 			
-			if args[:cols].has_key?(key)
+			if args[:cols].key?(key)
         if val.is_a?(Array)
           escape_sql = Knj::ArrayExt.join(
             :arr => val,
@@ -736,7 +738,7 @@ class Knj::Objects
             :surr => "'")
           sql_where += " AND #{table}`#{db.esc_col(key)}` IN (#{escape_sql})"
         elsif val.is_a?(Hash) and val[:type] == "col"
-          if !val.has_key?(:table)
+          if !val.key?(:table)
             Knj::Php.print_r(val)
             raise "No table was given for join."
           end
@@ -751,7 +753,7 @@ class Knj::Objects
         end
         
 				found = true
-			elsif args.has_key?(:cols_bools) and args[:cols_bools].index(key) != nil
+			elsif args.key?(:cols_bools) and args[:cols_bools].index(key) != nil
 				if val.is_a?(TrueClass) or (val.is_a?(Integer) and val.to_i == 1) or (val.is_a?(String) and (val == "true" or val == "1"))
 					realval = "1"
 				elsif val.is_a?(FalseClass) or (val.is_a?(Integer) and val.to_i == 0) or (val.is_a?(String) and (val == "false" or val == "0"))
@@ -772,10 +774,10 @@ class Knj::Objects
 				limit_from = 0
 				limit_to = val.to_i
 				found = true
-			elsif args.has_key?(:cols_dbrows) and args[:cols_dbrows].index("#{key.to_s}_id") != nil
+			elsif args.key?(:cols_dbrows) and args[:cols_dbrows].index("#{key.to_s}_id") != nil
 				sql_where += " AND #{table}`#{db.esc_col(key.to_s + "_id")}` = '#{db.esc(val.id)}'"
 				found = true
-			elsif args.has_key?(:cols_str) and match = key.match(/^([A-z_\d]+)_(search|has)$/) and args[:cols_str].index(match[1]) != nil
+			elsif args.key?(:cols_str) and match = key.match(/^([A-z_\d]+)_(search|has)$/) and args[:cols_str].index(match[1]) != nil
 				if match[2] == "search"
 					Knj::Strings.searchstring(val).each do |str|
 						sql_where += " AND #{table}`#{db.esc_col(match[1])}` LIKE '%#{db.esc(str)}%'"
@@ -789,7 +791,7 @@ class Knj::Objects
 				end
 				
 				found = true
-			elsif match = key.match(/^([A-z_\d]+)_(not|lower)$/) and args[:cols].has_key?(match[1])
+			elsif match = key.match(/^([A-z_\d]+)_(not|lower)$/) and args[:cols].key?(match[1])
         if match[2] == "not"
           sql_where += " AND #{table}`#{db.esc_col(match[1])}` != '#{db.esc(val)}'"
         elsif match[2] == "lower"
@@ -799,7 +801,7 @@ class Knj::Objects
         end
         
 				found = true
-			elsif args.has_key?(:cols_date) and match = key.match(/^(.+)_(day|month|from|to|below|above)$/) and args[:cols_date].index(match[1]) != nil
+			elsif args.key?(:cols_date) and match = key.match(/^(.+)_(day|month|from|to|below|above)$/) and args[:cols_date].index(match[1]) != nil
         val = Knj::Datet.in(val) if val.is_a?(Time)
         
 				if match[2] == "day"
@@ -815,7 +817,7 @@ class Knj::Objects
 				end
 				
 				found = true
-			elsif args.has_key?(:cols_num) and match = key.match(/^(.+)_(from|to)$/) and args[:cols_num].index(match[1]) != nil
+			elsif args.key?(:cols_num) and match = key.match(/^(.+)_(from|to)$/) and args[:cols_num].index(match[1]) != nil
 				if match[2] == "from"
 					sql_where += " AND #{table}`#{db.esc_col(match[1])}` <= '#{db.esc(val)}'"
 				elsif match[2] == "to"
@@ -825,7 +827,7 @@ class Knj::Objects
 				end
 				
 				found = true
-			elsif match = key.match(/^(.+)_lookup$/) and args[:cols].has_key?("#{match[1]}_id") and args[:cols].has_key?("#{match[1]}_class")
+			elsif match = key.match(/^(.+)_lookup$/) and args[:cols].key?("#{match[1]}_id") and args[:cols].key?("#{match[1]}_class")
         sql_where += " AND #{table}`#{db.esc_col("#{match[1]}_class")}` = '#{db.esc(val.table)}'"
         sql_where += " AND #{table}`#{db.esc_col("#{match[1]}_id")}` = '#{db.esc(val.id)}'"
         found = true
@@ -840,10 +842,10 @@ class Knj::Objects
       raise "No joins defined on '#{args[:table]}' for: '#{args[:table]}'." if !do_joins.empty? and !args[:joined_tables]
       
       do_joins.each do |table_name, temp_val|
-        raise "No join defined on table '#{args[:table]}' for table '#{table_name}'." if !args[:joined_tables].has_key?(table_name)
+        raise "No join defined on table '#{args[:table]}' for table '#{table_name}'." if !args[:joined_tables].key?(table_name)
         table_data = args[:joined_tables][table_name]
         
-        if table_data.has_key?(:parent_table)
+        if table_data.key?(:parent_table)
           sql_joins += " LEFT JOIN `#{table_data[:parent_table]}` AS `#{table_name}` ON 1=1"
         else
           sql_joins += " LEFT JOIN `#{table_name}` ON 1=1"
@@ -860,7 +862,7 @@ class Knj::Objects
         if table_data[:datarow]
           datarow = table_data[:datarow]
         else
-          self.requireclass(class_name) if @objects.has_key?(class_name)
+          self.requireclass(class_name) if @objects.key?(class_name)
           datarow = @args[:module].const_get(class_name)
         end
         
@@ -893,7 +895,7 @@ class Knj::Objects
 	def datarow_obj_from_args(args, list_args, class_name)
     class_name = class_name.to_sym
     
-    if !args.has_key?(:joined_tables)
+    if !args.key?(:joined_tables)
       Knj::Php.print_r(list_args)
       Knj::Php.print_r(args)
       raise "No joined tables on '#{args[:table]}' to find datarow for: '#{class_name}'."
@@ -904,7 +906,7 @@ class Knj::Objects
       
       return table_data[:datarow] if table_data[:datarow]
       
-      self.requireclass(class_name) if @objects.has_key?(class_name)
+      self.requireclass(class_name) if @objects.key?(class_name)
       return @args[:module].const_get(class_name)
     end
     

@@ -265,7 +265,7 @@ class Knj::Datarow
         
         if col_type == "int" or col_type == "varchar"
           method_name = "by_#{col_name}".to_sym
-          if !inst_methods.index(method_name)
+          if !inst_methods.index(method_name) and RUBY_VERSION.to_s.slice(0, 3) != "1.8"
             define_singleton_method(method_name) do |arg|
               return d.ob.get_by(self.table, {col_name.to_s => arg})
             end

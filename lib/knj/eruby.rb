@@ -26,6 +26,7 @@ class Knj::Eruby
     end
     
     if @cache_mode == :compile_knj
+      require "knj/compiler"
       @compiler = Knj::Compiler.new(:cache_hash => @cache)
     end
     

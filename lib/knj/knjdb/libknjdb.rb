@@ -26,12 +26,10 @@ class Knj::Db
       @opts[key.to_sym] = val
     end
     
-    if @opts[:type] == "sqlite3" and RUBY_PLATFORM == "java"
-      @opts[:type] = "java_sqlite3"
-    elsif @opts[:type] == "mysql" and RUBY_PLATFORM == "java"
+    if RUBY_PLATFORM == "java"
       @opts[:subtype] = "java"
     elsif @opts[:type] == "sqlite3" and RUBY_PLATFORM.index("mswin32") != nil
-      @opts[:type] = "sqlite3_ironruby"
+      @opts[:subtype] = "ironruby"
     end
     
     self.connect
@@ -331,9 +329,12 @@ class Knj::Db
           return nil
         end
       rescue ThreadError => e
-        raise e if e.message != "deadlock; recursive locking"
-        yield(@conn)
-        return nil
+        if e.message != "deadlock; recursive locking"
+          yield(@conn)
+          return nil
+        else
+          raise e
+        end
       end
     end
     

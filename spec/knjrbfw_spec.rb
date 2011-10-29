@@ -81,8 +81,16 @@ describe "Knjrbfw" do
     raise "Registered nullstamp on valid date." if Knj::Datet.is_nullstamp?("1985-06-17 10:30:00")
     
     date = Knj::Datet.in("2011-07-09 13:05:04 +0200")
-    if date.time.localtime.to_s != "2011-07-09 15:05:04 +0200"
-      raise "Datet didnt return expected result: '#{date.time.localtime}'."
+    ltime = date.localtime_str
+    
+    #if RUBY_VERSION.slice(0, 3) == "1.9"
+    #  if ltime != date.time.localtime
+    #    raise "Calculated localtime (#{ltime}) was not the same as the real Time-localtime (#{date.time.localtime})."
+    #  end
+    #end
+    
+    if ltime != "2011-07-09 13:05:04 +0200"
+      raise "Datet didnt return expected result: '#{ltime}'."
     end
   end
   
@@ -98,7 +106,6 @@ describe "Knjrbfw" do
     else
       raise "Date2 was wrongly not higher than date1."
     end
-    
     
     raise "Date1 was wrongly not the same as date3." if date1 != date3
     raise "Date1 was the same as date2?" if date1 == date2
@@ -219,16 +226,6 @@ describe "Knjrbfw" do
   it "should be able to join arrays with callbacks." do
     res = Knj::ArrayExt.join(:arr => [1, 2, 3], :sep => ",", :callback => proc{|value| "'#{value}'"})
     raise "Unexpected result from ArrayExt." if res != "'1','2','3'"
-  end
-  
-  it "should be able to generate valid SQL based on arrays." do
-    ret = $ob.sqlhelper({
-      "test_col" => [1, 2, 3]
-    },{
-      :cols_str => ["test_col"]
-    })
-    
-    raise "Unexpected SQL for generating based on array: '#{ret[:sql_where]}'" if ret[:sql_where] != " AND `test_col` IN ('1','2','3')"
   end
   
   it "should be able to execute various forms of Web.input methods." do
