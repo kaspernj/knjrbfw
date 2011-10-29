@@ -14,9 +14,21 @@ class KnjDB_sqlite3
     @path = @knjdb.opts["path"] if @knjdb.opts["path"]
     @symbolize = true if !@knjdb.opts.has_key?(:return_keys) or @knjdb.opts[:return_keys] == "symbols"
     
+    @knjdb.opts[:subtype] = "java" if !@knjdb.opts.key?(:subtype) and RUBY_ENGINE == "jruby"
     raise "No path was given." if !@path
     
-    if @knjdb.opts[:subtype] == "rhodes"
+    if @knjdb.opts[:subtype] == "java"
+      if @knjdb.opts[:sqlite_driver]
+        require @knjdb.opts[:sqlite_driver]
+      else
+        require "#{File.dirname(__FILE__)}/../../sqlitejdbc-v056.jar"
+      end
+      
+      require "java"
+      import "org.sqlite.JDBC"
+      @conn = java.sql.DriverManager::getConnection("jdbc:sqlite:#{@knjdb.opts[:path]}")
+      @stat = @conn.createStatement
+    elsif @knjdb.opts[:subtype] == "rhodes"
       @conn = SQLite3::Database.new(@path, @path)
     else
       @conn = SQLite3::Database.open(@path)
@@ -29,6 +41,16 @@ class KnjDB_sqlite3
     begin
       if @knjdb.opts[:subtype] == "rhodes"
         res = @conn.execute(string, string)
+      elsif @knjdb.opts[:subtype] == "java"
+        begin
+          return KnjDB_sqlite3_result_java.new(self, @stat.executeQuery(string))
+        rescue java.sql.SQLException => e
+          if e.message == "java.sql.SQLException: query does not return ResultSet"
+            #ignore it.
+          else
+            raise e
+          end
+        end
       else
         res = @conn.execute(string)
       end
@@ -62,6 +84,35 @@ class KnjDB_sqlite3
   
   def close
     @conn.close
+  end
+end
+
+class KnjDB_sqlite3_result_java
+  def initialize(driver, rs)
+    @rs = rs
+    @index = 0
+    @retkeys = driver.knjdb.opts[:return_keys]
+    
+    if rs
+      @metadata = rs.getMetaData
+      @columns_count = @metadata.getColumnCount
+    end
+  end
+  
+  def fetch
+    if !@rs.next
+      return false
+    end
+    
+    tha_return = {}
+    for i in (1..@columns_count)
+      col_name = @metadata.getColumnName(i)
+      col_name = col_name.to_s.to_sym if @retkeys == "symbols"
+      
+      tha_return.store(col_name, @rs.getString(i))
+    end
+    
+    return tha_return
   end
 end
 

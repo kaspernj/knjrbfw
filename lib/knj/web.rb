@@ -306,7 +306,7 @@ class Knj::Web
 		else
 			realvalue = value.to_s
 			realvalue = Knj::Php.urldecode(realvalue) if args[:urldecode]
-			realvalue = realvalue.force_encoding("utf-8") if args[:force_utf8]
+			realvalue = realvalue.force_encoding("utf-8") if args[:force_utf8] if realvalue.respond_to?(:force_encoding)
 		end
 		
 		if varname and varname.index("[") != nil

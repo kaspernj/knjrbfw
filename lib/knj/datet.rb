@@ -1,3 +1,5 @@
+require "time"
+
 class Knj::Datet
 	attr_accessor :time
 	
@@ -397,15 +399,25 @@ class Knj::Datet
 		elsif match = timestr.to_s.match(/^\s*(\d{4})-(\d{1,2})-(\d{1,2})(|\s+(\d{2}):(\d{2}):(\d{2})(|\.\d+)\s*)(|\s+(UTC))(|\s+(\+|\-)(\d{2})(\d{2}))$/)
 			#Database date format (with possibility of .0 in the end - miliseconds? -knj.
 			
-			if match[11]
-        utc_str = "+#{match[13]}:#{match[14]}"
+			Knj::Php.print_r(match)
+			
+			if match[11] and match[13] and match[14]
+        if match[12] == "+" or match[12] == "-"
+          sign = match[12]
+        else
+          sign = "+"
+        end
+        
+        utc_str = "#{sign}#{match[13]}:#{match[14]}"
       elsif match[8]
         utc_str = match[8].to_i
       else
         utc_str = nil
       end
+      
+      print "UTC: #{utc_str}\n"
 			
-			return Knj::Datet.new(Time.gm(match[1].to_i, match[2].to_i, match[3].to_i, match[5].to_i, match[6].to_i, match[7].to_i,utc_str))
+			return Knj::Datet.new(Time.gm(match[1].to_i, match[2].to_i, match[3].to_i, match[5].to_i, match[6].to_i, match[7].to_i, utc_str))
 		end
 		
 		raise Knj::Errors::InvalidData.new("Wrong format: '#{timestr}', class: '#{timestr.class.name}'")
@@ -462,6 +474,20 @@ class Knj::Datet
 	
 	def unixt
 		return @time.to_i
+	end
+	
+	def httpdate
+    require "time"
+    return @time.httpdate
+	end
+	
+	#Returns 'localtime' as of 1.9 - even in 1.8 which does it different.
+	def localtime
+    raise "FIXME: 1.8 not supported." if RUBY_VERSION.to_s.slice(0, 3) == "1.8"
+    return @time.localtime
+    
+    offset = @time.gmt_offset / 3600
+    return "#{"%04d" % @time.year}-#{"%02d" % @time.month}-#{"%02d" % @time.day} #{"%02d" % @time.hour}:#{"%02d" % @time.min}:#{"%02d" % @time.sec}"
 	end
 	
 	alias :to_i :unixt

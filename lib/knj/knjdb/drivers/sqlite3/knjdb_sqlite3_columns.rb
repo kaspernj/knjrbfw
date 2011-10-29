@@ -11,6 +11,11 @@ class KnjDB_sqlite3::Columns
 		raise "No type given." if !data["type"]
 		type = data["type"]
 		
+		if type == "enum"
+      type = "varchar"
+      data.delete("maxlength")
+    end
+		
 		data["maxlength"] = 255 if type == "varchar" and !data.has_key?("maxlength")
 		type = "integer" if @db.int_types.index(type) and (data["autoincr"] or data["primarykey"])
 		
@@ -25,8 +30,6 @@ class KnjDB_sqlite3::Columns
 		elsif data.has_key?("default") and data["default"] != false
 			sql += " DEFAULT '#{@driver.escape(data["default"])}'"
 		end
-		
-		sql += " COMMENT '#{@driver.escape(data["comment"])}'" if data.has_key?("comment")
 		
 		return sql
 	end
