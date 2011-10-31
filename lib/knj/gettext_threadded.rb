@@ -53,6 +53,7 @@ class Knj::Gettext_threadded
     return trans(locale, str)
 	end
 	
+	#Returns a hash with the language ID string as key and the language human-readable-title as value.
 	def lang_opts
 		langs = {}
 		@langs.keys.sort.each do |lang|
