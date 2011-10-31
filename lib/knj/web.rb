@@ -216,7 +216,7 @@ class Knj::Web
         match = cookie_str.match(/^(.*?)=(.*)$/)
       end
       
-      ret[Knj::Php.urldecode(match[1])] = Knj::Php.urldecode(match[2])
+      ret[self.urldec(match[1])] = self.urldec(match[2])
     end
     
     return ret
@@ -232,8 +232,8 @@ class Knj::Web
     raise "Could not match cookie: '#{str}'." if !match
     str.gsub!(cookie_start_regex, "")
     
-    args["name"] = Knj::Php.urldecode(match[1].to_s)
-    args["value"] = Knj::Php.urldecode(match[2].to_s)
+    args["name"] = self.urldec(match[1].to_s)
+    args["value"] = self.urldec(match[2].to_s)
     
     while match = str.match(/(.+?)=(.*?)(;\s*|$)/)
       str = str.gsub(match[0], "")
@@ -245,7 +245,7 @@ class Knj::Web
 	
 	def self.cookie_str(cookie_data)
     raise "Not a hash: '#{cookie_data.class.name}', '#{cookie_data}'." unless cookie_data.is_a?(Hash)
-    cookiestr = "#{Knj::Php.urlencode(cookie_data["name"])}=#{Knj::Php.urlencode(cookie_data["value"])}"
+    cookiestr = "#{self.urlenc(cookie_data["name"])}=#{self.urlenc(cookie_data["value"])}"
     
     cookie_data.each do |key, val|
       next if key == "name" or key == "value"
@@ -269,7 +269,7 @@ class Knj::Web
 				name = value[0..pos-1]
 				name = name.to_sym if args[:syms]
 				valuestr = value.slice(pos+1..-1)
-				Knj::Web.parse_name(get, Knj::Php.urldecode(name), valuestr, args)
+				Knj::Web.parse_name(get, self.urldec(name), valuestr, args)
 			end
 		end
 		
@@ -305,7 +305,7 @@ class Knj::Web
 			realvalue = value
 		else
 			realvalue = value.to_s
-			realvalue = Knj::Php.urldecode(realvalue) if args[:urldecode]
+			realvalue = self.urldec(realvalue) if args[:urldecode]
 			realvalue = realvalue.force_encoding("utf-8") if args[:force_utf8] if realvalue.respond_to?(:force_encoding)
 		end
 		
@@ -596,7 +596,7 @@ class Knj::Web
 				
 				path = args[:path].gsub("%value%", value.to_s).untaint
 				if File.exists?(path)
-					html += "<img src=\"image.rhtml?path=#{Knj::Php.urlencode(path).html}&smartsize=100&rounded_corners=10&border_color=black&force=true&ts=#{Time.new.to_f}\" alt=\"Image\" />"
+					html += "<img src=\"image.rhtml?path=#{self.urlenc(path).html}&smartsize=100&rounded_corners=10&border_color=black&force=true&ts=#{Time.new.to_f}\" alt=\"Image\" />"
 					
 					if args[:dellink]
 						dellink = args[:dellink].gsub("%value%", value.to_s)
@@ -957,10 +957,12 @@ class Knj::Web
 		return html
 	end
 	
+	#Parses a string to be safe for use in <a href="">.
 	def self.ahref_parse(str)
     return str.to_s.gsub("&", "&amp;")
 	end
 	
+	#URL-encodes a string.
   def self.urlenc(string)
     #Thanks to CGI framework
     string.to_s.gsub(/([^ a-zA-Z0-9_.-]+)/) do
@@ -968,6 +970,7 @@ class Knj::Web
     end.tr(' ', '+')
   end
   
+  #URL-decodes a string.
   def self.urldec(string)
     #Thanks to CGI framework
     str = string.to_s.tr('+', ' ').gsub(/((?:%[0-9a-fA-F]{2})+)/) do
@@ -975,21 +978,10 @@ class Knj::Web
     end
   end
   
+  #Escapes HTML-characters in a string.
   def self.html(string)
     return string.to_s.gsub(/&/, "&amp;").gsub(/\"/, "&quot;").gsub(/>/, "&gt;").gsub(/</, "&lt;")
   end
-end
-
-def alert(string)
-	return Knj::Web.alert(string)
-end
-
-def redirect(string)
-	return Knj::Web.redirect(string)
-end
-
-def jsback(string)
-	return Knj::Web.back
 end
 
 class String
@@ -999,18 +991,11 @@ class String
 	
 	def sql
 		begin
-			return _httpsession.db.escape(self)
-		rescue NameError
-			#ignore - not in KnjAppServer HTTP-session.
-		end
-		
-		begin
       return _db.escape(self)
     rescue NameError
       #ignore - not i KnjAppServer HTTP-session.
     end
 		
-		return $db.escape(self) if $db
 		raise "Could not figure out where to find db object."
 	end
 end
