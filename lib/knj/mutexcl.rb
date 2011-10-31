@@ -1,7 +1,7 @@
 class Knj::Mutexcl
   def initialize(args = {})
     @args = args
-    raise "No ':modes' given in arguments." if !@args.has_key?(:modes)
+    raise "No ':modes' given in arguments." if !@args.key?(:modes)
     @mutex = Mutex.new
     @blocked = {}
     @args[:modes].each do |mode, data|
@@ -24,7 +24,7 @@ class Knj::Mutexcl
   end
   
   def sync(mode)
-    raise "No such mode: '#{mode}'." if !@args[:modes].has_key?(mode)
+    raise "No such mode: '#{mode}'." if !@args[:modes].key?(mode)
     
     while @blocked[mode][:count].to_i > 0
       STDOUT.print "Sleeping because blocked '#{mode}' (#{@blocked[mode][:count]}).\n"

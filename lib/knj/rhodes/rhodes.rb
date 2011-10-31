@@ -74,11 +74,11 @@ class Knj::Rhodes
     arr.each do |data|
       value = ""
       
-      data[:type] = :text if !data.has_key?(:type)
+      data[:type] = :text if !data.key?(:type)
       
-      if data.has_key?(:value) and data[:value].is_a?(Array) and data[:value][0]
+      if data.key?(:value) and data[:value].is_a?(Array) and data[:value][0]
         value = data[:value][0][data[:value][1]]
-      elsif data.has_key?(:value)
+      elsif data.key?(:value)
         value = data[:value]
       end
       
@@ -88,7 +88,7 @@ class Knj::Rhodes
       css = {}
       
       if data[:type] == :textarea
-        css["height"] = data[:height] if data.has_key?(:height)
+        css["height"] = data[:height] if data.key?(:height)
         
         html += "<div data-role=\"fieldcontain\">"
         html += "<label for=\"#{data[:name]}\">#{data[:title]}</label>"

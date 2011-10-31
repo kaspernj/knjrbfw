@@ -164,7 +164,7 @@ class KnjEruby < Erubis::Eruby
 			end
 			
 			if !args[:custom_io]
-				print self.print_headers if !args.has_key?(:with_headers) or args[:with_headers]
+				print self.print_headers if !args.key?(:with_headers) or args[:with_headers]
 				tmp_out.rewind
 				print tmp_out.read
 			end

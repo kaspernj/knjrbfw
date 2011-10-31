@@ -12,7 +12,7 @@ class KnjDB_mysql
 		@esc_col = "`"
 		@mutex = Mutex.new
 		
-		if @knjdb.opts.has_key?(:port)
+		if @knjdb.opts.key?(:port)
 			@port = @knjdb.opts[:port].to_i
 		else
 			@port = 3306
@@ -43,7 +43,7 @@ class KnjDB_mysql
 			
 			pos_args = [:as, :async, :cast_booleans, :database_timezone, :application_timezone, :cache_rows, :connect_flags, :cast]
 			pos_args.each do |key|
-        args[key] = @knjdb.opts[key] if @knjdb.opts.has_key?(key)
+        args[key] = @knjdb.opts[key] if @knjdb.opts.key?(key)
 			end
 			
 			@conn = Mysql2::Client.new(args)
@@ -175,7 +175,7 @@ class KnjDB_mysql
 			end
 		else
 			data = self.query("SELECT LAST_INSERT_ID() AS id").fetch
-			return data[:id] if data.has_key?(:id)
+			return data[:id] if data.key?(:id)
 			raise "Could not figure out last inserted ID."
 		end
 	end

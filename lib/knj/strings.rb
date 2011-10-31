@@ -85,7 +85,7 @@ module Knj::Strings
 	def self.strip(origstr, args)
     newstr = "#{origstr}<br>"
     
-    if !args.has_key?(:right) or args[:right]
+    if !args.key?(:right) or args[:right]
       loop do
         changed = false
         args[:strips].each do |str|
@@ -103,7 +103,7 @@ module Knj::Strings
       end
     end
     
-    if !args.has_key?(:left) or args[:left]
+    if !args.key?(:left) or args[:left]
       loop do
         changed = false
         args[:strips].each do |str|

@@ -21,7 +21,7 @@ class Knj::Sysuser
 	end
 	
 	def [](key)
-		raise "No such key: " + key if !@data.has_key?(key)
+		raise "No such key: " + key if !@data.key?(key)
 		return @data[key]
 	end
 end

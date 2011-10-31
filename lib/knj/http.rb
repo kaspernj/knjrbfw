@@ -45,7 +45,7 @@ class Knj::Http
 		@http.set_debug_output($stderr) if @opts["debug"]
 		@http.use_ssl = true if @opts["ssl"]
 		
-		if @opts.has_key?("validate") and !@opts["validate"]
+		if @opts.key?("validate") and !@opts["validate"]
 			@http.verify_mode = OpenSSL::SSL::VERIFY_NONE
 		end
 		

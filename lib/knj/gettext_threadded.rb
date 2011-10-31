@@ -40,11 +40,11 @@ class Knj::Gettext_threadded
 		locale = locale.to_s
 		str = str.to_s
 		
-		if !@langs.has_key?(locale)
+		if !@langs.key?(locale)
 			raise "Locale was not found: '#{locale}' in '#{@langs.keys.join(", ")}'."
 		end
 		
-		return str if !@langs[locale].has_key?(str)
+		return str if !@langs[locale].key?(str)
 		return @langs[locale][str]
 	end
 	

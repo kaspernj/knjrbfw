@@ -28,7 +28,7 @@ class Knj::Hash_methods
 	end
 	
 	def method_missing(method, *paras)
-		if !@data.has_key?(method)
+		if !@data.key?(method)
 			raise "No such method '#{method}' on class '#{self.class.name}'"
 		end
 		

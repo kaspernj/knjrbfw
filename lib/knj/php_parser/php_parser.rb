@@ -5,7 +5,7 @@ class Knj::Php_parser
 		@args = args
 		@cont = File.read(@args["file"])
 		
-		if !args.has_key?("require_requirements") or args["require_requirements"]
+		if !args.key?("require_requirements") or args["require_requirements"]
 			@retcont = "require \"knj/autoload\"\n"
 			@retcont += "require \"knj/php\"\n"
 			@retcont += "require \"knj/php_parser/php_parser\"\n"

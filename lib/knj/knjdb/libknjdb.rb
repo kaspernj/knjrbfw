@@ -65,7 +65,7 @@ class Knj::Db
     fpaths.each do |fpath|
       rpath = "#{File.dirname(__FILE__)}/#{fpath}"
       
-      if (!@opts.has_key?(:require) or @opts[:require]) and File.exists?(rpath)
+      if (!@opts.key?(:require) or @opts[:require]) and File.exists?(rpath)
         require rpath
         break
       end
@@ -86,7 +86,7 @@ class Knj::Db
   def free_thread
     tid = self.__id__
     
-    if Thread.current[:knjdb] and Thread.current[:knjdb].has_key?(tid)
+    if Thread.current[:knjdb] and Thread.current[:knjdb].key?(tid)
       db = Thread.current[:knjdb][tid]
       Thread.current[:knjdb].delete(tid)
       @conns.free(db) if @conns
@@ -110,7 +110,7 @@ class Knj::Db
       table_args = nil
       table_args = args["tables"][table["name"].to_s] if args and args["tables"] and args["tables"][table["name"].to_s]
       next if table_args and table_args["skip"]
-      table.delete("indexes") if table.has_key?("indexes") and args["skip_indexes"]
+      table.delete("indexes") if table.key?("indexes") and args["skip_indexes"]
       db.tables.create(table["name"], table)
       
       limit_from = 0
@@ -307,7 +307,7 @@ class Knj::Db
     if Thread.current[:knjdb]
       tid = self.__id__
       
-      if Thread.current[:knjdb].has_key?(tid)
+      if Thread.current[:knjdb].key?(tid)
         yield(Thread.current[:knjdb][tid])
         return nil
       end
@@ -418,7 +418,7 @@ class Knj::Db
   def tables
     conn_exec do |driver|
       if !driver.tables
-        require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_tables" if (!@opts.has_key?(:require) or @opts[:require])
+        require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_tables" if (!@opts.key?(:require) or @opts[:require])
         driver.tables = Kernel.const_get("KnjDB_#{@opts[:type]}".to_sym).const_get(:Tables).new(
           :driver => driver,
           :db => self
@@ -431,7 +431,7 @@ class Knj::Db
   
   def cols
     if !@cols
-      require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_columns" if (!@opts.has_key?(:require) or @opts[:require])
+      require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_columns" if (!@opts.key?(:require) or @opts[:require])
       @cols = Kernel.const_get("KnjDB_#{@opts[:type]}".to_sym).const_get(:Columns).new(
         :driver => @conn,
         :db => self
@@ -443,7 +443,7 @@ class Knj::Db
   
   def indexes
     if !@indexes
-      require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_indexes" if (!@opts.has_key?(:require) or @opts[:require])
+      require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_indexes" if (!@opts.key?(:require) or @opts[:require])
       @indexes = Kernel.const_get("KnjDB_#{@opts[:type]}".to_sym).const_get(:Indexes).new(
         :driver => @conn,
         :db => self

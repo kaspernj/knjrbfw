@@ -10,7 +10,7 @@ class KnjDB_mysql::Columns
 	def data_sql(data)
 		raise "No type given." if !data["type"]
 		
-		data["maxlength"] = 255 if data["type"] == "varchar" and !data.has_key?("maxlength")
+		data["maxlength"] = 255 if data["type"] == "varchar" and !data.key?("maxlength")
 		
 		sql = "`#{data["name"]}` #{data["type"]}"
 		sql += "(#{data["maxlength"]})" if data["maxlength"]
@@ -18,13 +18,13 @@ class KnjDB_mysql::Columns
 		sql += " AUTO_INCREMENT" if data["autoincr"]
 		sql += " NOT NULL" if !data["null"]
 		
-		if data.has_key?("default_func")
+		if data.key?("default_func")
 			sql += " DEFAULT #{data["default_func"]}"
-		elsif data.has_key?("default") and data["default"] != false
+		elsif data.key?("default") and data["default"] != false
 			sql += " DEFAULT '#{@db.escape(data["default"])}'"
 		end
 		
-		sql += " COMMENT '#{@db.escape(data["comment"])}'" if data.has_key?("comment")
+		sql += " COMMENT '#{@db.escape(data["comment"])}'" if data.key?("comment")
 		sql += " AFTER `#{@db.esc_col(data["after"])}`" if data["after"] and !data["first"]
 		sql += " FIRST" if data["first"]
 		
@@ -116,15 +116,15 @@ class KnjDB_mysql::Columns::Column
 		table_escape = "#{@args[:driver].escape_table}#{@args[:driver].esc_table(@args[:table].name)}#{@args[:driver].escape_table}"
 		newdata = data.clone
 		
-		newdata["name"] = self.name if !newdata.has_key?("name")
-		newdata["type"] = self.type if !newdata.has_key?("type")
-		newdata["maxlength"] = self.maxlength if !newdata.has_key?("maxlength") and self.maxlength
-		newdata["null"] = self.null? if !newdata.has_key?("null")
-		newdata["default"] = self.default if !newdata.has_key?("default")
-		newdata.delete("primarykey") if newdata.has_key?("primarykey")
+		newdata["name"] = self.name if !newdata.key?("name")
+		newdata["type"] = self.type if !newdata.key?("type")
+		newdata["maxlength"] = self.maxlength if !newdata.key?("maxlength") and self.maxlength
+		newdata["null"] = self.null? if !newdata.key?("null")
+		newdata["default"] = self.default if !newdata.key?("default")
+		newdata.delete("primarykey") if newdata.key?("primarykey")
 		
 		type_s = newdata["type"].to_s
 		@db.query("ALTER TABLE #{table_escape} CHANGE #{col_escaped} #{@db.cols.data_sql(newdata)}")
-		@args[:table].list = nil if data.has_key?("name") and data["name"] != self.name
+		@args[:table].list = nil if data.key?("name") and data["name"] != self.name
 	end
 end

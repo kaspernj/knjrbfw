@@ -50,11 +50,11 @@ class Knj::Datestamp
 		
 		str = ""
 		
-		if !args.has_key?(:date) or args[:date] == true
+		if !args.key?(:date) or args[:date] == true
 			str += "%02d" % time.day.to_s + "/" + "%02d" % time.month.to_s + " " + "%04d" % time.year.to_s
 		end
 			
-		if !args.has_key?(:time) or args[:time] == true
+		if !args.key?(:time) or args[:time] == true
 			str += " " + "%02d" % time.hour.to_s + ":" + "%02d" % time.min.to_s
 		end
 		

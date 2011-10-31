@@ -25,7 +25,7 @@ class Knj::Google_sitemap
 		end
 		
 		lm = el.add_element("lastmod")
-		if @args.has_key?(:date_min) and @args[:date_min] > lastmod_value
+		if @args.key?(:date_min) and @args[:date_min] > lastmod_value
       lastmod_value = @args[:date_min]
     end
 		

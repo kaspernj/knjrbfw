@@ -12,7 +12,7 @@ class KnjDB_sqlite3
     @knjdb = knjdb_ob
     @path = @knjdb.opts[:path] if @knjdb.opts[:path]
     @path = @knjdb.opts["path"] if @knjdb.opts["path"]
-    @symbolize = true if !@knjdb.opts.has_key?(:return_keys) or @knjdb.opts[:return_keys] == "symbols"
+    @symbolize = true if !@knjdb.opts.key?(:return_keys) or @knjdb.opts[:return_keys] == "symbols"
     
     @knjdb.opts[:subtype] = "java" if !@knjdb.opts.key?(:subtype) and RUBY_ENGINE == "jruby"
     raise "No path was given." if !@path
@@ -38,28 +38,21 @@ class KnjDB_sqlite3
   end
   
   def query(string)
-    begin
-      if @knjdb.opts[:subtype] == "rhodes"
-        res = @conn.execute(string, string)
-      elsif @knjdb.opts[:subtype] == "java"
-        begin
-          return KnjDB_sqlite3_result_java.new(self, @stat.executeQuery(string))
-        rescue java.sql.SQLException => e
-          if e.message == "java.sql.SQLException: query does not return ResultSet"
-            #ignore it.
-          else
-            raise e
-          end
+    if @knjdb.opts[:subtype] == "rhodes"
+      return KnjDB_sqlite3_result.new(self, @conn.execute(string, string))
+    elsif @knjdb.opts[:subtype] == "java"
+      begin
+        return KnjDB_sqlite3_result_java.new(self, @stat.executeQuery(string))
+      rescue java.sql.SQLException => e
+        if e.message == "java.sql.SQLException: query does not return ResultSet"
+          return KnjDB_sqlite3_result_java.new(self, nil)
+        else
+          raise e
         end
-      else
-        res = @conn.execute(string)
       end
-    rescue Exception => e
-      print "SQL: #{string}\n"
-      raise e
+    else
+      return KnjDB_sqlite3_result.new(self, @conn.execute(string))
     end
-    
-    return KnjDB_sqlite3_result.new(self, res)
   end
   
   def escape(string)
@@ -89,30 +82,33 @@ end
 
 class KnjDB_sqlite3_result_java
   def initialize(driver, rs)
-    @rs = rs
     @index = 0
-    @retkeys = driver.knjdb.opts[:return_keys]
+    retkeys = driver.knjdb.opts[:return_keys]
     
     if rs
-      @metadata = rs.getMetaData
-      @columns_count = @metadata.getColumnCount
+      metadata = rs.getMetaData
+      columns_count = metadata.getColumnCount
+      
+      @rows = []
+      while rs.next
+        row_data = {}
+        for i in (1..columns_count)
+          col_name = metadata.getColumnName(i)
+          col_name = col_name.to_s.to_sym if retkeys == "symbols"
+          row_data[col_name] = rs.getString(i)
+        end
+        
+        @rows << row_data
+      end
     end
   end
   
   def fetch
-    if !@rs.next
-      return false
-    end
-    
-    tha_return = {}
-    for i in (1..@columns_count)
-      col_name = @metadata.getColumnName(i)
-      col_name = col_name.to_s.to_sym if @retkeys == "symbols"
-      
-      tha_return.store(col_name, @rs.getString(i))
-    end
-    
-    return tha_return
+    return false if !@rows
+    ret = @rows[@index]
+    return false if !ret
+    @index += 1
+    return ret
   end
 end
 
@@ -120,19 +116,24 @@ class KnjDB_sqlite3_result
   def initialize(driver, result_array)
     @result_array = result_array
     @index = 0
-    @retkeys = driver.knjdb.opts[:return_keys]
+    
+    if driver.knjdb.opts[:return_keys] == "symbols"
+      @symbols = true
+    else
+      @symbols = false
+    end
   end
   
   def fetch
-    tha_return = @result_array[@index]
-    return false if !tha_return
+    result_hash = @result_array[@index]
+    return false if !result_hash
     @index += 1
     
     ret = {}
-    tha_return.each do |key, val|
+    result_hash.each do |key, val|
       if Knj::Php::is_numeric(key)
         #do nothing.
-      elsif @retkeys == "symbols" and !key.is_a?(Symbol)
+      elsif @symbols and !key.is_a?(Symbol)
         ret[key.to_sym] = val
       else
         ret[key] = val

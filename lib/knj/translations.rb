@@ -43,7 +43,7 @@ class Knj::Translations
 		return "" if trans.empty?
 		
 		trans.each do |tran|
-			if !@cache.has_key?(classn)
+			if !@cache.key?(classn)
 				@cache[classn] = {
 					objid => {
 						key => {
@@ -109,7 +109,7 @@ class Knj::Translations
 			@ob.delete(tran)
 		end
 		
-		@cache[classn].delete(objid) if @cache.has_key?(classn) and @cache.has_key?(objid)
+		@cache[classn].delete(objid) if @cache.key?(classn) and @cache.key?(objid)
 	end
 end
 

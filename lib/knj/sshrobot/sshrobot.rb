@@ -2,7 +2,7 @@ class Knj::SSHRobot
 	def initialize(args)
 		@forwards = []
 		@args = Knj::ArrayExt.hash_sym(args)
-		@args[:port] = 22 if !@args.has_key?(:port)
+		@args[:port] = 22 if !@args.key?(:port)
 	end
 	
 	def session

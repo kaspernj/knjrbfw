@@ -3,7 +3,7 @@ class Knj::Threadpool
 	
 	def initialize(args = {})
 		@args = args
-		@args[:sleep] = 0.01 if !@args.has_key?(:sleep)
+		@args[:sleep] = 0.01 if !@args.key?(:sleep)
 		@workers = []
 		@blocks = []
 		@mutex = Mutex.new
@@ -49,7 +49,7 @@ class Knj::Threadpool
 			if blockdata[:runned]
 				begin
 					res = blockdata[:result]
-					raise blockdata[:error] if blockdata.has_key?(:error)
+					raise blockdata[:error] if blockdata.key?(:error)
 				ensure
 					@mutex.synchronize do
 						blockdata.clear
@@ -109,7 +109,7 @@ class Knj::Threadpool::Worker
 				res = nil
 				raise "No block in blockdata?" if !@blockdata[:block]
 				
-				if @blockdata.has_key?(:result)
+				if @blockdata.key?(:result)
 					begin
             @running = true
 						res = @blockdata[:block].call(*@blockdata[:args])

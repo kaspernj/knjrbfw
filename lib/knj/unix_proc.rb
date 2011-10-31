@@ -38,9 +38,9 @@ class Knj::Unix_proc
 				"app" => File.basename(match[4])
 			}
 			
-			next if (!args.has_key?("ignore_self") or args["ignore_self"]) and match[1].to_i == $$.to_i
+			next if (!args.key?("ignore_self") or args["ignore_self"]) and match[1].to_i == $$.to_i
 			next if grepstr.length > 0 and match[4].index(grepstr) != nil #dont return current process.
-			next if args.has_key?("pids") and args["pids"].index(pid) == nil
+			next if args.key?("pids") and args["pids"].index(pid) == nil
 			
 			ret << Knj::Unix_proc.spawn(data)
 		end
@@ -72,7 +72,7 @@ class Knj::Unix_proc
 	end
 	
 	def [](key)
-		raise "No such data: #{key}" if !@data.has_key?(key)
+		raise "No such data: #{key}" if !@data.key?(key)
 		return @data[key]
 	end
 	

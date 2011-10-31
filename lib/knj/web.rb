@@ -283,7 +283,7 @@ class Knj::Web
 			try = 0
 			
 			loop do
-				if !seton.has_key?(try)
+				if !seton.key?(try)
 					break
 				else
 					try += 1
@@ -314,7 +314,7 @@ class Knj::Web
 				namepos = varname.index(match[0])
 				name = varname.slice(0..namepos - 1)
 				name = name.to_sym if args[:syms]
-				seton[name] = {} if !seton.has_key?(name)
+				seton[name] = {} if !seton.key?(name)
 				
 				secname, secname_empty = Knj::Web.parse_secname(seton[name], match[1], args)
 				
@@ -322,7 +322,7 @@ class Knj::Web
 				restname = varname.slice(valuefrom..-1)
 				
 				if restname and restname.index("[") != nil
-					seton[name][secname] = {} if !seton[name].has_key?(secname)
+					seton[name][secname] = {} if !seton[name].key?(secname)
 					Knj::Web.parse_name_second(seton[name][secname], restname, value, args)
 				else
 					seton[name][secname] = realvalue
@@ -353,7 +353,7 @@ class Knj::Web
 			restname = varname.slice(valuefrom..-1)
 			
 			if restname and restname.index("[") != nil
-				seton[secname] = {} if !seton.has_key?(secname)
+				seton[secname] = {} if !seton.key?(secname)
 				Knj::Web.parse_name_second(seton[secname], restname, value, args)
 			else
 				seton[secname] = realvalue
@@ -467,7 +467,7 @@ class Knj::Web
 	def self.input(args)
 		Knj::ArrayExt.hash_sym(args)
 		
-		if args.has_key?(:value)
+		if args.key?(:value)
       if args[:value].is_a?(Array) and args[:value][0].is_a?(NilClass)
         value = nil
 			elsif args[:value].is_a?(Array)
@@ -491,7 +491,7 @@ class Knj::Web
 			value = ""
 		end
 		
-		if value and args.has_key?(:value_func) and args[:value_func]
+		if value and args.key?(:value_func) and args[:value_func]
 			cback = args[:value_func]
 			
 			if cback.is_a?(Method)
@@ -534,11 +534,11 @@ class Knj::Web
 		raise "No name given to the Web::input()-method." if !args[:name] and args[:type] != :info and args[:type] != :textshow and args[:type] != :plain
 		
 		css = {}
-		css["text-align"] = args[:align] if args.has_key?(:align)
+		css["text-align"] = args[:align] if args.key?(:align)
 		
 		attr_keys = [:onchange]
 		attr_keys.each do |tag|
-      if args.has_key?(tag)
+      if args.key?(tag)
         attr[tag] = args[tag]
       end
 		end
@@ -546,7 +546,7 @@ class Knj::Web
 		html = ""
 		
 		if args[:type] == :checkbox
-      attr["value"] = args[:value_active] if args.has_key?(:value_active)
+      attr["value"] = args[:value_active] if args.key?(:value_active)
       attr["checked"] = "checked" if value.is_a?(String) and value == "1" or value.to_s == "1" or value.to_s == "on" or value.to_s == "true"
       attr["checked"] = "checked" if value.is_a?(TrueClass)
       
@@ -591,8 +591,8 @@ class Knj::Web
 				html += "<input type=\"file\" name=\"#{args[:name].html}\" class=\"input_file\" />"
 				html += "</td><td style=\"padding-left: 5px;\">"
 				
-				raise "No path given for imageupload-input." if !args.has_key?(:path)
-				raise "No value given in arguments for imageupload-input." if !args.has_key?(:value)
+				raise "No path given for imageupload-input." if !args.key?(:path)
+				raise "No value given in arguments for imageupload-input." if !args.key?(:value)
 				
 				path = args[:path].gsub("%value%", value.to_s).untaint
 				if File.exists?(path)
@@ -614,7 +614,7 @@ class Knj::Web
         html += "#{Knj::Web.html(value)}"
       elsif args[:type] == :editarea
         css["width"] = "100%"
-        css["height"] = args[:height] if args.has_key?(:height)
+        css["height"] = args[:height] if args.key?(:height)
         html += "<textarea#{self.attr_html(attr)}#{self.style_html(css)} id=\"#{args[:id]}\" name=\"#{args[:name]}\">#{value}</textarea>"
         
         jshash = {
@@ -624,7 +624,7 @@ class Knj::Web
         
         pos_keys = [:skip_init, :allow_toggle, :replace_tab_by_spaces, :toolbar, :syntax]
         pos_keys.each do |key|
-          jshash[key.to_s] = args[key] if args.has_key?(key)
+          jshash[key.to_s] = args[key] if args.key?(key)
         end
         
         html += "<script type=\"text/javascript\">"

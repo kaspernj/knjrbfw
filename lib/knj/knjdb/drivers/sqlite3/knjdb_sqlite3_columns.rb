@@ -16,19 +16,19 @@ class KnjDB_sqlite3::Columns
       data.delete("maxlength")
     end
 		
-		data["maxlength"] = 255 if type == "varchar" and !data.has_key?("maxlength")
+		data["maxlength"] = 255 if type == "varchar" and !data.key?("maxlength")
 		type = "integer" if @db.int_types.index(type) and (data["autoincr"] or data["primarykey"])
 		
 		sql = "`#{data["name"]}` #{type}"
 		sql += "(#{data["maxlength"]})" if data["maxlength"] and !data["autoincr"]
-		sql += "(11)" if !data.has_key?("maxlength") and !data["autoincr"]
+		sql += "(11)" if !data.key?("maxlength") and !data["autoincr"]
 		sql += " PRIMARY KEY" if data["primarykey"]
-		sql += " NOT NULL" if !data["null"] and data.has_key?("null")
+		sql += " NOT NULL" if !data["null"] and data.key?("null")
 		
-		if data.has_key?("default_func")
+		if data.key?("default_func")
 			sql += " DEFAULT #{data["default_func"]}"
-		elsif data.has_key?("default") and data["default"] != false
-			sql += " DEFAULT '#{@driver.escape(data["default"])}'"
+		elsif data.key?("default") and data["default"] != false
+			sql += " DEFAULT '#{@db.escape(data["default"])}'"
 		end
 		
 		return sql
@@ -135,12 +135,12 @@ class KnjDB_sqlite3::Columns::Column
 	def change(data)
 		newdata = data.clone
 		
-		newdata["name"] = self.name if !newdata.has_key?("name")
-		newdata["type"] = self.type if !newdata.has_key?("type")
-		newdata["maxlength"] = self.maxlength if !newdata.has_key?("maxlength") and self.maxlength
-		newdata["null"] = self.null? if !newdata.has_key?("null")
-		newdata["default"] = self.default if !newdata.has_key?("default")
-		newdata.delete("primarykey") if newdata.has_key?("primarykey")
+		newdata["name"] = self.name if !newdata.key?("name")
+		newdata["type"] = self.type if !newdata.key?("type")
+		newdata["maxlength"] = self.maxlength if !newdata.key?("maxlength") and self.maxlength
+		newdata["null"] = self.null? if !newdata.key?("null")
+		newdata["default"] = self.default if !newdata.key?("default")
+		newdata.delete("primarykey") if newdata.key?("primarykey")
 		
 		@type = nil
 		@maxlength = nil

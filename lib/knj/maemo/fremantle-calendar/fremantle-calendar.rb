@@ -37,7 +37,7 @@ class Knj
 				end
 				
 				def [](key)
-					if (!@data.has_key?(key))
+					if (!@data.key?(key))
 						raise "No such key: '" + key + "'"
 					end
 					

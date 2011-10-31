@@ -6,12 +6,12 @@ class Knj::Thread2
 	end
 	
 	def connect(signal, &block)
-		@callbacks[signal] = [] if !@callbacks.has_key?(signal)
+		@callbacks[signal] = [] if !@callbacks.key?(signal)
 		@callbacks[signal] << block
 	end
 	
 	def call(signal, *args)
-		return false if !@callbacks.has_key?(signal)
+		return false if !@callbacks.key?(signal)
 		@callbacks[signal].each do |block|
 			block.call(*args)
 		end
@@ -32,7 +32,7 @@ class Knj::Thread2
 			rescue Exception => e
 				call(:on_error, e)
 				
-				if !@args.has_key?(:print_error) or @args[:print_error]
+				if !@args.key?(:print_error) or @args[:print_error]
 					print "Error: "
 					puts e.inspect
 					print "\n"

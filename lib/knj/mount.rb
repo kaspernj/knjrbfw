@@ -13,8 +13,8 @@ class Knj::Mount
 			#raise "The folder doesnt exist?" if !File.exists?(folder_to)
 			
 			add = true
-			add = false if args.has_key?("to") and args["to"] != folder_to
-			add = false if args.has_key?("from") and args["from"] != folder_from
+			add = false if args.key?("to") and args["to"] != folder_to
+			add = false if args.key?("from") and args["from"] != folder_from
 			
 			if args["from_search"]
 				Knj::Strings.searchstring(args["from_search"]).each do |str|
@@ -43,11 +43,11 @@ class Knj::Mount
 	
 	def self.mount(args)
 		cmd = "mount"
-		cmd += " -t #{Knj::Strings.unixsafe(args["type"])}" if args.has_key?("type")
+		cmd += " -t #{Knj::Strings.unixsafe(args["type"])}" if args.key?("type")
 		cmd += " --bind" if args["bind"]
 		cmd += " #{Knj::Strings.unixsafe(args["from"])} #{Knj::Strings.unixsafe(args["to"])}"
 		
-		if args.has_key?("opts")
+		if args.key?("opts")
 			raise "opts argument must be an array." if !args["opts"].is_a?(Array)
 			
 			cmd += "-O "
@@ -85,7 +85,7 @@ class Knj::Mount
 	end
 	
 	def [](key)
-		raise "Invalid key: #{key}." if !@data.has_key?(key)
+		raise "Invalid key: #{key}." if !@data.key?(key)
 		return @data[key]
 	end
 	
@@ -96,7 +96,7 @@ class Knj::Mount
 	alias :umount :unmount
 	
 	def access?(args = {})
-		args["timeout"] = 2 if !args.has_key?("timeout")
+		args["timeout"] = 2 if !args.key?("timeout")
 		access = false
 		
 		begin

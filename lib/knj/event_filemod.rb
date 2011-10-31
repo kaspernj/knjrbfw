@@ -6,7 +6,7 @@ class Knj::Event_filemod
 		@run = true
 		@mutex = Mutex.new
 		
-		@args[:wait] = 1 if !@args.has_key?(:wait)
+		@args[:wait] = 1 if !@args.key?(:wait)
 		
 		@mtimes = {}
 		args[:paths].each do |path|
@@ -21,7 +21,7 @@ class Knj::Event_filemod
           @args[:paths].each do |path|
             changed = false
             
-            if @mtimes and !@mtimes.has_key?(path) and @mtimes.is_a?(Hash)
+            if @mtimes and !@mtimes.key?(path) and @mtimes.is_a?(Hash)
               @mtimes[path] = File.mtime(path)
             end
             

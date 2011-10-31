@@ -43,7 +43,7 @@ class Knj::Db_row
 	end
 	
 	def ob
-		return @args[:objects] if @args.has_key?(:objects)
+		return @args[:objects] if @args.key?(:objects)
 		return $ob if $ob and $ob.is_a?(Knj::Objects)
 		return false
 	end
@@ -83,18 +83,18 @@ class Knj::Db_row
 	end
 	
 	def has_key?(key)
-		return @data.has_key?(key.to_sym)
+		return @data.key?(key.to_sym)
 	end
 	
 	def [](key)
 		raise "No valid key given." if !key
 		raise "No data was loaded on the object? Maybe you are trying to call a deleted object?" if !@data
 		
-		if @data.has_key?(key)
+		if @data.key?(key)
 			return @data[key]
-		elsif @data.has_key?(key.to_sym)
+		elsif @data.key?(key.to_sym)
 			return @data[key.to_sym]
-		elsif @data.has_key?(key.to_s)
+		elsif @data.key?(key.to_s)
 			return @data[key.to_s]
 		end
 		
@@ -115,9 +115,9 @@ class Knj::Db_row
 			return @data[@args[:col_title].to_sym]
 		end
 		
-		if @data.has_key?(:title)
+		if @data.key?(:title)
 			return @data[:title]
-		elsif @data.has_key?(:name)
+		elsif @data.key?(:name)
 			return @data[:name]
 		end
 		
@@ -136,7 +136,7 @@ class Knj::Db_row
 	
 	def method_missing(*args)
 		func_name = args[0].to_s
-		if match = func_name.match(/^(\S+)\?$/) and @data.has_key?(match[1].to_sym)
+		if match = func_name.match(/^(\S+)\?$/) and @data.key?(match[1].to_sym)
 			if @data[match[1].to_sym] == "1" or @data[match[1].to_sym] == "yes"
 				return true
 			elsif @data[match[1].to_sym] == "0" or @data[match[1].to_sym] == "no"

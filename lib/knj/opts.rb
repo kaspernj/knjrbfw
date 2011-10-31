@@ -18,8 +18,8 @@ module Knj::Opts
 		if !value
 			return ""
 		else
-			return value["value"] if value.has_key?("value")
-			return value[:value] if value.has_key?(:value)
+			return value["value"] if value.key?("value")
+			return value[:value] if value.key?(:value)
 			raise "Could not figure out of value."
 		end
 	end
@@ -35,8 +35,8 @@ module Knj::Opts
 			})
 		else
       id = nil
-      id = result["id"] if result.has_key?("id")
-      id = result[:id] if result.has_key?(:id)
+      id = result["id"] if result.key?("id")
+      id = result[:id] if result.key?(:id)
       raise "Could not figure out of ID." if !id
       
 			db.update($knjoptions["table"], {"value" => value}, {"id" => id})

@@ -96,7 +96,7 @@ class KnjDB_sqlite3::Tables::Table
 	
 	def create_columns(col_arr)
 		col_arr.each do |col_data|
-			#if col_data.has_key?("after")
+			#if col_data.key?("after")
 			#	self.create_column_programmatic(col_data)
 			#else
 				@db.query("ALTER TABLE `#{self.name}` ADD COLUMN #{@db.cols.data_sql(col_data)};")
@@ -175,7 +175,7 @@ class KnjDB_sqlite3::Tables::Table
 			sql += ", " if !first
 			first = false if first
 			
-			if args.has_key?("alter_columns") and args["alter_columns"][name.to_s]
+			if args.key?("alter_columns") and args["alter_columns"][name.to_s]
 				sql += @db.cols.data_sql(args["alter_columns"][name.to_s])
 			else
 				sql += @db.cols.data_sql(col.data)
@@ -257,7 +257,7 @@ class KnjDB_sqlite3::Tables::Table
 	
 	def create_indexes(index_arr)
 		index_arr.each do |index_data|
-			raise "No name was given." if !index_data.has_key?("name") or index_data["name"].strip.length <= 0
+			raise "No name was given." if !index_data.key?("name") or index_data["name"].strip.length <= 0
 			raise "No columns was given on index #{index_data["name"]}." if index_data["columns"].empty?
 			
 			name = index_data["name"]

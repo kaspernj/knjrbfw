@@ -32,9 +32,9 @@ class Knj::Compiler
 	#Compile and evaluate a file - it will be cached.
 	def eval_file(args)
 		#Compile if it hasnt been compiled yet.
-    if !@compiled.has_key?(args[:filepath])
+    if !@compiled.key?(args[:filepath])
       @mutex.synchronize do
-        compile_file(args) if !@compiled.has_key?(args[:filepath])
+        compile_file(args) if !@compiled.key?(args[:filepath])
       end
     end
     

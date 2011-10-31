@@ -207,7 +207,7 @@ class KnjDB_mysql::Tables::Table
 	
 	def create_indexes(index_arr)
 		index_arr.each do |index_data|
-			raise "No name was given." if !index_data.has_key?("name") or index_data["name"].strip.length <= 0
+			raise "No name was given." if !index_data.key?("name") or index_data["name"].strip.length <= 0
 			raise "No columns was given on index: '#{index_data["name"]}'." if !index_data["columns"] or index_data["columns"].empty?
 			
 			sql = "CREATE INDEX #{@db.escape_col}#{@db.esc_col(index_data["name"])}#{@db.escape_col} ON #{@db.escape_table}#{@db.esc_table(self.name)}#{@db.escape_table} ("

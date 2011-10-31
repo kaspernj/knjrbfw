@@ -94,9 +94,9 @@ module Knj::ArrayExt
 	
 	#Compares the keys and values of two hashes and returns true if they are different.
 	def self.hash_diff?(h1, h2, args = {})
-		if !args.has_key?("h1_to_h2") or args["h1_to_h2"]
+		if !args.key?("h1_to_h2") or args["h1_to_h2"]
 			h1.each do |key, val|
-				return true if !h2.has_key?(key)
+				return true if !h2.key?(key)
 				
 				hash_val = h2[key].to_s
 				hash_val = hash_val.force_encoding("UTF-8") if hash_val.respond_to?(:force_encoding)
@@ -108,9 +108,9 @@ module Knj::ArrayExt
 			end
 		end
 		
-		if !args.has_key?("h2_to_h1") or args["h2_to_h1"]
+		if !args.key?("h2_to_h1") or args["h2_to_h1"]
 			h2.each do |key, val|
-				return true if !h1.has_key?(key)
+				return true if !h1.key?(key)
 				
 				hash_val = h1[key].to_s
 				hash_val = hash_val.force_encoding("UTF-8") if hash_val.respond_to?(:force_encoding)
@@ -158,7 +158,7 @@ module Knj::ArrayExt
 	#Validates a hash of data.
 	def self.validate_hash(h, args)
     h.each do |key, val|
-      if args.has_key?(:not_empty) and args[:not_empty].index(key) != nil and val.to_s.strip.length <= 0
+      if args.key?(:not_empty) and args[:not_empty].index(key) != nil and val.to_s.strip.length <= 0
         raise Knj::Errors::InvalidData, sprintf(args[:not_empty_error], key)
       end
     end

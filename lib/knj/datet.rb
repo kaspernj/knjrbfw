@@ -305,7 +305,7 @@ class Knj::Datet
 		
 		time = Time.local(vars[:year], vars[:month], vars[:day], vars[:hour], vars[:min], vars[:sec])
 		
-		if !args.has_key?(:datet) or args[:datet]
+		if !args.key?(:datet) or args[:datet]
 			return Knj::Datet.new(time)
 		end
 		
@@ -315,7 +315,7 @@ class Knj::Datet
 	def dbstr(args = {})
     str = "%04d" % @time.year.to_s + "-" + "%02d" % @time.month.to_s + "-" + "%02d" % @time.day.to_s
     
-    if !args.has_key?(:time) or args[:time]
+    if !args.key?(:time) or args[:time]
       str += " " + "%02d" % @time.hour.to_s + ":" + "%02d" % @time.min.to_s + ":" + "%02d" % @time.sec.to_s
     end
     
@@ -347,16 +347,16 @@ class Knj::Datet
 		date_shown = false
 		time_shown = false
 		
-		if !args.has_key?(:date) or args[:date]
+		if !args.key?(:date) or args[:date]
 			date_shown = true
 			str += "%02d" % @time.day.to_s + "/" + "%02d" % @time.month.to_s
 			
-			if !args.has_key?(:year) or args[:year]
+			if !args.key?(:year) or args[:year]
 				str += " " + "%04d" % @time.year.to_s
 			end
 		end
 		
-		if !args.has_key?(:time) or args[:time]
+		if !args.key?(:time) or args[:time]
 			time_shown = true
 			str += " - " if date_shown
 			str += "%02d" % @time.hour.to_s + ":" + "%02d" % @time.min.to_s

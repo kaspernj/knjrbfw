@@ -30,12 +30,12 @@ class Knj::Retry
 				end
 			rescue Exception => e
 				if e.class == Interrupt
-					raise e if !args.has_key?(:interrupt) or args[:interrupt]
+					raise e if !args.key?(:interrupt) or args[:interrupt]
 				elsif e.class == SystemExit
-					raise e if !args.has_key?(:exit) or args[:exit]
-				elsif count <= 1 or (args.has_key?(:errors) and args[:errors].index(e.class) == nil)
+					raise e if !args.key?(:exit) or args[:exit]
+				elsif count <= 1 or (args.key?(:errors) and args[:errors].index(e.class) == nil)
 					doraise = e
-				elsif args.has_key?(:errors) and args[:errors].index(e.class) != nil
+				elsif args.key?(:errors) and args[:errors].index(e.class) != nil
 					#given error was in the :errors-array - do nothing. Maybe later it should be logged and returned in a stats-hash or something? - knj
 				end
 				

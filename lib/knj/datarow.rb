@@ -37,7 +37,7 @@ class Knj::Datarow
         raise "Unknown argument: '#{val.class.name}'."
       end
       
-      if val.is_a?(Hash) and val.has_key?(:where)
+      if val.is_a?(Hash) and val.key?(:where)
         where_args = val[:where]
       else
         where_args = {}
@@ -285,10 +285,10 @@ class Knj::Datarow
       if @columns_joined_tables
         @columns_joined_tables.each do |table_name, table_data|
           table_data[:where].each do |key, val|
-            val[:table] = self.table.to_sym if val.is_a?(Hash) and !val.has_key?(:table) and val[:type] == "col"
+            val[:table] = self.table.to_sym if val.is_a?(Hash) and !val.key?(:table) and val[:type] == "col"
           end
           
-          table_data[:datarow] = @ob.args[:module].const_get(table_name.to_sym) if !table_data.has_key?(:datarow)
+          table_data[:datarow] = @ob.args[:module].const_get(table_name.to_sym) if !table_data.key?(:datarow)
         end
         
         sqlhelper_args[:joined_tables] = @columns_joined_tables
@@ -349,7 +349,7 @@ class Knj::Datarow
 	end
 	
 	def has_key?(key)
-		return @data.has_key?(key.to_sym)
+		return @data.key?(key.to_sym)
 	end
 	
 	def key?(key)
@@ -359,7 +359,7 @@ class Knj::Datarow
 	def [](key)
 		raise "No valid key given." if !key.is_a?(Symbol)
 		raise "No data was loaded on the object? Maybe you are trying to call a deleted object?" if !@data
-		return @data[key] if @data.has_key?(key)
+		return @data[key] if @data.key?(key)
 		raise "No such key: #{key}."
 	end
 	
@@ -374,9 +374,9 @@ class Knj::Datarow
 	end
 	
 	def name
-		if @data.has_key?(:title)
+		if @data.key?(:title)
 			return @data[:title]
-		elsif @data.has_key?(:name)
+		elsif @data.key?(:name)
 			return @data[:name]
 		end
 		

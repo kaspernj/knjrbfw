@@ -44,7 +44,7 @@ module Gtk
 		"org.gnome.gtk.Window" => org.gnome.gtk.Window
 	}
 	def self.evalob(evalobstr)
-		if !@evalobs.has_key?(evalobstr)
+		if !@evalobs.key?(evalobstr)
 			print "Not statically written: #{evalobstr}\n"
 			@evalobs[evalobstr] = eval(evalobstr)
 		end
