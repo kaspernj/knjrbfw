@@ -99,9 +99,22 @@ module Knj::Os
 	#Returns the xauth file for GDM.
 	def self.xauth_file
 		authfile = ""
-		Dir.new("/var/run/gdm").each do |file|
-			next if file == "." or file == ".." or !file.match(/^auth-for-gdm-.+$/)
-			authfile = "/var/run/gdm/#{file}/database"
+		
+		if File.exists?("/var/run/gdm")
+      Dir.foreach("/var/run/gdm") do |file|
+        next if file == "." or file == ".." or !file.match(/^auth-for-gdm-.+$/)
+        authfile = "/var/run/gdm/#{file}/database"
+      end
+		end
+		
+		if File.exists?("/var/run/lightdm")
+      Dir.foreach("/var/run/lightdm") do |file|
+        next if file == "." or file == ".."
+        
+        Dir.foreach("/var/run/lightdm/#{file}") do |f2|
+          authfile = "/var/run/lightdm/#{file}/#{f2}" if f2.match(/^:(\d+)$/)
+        end
+      end
 		end
 		
 		if authfile.to_s.length <= 0
