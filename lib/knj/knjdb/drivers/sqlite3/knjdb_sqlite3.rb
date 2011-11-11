@@ -38,20 +38,25 @@ class KnjDB_sqlite3
   end
   
   def query(string)
-    if @knjdb.opts[:subtype] == "rhodes"
-      return KnjDB_sqlite3_result.new(self, @conn.execute(string, string))
-    elsif @knjdb.opts[:subtype] == "java"
-      begin
-        return KnjDB_sqlite3_result_java.new(self, @stat.executeQuery(string))
-      rescue java.sql.SQLException => e
-        if e.message == "java.sql.SQLException: query does not return ResultSet"
-          return KnjDB_sqlite3_result_java.new(self, nil)
-        else
-          raise e
+    begin
+      if @knjdb.opts[:subtype] == "rhodes"
+        return KnjDB_sqlite3_result.new(self, @conn.execute(string, string))
+      elsif @knjdb.opts[:subtype] == "java"
+        begin
+          return KnjDB_sqlite3_result_java.new(self, @stat.executeQuery(string))
+        rescue java.sql.SQLException => e
+          if e.message == "java.sql.SQLException: query does not return ResultSet"
+            return KnjDB_sqlite3_result_java.new(self, nil)
+          else
+            raise e
+          end
         end
+      else
+        return KnjDB_sqlite3_result.new(self, @conn.execute(string))
       end
-    else
-      return KnjDB_sqlite3_result.new(self, @conn.execute(string))
+    rescue => e
+      #Add SQL to the error message.
+      raise e.class, "#{e.message}\n\nSQL: #{string}"
     end
   end
   

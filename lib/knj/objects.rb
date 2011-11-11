@@ -25,6 +25,25 @@ class Knj::Objects
 		
 		raise "No DB given." if !@args[:db]
 		raise "No class path given." if !@args[:class_path] and (@args[:require] or !@args.key?(:require))
+		
+		if args[:require_all]
+      loads = []
+      
+      Dir.foreach(@args[:class_path]) do |file|
+        next if file == "." or file == ".." or !file.match(/\.rb$/)
+        file_parsed = file
+        file_parsed.gsub!(@args[:class_pre], "") if @args.key?(:class_pre)
+        file_parsed.gsub!(/\.rb$/, "")
+        file_parsed = Knj::Php.ucwords(file_parsed)
+        
+        loads << file_parsed
+        self.requireclass(file_parsed, {:load => false})
+      end
+      
+      loads.each do |load_class|
+        self.load_class(load_class)
+      end
+		end
 	end
 	
 	def init_class(classname)

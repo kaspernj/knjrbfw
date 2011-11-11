@@ -80,7 +80,7 @@ class KnjDB_sqlite3::Tables::Table
 			@db.cols
 			@list = {}
 			
-			q_cols = @db.query("PRAGMA table_info(#{self.name})")
+			q_cols = @db.query("PRAGMA table_info(`#{@driver.esc_table(self.name)}`)")
 			while d_cols = q_cols.fetch
 				@list[d_cols[:name]] = KnjDB_sqlite3::Columns::Column.new(
 					:table => self,
@@ -227,7 +227,7 @@ class KnjDB_sqlite3::Tables::Table
 			@db.indexes
 			@indexes_list = {}
 			
-			q_indexes = @db.query("PRAGMA index_list(`#{self.name}`)")
+			q_indexes = @db.query("PRAGMA index_list(`#{@driver.esc_table(self.name)}`)")
 			while d_indexes = q_indexes.fetch
         if @db.opts[:index_append_table_name]
           match_name = d_indexes[:name].match(/__(.+)$/)
