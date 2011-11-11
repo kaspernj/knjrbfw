@@ -123,4 +123,15 @@ module Knj::Strings
     
     return newstr
 	end
+	
+	#Returns the module from the given string - even if formed as SomeClass::SomeNewClass.
+	def self.const_get_full(str)
+    module_use = Kernel
+    
+    str.scan(/(.+?)(::|$)/) do |match|
+      module_use = module_use.const_get(match[0])
+    end
+    
+    return module_use
+  end
 end
