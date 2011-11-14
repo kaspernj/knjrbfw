@@ -13,11 +13,7 @@ class Knj::Thread < Thread
 			rescue SystemExit
 				exit
 			rescue Exception => e
-				print "Error: "
-				puts e.inspect
-				print "\n"
-				puts e.backtrace
-				print "\n\n"
+        print Knj::Errors.error_str(e)
 			end
 		end
 	end
