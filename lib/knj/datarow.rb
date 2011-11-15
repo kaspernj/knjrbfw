@@ -40,7 +40,7 @@ class Knj::Datarow
       if val.is_a?(Hash) and val.key?(:where)
         where_args = val[:where]
       else
-        where_args = {}
+        where_args = nil
       end
       
       raise "No classname given." if !classname
@@ -49,6 +49,7 @@ class Knj::Datarow
       define_method(methodname) do |*args, &block|
         merge_args = args[0] if args and args[0]
         merge_args = {} if !merge_args
+        merge_args.merge!(where_args) if where_args
         
         all_args = []
         all_args << block if block

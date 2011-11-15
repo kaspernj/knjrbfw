@@ -56,7 +56,9 @@ class Knj::Mailobj
 				content_type "text/html; charset=UTF-8"
 				body tha_html
 			end
-		elsif @args["text"]
+		end
+		
+		if @args["text"]
 			tha_text = @args["text"]
 			mail.text_part do
 				body tha_text
