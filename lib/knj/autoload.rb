@@ -2,6 +2,7 @@ $knjpath = File.dirname(__FILE__) + "/" if !$knjpath
 require "#{$knjpath}/knj"
 
 module Knj
+  autoload :Amixer, $knjpath + "amixer"
 	autoload :ArrayExt, $knjpath + "arrayext"
 	autoload :Datestamp, $knjpath + "datestamp"
 	autoload :Datet, $knjpath + "datet"

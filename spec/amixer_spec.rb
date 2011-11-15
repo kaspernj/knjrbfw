@@ -12,13 +12,15 @@ describe "Amixer" do
     $devices = $amixer.devices
   end
   
-  it "should register various mixers" do
+  it "should register various mixers and do various operations on them" do
     $devices.each do |name, device|
       mixers = device.mixers
       
-      mixers.each do |name, mixer|
-        next if !mixer.volume?
-        mixer.vol_add -5
+      if device.active?(:stream => "PLAYBACK")
+        mixers.each do |name, mixer|
+          next if !mixer.volume?
+          mixer.vol_add -5
+        end
       end
     end
   end

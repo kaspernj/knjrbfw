@@ -53,6 +53,31 @@ class Knj::Amixer
       return @args[:amixer]
     end
     
+    #Returns true if the device is active by looking in '/proc/asounc/card*/pcm*/sub*/status'.
+    def active?(args = {})
+      proc_path = "/proc/asound/#{@args[:code]}"
+      
+      Dir.foreach(proc_path) do |file|
+        next if file == "." or file == ".." or !file.match(/^pcm(\d+)[a-z]+$/)
+        sub_path = "#{proc_path}/#{file}"
+        info_path = "#{sub_path}/info"
+        info_cont = File.read(info_path)
+        
+        if stream_match = info_cont.match(/stream: (.+?)\s+/)
+          next if args.key?(:stream) and stream_match[1] != args[:stream]
+        end
+        
+        Dir.foreach(sub_path) do |file_sub|
+          next if file_sub == "." or file_sub == ".." or !file_sub.match(/^sub(\d+)$/)
+          status_path = "#{sub_path}/#{file_sub}/status"
+          cont = File.read(status_path)
+          return true if cont.strip != "closed"
+        end
+      end
+      
+      return false
+    end
+    
     #Returns a hash of the various mixers.
     def mixers
       ret = %x[#{@args[:amixer].args[:amixer_bin]} -c #{@args[:id]} scontrols]
