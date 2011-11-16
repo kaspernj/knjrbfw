@@ -370,7 +370,13 @@ class Knj::Objects
 		end
 		
 		obs.each do |object|
-			list[object.id] = object.title
+      if object.respond_to?(:name)
+        list[object.id] = object.name
+      elsif object.respond_to?(:title)
+        list[object.id] = object.title
+      else
+        raise "Object of class '#{object.class.name}' doesnt support 'name' or 'title."
+      end
 		end
 		
 		return list
