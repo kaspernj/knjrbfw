@@ -361,6 +361,8 @@ class Knj::Datarow
 		raise "No valid key given." if !key.is_a?(Symbol)
 		raise "No data was loaded on the object? Maybe you are trying to call a deleted object?" if !@data
 		return @data[key] if @data.key?(key)
+		
+		STDOUT.print Knj::Php.print_r(self, true)
 		raise "No such key: #{key}."
 	end
 	

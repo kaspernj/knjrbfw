@@ -24,8 +24,8 @@ class Knj::Hash_methods
 	end
 	
 	def data
-		return @data[:data]
-	end
+    return @data[:data]
+  end
 	
 	def method_missing(method, *paras)
 		if !@data.key?(method)
@@ -34,4 +34,8 @@ class Knj::Hash_methods
 		
 		return @data[method.to_sym]
 	end
+	
+	def each(&args)
+    return @data.each(&args)
+  end
 end

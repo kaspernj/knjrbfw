@@ -386,6 +386,7 @@ class Knj::Web
 	end
 	
 	def self.alert(string)
+    require "knj/strings"
 		@alert_sent = true
 		html = "<script type=\"text/javascript\">alert(\"#{Knj::Strings.js_safe(string.to_s)}\");</script>"
 		print html
@@ -981,6 +982,28 @@ class Knj::Web
   #Escapes HTML-characters in a string.
   def self.html(string)
     return string.to_s.gsub(/&/, "&amp;").gsub(/\"/, "&quot;").gsub(/>/, "&gt;").gsub(/</, "&lt;")
+  end
+  
+  #Calculates the URL from meta hash.
+  def self.url(args = {})
+    if args[:meta]
+      meta = args[:meta]
+    else
+      meta = _meta
+    end
+    
+    url = ""
+    
+    if meta["HTTP_SSL_ENABLED"] == "1"
+      url += "https://"
+    else
+      url += "http://"
+    end
+    
+    url += meta["HTTP_HOST"]
+    url += meta["REQUEST_URI"] if !args.key?(:uri) or args[:uri]
+    
+    return url
   end
 end
 
