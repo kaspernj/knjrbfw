@@ -52,7 +52,7 @@ module Knj::ArrayExt
 	
 	#Converts all keys in the given hash to symbols.
 	def self.hash_sym(hash)
-		raise "Invalid argument: #{hash.class.name}" if !hash or !hash.respond_to?(:each)
+		raise "Invalid argument-class: '#{hash.class.name}'." if !hash or !hash.respond_to?(:each)
 		
 		adds = {}
 		hash.each do |key, value|

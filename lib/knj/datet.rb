@@ -329,7 +329,9 @@ class Knj::Datet
 			return Knj::Datet.new(date_string.to_time)
 		end
 		
-		return false if Knj::Datestamp.is_nullstamp?(date_string)
+		return false if Knj::Datet.is_nullstamp?(date_string)
+		
+		require "knj/autoload/parsedate"
 		return Knj::Datet.new(Time.local(*ParseDate.parsedate(date_string.to_s)))
 	end
 	

@@ -3,6 +3,8 @@ class Knj::Db
   attr_reader :opts, :conn, :conns, :int_types
   
   def initialize(opts)
+    require "knj/threadhandler"
+    
     self.setOpts(opts) if opts != nil
     
     @int_types = ["int", "bigint", "tinyint", "smallint", "mediumint"]
@@ -77,10 +79,9 @@ class Knj::Db
   def get_and_register_thread
     raise "KnjDB-object is not in threadding mode." if !@conns
     
-    db = @conns.get_and_lock
     tid = self.__id__
     Thread.current[:knjdb] = {} if !Thread.current[:knjdb]
-    Thread.current[:knjdb][tid] = db
+    Thread.current[:knjdb][tid] = @conns.get_and_lock if !Thread.current[:knjdb][tid]
   end
   
   def free_thread

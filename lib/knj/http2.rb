@@ -2,6 +2,8 @@ class Knj::Http2
   attr_reader :cookies
   
   def initialize(args)
+    require "knj/web"
+    
     @args = args
     @cookies = {}
     @debug = @args[:debug]
@@ -27,7 +29,10 @@ class Knj::Http2
     end
     
     raise "No host was given." if !@args[:host]
-    
+    self.reconnect
+  end
+  
+  def reconnect
     @sock_plain = TCPSocket.new(@args[:host], @args[:port])
     
     if @args[:ssl]
@@ -35,7 +40,6 @@ class Knj::Http2
       
       ssl_context = OpenSSL::SSL::SSLContext.new
       #ssl_context.verify_mode = OpenSSL::SSL::VERIFY_PEER
-      #ssl_context.ca_file = CA_FILE
       
       @sock_ssl = OpenSSL::SSL::SSLSocket.new(@sock_plain, ssl_context)
       @sock_ssl.sync_close = true
@@ -56,8 +60,19 @@ class Knj::Http2
     )
     header_str += "#{@nl}"
     
-    @sock.puts(header_str)
+    self.write(header_str)
     return self.read_response
+  end
+  
+  #Tries to write a string to the socket. If it fails it reconnects and tries again.
+  def write(str)
+    begin
+      raise Errno::EPIPE, "The socket is closed."
+      @sock.puts(str)
+    rescue Errno::EPIPE #this can also be thrown by puts.
+      self.reconnect
+      @sock.puts(str)
+    end
   end
   
   def post(addr, pdata = {})

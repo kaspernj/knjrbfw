@@ -2,6 +2,10 @@ class Knj::Objects
 	attr_reader :args, :events, :data
 	
 	def initialize(args)
+    require "knj/arrayext"
+    require "knj/event_handler"
+    require "knj/hash_methods"
+    
 		@callbacks = {}
 		@args = Knj::ArrayExt.hash_sym(args)
 		@args[:col_id] = :id if !@args[:col_id]
@@ -23,10 +27,11 @@ class Knj::Objects
       :connections_max => 1
 		)
 		
-		raise "No DB given." if !@args[:db]
+		raise "No DB given." if !@args[:db] and !@args[:custom]
 		raise "No class path given." if !@args[:class_path] and (@args[:require] or !@args.key?(:require))
 		
 		if args[:require_all]
+      require "knj/php"
       loads = []
       
       Dir.foreach(@args[:class_path]) do |file|
@@ -193,7 +198,7 @@ class Knj::Objects
     
     self.requireclass(classname) if !@objects.key?(classname)
     
-    if @args[:datarow]
+    if @args[:datarow] or @args[:custom]
       obj = @args[:module].const_get(classname).new(Knj::Hash_methods.new(:ob => self, :data => data))
     else
       args = [data]
@@ -262,7 +267,7 @@ class Knj::Objects
 		
 		raise "list-function has not been implemented for #{classname}" if !classob.respond_to?("list")
 		
-		if @args[:datarow]
+		if @args[:datarow] or @args[:custom]
 			ret = classob.list(Knj::Hash_methods.new(:args => args, :ob => self, :db => @args[:db]))
 		else
 			realargs = [args]
@@ -392,9 +397,6 @@ class Knj::Objects
 		classname = classname.to_sym
 		self.requireclass(classname)
 		
-		args = [data]
-		args = args | @args[:extra_args] if @args[:extra_args]
-		
 		if @args[:datarow]
       classobj = @args[:module].const_get(classname)
 			if classobj.respond_to?(:add)
@@ -420,7 +422,15 @@ class Knj::Objects
 			
 			ins_id = @args[:db].insert(classname, data, {:return_id => true})
 			retob = self.get(classname, ins_id)
+    elsif @args[:custom]
+      classobj = @args[:module].const_get(classname)
+      retob = classobj.add(Knj::Hash_methods.new(
+        :ob => self,
+        :data => data
+      ))
 		else
+      args = [data]
+      args = args | @args[:extra_args] if @args[:extra_args]
 			retob = @args[:module].const_get(classname).add(*args)
 		end
 		
@@ -454,7 +464,7 @@ class Knj::Objects
 	end
 	
 	def static(class_name, method_name, *args)
-		raise "Only available with datarow enabled." if !@args[:datarow]
+		raise "Only available with datarow enabled." if !@args[:datarow] and !@args[:custom]
 		class_name = class_name.to_sym
 		method_name = method_name.to_sym
 		
@@ -464,10 +474,15 @@ class Knj::Objects
 		method_obj = class_obj.method(method_name)
 		
 		pass_args = []
-		pass_args << Knj::Hash_methods.new(
-			:ob => self,
-			:db => self.db
-		)
+		
+		if @args[:datarow]
+      pass_args << Knj::Hash_methods.new(
+        :ob => self,
+        :db => self.db
+      )
+    else
+      pass_args << Knj::Hash_methods.new(:ob => self)
+    end
 		
 		args.each do |arg|
 			pass_args << arg
@@ -922,7 +937,6 @@ class Knj::Objects
     
     args[:joined_tables].each do |table_name, table_data|
       next if table_name.to_sym != class_name
-      
       return table_data[:datarow] if table_data[:datarow]
       
       self.requireclass(class_name) if @objects.key?(class_name)

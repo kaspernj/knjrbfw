@@ -2,6 +2,8 @@ class Knj::Threadhandler
 	attr_reader :inactive_blocks, :args, :activate_blocks, :mutex
 	
 	def initialize(args = {})
+    require "knj/thread"
+    
 		@args = args
 		@objects = []
 		@args[:timeout] = 5 if !@args[:timeout]
@@ -58,7 +60,7 @@ class Knj::Threadhandler
 	def check_inactive
     raise "Destroyed Knj::Threadhandler." if !@mutex
 		@mutex.synchronize do
-			cur_time = Time.new.to_i - @args[:timeout]
+			cur_time = Time.now.to_i - @args[:timeout]
 			@objects.each do |data|
 				if data[:free] and !data[:inactive] and data[:free] < cur_time
 					@inactive_blocks.each do |block|
@@ -124,7 +126,7 @@ class Knj::Threadhandler
 			
 			raise "Could not find that object in list." if !freedata
 			STDOUT.print "Freed one.\n" if @args[:debug]
-			freedata[:free] = Time.new.to_i
+			freedata[:free] = Time.now.to_i
 		end
 	end
 end
