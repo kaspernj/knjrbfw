@@ -50,6 +50,18 @@ module Knj::ArrayExt
 		return ret
 	end
 	
+	def self.hash_numeric_keys?(hash)
+    all_num = true
+    hash.each do |key, val|
+      if !Knj::Php.is_numeric(key)
+        all_num = false
+        break
+      end
+    end
+    
+    return all_num
+	end
+	
 	#Converts all keys in the given hash to symbols.
 	def self.hash_sym(hash)
 		raise "Invalid argument-class: '#{hash.class.name}'." if !hash or !hash.respond_to?(:each)
