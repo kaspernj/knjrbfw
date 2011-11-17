@@ -7,6 +7,7 @@ module Knj::Errors
 	class Exists < StandardError; end
 	
 	def self.error_str(err, args = {})
+    raise "Invalid object of class '#{err.class.name}' given." if !err.is_a?(Exception)
     str = ""
     
 		if args[:html]
