@@ -47,7 +47,7 @@ class Knj::Mailobj
 		mail = Mail.new
 		mail.to = @args["to"]
 		mail.subject = @args["subject"]
-		mail.date = Time.new
+		mail.date = Time.now
 		mail.from = @args["from"] if @args["from"]
 		
 		if @args["html"]
