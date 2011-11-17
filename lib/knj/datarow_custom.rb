@@ -53,6 +53,14 @@ class Knj::Datarow_custom
     return @events.call(:add, d)
   end
   
+  def self.table
+    return self.name.split("::").last
+  end
+  
+  def table
+    return self.class.name.split("::").last
+  end
+  
   def initialize(d)
     data = d.data
     @ob = d.ob
@@ -94,11 +102,17 @@ class Knj::Datarow_custom
     raise "Couldnt figure out the title/name of the object on class #{self.class.name}."
   end
   
+  alias :title :name
+  
   def delete
     self.class.events.call(:delete, Knj::Hash_methods.new(:object => self))
   end
   
   def destroy
     @data = nil
+  end
+  
+  def each(&args)
+    return @data.each(&args)
   end
 end
