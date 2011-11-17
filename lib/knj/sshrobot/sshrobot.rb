@@ -1,5 +1,7 @@
 class Knj::SSHRobot
 	def initialize(args)
+    require "net/ssh"
+    
 		@forwards = []
 		@args = Knj::ArrayExt.hash_sym(args)
 		@args[:port] = 22 if !@args.key?(:port)

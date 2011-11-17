@@ -1,0 +1,1 @@
+require "knj/sshrobot/sshrobot"

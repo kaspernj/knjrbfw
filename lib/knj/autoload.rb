@@ -7,6 +7,7 @@ module Knj
 	autoload :Datestamp, $knjpath + "datestamp"
 	autoload :Datet, $knjpath + "datet"
 	autoload :Cmd_gen, $knjpath + "cmd_gen"
+	autoload :Cmd_parser, $knjpath + "cmd_parser"
 	autoload :Compiler, $knjpath + "compiler"
 	autoload :Cpufreq, $knjpath + "cpufreq"
 	autoload :Datarow, $knjpath + "datarow"

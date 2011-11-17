@@ -612,7 +612,7 @@ class Knj::Web
 			elsif args[:type] == :textshow or args[:type] == :info
 				html += "#{value}</td>"
       elsif args[:type] == :plain
-        html += "#{Knj::Web.html(value)}"
+        html += "#{Knj::Php.nl2br(Knj::Web.html(value))}"
       elsif args[:type] == :editarea
         css["width"] = "100%"
         css["height"] = args[:height] if args.key?(:height)
