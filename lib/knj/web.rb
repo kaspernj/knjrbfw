@@ -681,11 +681,11 @@ class Knj::Web
 				html += " value=\"#{key.html}\">#{value.html}</option>"
 			end
 		elsif opthash.is_a?(Array)
-			opthash.each do |key|
+			opthash.each_index do |key|
 				if opthash[key.to_i] != nil
 					html += "<option"
 					html += " selected=\"selected\"" if curvalue.to_i == key.to_i
-					html += " value=\"#{key.to_s}\">#{opthash[key.to_i].to_s}</option>"
+					html += " value=\"#{key.to_s}\">#{opthash[key].to_s}</option>"
 				end
 			end
 		end
