@@ -4,7 +4,7 @@ class Knj::Cmd_parser
     
     str.lines.each do |line|
       next if line.match(/^total ([\d\.,]+)(M|k|G|)$/)
-      match = line.match(/^(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)\s+(\d+)\s+(.+)\s+([^\W].+?)\s+([\d\.,]+)(M|k|G|)\s+((\d+)-(\d+)-(\d+)|(([A-z]{3})\s+(\d+)))\s+(\d+):(\d+)\s+(.+)$/)
+      match = line.match(/^(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)\s+(\d+)\s+(.+)\s+([^\W].+?)\s+([\d\.,]+)(M|k|G|K|)\s+((\d+)-(\d+)-(\d+)|(([A-z]{3})\s+(\d+)))\s+(\d+):(\d+)\s+(.+)$/)
       raise "Could not match: '#{line}'." if !match
       
       if match[17] and match[18] and match[19]
@@ -18,7 +18,7 @@ class Knj::Cmd_parser
       size_match = match[15]
       if size_match == ""
         #bytes - dont touch
-      elsif size_match == "k"
+      elsif size_match.downcase == "k"
         bytes = bytes * 1024
       elsif size_match == "M"
         bytes = bytes * 1024 * 1024
