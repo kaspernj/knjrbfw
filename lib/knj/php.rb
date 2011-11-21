@@ -151,6 +151,8 @@ module Knj::Php
       end
       
       retstr += "}\n"
+    elsif cstr == "Time"
+      retstr += "Time::#{argument.year}-#{argument.month}-#{argument.day} #{argument.hour}:#{argument.min}:#{argument.sec}\n"
     else
       #print argument.to_s, "\n"
       retstr += "Unknown class: '#{cstr}' with superclass '#{supercl}'.\n"
