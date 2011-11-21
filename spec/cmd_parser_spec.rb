@@ -1,0 +1,22 @@
+require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
+
+describe "Cmd_parser" do
+  it "should be able to parse various strings" do
+    require "knjrbfw"
+    require "knj/cmd_parser"
+    require "knj/php"
+    
+    strs = [
+      "-rw-r--r--    1 admin    administ   186.3M Aug 30 18:09 b4u_synoptik_2011_08_30_17_57_32.sql.gz\n",
+      "-rw-r--r--    1 admin    administ        2 Nov 21 18:12 test\n",
+      "-rw-r--r--  1 kaspernj kaspernj 279943393 2011-07-27 09:28 dbdump_2011_07_27_03_07_36.sql\n",
+      "-rw-rw-r--  1 kaspernj kaspernj     58648 2011-10-28 18:33 2011-11-28 - Programmerings aften hos Anders - mad - 600 kr.pdf\n"
+    ]
+    
+    strs.each do |str|
+      ret = Knj::Cmd_parser.lsl(str)
+      
+      raise "Byte was not numeric in: '#{str}'." if Knj::Php.is_numeric(str[:size])
+    end
+  end
+end
