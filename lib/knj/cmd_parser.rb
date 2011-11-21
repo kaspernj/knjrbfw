@@ -3,8 +3,8 @@ class Knj::Cmd_parser
     ret = []
     
     str.lines.each do |line|
-      next if line.match(/^total ([\d\.]+)(M|k|G|)$/)
-      match = line.match(/^(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)\s+(\d+)\s+(.+)\s+([^\W].+?)\s+([\d\.]+)(M|k|G|)\s+((\d+)-(\d+)-(\d+)|(([A-z]{3})\s+(\d+)))\s+(\d+):(\d+)\s+(.+)$/)
+      next if line.match(/^total ([\d\.,]+)(M|k|G|)$/)
+      match = line.match(/^(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)\s+(\d+)\s+(.+)\s+([^\W].+?)\s+([\d\.,]+)(M|k|G|)\s+((\d+)-(\d+)-(\d+)|(([A-z]{3})\s+(\d+)))\s+(\d+):(\d+)\s+(.+)$/)
       raise "Could not match: '#{line}'." if !match
       
       if match[17] and match[18] and match[19]
@@ -13,7 +13,7 @@ class Knj::Cmd_parser
         time = Time.local(Time.now.year, match[21], match[22].to_i, match[23].to_i, match[24].to_i)
       end
       
-      bytes = match[14].to_f
+      bytes = match[14].gsub(",", ".").to_f
       
       size_match = match[15]
       if size_match == ""
