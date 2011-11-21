@@ -260,7 +260,7 @@ class Knj::Objects
 		end
 	end
 	
-	def list(classname, args = {}, &block)
+	def list(classname, args = {})
 		classname = classname.to_sym
 		self.requireclass(classname)
 		classob = @args[:module].const_get(classname)
@@ -279,9 +279,9 @@ class Knj::Objects
 			ret.each do |obj|
 				yield(obj)
 			end
-		else
-			return ret
 		end
+		
+    return ret
 	end
 	
 	def list_opts(classname, args = {})
