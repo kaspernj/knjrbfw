@@ -605,6 +605,7 @@ class Knj::Objects
 		end
 	end
 	
+	# Erases the whole cache if not running weak-link-caching.
 	def clean_all
     return false if @args[:cache] == :weak
     
@@ -642,6 +643,7 @@ class Knj::Objects
     end
 	end
 	
+	#This method helps build SQL from Objects-instances list-method. It should not be called directly but only through Objects.list.
 	def sqlhelper(list_args, args_def)
 		if args[:db]
 			db = args[:db]
@@ -915,11 +917,19 @@ class Knj::Objects
         newargs[:table] = table_name
         newargs[:joins_skip] = true
         
-        ret = self.sqlhelper(table_data[:where].clone, newargs)
+        #Clone the where-arguments and run them against another sqlhelper to sub-join.
+        join_args = table_data[:where].clone
+        ret = self.sqlhelper(join_args, newargs)
         sql_joins += ret[:sql_where]
+        
+        #If any of the join-arguments are left, then we should throw an error.
+        join_args.each do |key, val|
+          raise "Invalid key '#{key}' when trying to join table '#{table_name}' on table '#{args_def[:table]}'."
+        end
       end
     end
 		
+		#If limit arguments has been given then add them.
 		if limit_from and limit_to
 			sql_limit = " LIMIT #{limit_from}, #{limit_to}"
 		end
@@ -932,6 +942,7 @@ class Knj::Objects
 		}
 	end
 	
+	#Used by sqlhelper-method to look up datarow-classes and automatically load them if they arent loaded already.
 	def datarow_obj_from_args(args, list_args, class_name)
     class_name = class_name.to_sym
     

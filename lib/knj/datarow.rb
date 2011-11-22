@@ -46,28 +46,28 @@ class Knj::Datarow
       raise "No classname given." if !classname
       methodname = "#{classname.to_s.downcase}s".to_sym if !methodname
       
-      define_method(methodname) do |*args, &block|
-        merge_args = args[0] if args and args[0]
-        merge_args = {} if !merge_args
-        merge_args.merge!(where_args) if where_args
+      define_method(methodname) do |*args|
+        list_args = args[0] if args and args[0]
+        list_args = {} if !list_args
+        list_args.merge!(where_args) if where_args
+        list_args[colname.to_s] = self.id
         
-        all_args = []
-        all_args << block if block
-        
-        if block
-          @ob.list(classname, merge_args.merge(colname.to_s => self.id)) do |obj|
-            block.call(obj)
+        if block_given?
+          @ob.list(classname, list_args) do |obj|
+            yield(obj)
           end
         else
-          return @ob.list(classname, merge_args.merge(colname.to_s => self.id))
+          return @ob.list(classname, list_args)
         end
       end
       
       define_method("#{methodname}_count".to_sym) do |*args|
-        merge_args = args[0] if args and args[0]
-        merge_args = {} if !merge_args
+        list_args = args[0] if args and args[0]
+        list_args = {} if !list_args
+        list_args[colname.to_s] = self.id
+        list_args["count"] = true
         
-        return @ob.list(classname, merge_args.merge(colname.to_s => self.id, "count" => true))
+        return @ob.list(classname, list_args)
       end
       
       define_method("#{methodname}_last".to_sym) do |args|
@@ -118,11 +118,20 @@ class Knj::Datarow
         raise "Class '#{classname}' does not have a 'html'-method." if !obj.respond_to?(:html)
         return obj.html(*args)
       end
+      
+      self.joined_tables(
+        classname => {
+          :where => {
+            "id" => {:type => "col", :name => colname}
+          }
+        }
+      )
     end
 	end
 	
 	def self.joined_tables(hash)
-    @columns_joined_tables = hash
+    @columns_joined_tables = {} if !@columns_joined_tables
+    @columns_joined_tables.merge!(hash)
 	end
 	
 	def self.table
