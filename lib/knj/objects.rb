@@ -251,7 +251,7 @@ class Knj::Objects
 		end
 		
 		id_data = obj[col_name].to_i
-		return false if !id_data
+		return false if id_data.to_i <= 0
 		
 		begin
 			return self.get(obj_name, id_data)
