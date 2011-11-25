@@ -729,6 +729,8 @@ module Knj::Php
   end
   
   def gzcompress(str, level = 3)
+    require "zlib"
+    
     zstream = Zlib::Deflate.new
     gzip_str = zstream.deflate(str.to_s, Zlib::FINISH)
     zstream.close
@@ -737,6 +739,8 @@ module Knj::Php
   end
   
   def gzuncompress(str, length = 0)
+    require "zlib"
+    
     zstream = Zlib::Inflate.new
     plain_str = zstream.inflate(str.to_s)
     zstream.finish
