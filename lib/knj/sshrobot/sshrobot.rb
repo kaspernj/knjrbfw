@@ -29,13 +29,9 @@ class Knj::SSHRobot
 	end
 	
 	def fileExists(filepath)
-		result = self.exec("ls " + Strings.UnixSafe(filepath)).strip
-		
-		if result == filepath
-			return true
-		else
-			return false
-		end
+		result = self.exec("ls #{Strings.UnixSafe(filepath)}").strip
+		return true if result == filepath
+    return false
 	end
 	
 	def forward(args)
@@ -43,13 +39,16 @@ class Knj::SSHRobot
 		args[:type] = "local" if !args[:type]
 		args[:session] = self.session_spawn if !args[:session]
 		args[:host_local] = "0.0.0.0" if !args[:host_local]
-		
 		return SSHRobot::Forward.new(args)
 	end
 	
 	alias getShell shell
 	alias getSFTP sftp
 	alias shellCMD exec
+	
+	def close
+    @session.close if @session
+	end
 end
 
 class Knj::SSHRobot::Forward
