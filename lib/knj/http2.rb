@@ -67,7 +67,7 @@ class Knj::Http2
   #Tries to write a string to the socket. If it fails it reconnects and tries again.
   def write(str)
     begin
-      raise Errno::EPIPE, "The socket is closed."
+      raise Errno::EPIPE, "The socket is closed." if !@sock or @sock.closed?
       @sock.puts(str)
     rescue Errno::EPIPE #this can also be thrown by puts.
       self.reconnect
@@ -92,7 +92,7 @@ class Knj::Http2
     header_str += "#{@nl}"
     header_str += praw
     
-    @sock.puts(header_str)
+    self.write(header_str)
     return self.read_response
   end
   
@@ -125,8 +125,13 @@ class Knj::Http2
     @resp = Knj::Http2::Response.new
     
     loop do
-      print "Reading next line.\n" if @debug
-      line = @sock.gets
+      begin
+        line = @sock.gets
+      rescue Errno::ECONNRESET
+        line = ""
+        @sock = nil
+      end
+      
       break if line.to_s == ""
       
       if @mode == "headers" and line == @nl
@@ -194,18 +199,12 @@ class Knj::Http2
       if @resp.header("transfer-encoding").to_s.downcase == "chunked"
         len = line.strip.hex
         
-        print "Content-Length: #{@resp.header("content-length")}\n" if @debug
-        print "Current body length: #{@resp.args[:body].length}\n" if @debug
-        print "Chunk length: #{len}\n" if @debug
-        
-        print "Reading chunked.\n" if @debug
         if len > 0
           read = @sock.read(len)
           return "break" if read == "" or read == @nl
           @resp.args[:body] += read
         end
         
-        print "Reading trailing NL.\n" if @debug
         nl = @sock.gets
         if len == 0
           if nl == @nl
@@ -215,7 +214,6 @@ class Knj::Http2
           end
         end
         
-        #print "Test: '#{nl}'\n"
         raise "Should have read newline but didnt: '#{nl}'." if nl != @nl
       else
         @resp.args[:body] += line.to_s
