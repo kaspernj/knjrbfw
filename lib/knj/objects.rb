@@ -261,11 +261,12 @@ class Knj::Objects
 	end
 	
 	def list(classname, args = {})
+    args = {} if args == nil
 		classname = classname.to_sym
 		self.requireclass(classname)
 		classob = @args[:module].const_get(classname)
 		
-		raise "list-function has not been implemented for #{classname}" if !classob.respond_to?("list")
+		raise "list-function has not been implemented for '#{classname}'." if !classob.respond_to?("list")
 		
 		if @args[:datarow] or @args[:custom]
 			ret = classob.list(Knj::Hash_methods.new(:args => args, :ob => self, :db => @args[:db]))
