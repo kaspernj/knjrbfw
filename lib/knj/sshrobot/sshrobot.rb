@@ -48,6 +48,7 @@ class Knj::SSHRobot
 	
 	def close
     @session.close if @session
+    @session = nil
 	end
 end
 
