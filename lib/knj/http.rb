@@ -148,11 +148,8 @@ class Knj::Http
 		
 		postdata = ""
 		posthash.each do |key, value|
-			if postdata != ""
-				postdata += "&"
-			end
-			
-			postdata += "#{Knj::Php.urldecode(key)}=#{Knj::Php.urldecode(value)}"
+			postdata += "&" if postdata != ""
+			postdata += "#{Knj::Web.urlenc(key)}=#{Knj::Web.urlenc(value)}"
 		end
 		
 		@mutex.synchronize do
