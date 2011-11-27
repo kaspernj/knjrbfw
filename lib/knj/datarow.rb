@@ -225,16 +225,18 @@ class Knj::Datarow
         col_type = "int" if col_type == "bigint" or col_type == "tinyint" or col_type == "mediumint" or col_type == "smallint"
         sqlhelper_args[:cols][col_name] = true
         
+        #Spawns a method on the class which returns true if the data is 1.
+        method_name = "#{col_name}?".to_sym
+        
+        if !inst_methods.index(method_name)
+          define_method(method_name) do
+            return true if self[col_name.to_sym].to_s == "1"
+            return false
+          end
+        end
+        
         if col_type == "enum" and col_obj.maxlength == "'0','1'"
           sqlhelper_args[:cols_bools] << col_name
-          method_name = "#{col_name}?".to_sym
-          
-          if !inst_methods.index(method_name)
-            define_method(method_name) do
-              return true if self[col_name.to_sym].to_s == "1"
-              return false
-            end
-          end
         elsif col_type == "int" and col_name.slice(-3, 3) == "_id"
           sqlhelper_args[:cols_dbrows] << col_name
         elsif col_type == "int" or col_type == "bigint"

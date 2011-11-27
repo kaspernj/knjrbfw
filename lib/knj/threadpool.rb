@@ -68,6 +68,7 @@ class Knj::Threadpool
 		@mutex.synchronize do
 			blockdata = {:block => block, :running => false, :runned => false, :args => args}
 			@blocks << blockdata
+			return blockdata
 		end
 	end
 	
@@ -136,8 +137,8 @@ class Knj::Threadpool::Worker
 						if @tp.events.connected?(:on_error)
 							@tp.events.call(:on_error, e)
 						else
-							puts e.inspect
-							puts e.backtrace
+							STDOUT.puts e.inspect
+							STDOUT.puts e.backtrace
 						end
 					ensure
 						@mutex_tp.synchronize do
@@ -162,16 +163,8 @@ class Knj::Threadpool::Worker
 	end
 	
 	def kill
-    return false if !@mutex_tp
-    
     @mutex_tp.synchronize do
       @thread.kill
-      @args = nil
-      @tp = nil
-      @mutex_tp = nil
-      @sleep = nil
-      @blockdata = nil
-      @thread = nil
     end
 	end
 end
