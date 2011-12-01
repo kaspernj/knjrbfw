@@ -123,21 +123,6 @@ describe "Knjrbfw" do
         {:class => :User, :required => true},
         :Project
       ]
-      
-      def self.list(d)
-        sql = "SELECT * FROM Task WHERE 1=1"
-        
-        ret = list_helper(d)
-        d.args.each do |key, val|
-          raise sprintf("Invalid key: %s.", key)
-        end
-        
-        sql += ret[:sql_where]
-        sql += ret[:sql_order]
-        sql += ret[:sql_limit]
-        
-        return d.ob.list_bysql(:Task, sql)
-      end
     end
     
     class User < Knj::Datarow
@@ -159,10 +144,27 @@ describe "Knjrbfw" do
       :project_id => 1
     })
     
+    ret_proc = []
+    $ob.list(:Task) do |task|
+      ret_proc << task
+    end
+    
+    raise "list with proc should return one task but didnt." if ret_proc.length != 1
+    
+    
     project = $ob.get(:Project, 1)
     
     tasks = project.tasks
     raise "No tasks were found on project?" if tasks.empty?
+    
+    
+    ret_proc = []
+    ret_test = project.tasks do |task|
+      ret_proc << task
+    end
+    
+    raise "When given a block the return should be nil so it doesnt hold weak-ref-objects in memory but it didnt return nil." if ret_test != nil
+    raise "list for project with proc should return one task but didnt (#{ret_proc.length})." if ret_proc.length != 1
     
     user = tasks[0].user
     project_second = tasks[0].project

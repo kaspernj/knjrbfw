@@ -269,26 +269,19 @@ class Knj::Objects
     raise "list-function has not been implemented for '#{classname}'." if !classob.respond_to?("list")
     
     if @args[:datarow] or @args[:custom]
-      list_args = Knj::Hash_methods.new(:args => args, :ob => self, :db => @args[:db])
-      
-      if block
-        list_args[:proc] = block
-      elsif args.key?(:proc)
-        list_args[:proc] = args[:proc]
-        args.delete(:proc)
-      end
-      
-      ret = classob.list(list_args)
+      ret = classob.list(Knj::Hash_methods.new(:args => args, :ob => self, :db => @args[:db]), &block)
     else
       realargs = [args]
       realargs = realargs | @args[:extra_args] if @args[:extra_args]
-      ret = classob.list(*realargs)
+      ret = classob.list(*realargs, &block)
     end
     
-    if block_given? and ret.is_a?(Array)
+    #If 'ret' is an array and a block is given then the list-method didnt return blocks. We emulate it instead with the following code.
+    if block and ret.is_a?(Array)
       ret.each do |obj|
-        yield(obj)
+        block.call(obj)
       end
+      return nil
     end
     
     return ret
@@ -393,26 +386,18 @@ class Knj::Objects
   end
   
   # Returns a list of a specific object by running specific SQL against the database.
-  def list_bysql(classname, sql, d = nil, &block)
+  def list_bysql(classname, sql, d = nil)
     classname = classname.to_sym
-    
-    if d and d[:proc]
-      block_use = d[:proc]
-    elsif block
-      block_use = block
-    else
-      ret = []
-    end
-    
+    ret = [] if !block_given?
     @args[:db].q(sql) do |d_obs|
-      if block_use
-        block_use.call(self.get(classname, d_obs))
+      if block_given?
+        yield(self.get(classname, d_obs))
       else
         ret << self.get(classname, d_obs)
       end
     end
     
-    return ret if !block_use
+    return ret if !block_given?
   end
   
   # Add a new object to the database and to the cache.

@@ -51,9 +51,8 @@ class Knj::Datarow
         list_args = {} if !list_args
         list_args.merge!(where_args) if where_args
         list_args[colname.to_s] = self.id
-        list_args[:proc] = block if block
         
-        return @ob.list(classname, list_args)
+        return @ob.list(classname, list_args, &block)
       end
       
       define_method("#{methodname}_count".to_sym) do |*args|
@@ -148,7 +147,7 @@ class Knj::Datarow
 		return @columns_sqlhelper_args
 	end
 	
-	def self.list(d)
+	def self.list(d, &block)
     ec_col = d.db.enc_col
     ec_table = d.db.enc_table
     
@@ -195,7 +194,7 @@ class Knj::Datarow
       return 0
     end
     
-    return d.ob.list_bysql(self.table, sql, d)
+    return d.ob.list_bysql(self.table, sql, &block)
 	end
 	
 	def self.load_columns(d)
