@@ -46,19 +46,14 @@ class Knj::Datarow
       raise "No classname given." if !classname
       methodname = "#{classname.to_s.downcase}s".to_sym if !methodname
       
-      define_method(methodname) do |*args|
+      define_method(methodname) do |*args, &block|
         list_args = args[0] if args and args[0]
         list_args = {} if !list_args
         list_args.merge!(where_args) if where_args
         list_args[colname.to_s] = self.id
+        list_args[:proc] = block if block
         
-        if block_given?
-          @ob.list(classname, list_args) do |obj|
-            yield(obj)
-          end
-        else
-          return @ob.list(classname, list_args)
-        end
+        return @ob.list(classname, list_args)
       end
       
       define_method("#{methodname}_count".to_sym) do |*args|
@@ -200,7 +195,7 @@ class Knj::Datarow
       return 0
     end
     
-    return d.ob.list_bysql(self.table, sql)
+    return d.ob.list_bysql(self.table, sql, d)
 	end
 	
 	def self.load_columns(d)
