@@ -450,7 +450,7 @@ module Knj::Php
   
   def html_entity_decode(string)
     string = Knj::Web.html(string)
-    string = string.gsub("&oslash;", "ø").gsub("&aelig;", "æ").gsub("&aring;", "å").gsub("&euro;", "€").gsub("#39;", "'")
+    string = string.gsub("&oslash;", "ø").gsub("&aelig;", "æ").gsub("&aring;", "å").gsub("&euro;", "€").gsub("#39;", "'").gsub("&amp;", "&").gsub("&gt;", ">").gsub("&lt;", "<").gsub("&quot;", '"')
     return string
   end
   

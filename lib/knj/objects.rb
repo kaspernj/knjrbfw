@@ -665,6 +665,7 @@ class Knj::Objects
     sql_where = ""
     sql_order = ""
     sql_limit = ""
+    sql_groupby = ""
     
     do_joins = {}
     
@@ -875,6 +876,21 @@ class Knj::Objects
         sql_where += " AND #{table}`#{db.esc_col("#{match[1]}_class")}` = '#{db.esc(val.table)}'"
         sql_where += " AND #{table}`#{db.esc_col("#{match[1]}_id")}` = '#{db.esc(val.id)}'"
         found = true
+      elsif realkey == "groupby"
+        found = true
+        
+        if val.is_a?(Array)
+          val.each do |col_name|
+            raise "Column '#{val}' not found on table '#{table}'." if !args[:cols].key?(col_name)
+            sql_groupby += ", " if sql_groupby.length > 0
+            sql_groupby += "#{table}`#{db.esc_col(col_name)}`"
+          end
+        elsif val.is_a?(String)
+          sql_groupby += ", " if sql_groupby.length > 0
+          sql_groupby += "#{table}`#{db.esc_col(val)}`"
+        else
+          raise "Unknown class given for 'groupby': '#{val.class.name}'."
+        end
       end
       
       list_args.delete(realkey) if found
@@ -936,11 +952,14 @@ class Knj::Objects
       sql_limit = " LIMIT #{limit_from}, #{limit_to}"
     end
     
+    sql_groupby = nil if sql_groupby.length <= 0
+    
     return {
       :sql_joins => sql_joins,
       :sql_where => sql_where,
       :sql_limit => sql_limit,
-      :sql_order => sql_order
+      :sql_order => sql_order,
+      :sql_groupby => sql_groupby
     }
   end
   

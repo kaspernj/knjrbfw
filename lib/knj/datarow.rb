@@ -179,8 +179,20 @@ class Knj::Datarow
     sql += ret[:sql_where]
     
     #The count will bug if there is a group-by-statement.
-    if !count
+    grp_shown = false
+    if !count and !ret[:sql_groupby]
       sql += " GROUP BY #{table_str}.#{ec_col}id#{ec_col}"
+      grp_shown = true
+    end
+    
+    if ret[:sql_groupby]
+      if !grp_shown
+        sql += " GROUP BY"
+      else
+        sql += ", "
+      end
+      
+      sql += ret[:sql_groupby]
     end
     
     sql += ret[:sql_order]
