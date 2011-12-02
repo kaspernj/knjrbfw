@@ -3,7 +3,7 @@ class Knj::Threadpool
 	
 	def initialize(args = {})
 		@args = args
-		@args[:sleep] = 0.1 if !@args.key?(:sleep)
+		@args[:sleep] = 0.2 if !@args.key?(:sleep)
 		@workers = []
 		@blocks = []
 		@mutex = Mutex.new
