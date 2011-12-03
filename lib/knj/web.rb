@@ -532,10 +532,11 @@ class Knj::Web
     attr.merge!(args[:attr]) if args[:attr]
     attr["disabled"] = "disabled" if args[:disabled]
 		
-		raise "No name given to the Web::input()-method." if !args[:name] and args[:type] != :info and args[:type] != :textshow and args[:type] != :plain
+		raise "No name given to the Web::input()-method." if !args[:name] and args[:type] != :info and args[:type] != :textshow and args[:type] != :plain and args[:type] != :spacer
 		
 		css = {}
 		css["text-align"] = args[:align] if args.key?(:align)
+		css.merge!(args[:css]) if args.key?(:css)
 		
 		attr_keys = [:onchange]
 		attr_keys.each do |tag|
@@ -557,6 +558,8 @@ class Knj::Web
 			html += "<label for=\"#{args[:id].html}\">#{args[:title].html}</label>"
 			html += "</td>"
 			html += "</tr>"
+    elsif args[:type] == :spacer
+      html += "<tr><td colspan=\"2\">&nbsp;</td></tr>"
 		else
 			html += "<tr>"
 			html += "<td class=\"tdt\">"
