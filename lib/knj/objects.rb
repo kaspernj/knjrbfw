@@ -167,11 +167,12 @@ class Knj::Objects
     
     if data.is_a?(Integer) or data.is_a?(String) or data.is_a?(Fixnum)
       id = data.to_i
-    elsif data.is_a?(Hash) and data[@args[:col_id].to_sym]
+    elsif data.is_a?(Hash) and data.key?(@args[:col_id].to_sym)
       id = data[@args[:col_id].to_sym].to_i
-    elsif data.is_a?(Hash) and data[@args[:col_id].to_s]
+    elsif data.is_a?(Hash) and data.key?(@args[:col_id].to_s)
       id = data[@args[:col_id].to_s].to_i
     elsif
+      _kas.dprint(data)
       raise Knj::Errors::InvalidData, "Unknown data: '#{data.class.to_s}'."
     end
     
