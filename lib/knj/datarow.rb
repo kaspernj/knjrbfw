@@ -68,6 +68,14 @@ class Knj::Datarow
         args = {} if !args
         return @ob.list(classname, {"orderby" => [["id", "desc"]], "limit" => 1}.merge(args))
       end
+      
+      self.joined_tables(
+        classname => {
+          :where => {
+            colname.to_s => {:type => "col", :name => :id}
+          }
+        }
+      )
     end
 	end
 	
