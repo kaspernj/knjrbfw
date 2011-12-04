@@ -1,5 +1,5 @@
 class Gtk::Menu
-	def popup(*paras)
-		@ob.popup
-	end
+  def popup(*paras)
+    @ob.popup
+  end
 end

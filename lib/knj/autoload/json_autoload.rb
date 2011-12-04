@@ -1,7 +1,7 @@
 require "rubygems"
 
 begin
-	require "json/ext"
+  require "json/ext"
 rescue LoadError
-	require "json/pure"
+  require "json/pure"
 end

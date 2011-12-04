@@ -1,6 +1,6 @@
 begin
-	require "RMagick"
+  require "RMagick"
 rescue LoadError
-	require "rubygems"
-	require "RMagick"
+  require "rubygems"
+  require "RMagick"
 end

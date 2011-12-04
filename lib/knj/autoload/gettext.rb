@@ -2,8 +2,8 @@
 module GetText; end
 
 begin
-	require "gettext"
+  require "gettext"
 rescue LoadError
-	require "rubygems"
-	require "gettext"
+  require "rubygems"
+  require "gettext"
 end

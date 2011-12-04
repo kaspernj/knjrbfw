@@ -2,7 +2,7 @@ class Knj::Http2
   attr_reader :cookies
   
   def initialize(args)
-    require "knj/web"
+    require "#{$knjpath}web"
     
     @args = args
     @cookies = {}

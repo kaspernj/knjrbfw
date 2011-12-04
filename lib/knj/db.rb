@@ -1,1 +1,1 @@
-require "knj/knjdb/libknjdb"
+require "#{$knjpath}knjdb/libknjdb"

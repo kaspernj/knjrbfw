@@ -1,3 +1,3 @@
 module SOAP
-	autoload :WSDLDriverFactory, "soap/wsdlDriver"
+  autoload :WSDLDriverFactory, "soap/wsdlDriver"
 end
