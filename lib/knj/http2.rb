@@ -222,6 +222,8 @@ class Knj::Http2
     else
       raise "Dont know how to read HTTP version: '#{@resp.args[:http_version]}'."
     end
+    
+    @resp.args[:body] = @resp.args[:body].to_s.force_encoding("utf-8")
   end
 end
 
