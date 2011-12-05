@@ -202,7 +202,7 @@ class Knj::Http2
         if len > 0
           read = @sock.read(len)
           return "break" if read == "" or read == @nl
-          @resp.args[:body] += read
+          @resp.args[:body] += read.force_encoding("utf-8")
         end
         
         nl = @sock.gets
