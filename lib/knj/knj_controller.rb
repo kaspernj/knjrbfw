@@ -8,4 +8,9 @@ class KnjController < Rho::RhoController
   def html_links
     System.open_url(@params["url"])
   end
+  
+  def callback
+    block = $rhodes.callbacks(@params["callback_id"])
+    block.call(:params => @params)
+  end
 end

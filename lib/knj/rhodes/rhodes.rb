@@ -1,10 +1,12 @@
 $knjautoload = false
 
 class Knj::Rhodes
+  attr_accessor :locale
   attr_reader :db, :ob, :gettext, :args
   
   def initialize(args = {})
     require "#{$knjpath}arrayext.rb"
+    require "#{$knjpath}datet.rb"
     require "#{$knjpath}php.rb"
     require "#{$knjpath}objects.rb"
     require "#{$knjpath}datarow.rb"
@@ -14,8 +16,17 @@ class Knj::Rhodes
     require "#{$knjpath}gettext_threadded.rb"
     require "#{$knjpath}locales.rb"
     require "#{$knjpath}web.rb"
-    require "#{$knjpath}rhodes/mutex.rb"
-    require "#{$knjpath}rhodes/weakref.rb"
+    
+    if !Kernel.const_defined?("Mutex")
+      print "Mutex not defined - loading alternative.\n"
+      require "#{$knjpath}rhodes/mutex.rb"
+    end
+    
+    if !Kernel.const_defined?("WeakRef")
+      print "WeakRef not defined - loading alternative.\n"
+      require "#{$knjpath}rhodes/weakref.rb"
+    end
+    
     require "#{$knjpath}opts.rb"
     
     require "#{$knjpath}knjdb/libknjdb.rb"
@@ -26,6 +37,8 @@ class Knj::Rhodes
     require "#{$knjpath}knjdb/drivers/sqlite3/knjdb_sqlite3_indexes.rb"
     
     @args = args
+    @callbacks = {}
+    @callbacks_count = 0
     
     @db = Knj::Db.new(
       :type => "sqlite3",
@@ -67,6 +80,29 @@ class Knj::Rhodes
     
     @gettext = Knj::Gettext_threadded.new
     @gettext.load_dir("#{Rho::RhoApplication.get_base_app_path}app/locales")
+    
+    locale = "#{System.get_property("locale")}_#{System.get_property("country")}".downcase
+    
+    @args[:locale_default] = "en_GB" if !@args[:locale_default]
+    
+    langs = @gettext.langs.keys
+    langs.each do |lang|
+      if locale == lang.downcase
+        @locale = lang
+        break
+      end
+    end
+    
+    if !@locale
+      langs.each do |lang|
+        if locale.slice(0..2) == lang.downcase.slice(0..2)
+          @locale = lang
+          break
+        end
+      end
+    end
+    
+    @locale = @args[:locale_default] if !@locale
   end
   
   def inputs(*arr)
@@ -79,7 +115,7 @@ class Knj::Rhodes
       
       if data.key?(:value) and data[:value].is_a?(Array) and data[:value][0]
         value = data[:value][0][data[:value][1]]
-      elsif data.key?(:value)
+      elsif data.key?(:valthread_callbackue)
         value = data[:value]
       end
       
@@ -117,6 +153,38 @@ class Knj::Rhodes
   end
   
   def _(str)
-    return @gettext.trans($locale, str.to_s)
+    return @gettext.trans(@locale, str.to_s)
   end
+  
+  def session_key(key)
+    if key == :locale
+      return @locale
+    end
+    
+    raise "No such key: '#{key}'."
+  end
+  
+  def callback(&block)
+    count = @callbacks_count
+    @callbacks_count += 1
+    @callbacks[count] = block
+    return count
+  end
+  
+  def callbacks(key)
+    block = @callbacks[key.to_i]
+    raise "Block not found for key: '#{key}'." if !block
+    @callbacks.delete(key.to_i)
+    return block
+  end
+end
+
+#This method is used to emulate web-behavior and make Knj::Locales.number_out and friends work properly.
+def _session(key)
+  return $rhodes.session_key(key)
+end
+
+#This method is used to make gettext work.
+def _(key)
+  return $rhodes._(key)
 end

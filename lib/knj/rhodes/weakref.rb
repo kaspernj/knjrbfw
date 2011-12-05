@@ -9,7 +9,7 @@
 #   ObjectSpace.garbage_collect
 #   p foo.to_s			# should raise exception (recycled)
 
-require "#{$knjpath}/rhodes/delegate"
+require "#{$knjpath}rhodes/delegate"
 require "thread"
 
 class WeakRef < Delegator
