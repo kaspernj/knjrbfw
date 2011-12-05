@@ -15,7 +15,7 @@ class Knj::Objects
     @objects = {}
     @data = {}
     
-    require "weakref" if @args[:cache] == :weak
+    require "weakref" if @args[:cache] == :weak and !Kernel.const_defined?(:WeakRef)
     
     @events = Knj::Event_handler.new
     @events.add_event(

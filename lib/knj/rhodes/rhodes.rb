@@ -4,24 +4,26 @@ class Knj::Rhodes
   attr_reader :db, :ob, :gettext, :args
   
   def initialize(args = {})
-    require "Knj/arrayext.rb"
-    require "Knj/php.rb"
-    require "Knj/objects.rb"
-    require "Knj/datarow.rb"
-    require "Knj/event_handler.rb"
-    require "Knj/hash_methods.rb"
-    require "Knj/errors.rb"
-    require "Knj/gettext_threadded.rb"
-    require "Knj/locales.rb"
-    require "Knj/web.rb"
-    require "Knj/rhodes/mutex.rb"
-    require "Knj/opts.rb"
+    require "#{$knjpath}arrayext.rb"
+    require "#{$knjpath}php.rb"
+    require "#{$knjpath}objects.rb"
+    require "#{$knjpath}datarow.rb"
+    require "#{$knjpath}event_handler.rb"
+    require "#{$knjpath}hash_methods.rb"
+    require "#{$knjpath}errors.rb"
+    require "#{$knjpath}gettext_threadded.rb"
+    require "#{$knjpath}locales.rb"
+    require "#{$knjpath}web.rb"
+    require "#{$knjpath}rhodes/mutex.rb"
+    require "#{$knjpath}rhodes/weakref.rb"
+    require "#{$knjpath}opts.rb"
     
-    require "Knj/knjdb/libknjdb.rb"
-    require "Knj/knjdb/drivers/sqlite3/knjdb_sqlite3.rb"
-    require "Knj/knjdb/drivers/sqlite3/knjdb_sqlite3_tables.rb"
-    require "Knj/knjdb/drivers/sqlite3/knjdb_sqlite3_columns.rb"
-    require "Knj/knjdb/drivers/sqlite3/knjdb_sqlite3_indexes.rb"
+    require "#{$knjpath}knjdb/libknjdb.rb"
+    require "#{$knjpath}knjdb/revision.rb"
+    require "#{$knjpath}knjdb/drivers/sqlite3/knjdb_sqlite3.rb"
+    require "#{$knjpath}knjdb/drivers/sqlite3/knjdb_sqlite3_tables.rb"
+    require "#{$knjpath}knjdb/drivers/sqlite3/knjdb_sqlite3_columns.rb"
+    require "#{$knjpath}knjdb/drivers/sqlite3/knjdb_sqlite3_indexes.rb"
     
     @args = args
     
@@ -47,13 +49,12 @@ class Knj::Rhodes
       ]
     }
     
-    require "knjdbrevision/knjdbrevision.rb"
-    dbrev = Knjdbrevision.new
+    dbrev = Knj::Db::Revision.new
     dbrev.init_db(schema, @db)
     
     @ob = Knj::Objects.new(
       :db => @db,
-      :class_path => "#{Rho::RhoApplication.get_base_app_path}app/Multinasser/include",
+      :class_path => "#{Rho::RhoApplication.get_base_app_path}app/models",
       :require => false,
       :module => @args[:module],
       :datarow => true
@@ -113,5 +114,9 @@ class Knj::Rhodes
     end
     
     return html_cont
+  end
+  
+  def _(str)
+    return @gettext.trans($locale, str.to_s)
   end
 end
