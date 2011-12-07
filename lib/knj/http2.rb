@@ -202,7 +202,7 @@ class Knj::Http2
         if len > 0
           read = @sock.read(len)
           return "break" if read == "" or read == @nl
-          @resp.args[:body] += read.force_encoding("utf-8")
+          @resp.args[:body] += read
         end
         
         nl = @sock.gets
@@ -222,8 +222,6 @@ class Knj::Http2
     else
       raise "Dont know how to read HTTP version: '#{@resp.args[:http_version]}'."
     end
-    
-    @resp.args[:body] = @resp.args[:body].to_s.force_encoding("utf-8")
   end
 end
 
