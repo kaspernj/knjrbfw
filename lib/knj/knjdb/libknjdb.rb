@@ -3,7 +3,7 @@ class Knj::Db
   attr_reader :opts, :conn, :conns, :int_types
   
   def initialize(opts)
-    require "knj/threadhandler"
+    require "#{$knjpath}threadhandler"
     
     self.setOpts(opts) if opts != nil
     

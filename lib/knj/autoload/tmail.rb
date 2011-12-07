@@ -1,6 +1,6 @@
 begin
-	require "tmail"
+  require "tmail"
 rescue LoadError
-	require "rubygems"
-	require "tmail"
+  require "rubygems"
+  require "tmail"
 end

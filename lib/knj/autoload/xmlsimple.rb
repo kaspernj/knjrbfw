@@ -1,6 +1,6 @@
 begin
-	require "xmlsimple"
+  require "xmlsimple"
 rescue LoadError
-	require "rubygems"
-	require "xmlsimple"
+  require "rubygems"
+  require "xmlsimple"
 end

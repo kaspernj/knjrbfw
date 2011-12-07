@@ -1,3 +1,3 @@
 class Gtk::IconSize
-	DIALOG = RealGtk::IconSize.Dialog
+  DIALOG = RealGtk::IconSize.Dialog
 end

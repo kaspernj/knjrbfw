@@ -2,9 +2,9 @@ class Knj::Objects
   attr_reader :args, :events, :data
   
   def initialize(args)
-    require "knj/arrayext"
-    require "knj/event_handler"
-    require "knj/hash_methods"
+    require "#{$knjpath}arrayext"
+    require "#{$knjpath}event_handler"
+    require "#{$knjpath}hash_methods"
     
     @callbacks = {}
     @args = Knj::ArrayExt.hash_sym(args)
@@ -15,7 +15,7 @@ class Knj::Objects
     @objects = {}
     @data = {}
     
-    require "weakref" if @args[:cache] == :weak
+    require "weakref" if @args[:cache] == :weak and !Kernel.const_defined?(:WeakRef)
     
     @events = Knj::Event_handler.new
     @events.add_event(
@@ -31,7 +31,7 @@ class Knj::Objects
     raise "No class path given." if !@args[:class_path] and (@args[:require] or !@args.key?(:require))
     
     if args[:require_all]
-      require "knj/php"
+      require "#{$knjpath}php"
       loads = []
       
       Dir.foreach(@args[:class_path]) do |file|
@@ -647,4 +647,4 @@ class Knj::Objects
   end
 end
 
-require "knj/objects/objects_sqlhelper"
+require "#{$knjpath}objects/objects_sqlhelper"

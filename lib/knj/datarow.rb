@@ -1,7 +1,7 @@
 class Knj::Datarow
-	attr_reader :data, :ob, :db
-	
-	def self.required_data
+  attr_reader :data, :ob, :db
+  
+  def self.required_data
     @required_data = [] if !@required_data
     return @required_data
   end
@@ -11,14 +11,14 @@ class Knj::Datarow
     return @depending_data
   end
   
-	def is_knj?; return true; end
-	
-	def self.is_nullstamp?(stamp)
+  def is_knj?; return true; end
+  
+  def self.is_nullstamp?(stamp)
     return true if !stamp or stamp == "0000-00-00 00:00:00" or stamp == "0000-00-00"
     return false
-	end
-	
-	def self.has_many(arr)
+  end
+  
+  def self.has_many(arr)
     arr.each do |val|
       if val.is_a?(Array)
         classname, colname, methodname = *val
@@ -77,9 +77,9 @@ class Knj::Datarow
         }
       )
     end
-	end
-	
-	def self.has_one(arr)
+  end
+  
+  def self.has_one(arr)
     arr.each do |val|
       methodname = nil
       colname = nil
@@ -129,33 +129,33 @@ class Knj::Datarow
         }
       )
     end
-	end
-	
-	def self.joined_tables(hash)
+  end
+  
+  def self.joined_tables(hash)
     @columns_joined_tables = {} if !@columns_joined_tables
     @columns_joined_tables.merge!(hash)
-	end
-	
-	def self.table
-		return self.name.split("::").last
-	end
-	
-	def self.columns(d)
-		columns_load(d) if !@columns
-		return @columns
-	end
-	
-	def self.columns_load(d)
-		return nil if @columns
-		@ob = d.ob
-		@columns = d.db.tables[table].columns
-	end
-	
-	def self.columns_sqlhelper_args
-		return @columns_sqlhelper_args
-	end
-	
-	def self.list(d, &block)
+  end
+  
+  def self.table
+    return self.name.split("::").last
+  end
+  
+  def self.columns(d)
+    columns_load(d) if !@columns
+    return @columns
+  end
+  
+  def self.columns_load(d)
+    return nil if @columns
+    @ob = d.ob
+    @columns = d.db.tables[table].columns
+  end
+  
+  def self.columns_sqlhelper_args
+    return @columns_sqlhelper_args
+  end
+  
+  def self.list(d, &block)
     ec_col = d.db.enc_col
     ec_table = d.db.enc_table
     
@@ -215,9 +215,9 @@ class Knj::Datarow
     end
     
     return d.ob.list_bysql(self.table, sql, &block)
-	end
-	
-	def self.load_columns(d)
+  end
+  
+  def self.load_columns(d)
     @mutex = Mutex.new if !@mutex
     
     @mutex.synchronize do
@@ -324,99 +324,99 @@ class Knj::Datarow
     end
     
     self.init_class(d) if self.respond_to?(:init_class)
-	end
-	
-	def self.list_helper(d)
-		self.load_columns(d) if !@columns_sqlhelper_args
-		return d.ob.sqlhelper(d.args, @columns_sqlhelper_args)
-	end
-	
-	def table
-		return self.class.name.split("::").last
-	end
-	
-	def initialize(d)
-		@ob = d.ob
-		@db = d.ob.db
-		raise "No ob given." if !@ob
-		
-		if d.data.is_a?(Hash)
-			@data = d.data
-		elsif d.data
-			@data = {:id => d.data}
-			self.reload
-		else
-			raise Knj::Errors::InvalidData, "Could not figure out the data from '#{d.data.class.name}'."
-		end
-	end
-	
-	def reload
-		data = @db.single(self.table, {:id => @data[:id]})
-		if !data
-			raise Knj::Errors::NotFound, "Could not find any data for the object with ID: '#{@data[:id]}' in the table '#{self.table}'."
-		end
-		
-		@data = data
-	end
-	
-	def update(newdata)
-		@db.update(self.table, newdata, {:id => @data[:id]})
-		self.reload
-		
-		if @ob
-			@ob.call("object" => self, "signal" => "update")
-		end
-	end
-	
-	def destroy
-		@ob = nil
-		@db = nil
-		@data = nil
-	end
-	
-	def has_key?(key)
-		return @data.key?(key.to_sym)
-	end
-	
-	def key?(key)
+  end
+  
+  def self.list_helper(d)
+    self.load_columns(d) if !@columns_sqlhelper_args
+    return d.ob.sqlhelper(d.args, @columns_sqlhelper_args)
+  end
+  
+  def table
+    return self.class.name.split("::").last
+  end
+  
+  def initialize(d)
+    @ob = d.ob
+    @db = d.ob.db
+    raise "No ob given." if !@ob
+    
+    if d.data.is_a?(Hash)
+      @data = d.data
+    elsif d.data
+      @data = {:id => d.data}
+      self.reload
+    else
+      raise Knj::Errors::InvalidData, "Could not figure out the data from '#{d.data.class.name}'."
+    end
+  end
+  
+  def reload
+    data = @db.single(self.table, {:id => @data[:id]})
+    if !data
+      raise Knj::Errors::NotFound, "Could not find any data for the object with ID: '#{@data[:id]}' in the table '#{self.table}'."
+    end
+    
+    @data = data
+  end
+  
+  def update(newdata)
+    @db.update(self.table, newdata, {:id => @data[:id]})
+    self.reload
+    
+    if @ob
+      @ob.call("object" => self, "signal" => "update")
+    end
+  end
+  
+  def destroy
+    @ob = nil
+    @db = nil
+    @data = nil
+  end
+  
+  def has_key?(key)
     return @data.key?(key.to_sym)
-	end
-	
-	def [](key)
-		raise "No valid key given." if !key.is_a?(Symbol)
-		raise "No data was loaded on the object? Maybe you are trying to call a deleted object?" if !@data
-		return @data[key] if @data.key?(key)
-		raise "No such key: '#{key}'."
-	end
-	
-	def []=(key, value)
-		self.update(key.to_sym => value)
-		self.reload
-	end
-	
-	def id
+  end
+  
+  def key?(key)
+    return @data.key?(key.to_sym)
+  end
+  
+  def [](key)
+    raise "No valid key given." if !key.is_a?(Symbol)
+    raise "No data was loaded on the object? Maybe you are trying to call a deleted object?" if !@data
+    return @data[key] if @data.key?(key)
+    raise "No such key: '#{key}'."
+  end
+  
+  def []=(key, value)
+    self.update(key.to_sym => value)
+    self.reload
+  end
+  
+  def id
     raise "No data on object." if !@data
-		return @data[:id]
-	end
-	
-	def name
-		if @data.key?(:title)
-			return @data[:title]
-		elsif @data.key?(:name)
-			return @data[:name]
-		end
-		
-		obj_methods = self.class.instance_methods(false)
-		[:name, :title].each do |method_name|
-			return self.method(method_name).call if obj_methods.index(method_name)
-		end
-		
-		raise "Couldnt figure out the title/name of the object on class #{self.class.name}."
-	end
-	
-	alias :title :name
-	
-	def each(&args)
-		return @data.each(&args)
-	end
+    return @data[:id]
+  end
+  
+  def name
+    if @data.key?(:title)
+      return @data[:title]
+    elsif @data.key?(:name)
+      return @data[:name]
+    end
+    
+    obj_methods = self.class.instance_methods(false)
+    [:name, :title].each do |method_name|
+      return self.method(method_name).call if obj_methods.index(method_name)
+    end
+    
+    raise "Couldnt figure out the title/name of the object on class #{self.class.name}."
+  end
+  
+  alias :title :name
+  
+  def each(&args)
+    return @data.each(&args)
+  end
 end

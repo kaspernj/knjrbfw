@@ -1,7 +1,7 @@
 Gtk.events["Gtk"]["MenuItem"] = {
-	"activate" => "activated"
+  "activate" => "activated"
 }
 
 class Gtk::MenuItem
-	#nothing here yet.
+  #nothing here yet.
 end

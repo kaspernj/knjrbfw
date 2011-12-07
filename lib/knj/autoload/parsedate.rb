@@ -1,1 +1,1 @@
-require File.dirname(__FILE__) + "/backups/parsedate.rb"
+require "#{$knjpath}autoload/backups/parsedate.rb"

@@ -2,8 +2,8 @@ class Knj::Facebook_connect
   attr_reader :args
   
   def initialize(args)
-    require "knj/http"
-    require "knj/http2"
+    require "#{$knjpath}http"
+    require "#{$knjpath}http2"
     
     @args = args
     

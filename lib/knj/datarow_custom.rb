@@ -1,4 +1,4 @@
-require "knj/event_handler"
+require "#{$knjpath}event_handler"
 
 class Knj::Datarow_custom
   def self.has_one(arr)

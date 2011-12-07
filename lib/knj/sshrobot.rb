@@ -1,1 +1,1 @@
-require "knj/sshrobot/sshrobot"
+require "#{$knjpath}sshrobot/sshrobot"

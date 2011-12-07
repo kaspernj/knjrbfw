@@ -1,5 +1,5 @@
 require "gtk2"
 
 module Gtk
-	autoload :MozEmbed, "gtkmozembed"
+  autoload :MozEmbed, "gtkmozembed"
 end
