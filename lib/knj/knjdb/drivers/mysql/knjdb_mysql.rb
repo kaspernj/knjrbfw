@@ -89,13 +89,17 @@ class KnjDB_mysql
   def query(string)
     string = string.to_s
     string = string.force_encoding("UTF-8") if @encoding == "utf8" and string.respond_to?(:force_encoding)
+    tries = 0
     
     @mutex.synchronize do
       if !@subtype or @subtype == "mysql"
         begin
+          tries += 1
           return KnjDB_mysql_result.new(self, @conn.query(string))
         rescue Mysql::Error => e
-          if e.message == "MySQL server has gone away"
+          if e.message == "MySQL server has gone away" or e.message == "Can't connect to local MySQL server through socket"
+            raise e if tries >= 3
+            sleep 0.5
             reconnect
             retry
           else
@@ -104,9 +108,12 @@ class KnjDB_mysql
         end
       elsif @subtype == "mysql2"
         begin
+          tries += 1
           return KnjDB_mysql2_result.new(@conn.query(string, @query_args))
         rescue Mysql2::Error => e
-          if e.message == "MySQL server has gone away" or e.message == "closed MySQL connection"
+          if e.message == "MySQL server has gone away" or e.message == "closed MySQL connection" or e.message == "Can't connect to local MySQL server through socket"
+            raise e if tries >= 3
+            sleep 0.5
             reconnect
             retry
           elsif e.message == "This connection is still waiting for a result, try again once you have the result"
@@ -119,6 +126,7 @@ class KnjDB_mysql
         end
       elsif @subtype == "java"
         begin
+          tries += 1
           return KnjDB_java_mysql_result.new(@knjdb, query_conn(@conn, string))
         rescue => e
           if e.to_s.index("No operations allowed after connection closed") != nil
