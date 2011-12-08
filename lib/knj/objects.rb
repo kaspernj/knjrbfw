@@ -232,9 +232,7 @@ class Knj::Objects
     
     raise "list-function has not been implemented for #{classname}" if !classob.respond_to?("list")
     
-    args[:limit_from] = 0
-    args[:limit_to] = 1
-    
+    args["limit"] = 1
     self.list(classname, args) do |obj|
       return obj
     end
