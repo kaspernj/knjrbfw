@@ -232,9 +232,7 @@ class Knj::Objects
     
     raise "list-function has not been implemented for #{classname}" if !classob.respond_to?("list")
     
-    args[:limit_from] = 0
-    args[:limit_to] = 1
-    
+    args["limit"] = 1
     self.list(classname, args) do |obj|
       return obj
     end
@@ -292,10 +290,10 @@ class Knj::Objects
     Knj::ArrayExt.hash_sym(args)
     classname = classname.to_sym
     
-    if args[:list_args]
-      obs = self.list(classname, args[:list_args])
+    if args[:list_args].is_a?(Hash)
+      list_args = args[:list_args]
     else
-      obs = self.list(classname)
+      list_args = {}
     end
     
     html = ""
@@ -306,7 +304,7 @@ class Knj::Objects
       html += " value=\"\">#{_("Add new")}</option>"
     end
     
-    obs.each do |object|
+    self.list(classname, args[:list_args]) do |object|
       html += "<option value=\"#{object.id.html}\""
       
       selected = false
@@ -351,10 +349,10 @@ class Knj::Objects
     Knj::ArrayExt.hash_sym(args)
     classname = classname.to_sym
     
-    if args[:list_args]
-      obs = self.list(classname, args[:list_args])
+    if args[:list_args].is_a?(Hash)
+      list_args = args[:list_args]
     else
-      obs = self.list(classname)
+      list_args = {}
     end
     
     if RUBY_VERSION[0..2] == 1.8 and Knj::Php.class_exists("Dictionary")
@@ -373,7 +371,7 @@ class Knj::Objects
       list["0"] = _("None")
     end
     
-    obs.each do |object|
+    self.list(classname, args[:list_args]) do |object|
       if object.respond_to?(:name)
         list[object.id] = object.name
       elsif object.respond_to?(:title)
