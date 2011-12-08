@@ -216,7 +216,7 @@ class Knj::Web
         match = cookie_str.match(/^(.*?)=(.*)$/)
       end
       
-      ret[self.urldec(match[1])] = self.urldec(match[2])
+      ret[self.urldec(match[1])] = self.urldec(match[2]) if match
     end
     
     return ret
