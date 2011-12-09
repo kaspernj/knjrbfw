@@ -414,6 +414,15 @@ class Knj::Datarow
     raise "Couldnt figure out the title/name of the object on class #{self.class.name}."
   end
   
+  def name_html
+    name_str = self.name.to_s
+    if name_str.length <= 0
+      name_str = "[no name]"
+    end
+    
+    return name_str
+  end
+  
   alias :title :name
   
   def each(&args)
