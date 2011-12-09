@@ -1,7 +1,9 @@
 class Knj::Http2
   attr_reader :cookies
   
-  def initialize(args)
+  def initialize(args = {})
+    args = {:host => args} if args.is_a?(String)
+    raise "Arguments wasnt a hash." if !args.is_a?(Hash)
     require "#{$knjpath}web"
     
     @args = args
@@ -32,7 +34,13 @@ class Knj::Http2
     self.reconnect
   end
   
+  #Reconnects to the host.
   def reconnect
+    #Reset variables.
+    @keepalive_max = nil
+    @connection = nil
+    
+    #Open connection.
     @sock_plain = TCPSocket.new(@args[:host], @args[:port])
     
     if @args[:ssl]
@@ -66,6 +74,8 @@ class Knj::Http2
   
   #Tries to write a string to the socket. If it fails it reconnects and tries again.
   def write(str)
+    self.reconnect if !@sock
+    
     begin
       raise Errno::EPIPE, "The socket is closed." if !@sock or @sock.closed?
       @sock.puts(str)
@@ -123,13 +133,20 @@ class Knj::Http2
   def read_response
     @mode = "headers"
     @resp = Knj::Http2::Response.new
+    first = true
     
     loop do
       begin
         line = @sock.gets
       rescue Errno::ECONNRESET
+        print "Error while reading.\n" if @debug
         line = ""
         @sock = nil
+      end
+      
+      if first and line.to_s == "" and @connection == "keep-alive"
+        print "First line was empty and we are on keep-alive... Hmm..."
+        raise "Test"
       end
       
       break if line.to_s == ""
@@ -147,7 +164,17 @@ class Knj::Http2
         break if stat == "break"
         next if stat == "next"
       end
+      
+      first = false
     end
+    
+    
+    #Check if we should reconnect based on keep-alive-max.
+    if @keepalive_max == 1 or @connection == "close"
+      @sock.close if !@sock.closed?
+      @sock = nil
+    end
+    
     
     #Release variables.
     resp = @resp
@@ -180,6 +207,10 @@ class Knj::Http2
         Knj::Web.parse_set_cookies(match[2]).each do |cookie_data|
           @cookies[cookie_data["name"]] = cookie_data
         end
+      elsif key == "keep-alive" and ka_max = match[2].to_s.match(/max=(\d+)/)
+        @keepalive_max = ka_max[1].to_i
+      elsif key == "connection"
+        @connection = match[2].to_s.downcase
       end
       
       @resp.headers[key] = [] if !@resp.headers.key?(key)
