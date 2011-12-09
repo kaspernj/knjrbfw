@@ -122,7 +122,6 @@ class Knj::Http2
     end
     
     headers_str = ""
-    
     headers_hash.each do |key, val|
       headers_str += "#{key}: #{val}#{@nl}"
     end
@@ -139,14 +138,8 @@ class Knj::Http2
       begin
         line = @sock.gets
       rescue Errno::ECONNRESET
-        print "Error while reading.\n" if @debug
         line = ""
         @sock = nil
-      end
-      
-      if first and line.to_s == "" and @connection == "keep-alive"
-        print "First line was empty and we are on keep-alive... Hmm..."
-        raise "Test"
       end
       
       break if line.to_s == ""
