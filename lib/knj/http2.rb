@@ -102,13 +102,8 @@ class Knj::Http2
       "Host" => @args[:host],
       "Accept-encoding" => "gzip",
       "Connection" => "Keep-Alive",
-<<<<<<< HEAD
-      "User-Agent" => @uagent,
-      "Content-Length" => praw.length,
-=======
       "Content-Length" => praw.length,
       "User-Agent" => @uagent
->>>>>>> ce780ed00429381aa6f1d909118c41a85c2984bb
     )
     header_str += "#{@nl}"
     header_str += praw
