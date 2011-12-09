@@ -97,7 +97,7 @@ class Knj::Http2
       "Host" => @args[:host],
       "Connection" => "Keep-Alive",
       "User-Agent" => @uagent,
-      "Content-Length" => praw.length
+      "Content-Length" => praw.length,
     )
     header_str += "#{@nl}"
     header_str += praw
