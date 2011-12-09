@@ -63,6 +63,7 @@ class Knj::Http2
     header_str = "GET /#{addr} HTTP/1.1#{@nl}"
     header_str += self.header_str(
       "Host" => @args[:host],
+      "Accept-encoding" => "gzip",
       "Connection" => "Keep-Alive",
       "User-Agent" => @uagent
     )
@@ -74,6 +75,10 @@ class Knj::Http2
   
   #Tries to write a string to the socket. If it fails it reconnects and tries again.
   def write(str)
+    #Reset variables.
+    @length = nil
+    @encoding = nil
+    
     self.reconnect if !@sock
     
     begin
@@ -95,9 +100,15 @@ class Knj::Http2
     header_str = "POST /#{addr} HTTP/1.1#{@nl}"
     header_str += self.header_str(
       "Host" => @args[:host],
+      "Accept-encoding" => "gzip",
       "Connection" => "Keep-Alive",
+<<<<<<< HEAD
       "User-Agent" => @uagent,
       "Content-Length" => praw.length,
+=======
+      "Content-Length" => praw.length,
+      "User-Agent" => @uagent
+>>>>>>> ce780ed00429381aa6f1d909118c41a85c2984bb
     )
     header_str += "#{@nl}"
     header_str += praw
@@ -132,11 +143,14 @@ class Knj::Http2
   def read_response
     @mode = "headers"
     @resp = Knj::Http2::Response.new
-    first = true
     
     loop do
       begin
-        line = @sock.gets
+        if @length and @length > 0 and @mode == "body"
+          line = @sock.read(@length)
+        else
+          line = @sock.gets
+        end
       rescue Errno::ECONNRESET
         line = ""
         @sock = nil
@@ -145,7 +159,7 @@ class Knj::Http2
       break if line.to_s == ""
       
       if @mode == "headers" and line == @nl
-        break if @resp.header("content-length") == "0"
+        break if @length == 0
         @mode = "body"
         next
       end
@@ -157,8 +171,6 @@ class Knj::Http2
         break if stat == "break"
         next if stat == "next"
       end
-      
-      first = false
     end
     
     
@@ -166,6 +178,15 @@ class Knj::Http2
     if @keepalive_max == 1 or @connection == "close"
       @sock.close if !@sock.closed?
       @sock = nil
+    end
+    
+    
+    #Check if the content is gzip-encoded - if so: decode it!
+    if @encoding == "gzip"
+      require "zlib"
+      io = StringIO.new(@resp.args[:body])
+      gz = Zlib::GzipReader.new(io)
+      @resp.args[:body] = gz.read
     end
     
     
@@ -204,6 +225,10 @@ class Knj::Http2
         @keepalive_max = ka_max[1].to_i
       elsif key == "connection"
         @connection = match[2].to_s.downcase
+      elsif key == "content-encoding"
+        @encoding = match[2].to_s.downcase
+      elsif key == "content-length"
+        @length = match[2].to_i
       end
       
       @resp.headers[key] = [] if !@resp.headers.key?(key)
@@ -218,7 +243,7 @@ class Knj::Http2
   
   def parse_body(line)
     if @resp.args[:http_version] = "1.1"
-      return "break" if @resp.header("content-length") == "0"
+      return "break" if @length == 0
       
       if @resp.header("transfer-encoding").to_s.downcase == "chunked"
         len = line.strip.hex
