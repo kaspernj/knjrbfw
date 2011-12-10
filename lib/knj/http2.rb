@@ -41,7 +41,31 @@ class Knj::Http2
     @connection = nil
     
     #Open connection.
-    @sock_plain = TCPSocket.new(@args[:host], @args[:port])
+    if @args[:proxy]
+      @sock_plain = TCPSocket.new(@args[:proxy][:host], @args[:proxy][:port])
+      @sock = @sock_plain
+      
+      @sock.write("CONNECT #{@args[:host]}:#{@args[:port]} HTTP/1.0#{@nl}")
+      @sock.write("User-Agent: #{@uagent}#{@nl}")
+      
+      if @args[:proxy][:user] and @args[:proxy][:passwd]
+        credential = ["#{@args[:proxy][:user]}:#{@args[:proxy][:passwd]}"].pack("m")
+        credential.delete!("\r\n")
+        @sock.write("Proxy-Authorization: Basic #{credential}#{@nl}")
+      end
+      
+      @sock.write(@nl)
+      
+      res = @sock.gets
+      if res.to_s.downcase != "http/1.0 200 connection established#{@nl}"
+        raise res
+      end
+      
+      res_empty = @sock.gets
+      raise "Empty res wasnt empty." if res_empty != @nl
+    else
+      @sock_plain = TCPSocket.new(@args[:host], @args[:port])
+    end
     
     if @args[:ssl]
       require "openssl"
