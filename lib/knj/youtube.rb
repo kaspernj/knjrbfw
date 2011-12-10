@@ -6,7 +6,7 @@ class Knj::YouTube
     go_through_pages = true
     page = 1
     while go_through_pages
-      print "Getting page #{page.to_s}\n"
+      #print "Getting page #{page.to_s}\n"
       
       newparams = Marshal.load(Marshal.dump(params))
       newparams[:page] = page
@@ -27,10 +27,7 @@ class Knj::YouTube
       break if !status
       
       page += 1
-      
-      if data["pages"] and page > data["pages"].to_i
-        break
-      end
+      break if data["pages"] and page > data["pages"].to_i
     end
     
     return ret_arr
