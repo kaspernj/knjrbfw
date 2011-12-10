@@ -34,14 +34,32 @@ class Knj::Http2
     self.reconnect
   end
   
+  def socket_working?
+    return false if !@sock or @sock.closed?
+    
+    if @keepalive_timeout and @request_last
+      between = Time.now.to_i - @request_last.to_i
+      if between >= @keepalive_timeout
+        print "Http2: We are over the keepalive-wait - returning false for socket_working?.\n" if @debug
+        return false
+      end
+    end
+    
+    return true
+  end
+  
   #Reconnects to the host.
   def reconnect
+    print "Http2: Reconnect.\n" if @debug
+    
     #Reset variables.
     @keepalive_max = nil
+    @keepalive_timeout = nil
     @connection = nil
     
     #Open connection.
     if @args[:proxy]
+      print "Http2: Initializing proxy stuff.\n" if @debug
       @sock_plain = TCPSocket.new(@args[:proxy][:host], @args[:proxy][:port])
       @sock = @sock_plain
       
@@ -68,6 +86,7 @@ class Knj::Http2
     end
     
     if @args[:ssl]
+      print "Http2: Initializing SSL.\n" if @debug
       require "openssl"
       
       ssl_context = OpenSSL::SSL::SSLContext.new
@@ -84,17 +103,19 @@ class Knj::Http2
   end
   
   def get(addr)
+    print "Http2: Beginning to get url: '#{addr}'.\n" if @debug
     header_str = "GET /#{addr} HTTP/1.1#{@nl}"
-    header_str += self.header_str(
-      "Host" => @args[:host],
-      "Accept-encoding" => "gzip",
-      "Connection" => "Keep-Alive",
-      "User-Agent" => @uagent
-    )
+    header_str += self.header_str(self.default_headers)
     header_str += "#{@nl}"
     
+    print "Http2: Writing headers.\n" if @debug
     self.write(header_str)
-    return self.read_response
+    
+    print "Http2: Reading response.\n" if @debug
+    resp = self.read_response
+    
+    print "Http2: Done with get request.\n" if @debug
+    return resp
   end
   
   #Tries to write a string to the socket. If it fails it reconnects and tries again.
@@ -102,8 +123,7 @@ class Knj::Http2
     #Reset variables.
     @length = nil
     @encoding = nil
-    
-    self.reconnect if !@sock
+    self.reconnect if !self.socket_working?
     
     begin
       raise Errno::EPIPE, "The socket is closed." if !@sock or @sock.closed?
@@ -112,6 +132,24 @@ class Knj::Http2
       self.reconnect
       @sock.puts(str)
     end
+    
+    @request_last = Time.now
+  end
+  
+  def default_headers
+    headers = {
+      "Host" => @args[:host],
+      "Connection" => "Keep-Alive",
+      "User-Agent" => @uagent
+    }
+    
+    if !@args.key?(:encoding_gzip) or @args[:encoding_gzip]
+      headers["Accept-Encoding"] = "gzip"
+    else
+      headers["Accept-Encoding"] = "none"
+    end
+    
+    return headers
   end
   
   def post(addr, pdata = {})
@@ -122,13 +160,7 @@ class Knj::Http2
     end
     
     header_str = "POST /#{addr} HTTP/1.1#{@nl}"
-    header_str += self.header_str(
-      "Host" => @args[:host],
-      "Accept-encoding" => "gzip",
-      "Connection" => "Keep-Alive",
-      "Content-Length" => praw.length,
-      "User-Agent" => @uagent
-    )
+    header_str += self.header_str(self.default_headers.merge("Content-Length" => praw.length))
     header_str += "#{@nl}"
     header_str += praw
     
@@ -171,6 +203,7 @@ class Knj::Http2
           line = @sock.gets
         end
       rescue Errno::ECONNRESET
+        print "Http2: The connection was reset while reading - breaking gently...\n" if @debug
         line = ""
         @sock = nil
       end
@@ -214,6 +247,8 @@ class Knj::Http2
     @resp = nil
     @mode = nil
     
+    raise "No status-code was received from the server." if !resp.args[:code]
+    
     if resp.args[:code] == "302" and resp.header?("location")
       uri = URI.parse(resp.header("location"))
       
@@ -240,8 +275,16 @@ class Knj::Http2
         Knj::Web.parse_set_cookies(match[2]).each do |cookie_data|
           @cookies[cookie_data["name"]] = cookie_data
         end
-      elsif key == "keep-alive" and ka_max = match[2].to_s.match(/max=(\d+)/)
-        @keepalive_max = ka_max[1].to_i
+      elsif key == "keep-alive"
+        if ka_max = match[2].to_s.match(/max=(\d+)/)
+          @keepalive_max = ka_max[1].to_i
+          print "Http2: Keepalive-max set to: '#{@keepalive_max}'.\n" if @debug
+        end
+        
+        if ka_timeout = match[2].to_s.match(/timeout=(\d+)/)
+          @keepalive_timeout = ka_timeout[1].to_i
+          print "Http2: Keepalive-timeout set to: '#{@keepalive_timeout}'.\n" if @debug
+        end
       elsif key == "connection"
         @connection = match[2].to_s.downcase
       elsif key == "content-encoding"
