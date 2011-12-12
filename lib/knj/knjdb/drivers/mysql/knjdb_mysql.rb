@@ -46,7 +46,20 @@ class KnjDB_mysql
         args[key] = @knjdb.opts[key] if @knjdb.opts.key?(key)
       end
       
-      @conn = Mysql2::Client.new(args)
+      tries = 0
+      begin
+        tries += 1
+        @conn = Mysql2::Client.new(args)
+      rescue => e
+        if tries <= 3
+          if e.message == "Can't connect to local MySQL server through socket '/var/run/mysqld/mysqld.sock' (111)"
+            sleep 1
+            retry
+          end
+        end
+        
+        raise e
+      end
     elsif @subtype == "java"
       if !@jdbc_loaded
         require "java"
