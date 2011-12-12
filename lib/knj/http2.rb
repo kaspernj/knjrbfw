@@ -249,7 +249,7 @@ class Knj::Http2
     
     raise "No status-code was received from the server." if !resp.args[:code]
     
-    if resp.args[:code] == "302" and resp.header?("location")
+    if resp.args[:code] == "302" and resp.header?("location") and (!@args.key?(:follow_redirects) or @args[:follow_redirects])
       uri = URI.parse(resp.header("location"))
       
       args = {:host => uri.host}
