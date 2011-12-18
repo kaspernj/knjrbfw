@@ -53,57 +53,55 @@ class Knj::Http2
   def reconnect
     print "Http2: Reconnect.\n" if @debug
     
-    @mutex.synchronize do
-      #Reset variables.
-      @keepalive_max = nil
-      @keepalive_timeout = nil
-      @connection = nil
-      @contenttype = nil
-      @charset = nil
+    #Reset variables.
+    @keepalive_max = nil
+    @keepalive_timeout = nil
+    @connection = nil
+    @contenttype = nil
+    @charset = nil
+    
+    #Open connection.
+    if @args[:proxy]
+      print "Http2: Initializing proxy stuff.\n" if @debug
+      @sock_plain = TCPSocket.new(@args[:proxy][:host], @args[:proxy][:port])
+      @sock = @sock_plain
       
-      #Open connection.
-      if @args[:proxy]
-        print "Http2: Initializing proxy stuff.\n" if @debug
-        @sock_plain = TCPSocket.new(@args[:proxy][:host], @args[:proxy][:port])
-        @sock = @sock_plain
-        
-        @sock.write("CONNECT #{@args[:host]}:#{@args[:port]} HTTP/1.0#{@nl}")
-        @sock.write("User-Agent: #{@uagent}#{@nl}")
-        
-        if @args[:proxy][:user] and @args[:proxy][:passwd]
-          credential = ["#{@args[:proxy][:user]}:#{@args[:proxy][:passwd]}"].pack("m")
-          credential.delete!("\r\n")
-          @sock.write("Proxy-Authorization: Basic #{credential}#{@nl}")
-        end
-        
-        @sock.write(@nl)
-        
-        res = @sock.gets
-        if res.to_s.downcase != "http/1.0 200 connection established#{@nl}"
-          raise res
-        end
-        
-        res_empty = @sock.gets
-        raise "Empty res wasnt empty." if res_empty != @nl
-      else
-        @sock_plain = TCPSocket.new(@args[:host], @args[:port])
+      @sock.write("CONNECT #{@args[:host]}:#{@args[:port]} HTTP/1.0#{@nl}")
+      @sock.write("User-Agent: #{@uagent}#{@nl}")
+      
+      if @args[:proxy][:user] and @args[:proxy][:passwd]
+        credential = ["#{@args[:proxy][:user]}:#{@args[:proxy][:passwd]}"].pack("m")
+        credential.delete!("\r\n")
+        @sock.write("Proxy-Authorization: Basic #{credential}#{@nl}")
       end
       
-      if @args[:ssl]
-        print "Http2: Initializing SSL.\n" if @debug
-        require "openssl"
-        
-        ssl_context = OpenSSL::SSL::SSLContext.new
-        #ssl_context.verify_mode = OpenSSL::SSL::VERIFY_PEER
-        
-        @sock_ssl = OpenSSL::SSL::SSLSocket.new(@sock_plain, ssl_context)
-        @sock_ssl.sync_close = true
-        @sock_ssl.connect
-        
-        @sock = @sock_ssl
-      else
-        @sock = @sock_plain
+      @sock.write(@nl)
+      
+      res = @sock.gets
+      if res.to_s.downcase != "http/1.0 200 connection established#{@nl}"
+        raise res
       end
+      
+      res_empty = @sock.gets
+      raise "Empty res wasnt empty." if res_empty != @nl
+    else
+      @sock_plain = TCPSocket.new(@args[:host], @args[:port])
+    end
+    
+    if @args[:ssl]
+      print "Http2: Initializing SSL.\n" if @debug
+      require "openssl"
+      
+      ssl_context = OpenSSL::SSL::SSLContext.new
+      #ssl_context.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      
+      @sock_ssl = OpenSSL::SSL::SSLSocket.new(@sock_plain, ssl_context)
+      @sock_ssl.sync_close = true
+      @sock_ssl.connect
+      
+      @sock = @sock_ssl
+    else
+      @sock = @sock_plain
     end
   end
   
@@ -245,9 +243,13 @@ class Knj::Http2
     #Check if the content is gzip-encoded - if so: decode it!
     if @encoding == "gzip"
       require "zlib"
+      require "iconv"
       io = StringIO.new(@resp.args[:body])
       gz = Zlib::GzipReader.new(io)
-      @resp.args[:body] = gz.read
+      untrusted_str = gz.read
+      ic = Iconv.new("UTF-8//IGNORE", "UTF-8")
+      valid_string = ic.iconv(untrusted_str + " ")[0..-2]
+      @resp.args[:body] = valid_string
     end
     
     
