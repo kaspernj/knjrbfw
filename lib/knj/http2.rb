@@ -9,6 +9,7 @@ class Knj::Http2
     @args = args
     @cookies = {}
     @debug = @args[:debug]
+    @mutex = Mutex.new
     
     if !@args[:port]
       if @args[:ssl]
@@ -52,70 +53,76 @@ class Knj::Http2
   def reconnect
     print "Http2: Reconnect.\n" if @debug
     
-    #Reset variables.
-    @keepalive_max = nil
-    @keepalive_timeout = nil
-    @connection = nil
-    
-    #Open connection.
-    if @args[:proxy]
-      print "Http2: Initializing proxy stuff.\n" if @debug
-      @sock_plain = TCPSocket.new(@args[:proxy][:host], @args[:proxy][:port])
-      @sock = @sock_plain
+    @mutex.synchronize do
+      #Reset variables.
+      @keepalive_max = nil
+      @keepalive_timeout = nil
+      @connection = nil
+      @contenttype = nil
+      @charset = nil
       
-      @sock.write("CONNECT #{@args[:host]}:#{@args[:port]} HTTP/1.0#{@nl}")
-      @sock.write("User-Agent: #{@uagent}#{@nl}")
-      
-      if @args[:proxy][:user] and @args[:proxy][:passwd]
-        credential = ["#{@args[:proxy][:user]}:#{@args[:proxy][:passwd]}"].pack("m")
-        credential.delete!("\r\n")
-        @sock.write("Proxy-Authorization: Basic #{credential}#{@nl}")
+      #Open connection.
+      if @args[:proxy]
+        print "Http2: Initializing proxy stuff.\n" if @debug
+        @sock_plain = TCPSocket.new(@args[:proxy][:host], @args[:proxy][:port])
+        @sock = @sock_plain
+        
+        @sock.write("CONNECT #{@args[:host]}:#{@args[:port]} HTTP/1.0#{@nl}")
+        @sock.write("User-Agent: #{@uagent}#{@nl}")
+        
+        if @args[:proxy][:user] and @args[:proxy][:passwd]
+          credential = ["#{@args[:proxy][:user]}:#{@args[:proxy][:passwd]}"].pack("m")
+          credential.delete!("\r\n")
+          @sock.write("Proxy-Authorization: Basic #{credential}#{@nl}")
+        end
+        
+        @sock.write(@nl)
+        
+        res = @sock.gets
+        if res.to_s.downcase != "http/1.0 200 connection established#{@nl}"
+          raise res
+        end
+        
+        res_empty = @sock.gets
+        raise "Empty res wasnt empty." if res_empty != @nl
+      else
+        @sock_plain = TCPSocket.new(@args[:host], @args[:port])
       end
       
-      @sock.write(@nl)
-      
-      res = @sock.gets
-      if res.to_s.downcase != "http/1.0 200 connection established#{@nl}"
-        raise res
+      if @args[:ssl]
+        print "Http2: Initializing SSL.\n" if @debug
+        require "openssl"
+        
+        ssl_context = OpenSSL::SSL::SSLContext.new
+        #ssl_context.verify_mode = OpenSSL::SSL::VERIFY_PEER
+        
+        @sock_ssl = OpenSSL::SSL::SSLSocket.new(@sock_plain, ssl_context)
+        @sock_ssl.sync_close = true
+        @sock_ssl.connect
+        
+        @sock = @sock_ssl
+      else
+        @sock = @sock_plain
       end
-      
-      res_empty = @sock.gets
-      raise "Empty res wasnt empty." if res_empty != @nl
-    else
-      @sock_plain = TCPSocket.new(@args[:host], @args[:port])
-    end
-    
-    if @args[:ssl]
-      print "Http2: Initializing SSL.\n" if @debug
-      require "openssl"
-      
-      ssl_context = OpenSSL::SSL::SSLContext.new
-      #ssl_context.verify_mode = OpenSSL::SSL::VERIFY_PEER
-      
-      @sock_ssl = OpenSSL::SSL::SSLSocket.new(@sock_plain, ssl_context)
-      @sock_ssl.sync_close = true
-      @sock_ssl.connect
-      
-      @sock = @sock_ssl
-    else
-      @sock = @sock_plain
     end
   end
   
   def get(addr)
-    print "Http2: Beginning to get url: '#{addr}'.\n" if @debug
-    header_str = "GET /#{addr} HTTP/1.1#{@nl}"
-    header_str += self.header_str(self.default_headers)
-    header_str += "#{@nl}"
-    
-    print "Http2: Writing headers.\n" if @debug
-    self.write(header_str)
-    
-    print "Http2: Reading response.\n" if @debug
-    resp = self.read_response
-    
-    print "Http2: Done with get request.\n" if @debug
-    return resp
+    @mutex.synchronize do
+      print "Http2: Beginning to get url: '#{addr}'.\n" if @debug
+      header_str = "GET /#{addr} HTTP/1.1#{@nl}"
+      header_str += self.header_str(self.default_headers)
+      header_str += "#{@nl}"
+      
+      print "Http2: Writing headers.\n" if @debug
+      self.write(header_str)
+      
+      print "Http2: Reading response.\n" if @debug
+      resp = self.read_response
+      
+      print "Http2: Done with get request.\n" if @debug
+      return resp
+    end
   end
   
   #Tries to write a string to the socket. If it fails it reconnects and tries again.
@@ -153,19 +160,21 @@ class Knj::Http2
   end
   
   def post(addr, pdata = {})
-    praw = ""
-    pdata.each do |key, val|
-      praw += "&" if praw != ""
-      praw += "#{Knj::Web.urlenc(key)}=#{Knj::Web.urlenc(val)}"
+    @mutex.synchronize do
+      praw = ""
+      pdata.each do |key, val|
+        praw += "&" if praw != ""
+        praw += "#{Knj::Web.urlenc(key)}=#{Knj::Web.urlenc(val)}"
+      end
+      
+      header_str = "POST /#{addr} HTTP/1.1#{@nl}"
+      header_str += self.header_str(self.default_headers.merge("Content-Length" => praw.length))
+      header_str += "#{@nl}"
+      header_str += praw
+      
+      self.write(header_str)
+      return self.read_response
     end
-    
-    header_str = "POST /#{addr} HTTP/1.1#{@nl}"
-    header_str += self.header_str(self.default_headers.merge("Content-Length" => praw.length))
-    header_str += "#{@nl}"
-    header_str += praw
-    
-    self.write(header_str)
-    return self.read_response
   end
   
   def header_str(headers_hash)
@@ -291,6 +300,16 @@ class Knj::Http2
         @encoding = match[2].to_s.downcase
       elsif key == "content-length"
         @length = match[2].to_i
+      elsif key == "content-type"
+        ctype = match[2].to_s
+        if match_charset = ctype.match(/\s*;\s*charset=(.+)/i)
+          @charset = match_charset[1].downcase
+          @resp.args[:charset] = @charset
+          ctype.gsub!(match_charset[0], "")
+        end
+        
+        @ctype = ctype
+        @resp.args[:contenttype] = @ctype
       end
       
       @resp.headers[key] = [] if !@resp.headers.key?(key)
@@ -369,5 +388,13 @@ class Knj::Http2::Response
   
   def body
     return @args[:body]
+  end
+  
+  def charset
+    return @args[:charset]
+  end
+  
+  def contenttype
+    return @args[:contenttype]
   end
 end
