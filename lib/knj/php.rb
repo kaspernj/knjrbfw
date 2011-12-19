@@ -248,6 +248,57 @@ module Knj::Php
     return Knj::Web.html(string)
   end
   
+  def http_build_query(obj)
+    return self.http_build_query_rec("", obj)
+  end
+  
+  def http_build_query_rec(orig_key, obj, first = true)
+    url = ""
+    first_ele = true
+    
+    if obj.is_a?(Array)
+      ele_count = 0
+      
+      obj.each do |val|
+        orig_key_str = "#{orig_key}[#{ele_count}]"
+        val = "#<Model::#{val.table}::#{val.id}>" if val.is_a?(Knj::Datarow) or val.is_a?(Knj::Datarow_custom)
+        
+        if val.is_a?(Hash) or val.is_a?(Array)
+          url += self.http_build_query_rec(orig_key_str, val, false)
+        else
+          url += "&" if !first or !first_ele
+          url += "#{Knj::Web.urlenc(orig_key_str)}=#{Knj::Web.urlenc(val)}"
+        end
+        
+        first_ele = false if first_ele
+        ele_count += 1
+      end
+    elsif obj.is_a?(Hash)
+      obj.each do |key, val|
+        if first
+          orig_key_str = key
+        else
+          orig_key_str = "#{orig_key}[#{key}]"
+        end
+        
+        val = "#<Model::#{val.table}::#{val.id}>" if val.is_a?(Knj::Datarow) or val.is_a?(Knj::Datarow_custom)
+        
+        if val.is_a?(Hash) or val.is_a?(Array)
+          url += self.http_build_query_rec(orig_key_str, val, false)
+        else
+          url += "&" if !first or !first_ele
+          url += "#{Knj::Web.urlenc(orig_key_str)}=#{Knj::Web.urlenc(val)}"
+        end
+        
+        first_ele = false if first_ele
+      end
+    else
+      raise "Unknown class: '#{obj.class.name}'."
+    end
+    
+    return url
+  end
+  
   def isset(var)
     return false if var == nil or var == false
     return true

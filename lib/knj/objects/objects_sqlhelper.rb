@@ -252,11 +252,15 @@ class Knj::Objects
         end
         
         found = true
-      elsif args.key?(:cols_num) and match = key.match(/^(.+)_(from|to)$/) and args[:cols_num].index(match[1]) != nil
+      elsif args.key?(:cols_num) and match = key.match(/^(.+)_(from|to|above|below)$/) and args[:cols_num].index(match[1]) != nil
         if match[2] == "from"
           sql_where += " AND #{table}`#{db.esc_col(match[1])}` <= '#{db.esc(val)}'"
         elsif match[2] == "to"
           sql_where += " AND #{table}`#{db.esc_col(match[1])}` >= '#{db.esc(val)}'"
+        elsif match[2] == "above"
+          sql_where += " AND #{table}`#{db.esc_col(match[1])}` > '#{db.esc(val)}'"
+        elsif match[2] == "below"
+          sql_where += " AND #{table}`#{db.esc_col(match[1])}` < '#{db.esc(val)}'"
         else
           raise "Unknown method of treating cols-num-argument: #{match[2]}."
         end
