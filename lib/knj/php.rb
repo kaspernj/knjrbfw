@@ -17,6 +17,21 @@ module Knj::Php
     end
   end
   
+  def method_exists(obj, method_name)
+    return obj.respond_to?(method_name.to_s)
+  end
+  
+  def is_a(obj, classname)
+    classname = classname.to_s
+    classname = "#{classname[0..0].upcase}#{classname[1..999]}"
+    
+    if obj.is_a?(classname)
+      return true
+    end
+    
+    return false
+  end
+  
   def print_r(argument, ret = false, count = 1)
     retstr = ""
     cstr = argument.class.to_s
@@ -467,6 +482,22 @@ module Knj::Php
     exit
   end
   
+  def opendir(dirpath)
+    res = {:files => [], :index => 0}
+    Dir.foreach(dirpath) do |file|
+      res[:files] << file
+    end
+    
+    return res
+  end
+  
+  def readdir(res)
+    ret = res[:files][res[:index]] if res[:files].index(res[:index]) != nil
+    return false if !ret
+    res[:index] += 1
+    return ret
+  end
+  
   def fopen(filename, mode)
     begin
       return File.open(filename, mode)
@@ -563,6 +594,11 @@ module Knj::Php
     end
     
     return status
+  end
+  
+  #This method is only here for convertion support - it doesnt do anything.
+  def session_start
+    
   end
   
   def explode(expl, strexp)
@@ -761,6 +797,78 @@ module Knj::Php
     end
     
     return newhash
+  end
+  
+  #Foreach emulator.
+  def foreach(element, &block)
+    raise "No or unsupported block given." if !block.respond_to?(:call) or !block.respond_to?(:arity)
+    arity = block.arity
+    
+    if element.is_a?(Array)
+      element.each_index do |key|
+        if arity == 2
+          block.call(key, element[key])
+        elsif arity == 1
+          block.call(element[key])
+        else
+          raise "Unknown arity: '#{arity}'."
+        end
+      end
+    elsif element.is_a?(Hash)
+      element.each do |key, val|
+        if arity == 2
+          block.call(key, val)
+        elsif arity == 1
+          block.call(val)
+        else
+          raise "Unknown arity: '#{arity}'."
+        end
+      end
+    else
+      raise "Unknown element: '#{element.class.name}'."
+    end
+  end
+  
+  #Array-function emulator.
+  def array(*ele)
+    return {} if ele.length <= 0
+    return ele
+  end
+  
+  def array_key_exists(key, arr)
+    if arr.is_a?(Hash)
+      return arr.key?(key)
+    elsif arr.is_a?(Array)
+      return true if arr.index(key) != nil
+      return false
+    else
+      raise "Unknown type of argument: '#{arr.class.name}'."
+    end
+  end
+  
+  def empty(obj)
+    if obj.respond_to?("empty?")
+      return obj.empty?
+    else
+      raise "Dont know how to handle object on 'empty': '#{obj.class.name}'."
+    end
+  end
+  
+  def trim(argument)
+    return argument.to_s.strip
+  end
+  
+  def serialize(argument)
+    return Marshal.dump(argument)
+  end
+  
+  def unserialize(argument)
+    return Marshal.load(argument.to_s)
+  end
+  
+  @methods = instance_methods
+  def self.php_list_defined_methods
+    return @methods
   end
   
   module_function(*instance_methods)
