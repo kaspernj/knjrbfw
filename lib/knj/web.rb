@@ -668,6 +668,7 @@ class Knj::Web
     html += "<option#{addsel} value=\"\">#{_("Add new")}</option>" if opts_args and (opts_args[:add] or opts_args[:addnew])
     html += "<option#{addsel} value=\"\">#{_("Choose")}</option>" if opts_args and opts_args[:choose]
     html += "<option#{addsel} value=\"\">#{_("None")}</option>" if opts_args and opts_args[:none]
+    html += "<option#{addsel} value=\"\">#{_("All")}</option>" if opts_args and opts_args[:all]
     
     if opthash.is_a?(Hash) or opthash.class.to_s == "Dictionary"
       opthash.each do |key, value|

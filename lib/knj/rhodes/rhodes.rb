@@ -70,7 +70,8 @@ class Knj::Rhodes
       :class_path => "#{Rho::RhoApplication.get_base_app_path}app/models",
       :require => false,
       :module => @args[:module],
-      :datarow => true
+      :datarow => true,
+      :cache => :none
     )
     
     Knj::Opts.init(

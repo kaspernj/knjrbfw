@@ -62,12 +62,14 @@ class Knj::Datarow_custom
   end
   
   def initialize(d)
-    data = d.data
     @ob = d.ob
+    data = d.data
     
     if data.is_a?(Hash)
       @data = Knj::ArrayExt.hash_sym(data)
     else
+      data = d.data
+      raise "No 'data_from_id'-event connected to class." if !self.class.events.connected?(:data_from_id)
       data = self.class.events.call(:data_from_id, Knj::Hash_methods.new(:id => data))
       raise "No data was received from the event: 'data_from_id'." if !data
       @data = Knj::ArrayExt.hash_sym(data)

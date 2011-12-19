@@ -210,6 +210,8 @@ class Knj::Objects
     case @args[:cache]
       when :weak
         @objects[classname][id] = WeakRef.new(obj)
+      when :none
+        return obj
       else
         @objects[classname][id] = obj
     end
@@ -593,7 +595,7 @@ class Knj::Objects
   
   # Try to clean up objects by unsetting everything, start the garbagecollector, get all the remaining objects via ObjectSpace and set them again. Some (if not all) should be cleaned up and our cache should still be safe... dirty but works.
   def clean(classn)
-    return false if @args[:cache] == :weak
+    return false if @args[:cache] == :weak or @args[:cache] == :none
     
     if classn.is_a?(Array)
       classn.each do |realclassn|
@@ -608,7 +610,7 @@ class Knj::Objects
   
   # Erases the whole cache if not running weak-link-caching.
   def clean_all
-    return false if @args[:cache] == :weak
+    return false if @args[:cache] == :weak or @args[:cache] == :none
     
     classnames = []
     @objects.keys.each do |classn|
@@ -623,7 +625,7 @@ class Knj::Objects
   end
   
   def clean_recover
-    return false if @args[:cache] == :weak
+    return false if @args[:cache] == :weak or @args[:cache] == :none
     return false if RUBY_ENGINE == "jruby" and !JRuby.objectspace
     
     @objects.keys.each do |classn|
