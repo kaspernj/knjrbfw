@@ -781,6 +781,8 @@ module Knj::Php
   end
   
   def realpath(pname)
+    require "pathname"
+    
     begin
       return Pathname.new(pname.to_s).realpath.to_s
     rescue => e

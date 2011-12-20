@@ -332,7 +332,7 @@ class Knj::Datarow
   end
   
   def table
-    return self.class.name.split("::").last
+    return self.class.table
   end
   
   def initialize(d)
