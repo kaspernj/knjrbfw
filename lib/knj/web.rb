@@ -565,17 +565,19 @@ class Knj::Web
 				html += "</td><td style=\"padding-left: 5px;\">"
 				
 				raise "No path given for imageupload-input." if !args.has_key?(:path)
-				raise "No value given in arguments for imageupload-input." if !args.has_key?(:value)
+				#raise "No value given in arguments for imageupload-input." if !args.has_key?(:value)
 				
-				path = args[:path].gsub("%value%", value.to_s).untaint
-				if File.exists?(path)
-					html += "<img src=\"image.rhtml?path=#{Knj::Php.urlencode(path).html}&smartsize=100&rounded_corners=10&border_color=black&force=true&ts=#{Time.new.to_f}\" alt=\"Image\" />"
-					
-					if args[:dellink]
-						dellink = args[:dellink].gsub("%value%", value.to_s)
-						html += "<div style=\"text-align: center;\">(<a href=\"javascript: if (confirm('#{_("Do you want to delete the image?")}')){location.href='#{dellink}';}\">#{_("delete")}</a>)</div>"
-					end
-				end
+				if value.to_s.length > 0
+          path = args[:path].gsub("%value%", value.to_s).untaint
+          if File.exists?(path)
+            html += "<img src=\"image.rhtml?path=#{Knj::Php.urlencode(path).html}&smartsize=100&rounded_corners=10&border_color=black&force=true&ts=#{Time.new.to_f}\" alt=\"Image\" />"
+            
+            if args[:dellink]
+              dellink = args[:dellink].gsub("%value%", value.to_s)
+              html += "<div style=\"text-align: center;\">(<a href=\"javascript: if (confirm('#{_("Do you want to delete the image?")}')){location.href='#{dellink}';}\">#{_("delete")}</a>)</div>"
+            end
+          end
+        end
 				
 				html += "</td></tr></table>"
 				html += "</td>"
@@ -945,6 +947,15 @@ class Knj::Web
   
   def self.html(string)
     return string.to_s.gsub(/&/, "&amp;").gsub(/\"/, "&quot;").gsub(/>/, "&gt;").gsub(/</, "&lt;")
+  end
+  
+  def self.html_args(h)
+    str = ""
+    h.each do |key, val|
+      str += "&#{Knj::Php.urlencode(key)}=#{Knj::Php.urlencode(val)}"
+    end
+    
+    return str
   end
 end
 
