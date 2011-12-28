@@ -103,10 +103,10 @@ class Knj::Image
     
     if borders
       borders.each do |border|
-        if border.has_key?(:x)
+        if border.key?(:x)
           count_from = border[:yf]
           count_to = border[:yt]
-        elsif border.has_key?(:y)
+        elsif border.key?(:y)
           count_from = border[:xf]
           count_to = border[:xt]
         end
@@ -114,9 +114,9 @@ class Knj::Image
         count_from.upto(count_to - 1) do |coord|
           pixel = Magick::Pixel.from_color(args[:border_color])
           
-          if border.has_key?(:x)
+          if border.key?(:x)
             pic.pixel_color(border[:x], coord, pixel)
-          elsif border.has_key?(:y)
+          elsif border.key?(:y)
             pic.pixel_color(coord, border[:y], pixel)
           end
         end

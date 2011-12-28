@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{knjrbfw}
-  s.version = "0.0.7"
+  s.version = "0.0.8"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Kasper Johansen"]
-  s.date = %q{2011-08-03}
+  s.date = %q{2011-11-15}
   s.description = %q{Including stuff for HTTP, SSH and much more.}
   s.email = %q{k@spernj.org}
   s.extra_rdoc_files = [
@@ -20,13 +20,13 @@ Gem::Specification.new do |s|
     ".document",
     ".rspec",
     "Gemfile",
-    "Gemfile.lock",
     "LICENSE.txt",
     "README.rdoc",
     "Rakefile",
     "VERSION",
     "knjrbfw.gemspec",
     "lib/knj/.gitignore",
+    "lib/knj/amixer.rb",
     "lib/knj/arrayext.rb",
     "lib/knj/autoload.rb",
     "lib/knj/autoload/activesupport.rb",
@@ -52,6 +52,7 @@ Gem::Specification.new do |s|
     "lib/knj/autoload/twitter.rb",
     "lib/knj/autoload/xmlsimple.rb",
     "lib/knj/autoload/zip.rb",
+    "lib/knj/cmd_gen.rb",
     "lib/knj/compiler.rb",
     "lib/knj/cpufreq.rb",
     "lib/knj/datarow.rb",
@@ -74,6 +75,7 @@ Gem::Specification.new do |s|
     "lib/knj/event_handler.rb",
     "lib/knj/exchangerates.rb",
     "lib/knj/ext/webrick.rb",
+    "lib/knj/facebook_connect.rb",
     "lib/knj/filesystem.rb",
     "lib/knj/fs/drivers/filesystem.rb",
     "lib/knj/fs/drivers/ftp.rb",
@@ -89,6 +91,8 @@ Gem::Specification.new do |s|
     "lib/knj/gtk2_tv.rb",
     "lib/knj/hash_methods.rb",
     "lib/knj/http.rb",
+    "lib/knj/http2.rb",
+    "lib/knj/image.rb",
     "lib/knj/includes/appserver_cli.rb",
     "lib/knj/ip2location.rb",
     "lib/knj/ironruby-gtk2/button.rb",
@@ -208,6 +212,7 @@ Gem::Specification.new do |s|
     "lib/knj/tests/compiler/compiler_test.rb",
     "lib/knj/tests/compiler/compiler_test_file.rb",
     "lib/knj/tests/test_degulesider.rb",
+    "lib/knj/tests/test_http2.rb",
     "lib/knj/tests/test_mount.rb",
     "lib/knj/tests/test_retry.rb",
     "lib/knj/thread.rb",
@@ -224,8 +229,10 @@ Gem::Specification.new do |s|
     "lib/knj/x11vnc.rb",
     "lib/knj/youtube.rb",
     "lib/knjrbfw.rb",
+    "spec/amixer_spec.rb",
     "spec/knjrbfw_spec.rb",
-    "spec/spec_helper.rb"
+    "spec/spec_helper.rb",
+    "testfiles/image.jpg"
   ]
   s.homepage = %q{http://github.com/kaspernj/knjrbfw}
   s.licenses = ["MIT"]
@@ -242,12 +249,14 @@ Gem::Specification.new do |s|
       s.add_development_dependency(%q<jeweler>, ["~> 1.6.3"])
       s.add_development_dependency(%q<rcov>, [">= 0"])
       s.add_development_dependency(%q<sqlite3>, [">= 0"])
+      s.add_development_dependency(%q<rmagick>, [">= 0"])
     else
       s.add_dependency(%q<rspec>, ["~> 2.3.0"])
       s.add_dependency(%q<bundler>, ["~> 1.0.0"])
       s.add_dependency(%q<jeweler>, ["~> 1.6.3"])
       s.add_dependency(%q<rcov>, [">= 0"])
       s.add_dependency(%q<sqlite3>, [">= 0"])
+      s.add_dependency(%q<rmagick>, [">= 0"])
     end
   else
     s.add_dependency(%q<rspec>, ["~> 2.3.0"])
@@ -255,6 +264,7 @@ Gem::Specification.new do |s|
     s.add_dependency(%q<jeweler>, ["~> 1.6.3"])
     s.add_dependency(%q<rcov>, [">= 0"])
     s.add_dependency(%q<sqlite3>, [">= 0"])
+    s.add_dependency(%q<rmagick>, [">= 0"])
   end
 end
 

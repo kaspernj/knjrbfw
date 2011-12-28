@@ -1,5 +1,5 @@
 class Knj::Php_parser
-	def args
-		
-	end
+  def args
+    
+  end
 end

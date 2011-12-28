@@ -1,11 +1,11 @@
 #!/usr/bin/jruby
 
 def File::realpath(path)
-	if File.symlink?(path)
-		return self.realpath(File.readlink(path))
-	end
-	
-	return path
+  if File.symlink?(path)
+    return self.realpath(File.readlink(path))
+  end
+  
+  return path
 end
 
 knjdir = File.dirname(File.realpath(__FILE__)) + "/../"

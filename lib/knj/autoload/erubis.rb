@@ -1,6 +1,8 @@
+module Erubis; end #bugfix
+
 begin
-	require "erubis"
+  require "erubis"
 rescue LoadError
-	require "rubygems"
-	require "erubis"
+  require "rubygems"
+  require "erubis"
 end

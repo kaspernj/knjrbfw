@@ -1,0 +1,1 @@
+require "#{$knjpath}knjdb/libknjdb"

@@ -26,6 +26,7 @@ class Knj::Eruby
     end
     
     if @cache_mode == :compile_knj
+      require "#{$knjpath}compiler"
       @compiler = Knj::Compiler.new(:cache_hash => @cache)
     end
     
@@ -46,7 +47,7 @@ class Knj::Eruby
         Knj::Eruby::Handler.load_file(filename, {:cachename => cachename})
         cachetime = File.mtime(cachename)
         reload_cache = true
-      elsif !@cache.has_key?(cachename)
+      elsif !@cache.key?(cachename)
         reload_cache = true
       end
       
@@ -60,7 +61,7 @@ class Knj::Eruby
           if reload_cache or @cache[cachename][:time] < cachetime
             @cache[cachename] = {
               :inseq => RubyVM::InstructionSequence.compile(File.read(cachename), filename, nil, 1),
-              :time => Time.new
+              :time => Time.now
             }
           end
           
@@ -81,7 +82,7 @@ class Knj::Eruby
     @headers.clear if @headers.is_a?(Array)
     @cookies.clear if @cookies.is_a?(Array)
     
-    @cache.clear if @cache.is_a?(Hash) and @args and !@args.has_key?(:cache_hash)
+    @cache.clear if @cache.is_a?(Hash) and @args and !@args.key?(:cache_hash)
     @args.clear if @args.is_a?(Hash)
     @args = nil
     @cache = nil
@@ -132,7 +133,7 @@ class Knj::Eruby
   end
   
   def connect(signal, &block)
-    @connects[signal] = [] if !@connects.has_key?(signal)
+    @connects[signal] = [] if !@connects.key?(signal)
     @connects[signal] << block
   end
   
@@ -150,7 +151,7 @@ class Knj::Eruby
       end
       
       if !args[:custom_io]
-        print self.print_headers if !args.has_key?(:with_headers) or args[:with_headers]
+        print self.print_headers if !args.key?(:with_headers) or args[:with_headers]
         tmp_out.rewind
         print tmp_out.read
       end
@@ -197,7 +198,7 @@ class Knj::Eruby
   
   def handle_error(e)
     begin
-      if @connects and @connects.has_key?("error")
+      if @connects and @connects.key?("error")
         @connects["error"].each do |block|
           block.call(e)
         end

@@ -237,7 +237,7 @@ class Dictionary
   end
 
   def store( a,b )
-    @order.push( a ) unless @hash.has_key?( a )
+    @order.push( a ) unless @hash.key?( a )
     @hash.store( a,b )
   end
 
@@ -403,7 +403,7 @@ class Dictionary
   end
 
   def has_key?(key)
-    @hash.has_key?(key)
+    @hash.key?(key)
   end
 
   def key?(key)

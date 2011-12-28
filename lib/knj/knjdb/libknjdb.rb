@@ -3,6 +3,8 @@ class Knj::Db
   attr_reader :opts, :conn, :conns, :int_types
   
   def initialize(opts)
+    require "#{$knjpath}threadhandler"
+    
     self.setOpts(opts) if opts != nil
     
     @int_types = ["int", "bigint", "tinyint", "smallint", "mediumint"]
@@ -26,12 +28,10 @@ class Knj::Db
       @opts[key.to_sym] = val
     end
     
-    if @opts[:type] == "sqlite3" and RUBY_PLATFORM == "java"
-      @opts[:type] = "java_sqlite3"
-    elsif @opts[:type] == "mysql" and RUBY_PLATFORM == "java"
+    if RUBY_PLATFORM == "java"
       @opts[:subtype] = "java"
     elsif @opts[:type] == "sqlite3" and RUBY_PLATFORM.index("mswin32") != nil
-      @opts[:type] = "sqlite3_ironruby"
+      @opts[:subtype] = "ironruby"
     end
     
     self.connect
@@ -67,7 +67,7 @@ class Knj::Db
     fpaths.each do |fpath|
       rpath = "#{File.dirname(__FILE__)}/#{fpath}"
       
-      if (!@opts.has_key?(:require) or @opts[:require]) and File.exists?(rpath)
+      if (!@opts.key?(:require) or @opts[:require]) and File.exists?(rpath)
         require rpath
         break
       end
@@ -79,16 +79,15 @@ class Knj::Db
   def get_and_register_thread
     raise "KnjDB-object is not in threadding mode." if !@conns
     
-    db = @conns.get_and_lock
     tid = self.__id__
     Thread.current[:knjdb] = {} if !Thread.current[:knjdb]
-    Thread.current[:knjdb][tid] = db
+    Thread.current[:knjdb][tid] = @conns.get_and_lock if !Thread.current[:knjdb][tid]
   end
   
   def free_thread
     tid = self.__id__
     
-    if Thread.current[:knjdb] and Thread.current[:knjdb].has_key?(tid)
+    if Thread.current[:knjdb] and Thread.current[:knjdb].key?(tid)
       db = Thread.current[:knjdb][tid]
       Thread.current[:knjdb].delete(tid)
       @conns.free(db) if @conns
@@ -112,7 +111,7 @@ class Knj::Db
       table_args = nil
       table_args = args["tables"][table["name"].to_s] if args and args["tables"] and args["tables"][table["name"].to_s]
       next if table_args and table_args["skip"]
-      table.delete("indexes") if table.has_key?("indexes") and args["skip_indexes"]
+      table.delete("indexes") if table.key?("indexes") and args["skip_indexes"]
       db.tables.create(table["name"], table)
       
       limit_from = 0
@@ -309,7 +308,7 @@ class Knj::Db
     if Thread.current[:knjdb]
       tid = self.__id__
       
-      if Thread.current[:knjdb].has_key?(tid)
+      if Thread.current[:knjdb].key?(tid)
         yield(Thread.current[:knjdb][tid])
         return nil
       end
@@ -331,9 +330,12 @@ class Knj::Db
           return nil
         end
       rescue ThreadError => e
-        raise e if e.message != "deadlock; recursive locking"
-        yield(@conn)
-        return nil
+        if e.message != "deadlock; recursive locking"
+          yield(@conn)
+          return nil
+        else
+          raise e
+        end
       end
     end
     
@@ -396,7 +398,17 @@ class Knj::Db
     return @enc_table
   end
   
-  def date_out(date_obj, args = {})
+  def enc_col
+    if !@enc_col
+      conn_exec do |driver|
+        @enc_col = driver.escape_col
+      end
+    end
+    
+    return @enc_col
+  end
+  
+  def date_out(date_obj = Knj::Datet.new, args = {})
     return Knj::Datet.in(date_obj).dbstr(args)
   end
   
@@ -407,7 +419,7 @@ class Knj::Db
   def tables
     conn_exec do |driver|
       if !driver.tables
-        require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_tables" if (!@opts.has_key?(:require) or @opts[:require])
+        require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_tables" if (!@opts.key?(:require) or @opts[:require])
         driver.tables = Kernel.const_get("KnjDB_#{@opts[:type]}".to_sym).const_get(:Tables).new(
           :driver => driver,
           :db => self
@@ -420,7 +432,7 @@ class Knj::Db
   
   def cols
     if !@cols
-      require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_columns" if (!@opts.has_key?(:require) or @opts[:require])
+      require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_columns" if (!@opts.key?(:require) or @opts[:require])
       @cols = Kernel.const_get("KnjDB_#{@opts[:type]}".to_sym).const_get(:Columns).new(
         :driver => @conn,
         :db => self
@@ -432,7 +444,7 @@ class Knj::Db
   
   def indexes
     if !@indexes
-      require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_indexes" if (!@opts.has_key?(:require) or @opts[:require])
+      require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_indexes" if (!@opts.key?(:require) or @opts[:require])
       @indexes = Kernel.const_get("KnjDB_#{@opts[:type]}".to_sym).const_get(:Indexes).new(
         :driver => @conn,
         :db => self
