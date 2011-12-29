@@ -1,13 +1,13 @@
 class Knj::Objects
   #This method helps build SQL from Objects-instances list-method. It should not be called directly but only through Objects.list.
   def sqlhelper(list_args, args_def)
+    args = args_def
+    
     if args[:db]
       db = args[:db]
     else
       db = @args[:db]
     end
-    
-    args = args_def
     
     if args[:table]
       table_def = "`#{db.esc_table(args[:table])}`."
@@ -114,9 +114,11 @@ class Knj::Objects
             
             if args[:joined_tables]
               args[:joined_tables].each do |table_name, table_data|
+                table_name_real = @args[:module].const_get(table_name).table
+                
                 if table_name.to_s == val[:table].to_s
                   do_joins[table_name] = true
-                  orders << "`#{db.esc_table(table_name)}`.`#{db.esc_col(val[:col])}`#{ordermode}"
+                  orders << "`#{db.esc_table(table_name_real)}`.`#{db.esc_col(val[:col])}`#{ordermode}"
                   found = true
                   break
                 end
@@ -154,7 +156,8 @@ class Knj::Objects
         end
         
         do_joins[realkey[0].to_sym] = true
-        table = "`#{db.esc_table(realkey[0])}`."
+        list_table_name_real = @args[:module].const_get(realkey[0]).table
+        table = "`#{db.esc_table(list_table_name_real)}`."
         key = realkey[1]
       else
         table = table_def
@@ -210,9 +213,20 @@ class Knj::Objects
         limit_to = val.to_i
         found = true
       elsif args.key?(:cols_dbrows) and args[:cols_dbrows].index("#{key.to_s}_id") != nil
-        sql_where += " AND #{table}`#{db.esc_col(key.to_s + "_id")}` = '#{db.esc(val.id)}'"
+        if val == false
+          sql_where += " AND #{table}`#{db.esc_col(key.to_s + "_id")}` = '0'"
+        elsif val.is_a?(Array)
+          if val.empty?
+            sql_where += " AND false"
+          else
+            sql_where += " AND #{table}`#{db.esc_col("#{key}_id")}` IN (#{Knj::ArrayExt.join(:arr => val, :sep => ",", :surr => "'", :callback => proc{|obj| obj.id.sql})})"
+          end
+        else
+          sql_where += " AND #{table}`#{db.esc_col(key.to_s + "_id")}` = '#{db.esc(val.id)}'"
+        end
+        
         found = true
-      elsif args.key?(:cols_str) and match = key.match(/^([A-z_\d]+)_(search|has)$/) and args[:cols_str].index(match[1]) != nil
+      elsif match = key.match(/^([A-z_\d]+)_(search|has)$/) and args[:cols].key?(match[1]) != nil
         if match[2] == "search"
           Knj::Strings.searchstring(val).each do |str|
             sql_where += " AND #{table}`#{db.esc_col(match[1])}` LIKE '%#{db.esc(str)}%'"
@@ -300,9 +314,11 @@ class Knj::Objects
         table_data = args[:joined_tables][table_name]
         
         if table_data.key?(:parent_table)
-          sql_joins += " LEFT JOIN `#{table_data[:parent_table]}` AS `#{table_name}` ON 1=1"
+          join_table_name_real = table_name
+          sql_joins += " LEFT JOIN `#{table_name_real}` AS `#{table_name}` ON 1=1"
         else
-          sql_joins += " LEFT JOIN `#{table_name}` ON 1=1"
+          join_table_name_real = @args[:module].const_get(table_name).table
+          sql_joins += " LEFT JOIN `#{join_table_name_real}` ON 1=1"
         end
         
         if table_data[:ob]
@@ -326,7 +342,7 @@ class Knj::Objects
         end
         
         newargs = datarow.columns_sqlhelper_args.clone
-        newargs[:table] = table_name
+        newargs[:table] = join_table_name_real
         newargs[:joins_skip] = true
         
         #Clone the where-arguments and run them against another sqlhelper to sub-join.

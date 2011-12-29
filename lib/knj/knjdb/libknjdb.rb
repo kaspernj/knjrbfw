@@ -343,6 +343,8 @@ class Knj::Db
   end
   
   def query(string)
+    print "SQL: #{string}\n" if @opts[:debug]
+    
     conn_exec do |driver|
       return driver.query(string)
     end

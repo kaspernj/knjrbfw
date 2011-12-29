@@ -11,7 +11,9 @@ class Knj::Datarow
     return @depending_data
   end
   
-  def is_knj?; return true; end
+  def is_knj?
+    return true
+  end
   
   def self.is_nullstamp?(stamp)
     return true if !stamp or stamp == "0000-00-00 00:00:00" or stamp == "0000-00-00"
@@ -180,7 +182,7 @@ class Knj::Datarow
         when "return_sql"
           #ignore
         else
-          raise "Invalid key: '#{key}'."
+          raise "Invalid key: '#{key}' for '#{self.name}'."
       end
     end
     
@@ -214,10 +216,15 @@ class Knj::Datarow
       return 0
     end
     
-    return d.ob.list_bysql(self.table, sql, &block)
+    return d.ob.list_bysql(self.classname, sql, &block)
+  end
+  
+  def self.classname
+    return @classname
   end
   
   def self.load_columns(d)
+    @classname = self.name.match(/($|::)([A-z\d_]+?)$/)[2].to_sym
     @mutex = Mutex.new if !@mutex
     
     @mutex.synchronize do
@@ -383,7 +390,7 @@ class Knj::Datarow
   end
   
   def [](key)
-    raise "No valid key given." if !key.is_a?(Symbol)
+    raise "Key was not a symbol: '#{key.class.name}'." if !key.is_a?(Symbol)
     raise "No data was loaded on the object? Maybe you are trying to call a deleted object?" if !@data
     return @data[key] if @data.key?(key)
     raise "No such key: '#{key}'."

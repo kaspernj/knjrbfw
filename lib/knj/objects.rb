@@ -162,6 +162,7 @@ class Knj::Objects
     classob.datarow_init(pass_arg) if classob.respond_to?(:datarow_init)
   end
   
+  #Gets an object from the ID or the full data-hash in the database.
   def get(classname, data)
     classname = classname.to_sym
     
@@ -180,13 +181,12 @@ class Knj::Objects
       case @args[:cache]
         when :weak
           begin
-            obj = @objects[classname][id]
-            obj = obj.__getobj__ if obj.is_a?(WeakRef)
+            obj = @objects[classname][id].__getobj__
             
-            #This actually happens sometimes... WTF!? - knj
             if obj.is_a?(Knj::Datarow) and obj.respond_to?(:table) and obj.respond_to?(:id) and obj.table.to_sym == classname and obj.id.to_i == id
               return obj
             else
+              #This actually happens sometimes... WTF!? - knj
               raise WeakRef::RefError
             end
           rescue WeakRef::RefError
@@ -387,18 +387,18 @@ class Knj::Objects
   end
   
   # Returns a list of a specific object by running specific SQL against the database.
-  def list_bysql(classname, sql, d = nil)
+  def list_bysql(classname, sql, d = nil, &block)
     classname = classname.to_sym
-    ret = [] if !block_given?
+    ret = [] if !block
     @args[:db].q(sql) do |d_obs|
-      if block_given?
-        yield(self.get(classname, d_obs))
+      if block
+        block.call(self.get(classname, d_obs))
       else
         ret << self.get(classname, d_obs)
       end
     end
     
-    return ret if !block_given?
+    return ret if !block
   end
   
   # Add a new object to the database and to the cache.
@@ -429,7 +429,7 @@ class Knj::Objects
         end
       end
       
-      ins_id = @args[:db].insert(classname, data, {:return_id => true})
+      ins_id = @args[:db].insert(classobj.table, data, {:return_id => true})
       retob = self.get(classname, ins_id)
     elsif @args[:custom]
       classobj = @args[:module].const_get(classname)

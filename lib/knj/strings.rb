@@ -38,8 +38,20 @@ module Knj::Strings
     return false
   end
   
-  def self.js_safe(str)
-    return str.gsub("\r", "").gsub("\n", "\\n").gsub('"', '\"');
+  def self.js_safe(str, args = {})
+    str = "#{str}"
+    
+    if args[:quotes_to_single]
+      str.gsub!('"', "'")
+    end
+    
+    str = str.gsub("\r", "").gsub("\n", "\\n").gsub("'", "\\\\'")
+    
+    if !args.key?(:quotes) or args[:quotes]
+      str.gsub!('"', '\"')
+    end
+    
+    return str
   end
   
   def self.yn_str(value, str_yes, str_no)
@@ -53,7 +65,7 @@ module Knj::Strings
       end
     end
     
-    return str_no if !value
+    return str_no if !value or value == "no"
     return str_yes
   end
   

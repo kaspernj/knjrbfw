@@ -469,13 +469,15 @@ class Knj::Web
     Knj::ArrayExt.hash_sym(args)
     
     if args.key?(:value)
-      if args[:value].is_a?(Array) and args[:value][0].is_a?(NilClass)
+      if args[:value].is_a?(Array) and args[:value].first.is_a?(NilClass)
         value = nil
       elsif args[:value].is_a?(Array)
         if !args[:value][2] or args[:value][2] == :key
-          value = args[:value][0][args[:value][1]]
+          value = args[:value].first[args[:value][1]]
         elsif args[:value][2] == :callb
-          value = args[:value][0].send(args[:value][1])
+          value = args[:value].first.send(args[:value][1])
+        else
+          value = args[:value]
         end
       elsif args[:value].is_a?(String) or args[:value].is_a?(Integer)
         value = args[:value].to_s
@@ -547,6 +549,10 @@ class Knj::Web
     
     html = ""
     
+    classes = ["input_#{args[:type]}"]
+    classes = classes | args[:classes] if args.key?(:classes)
+    attr["class"] = classes.join(" ")
+    
     if args[:type] == :checkbox
       attr["value"] = args[:value_active] if args.key?(:value_active)
       attr["checked"] = "checked" if value.is_a?(String) and value == "1" or value.to_s == "1" or value.to_s == "on" or value.to_s == "true"
@@ -558,6 +564,8 @@ class Knj::Web
       html += "<label for=\"#{args[:id].html}\">#{args[:title].html}</label>"
       html += "</td>"
       html += "</tr>"
+    elsif args[:type] == :headline
+      html += "<tr><td colspan=\"2\"><h2 class=\"input_headline\">#{args[:title].html}</h2></td></tr>"
     elsif args[:type] == :spacer
       html += "<tr><td colspan=\"2\">&nbsp;</td></tr>"
     else
@@ -674,15 +682,18 @@ class Knj::Web
       opthash.each do |key, value|
         html += "<option"
         
+        sel = false
+        
         if curvalue.is_a?(Array) and curvalue.index(key) != nil
-          html += " selected=\"selected\""
+          sel = true
         elsif curvalue.to_s == key.to_s
-          html += " selected=\"selected\""
+          sel = true
         elsif curvalue and curvalue.respond_to?(:is_knj?) and curvalue.id.to_s == key.to_s
-          html += " selected=\"selected\""
+          sel = true
         end
         
-        html += " value=\"#{key.html}\">#{value.html}</option>"
+        html += " selected=\"selected\"" if sel
+        html += " value=\"#{Knj::Web.html(key)}\">#{Knj::Web.html(value)}</option>"
       end
     elsif opthash.is_a?(Array)
       opthash.each_index do |key|

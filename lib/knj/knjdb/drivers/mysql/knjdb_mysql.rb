@@ -4,7 +4,8 @@ class KnjDB_mysql
   
   def initialize(knjdb_ob)
     @knjdb = knjdb_ob
-    @encoding = @knjdb.opts[:encoding]
+    @opts = @knjdb.opts
+    @encoding = @opts[:encoding]
     @escape_table = "`"
     @escape_col = "`"
     @escape_val = "'"
@@ -339,7 +340,7 @@ class KnjDB_java_mysql_result
       
       ret = {}
       0.upto(@keys.length - 1) do |count|
-        ret[@keys[count].to_sym] = @result.string(count + 1)
+        ret[@keys[count]] = @result.string(count + 1).to_s.encode("utf-8")
       end
       
       return ret

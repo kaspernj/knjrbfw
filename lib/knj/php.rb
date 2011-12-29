@@ -188,48 +188,26 @@ module Knj::Php
     return GetText._(string)
   end
   
+  #Returns the number as a formatted string.
   def number_format(number, precision = 2, seperator = ".", delimiter = ",")
-    if !number.is_a?(Float)
-      number = number.to_f
+    number = number.to_f if !number.is_a?(Float)
+    precision = precision.to_i
+    return sprintf("%.#{precision.to_s}f", number).gsub(".", seperator) if number < 1
+    
+    number = sprintf("%.#{precision.to_s}f", number).split(".")
+    
+    str = ""
+    number[0].reverse.scan(/(.{1,3})/) do |match|
+      str += delimiter if str.length > 0
+      str += match[0]
     end
     
-    if number < 1
-      return sprintf("%.#{precision.to_s}f", number).gsub(".", seperator)
+    str = str.reverse
+    if precision > 0
+      str += "#{seperator}#{number[1]}"
     end
     
-    number = sprintf("%.#{precision.to_s}f", number)
-    
-    #thanks for jmoses wrote some of tsep-code: http://snippets.dzone.com/posts/show/693
-    st = number.reverse
-    r = ""
-    max = if st[-1].chr == '-'
-      st.size - 1
-    else
-      st.size
-    end
-    
-    if st.to_i == st.to_f
-      1.upto(st.size) do |i|
-        r << st[i-1].chr if st[i-1].chr != "."
-        r << ',' if i%3 == 0 and i < max
-      end
-    else
-      start = nil
-      1.upto(st.size) do |i|
-        r << st[i-1].chr
-        start = 0 if r[-1].chr == '.' and not start
-        if start
-          r << ',' if start % 3 == 0 and start != 0  and i < max
-          start += 1
-        end
-      end
-    end
-    
-    numberstr = r.to_s.reverse
-    numberstr = numberstr.gsub(",", "comma").gsub(".", "dot")
-    numberstr = numberstr.gsub("comma", delimiter).gsub("dot", seperator)
-    
-    return numberstr
+    return str
   end
   
   def ucwords(string)
@@ -694,7 +672,9 @@ module Knj::Php
     end
   end
   
-  def json_decode(data)
+  def json_decode(data, as_array = false)
+    #FIXME: Should be able to return as object, which will break all projects using it without second argument...
+    
     raise "String was not given to 'Knj::Php.json_decode'." if !data.is_a?(String)
     
     if Knj::Php.class_exists("Rho")
@@ -707,7 +687,7 @@ module Knj::Php
   end
   
   def time
-    return Time.new.to_i
+    return Time.now.to_i
   end
   
   def microtime(get_as_float = false)
@@ -733,20 +713,21 @@ module Knj::Php
     return new_time.to_i
   end
   
-  def date(date_format, date_unixt = nil)
-    date_unixt = Time.now.to_i if date_unixt == nil
+  def date(date_format, date_input = nil)
+    if date_input == nil
+      date_object = Time.now
+    elsif Knj::Php.is_numeric(date_input)
+      date_object = Time.at(date_input.to_i)
+    elsif date_input.is_a?(Knj::Datet)
+      date_object = date_input.time
+    elsif date_input.is_a?(Time)
+      date_object = date_input
+    else
+      raise "Unknown date given: '#{date_input}', '#{date_input.class.name}'."
+    end
     
-    date_object = Time.at(date_unixt.to_i)
-    
-    date_format = date_format.gsub("d", "%02d" % date_object.mday)
-    date_format = date_format.gsub("m", "%02d" % date_object.mon)
-    date_format = date_format.gsub("y", "%02d" % date_object.year.to_s[2,2].to_i)
-    date_format = date_format.gsub("Y", "%04d" % date_object.year)
-    date_format = date_format.gsub("H", "%02d" % date_object.hour)
-    date_format = date_format.gsub("i", "%02d" % date_object.min)
-    date_format = date_format.gsub("s", "%02d" % date_object.sec)
-    
-    return date_format
+    date_format = date_format.gsub("Y", "%Y").gsub("y", "%y").gsub("m", "%m").gsub("d", "%d").gsub("H", "%H").gsub("i", "%M").gsub("s", "%S")
+    return date_object.strftime(date_format)
   end
   
   def basename(filepath)
@@ -885,6 +866,11 @@ module Knj::Php
   #Array-function emulator.
   def array(*ele)
     return {} if ele.length <= 0
+    
+    if ele.length == 1 and ele.first.is_a?(Hash)
+      return ele.first
+    end
+    
     return ele
   end
   
@@ -912,11 +898,13 @@ module Knj::Php
   end
   
   def serialize(argument)
-    return Marshal.dump(argument)
+    require "php_serialize" #gem: php-serialize
+    return PHP.serialize(argument)
   end
   
   def unserialize(argument)
-    return Marshal.load(argument.to_s)
+    require "php_serialize" #gem: php-serialize
+    return PHP.unserialize(argument.to_s)
   end
   
   @methods = instance_methods

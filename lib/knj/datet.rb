@@ -417,12 +417,32 @@ class Knj::Datet
       
       time = Time.local(match[1].to_i, match[2].to_i, match[3].to_i, match[5].to_i, match[6].to_i, match[7].to_i, utc_str)
       return Knj::Datet.new(time)
+    elsif match = timestr.to_s.match(/^\s*(\d{2,4})-(\d{1,2})-(\d{1,2})(|\s+(\d{1,2}):(\d{1,2}):(\d{1,2})(:(\d{1,2})|)\s*)$/)
+      time = Time.local(match[1].to_i, match[2].to_i, match[3].to_i, match[5].to_i, match[6].to_i, match[7].to_i)
+      return Knj::Datet.new(time)
     end
     
     raise Knj::Errors::InvalidData.new("Wrong format: '#{timestr}', class: '#{timestr.class.name}'")
   end
   
-  def self.months_arr
+  def self.months_arr(args = {})
+    if args["short"]
+      return {
+        1 => _("Jan"),
+        2 => _("Feb"),
+        3 => _("Mar"),
+        4 => _("Apr"),
+        5 => _("May"),
+        6 => _("Jun"),
+        7 => _("Jul"),
+        8 => _("Aug"),
+        9 => _("Sep"),
+        10 => _("Oct"),
+        11 => _("Nov"),
+        12 => _("Dec")
+      }
+    end
+    
     return {
       1 => _("January"),
       2 => _("February"),
