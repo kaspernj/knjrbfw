@@ -357,6 +357,7 @@ class Knj::Datarow
     end
   end
   
+  #Reloads the data from the database.
   def reload
     data = @db.single(self.table, {:id => @data[:id]})
     if !data
@@ -366,6 +367,7 @@ class Knj::Datarow
     @data = data
   end
   
+  #Writes/updates new data for the object.
   def update(newdata)
     @db.update(self.table, newdata, {:id => @data[:id]})
     self.reload
@@ -375,20 +377,33 @@ class Knj::Datarow
     end
   end
   
+  #Forcefully destroys the object. This is done after deleting it and should not be called manually.
   def destroy
     @ob = nil
     @db = nil
     @data = nil
   end
   
+  #Alias for key?
   def has_key?(key)
     return @data.key?(key.to_sym)
   end
   
+  #Returns true if that key exists on the object.
   def key?(key)
     return @data.key?(key.to_sym)
   end
   
+  #Returns true if the object has been deleted.
+  def deleted?
+    if !@ob and !@data
+      return true
+    end
+    
+    return false
+  end
+  
+  #Returns a specific data from the object by key.
   def [](key)
     raise "Key was not a symbol: '#{key.class.name}'." if !key.is_a?(Symbol)
     raise "No data was loaded on the object? Maybe you are trying to call a deleted object?" if !@data
@@ -396,16 +411,19 @@ class Knj::Datarow
     raise "No such key: '#{key}'."
   end
   
+  #Writes/updates a keys value on the object.
   def []=(key, value)
     self.update(key.to_sym => value)
     self.reload
   end
   
+  #Returns the objects ID.
   def id
     raise "No data on object." if !@data
     return @data[:id]
   end
   
+  #Tries to figure out, and returns, the possible name or title for the object.
   def name
     if @data.key?(:title)
       return @data[:title]
@@ -421,6 +439,7 @@ class Knj::Datarow
     raise "Couldnt figure out the title/name of the object on class #{self.class.name}."
   end
   
+  #Calls the name-method and returns a HTML-escaped value. Also "[no name]" if the name is empty.
   def name_html
     name_str = self.name.to_s
     if name_str.length <= 0
@@ -432,6 +451,7 @@ class Knj::Datarow
   
   alias :title :name
   
+  #Loops through the data on the object.
   def each(&args)
     return @data.each(&args)
   end

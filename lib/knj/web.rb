@@ -999,6 +999,15 @@ class Knj::Web
     return string.to_s.gsub(/&/, "&amp;").gsub(/\"/, "&quot;").gsub(/>/, "&gt;").gsub(/</, "&lt;")
   end
   
+  def self.html_args(h)
+    str = ""
+    h.each do |key, val|
+      str += "&#{Knj::Php.urlencode(key)}=#{Knj::Php.urlencode(val)}"
+    end
+    
+    return str
+  end
+  
   #Calculates the URL from meta hash.
   def self.url(args = {})
     if args[:meta]
