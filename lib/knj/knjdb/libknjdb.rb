@@ -102,8 +102,8 @@ class Knj::Db
     @conns = nil
   end
   
-  def clone_conn
-    return Knj::Db.new(@opts)
+  def clone_conn(args = {})
+    return Knj::Db.new(@opts.clone.merge(args))
   end
   
   def copy_to(db, args = {})
@@ -298,7 +298,11 @@ class Knj::Db
         sql += " AND "
       end
       
-      sql += "#{driver.escape_col}#{key.to_s}#{driver.escape_col} = #{driver.escape_val}#{driver.escape(value)}#{driver.escape_val}"
+      if value.is_a?(Array)
+        sql += "#{driver.escape_col}#{key}#{driver.escape_col} IN (#{Knj::ArrayExt.join(:arr => value, :sep => ",", :surr => "'", :callback => proc{|ele| self.esc(ele)})})"
+      else
+        sql += "#{driver.escape_col}#{key}#{driver.escape_col} = #{driver.escape_val}#{driver.escape(value)}#{driver.escape_val}"
+      end
     end
     
     return sql

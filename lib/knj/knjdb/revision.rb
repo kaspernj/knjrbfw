@@ -3,7 +3,10 @@ class Knj::Db::Revision
     @args = args
   end
   
-  def init_db(schema, db)
+  def init_db(args)
+    schema = args["schema"]
+    db = args["db"]
+    
     #Check for normal bugs and raise apropiate error.
     raise "'schema' argument was not a Hash." if !schema.is_a?(Hash)
     raise "':return_keys' is not 'symbols' - Knjdbrevision will not work without it." if db.opts[:return_keys] != "symbols"
@@ -13,13 +16,44 @@ class Knj::Db::Revision
       begin
         begin
           table_obj = db.tables[table_name.to_sym]
+          table_obj_columns = table_obj.columns
           
           if table_data["columns"]
+            first = true
             table_data["columns"].each do |col_data|
               begin
                 col_obj = table_obj.column(col_data["name"])
                 col_str = "#{table_name}.#{col_obj.name}"
                 type = col_data["type"].to_s
+                
+                if !first and !col_data["after"]
+                  #Try to find out the previous column - if so we can set "after" which makes the column being created in the right order as defined.
+                  if !col_data.has_key?("after")
+                    prev_no = table_data["columns"].index(col_data)
+                    if prev_no != nil and prev_no != 0
+                      prev_no = prev_no - 1
+                      prev_col_data = table_data["columns"][prev_no]
+                      col_data["after"] = prev_col_data["name"]
+                    end
+                  end
+                  
+                  actual_after = nil
+                  set_next = false
+                  table_obj_columns.each do |name, col_iter|
+                    if set_next
+                      actual_after = col_iter.name
+                      break
+                    elsif col_iter.name == col_obj.name
+                      set_next = true
+                      next
+                    end
+                  end
+                  
+                  if actual_after != col_data["after"]
+                    print "Changing '#{col_str}' after from '#{actual_after}' to '#{col_data["after"]}'.\n" if args["debug"]
+                    dochange = true
+                  end
+                end
                 
                 #BUGFIX: When using SQLite3 the primary-column or a autoincr-column may never change type from int... This will break it!
                 if db.opts[:type] == "sqlite3" and col_obj.type.to_s == "int" and (col_data["primarykey"] or col_data["autoincr"]) and db.int_types.index(col_data["type"].to_s)
@@ -29,27 +63,27 @@ class Knj::Db::Revision
                 dochange = false
                 
                 if type and col_obj.type.to_s != type
-                  print "Type mismatch on #{col_str}: #{col_data["type"]}, #{col_obj.type}\n"
+                  print "Type mismatch on #{col_str}: #{col_data["type"]}, #{col_obj.type}\n" if args["debug"]
                   dochange = true
                 end
                 
                 if col_data.has_key?("maxlength") and col_obj.maxlength.to_s != col_data["maxlength"].to_s
-                  print "Maxlength mismatch on #{col_str}: #{col_data["maxlength"]}, #{col_obj.maxlength}\n"
+                  print "Maxlength mismatch on #{col_str}: #{col_data["maxlength"]}, #{col_obj.maxlength}\n" if args["debug"]
                   dochange = true
                 end
                 
                 if col_data.has_key?("null") and col_obj.null?.to_s != col_data["null"].to_s
-                  print "Null mismatch on #{col_str}: #{col_data["null"]}, #{col_obj.null?}\n"
+                  print "Null mismatch on #{col_str}: #{col_data["null"]}, #{col_obj.null?}\n" if args["debug"]
                   dochange = true
                 end
                 
                 if col_data.has_key?("default") and col_obj.default.to_s != col_data["default"].to_s
-                  print "Default mismatch on #{col_str}: #{col_data["default"]}, #{col_obj.default}\n"
+                  print "Default mismatch on #{col_str}: #{col_data["default"]}, #{col_obj.default}\n" if args["debug"]
                   dochange = true
                 end
                 
                 if col_data.has_key?("comment") and col_obj.respond_to?(:comment) and col_obj.comment.to_s != col_data["comment"].to_s
-                  print "Comment mismatch on #{col_str}: #{col_data["comment"]}, #{col_obj.comment}\n"
+                  print "Comment mismatch on #{col_str}: #{col_data["comment"]}, #{col_obj.comment}\n" if args["debug"]
                   dochange = true
                 end
                 
@@ -63,8 +97,9 @@ class Knj::Db::Revision
                 end
                 
                 col_obj.change(col_data) if dochange
+                first = false
               rescue Knj::Errors::NotFound => e
-                print "Column not found: #{table_obj.name}.#{col_data["name"]}.\n"
+                print "Column not found: #{table_obj.name}.#{col_data["name"]}.\n" if args["debug"]
                 
                 if col_data.has_key?("renames")
                   rename_found = false
@@ -75,7 +110,7 @@ class Knj::Db::Revision
                       next
                     end
                     
-                    print "Rename #{table_obj.name}.#{col_name} to #{table_obj.name}.#{col_data["name"]}\n"
+                    print "Rename #{table_obj.name}.#{col_name} to #{table_obj.name}.#{col_data["name"]}\n" if args["debug"]
                     if col_data.is_a?(Hash) and col_data["on_before_rename"]
                       col_data["on_before_rename"].call("db" => db, "table" => table_obj, "col" => col_rename, "col_data" => col_data)
                     end
@@ -91,16 +126,6 @@ class Knj::Db::Revision
                   end
                   
                   retry if rename_found
-                end
-                
-                #Try to find out the previous column - if so we can set "after" which makes the column being created in the right order as defined.
-                if !col_data.has_key?("after")
-                  prev_no = table_data["columns"].index(col_data)
-                  if prev_no != nil and prev_no != 0
-                    prev_no = prev_no - 1
-                    prev_col_data = table_data["columns"][prev_no]
-                    col_data["after"] = prev_col_data["name"]
-                  end
                 end
                 
                 oncreated = col_data["on_created"]
@@ -166,13 +191,13 @@ class Knj::Db::Revision
                 rows_found += 1
                 
                 if Knj::ArrayExt.hash_diff?(Knj::ArrayExt.hash_sym(row_data["data"]), Knj::ArrayExt.hash_sym(d_rows), {"h2_to_h1" => false})
-                  print "Data was not right - updating row: #{JSON.generate(row_data["data"])}\n"
+                  print "Data was not right - updating row: #{JSON.generate(row_data["data"])}\n" if args["debug"]
                   db.update(table_name, row_data["data"], d_rows)
                 end
               end
               
               if rows_found == 0
-                print "Inserting row: #{JSON.generate(row_data["data"])}\n"
+                print "Inserting row: #{JSON.generate(row_data["data"])}\n" if args["debug"]
                 db.insert(table_name, row_data["data"])
               end
             end

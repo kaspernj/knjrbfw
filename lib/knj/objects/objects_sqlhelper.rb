@@ -254,7 +254,24 @@ class Knj::Objects
         val = Knj::Datet.in(val) if val.is_a?(Time)
         
         if match[2] == "day"
-          sql_where += " AND DATE_FORMAT(#{table}`#{db.esc_col(match[1])}`, '%d %m %Y') = DATE_FORMAT('#{db.esc(val.dbstr)}', '%d %m %Y')"
+          if val.is_a?(Array)
+            sql_where += " AND ("
+            first = true
+            
+            val.each do |realval|
+              if first
+                first = false
+              else
+                sql_where += " OR "
+              end
+              
+              sql_where += "DATE_FORMAT(#{table}`#{db.esc_col(match[1])}`, '%d %m %Y') = DATE_FORMAT('#{db.esc(realval.dbstr)}', '%d %m %Y')"
+            end
+            
+            sql_where += ")"
+          else
+            sql_where += " AND DATE_FORMAT(#{table}`#{db.esc_col(match[1])}`, '%d %m %Y') = DATE_FORMAT('#{db.esc(val.dbstr)}', '%d %m %Y')"
+          end
         elsif match[2] == "month"
           sql_where += " AND DATE_FORMAT(#{table}`#{db.esc_col(match[1])}`, '%m %Y') = DATE_FORMAT('#{db.esc(val.dbstr)}', '%m %Y')"
         elsif match[2] == "from" or match[2] == "above"

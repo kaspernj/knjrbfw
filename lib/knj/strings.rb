@@ -7,8 +7,8 @@ module Knj::Strings
     return Knj::Strings.UnixSafe(string)
   end
   
-  def self.searchstring(string)
-    words = []
+  def self.searchstring(string, &block)
+    words = [] if !block
     string = string.to_s
     
     matches = string.scan /(\"(.+?)\")/
@@ -16,15 +16,27 @@ module Knj::Strings
       word = matcharr[1]
       
       if word and word.length > 0
-        words << matcharr[1]
+        if block
+          yield(matcharr[1])
+        else
+          words << matcharr[1]
+        end
+        
         string = string.gsub(matcharr[0], "")
       end
     end
     
     string.split(/\s/).each do |word|
-      words << word if word and word.length > 0
+      if word and word.length > 0
+        if block
+          yield(word)
+        else
+          words << word
+        end
+      end
     end
     
+    return nil if block
     return words
   end
   

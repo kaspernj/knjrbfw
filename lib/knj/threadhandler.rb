@@ -129,4 +129,17 @@ class Knj::Threadhandler
       freedata[:free] = Time.now.to_i
     end
   end
+  
+  #Executes the given block with an element and then frees it.
+  def use
+    raise "No block was given." if !block_given?
+    
+    obj = self.get_and_lock
+    
+    begin
+      yield(obj)
+    ensure
+      self.free(obj)
+    end
+  end
 end

@@ -138,12 +138,14 @@ class KnjDB_mysql::Tables::Table
           }
         end
         
-        @list[d_cols[:Field]] = KnjDB_mysql::Columns::Column.new(
-          :table => self,
-          :db => @db,
-          :driver => @driver,
-          :data => d_cols
-        )
+        if !@list.key?(d_cols[:Field])
+          @list[d_cols[:Field]] = KnjDB_mysql::Columns::Column.new(
+            :table => self,
+            :db => @db,
+            :driver => @driver,
+            :data => d_cols
+          )
+        end
       end
     end
     
@@ -222,7 +224,6 @@ class KnjDB_mysql::Tables::Table
       
       sql += ")"
       
-      print sql + "\n"
       @db.query(sql)
     end
   end

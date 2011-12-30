@@ -1,5 +1,5 @@
 class KnjDB_mysql
-  attr_reader :knjdb, :conn, :escape_table, :escape_col, :escape_val, :esc_table
+  attr_reader :knjdb, :conn, :conns, :escape_table, :escape_col, :escape_val, :esc_table
   attr_accessor :tables, :cols, :indexes
   
   def initialize(knjdb_ob)
@@ -64,13 +64,7 @@ class KnjDB_mysql
     elsif @subtype == "java"
       if !@jdbc_loaded
         require "java"
-        
-        if File.exists?("/usr/share/java/mysql-connector-java.jar")
-          require "/usr/share/java/mysql-connector-java.jar"
-        else
-          require File.dirname(__FILE__) + "/mysql-connector-java-5.1.13-bin.jar"
-        end
-        
+        require "/usr/share/java/mysql-connector-java.jar" if File.exists?("/usr/share/java/mysql-connector-java.jar")
         import "com.mysql.jdbc.Driver"
         @jdbc_loaded = true
       end
