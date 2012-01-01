@@ -139,7 +139,17 @@ class Knj::Datarow
   end
   
   def self.table
+    return @table if @table
     return self.name.split("::").last
+  end
+  
+  def self.table=(newtable)
+    @table = newtable
+    @columns_sqlhelper_args[:table] = @table if @columns_sqlhelper_args.is_a?(Hash)
+  end
+  
+  def table
+    return self.class.table
   end
   
   def self.columns(d)
@@ -223,8 +233,12 @@ class Knj::Datarow
     return @classname
   end
   
+  def self.classname=(newclassname)
+    @classname = newclassname
+  end
+  
   def self.load_columns(d)
-    @classname = self.name.match(/($|::)([A-z\d_]+?)$/)[2].to_sym
+    @classname = self.name.match(/($|::)([A-z\d_]+?)$/)[2].to_sym if !@classname
     @mutex = Mutex.new if !@mutex
     
     @mutex.synchronize do
@@ -241,6 +255,9 @@ class Knj::Datarow
         :cols_str => [],
         :cols => {}
       }
+      
+      sqlhelper_args[:table] = @table if @table
+      
       cols.each do |col_name, col_obj|
         col_type = col_obj.type
         col_type = "int" if col_type == "bigint" or col_type == "tinyint" or col_type == "mediumint" or col_type == "smallint"
@@ -335,11 +352,8 @@ class Knj::Datarow
   
   def self.list_helper(d)
     self.load_columns(d) if !@columns_sqlhelper_args
+    @columns_sqlhelper_args[:table] = @table if @table
     return d.ob.sqlhelper(d.args, @columns_sqlhelper_args)
-  end
-  
-  def table
-    return self.class.table
   end
   
   def initialize(d)

@@ -73,7 +73,7 @@ class Knj::Db
       end
     end
     
-    return Kernel.const_get("KnjDB_" + @opts[:type]).new(self)
+    return Kernel.const_get("KnjDB_#{@opts[:type]}").new(self)
   end
   
   def get_and_register_thread
@@ -277,7 +277,7 @@ class Knj::Db
     sql = ""
     
     conn_exec do |driver|
-      sql += "DELETE FROM #{driver.escape_table}#{tablename.to_s}#{driver.escape_table}"
+      sql += "DELETE FROM #{driver.escape_table}#{tablename}#{driver.escape_table}"
       
       if arr_terms != nil
         sql += " WHERE #{self.makeWhere(arr_terms, driver)}"

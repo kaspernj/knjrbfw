@@ -216,30 +216,39 @@ class KnjDB_mysql
     sql = "INSERT INTO `#{esc_table(tablename)}` ("
     
     first = true
-    arr_hashes[0].keys.each do |col_name|
-      sql += "," if !first
+    arr_hashes.first.keys.each do |col_name|
+      sql << "," if !first
       first = false if first
-      sql += "`#{esc_col(col_name)}`"
+      sql << "`#{esc_col(col_name)}`"
     end
     
-    sql += ") VALUES ("
+    sql << ") VALUES ("
     
+    STDOUT.print "Parsing hashes into string...\n"
     first = true
     arr_hashes.each do |hash|
-      sql += "),(" if !first
-      first = false if first
+      if first
+        first = false
+      else
+        sql << "),("
+      end
       
       first_key = true
       hash.each do |key, val|
-        sql += "," if !first_key
-        first_key = false if first_key
-        sql += "'#{esc(val)}'"
+        if first_key
+          first_key = false
+        else
+          sql << ","
+        end
+        
+        sql << "'#{self.escape(val)}'"
       end
     end
     
-    sql += ")"
+    sql << ")"
     
-    query(sql)
+    STDOUT.print "Sending query.\n"
+    self.query(sql)
   end
 end
 

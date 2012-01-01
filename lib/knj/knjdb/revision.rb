@@ -19,14 +19,15 @@ class Knj::Db::Revision
           table_obj_columns = table_obj.columns
           
           if table_data["columns"]
-            first = true
+            first_col = true
             table_data["columns"].each do |col_data|
               begin
                 col_obj = table_obj.column(col_data["name"])
                 col_str = "#{table_name}.#{col_obj.name}"
                 type = col_data["type"].to_s
+                dochange = false
                 
-                if !first and !col_data["after"]
+                if !first_col and !col_data["after"]
                   #Try to find out the previous column - if so we can set "after" which makes the column being created in the right order as defined.
                   if !col_data.has_key?("after")
                     prev_no = table_data["columns"].index(col_data)
@@ -40,12 +41,10 @@ class Knj::Db::Revision
                   actual_after = nil
                   set_next = false
                   table_obj_columns.each do |name, col_iter|
-                    if set_next
-                      actual_after = col_iter.name
+                    if col_iter.name == col_obj.name
                       break
-                    elsif col_iter.name == col_obj.name
-                      set_next = true
-                      next
+                    else
+                      actual_after = col_iter.name
                     end
                   end
                   
@@ -59,8 +58,6 @@ class Knj::Db::Revision
                 if db.opts[:type] == "sqlite3" and col_obj.type.to_s == "int" and (col_data["primarykey"] or col_data["autoincr"]) and db.int_types.index(col_data["type"].to_s)
                   type = "int"
                 end
-                
-                dochange = false
                 
                 if type and col_obj.type.to_s != type
                   print "Type mismatch on #{col_str}: #{col_data["type"]}, #{col_obj.type}\n" if args["debug"]
@@ -97,7 +94,7 @@ class Knj::Db::Revision
                 end
                 
                 col_obj.change(col_data) if dochange
-                first = false
+                first_col = false
               rescue Knj::Errors::NotFound => e
                 print "Column not found: #{table_obj.name}.#{col_data["name"]}.\n" if args["debug"]
                 
