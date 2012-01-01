@@ -17,7 +17,7 @@ module Knj::ArrayExt
       if first
         first = false
       else
-        str += args[:sep]
+        str << args[:sep]
       end
       
       if args[:key]
@@ -36,9 +36,9 @@ module Knj::ArrayExt
       
       raise "Callback returned nothing." if args[:callback] and !value
       
-      str += args[:surr] if args[:surr]
-      str += value.to_s
-      str += args[:surr] if args[:surr]
+      str << args[:surr] if args[:surr]
+      str << value.to_s
+      str << args[:surr] if args[:surr]
     end
     
     return str
@@ -98,10 +98,10 @@ module Knj::ArrayExt
     combined_val = ""
     hash.each do |key, val|
       if combined_val.length > 0
-        combined_val += ";"
+        combined_val << ";"
       end
       
-      combined_val += "#{key}:#{val}"
+      combined_val << "#{key}:#{val}"
     end
     
     return Digest::MD5.hexdigest(combined_val)

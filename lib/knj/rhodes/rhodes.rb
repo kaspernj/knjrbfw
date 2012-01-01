@@ -128,15 +128,15 @@ class Knj::Rhodes
       if data[:type] == :textarea
         css["height"] = data[:height] if data.key?(:height)
         
-        html += "<div data-role=\"fieldcontain\">"
-        html += "<label for=\"#{data[:name]}\">#{data[:title]}</label>"
-        html += "<textarea name=\"#{data[:name]}\" id=\"#{data[:name]}\"#{Knj::Web.style_html(css)}#{extra_args}>#{value}</textarea>"
-        html += "</div>"
+        html << "<div data-role=\"fieldcontain\">"
+        html << "<label for=\"#{data[:name]}\">#{data[:title]}</label>"
+        html << "<textarea name=\"#{data[:name]}\" id=\"#{data[:name]}\"#{Knj::Web.style_html(css)}#{extra_args}>#{value}</textarea>"
+        html << "</div>"
       else
-        html += "<div data-role=\"fieldcontain\">"
-        html += "<label for=\"#{data[:name]}\">#{data[:title]}</label>"
-        html += "<input type=\"#{data[:type]}\" name=\"#{data[:name]}\" id=\"#{data[:name]}\" value=\"#{value}\"#{Knj::Web.style_html(css)}#{extra_args} />"
-        html += "</div>"
+        html << "<div data-role=\"fieldcontain\">"
+        html << "<label for=\"#{data[:name]}\">#{data[:title]}</label>"
+        html << "<input type=\"#{data[:type]}\" name=\"#{data[:name]}\" id=\"#{data[:name]}\" value=\"#{value}\"#{Knj::Web.style_html(css)}#{extra_args} />"
+        html << "</div>"
       end
     end
     

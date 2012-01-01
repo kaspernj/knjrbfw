@@ -109,8 +109,8 @@ class Knj::Http2
     @mutex.synchronize do
       print "Http2: Beginning to get url: '#{addr}'.\n" if @debug
       header_str = "GET /#{addr} HTTP/1.1#{@nl}"
-      header_str += self.header_str(self.default_headers)
-      header_str += "#{@nl}"
+      header_str << self.header_str(self.default_headers)
+      header_str << "#{@nl}"
       
       print "Http2: Writing headers.\n" if @debug
       self.write(header_str)
@@ -161,14 +161,14 @@ class Knj::Http2
     @mutex.synchronize do
       praw = ""
       pdata.each do |key, val|
-        praw += "&" if praw != ""
-        praw += "#{Knj::Web.urlenc(key)}=#{Knj::Web.urlenc(val)}"
+        praw << "&" if praw != ""
+        praw << "#{Knj::Web.urlenc(key)}=#{Knj::Web.urlenc(val)}"
       end
       
       header_str = "POST /#{addr} HTTP/1.1#{@nl}"
-      header_str += self.header_str(self.default_headers.merge("Content-Length" => praw.length))
-      header_str += "#{@nl}"
-      header_str += praw
+      header_str << self.header_str(self.default_headers.merge("Content-Length" => praw.length))
+      header_str << "#{@nl}"
+      header_str << praw
       
       self.write(header_str)
       return self.read_response
@@ -181,10 +181,10 @@ class Knj::Http2
       
       first = true
       @cookies.each do |cookie_name, cookie_data|
-        cstr += "; " if !first
+        cstr << "; " if !first
         first = false if first
         
-        cstr += "#{Knj::Web.urlenc(cookie_data["name"])}=#{Knj::Web.urlenc(cookie_data["value"])}"
+        cstr << "#{Knj::Web.urlenc(cookie_data["name"])}=#{Knj::Web.urlenc(cookie_data["value"])}"
       end
       
       headers_hash["Cookie"] = cstr
@@ -192,7 +192,7 @@ class Knj::Http2
     
     headers_str = ""
     headers_hash.each do |key, val|
-      headers_str += "#{key}: #{val}#{@nl}"
+      headers_str << "#{key}: #{val}#{@nl}"
     end
     
     return headers_str
@@ -334,7 +334,7 @@ class Knj::Http2
         if len > 0
           read = @sock.read(len)
           return "break" if read == "" or read == @nl
-          @resp.args[:body] += read
+          @resp.args[:body] << read
         end
         
         nl = @sock.gets
@@ -348,7 +348,7 @@ class Knj::Http2
         
         raise "Should have read newline but didnt: '#{nl}'." if nl != @nl
       else
-        @resp.args[:body] += line.to_s
+        @resp.args[:body] << line.to_s
         return "break" if @resp.header?("content-length") and @resp.args[:body].length >= @resp.header("content-length").to_i
       end
     else

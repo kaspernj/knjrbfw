@@ -3,38 +3,38 @@ class Knj::Cmd_gen
     cmd = ""
     
     if args[:bin]
-      cmd += args[:bin]
+      cmd << args[:bin]
     else
-      cmd += "rsync"
+      cmd << "rsync"
     end
     
-    cmd += " -az"
+    cmd << " -az"
     
     if args[:verbose]
       1.upto(args[:verbose]) do
-        cmd += "v"
+        cmd << "v"
       end
     end
     
     if args[:ssh]
-      cmd += " -e ssh"
+      cmd << " -e ssh"
       
       if args[:port]
-        cmd += " --rsh='ssh -p #{args[:port]}'"
+        cmd << " --rsh='ssh -p #{args[:port]}'"
       end
     end
     
     if args[:delete]
-      cmd += " --delete"
+      cmd << " --delete"
     end
     
     if args[:exclude]
       args[:exclude].each do |dir|
-        cmd += " --exclude \"#{dir}\""
+        cmd << " --exclude \"#{dir}\""
       end
     end
     
-    cmd += " \"#{args[:user]}@#{args[:host]}:#{args[:dir_host]}\" \"#{args[:dir_local]}\""
+    cmd << " \"#{args[:user]}@#{args[:host]}:#{args[:dir_host]}\" \"#{args[:dir_local]}\""
     
     return cmd
   end
@@ -43,27 +43,27 @@ class Knj::Cmd_gen
     cmd = ""
     
     if args[:bin]
-      cmd += args[:bin]
+      cmd << args[:bin]
     else
-      cmd += "tar"
+      cmd << "tar"
     end
     
-    cmd += " "
-    cmd += "z"if args[:gzip]
-    cmd += "x" if args[:extract]
-    cmd += "f" if args[:file]
-    cmd += "c" if args[:create]
+    cmd << " "
+    cmd << "z"if args[:gzip]
+    cmd << "x" if args[:extract]
+    cmd << "f" if args[:file]
+    cmd << "c" if args[:create]
     
     if args[:verbose]
       1.upto(args[:verbose]) do
-        cmd += "v"
+        cmd << "v"
       end
     end
     
-    cmd += " \"#{args[:archive_path]}\""
+    cmd << " \"#{args[:archive_path]}\""
     
     args[:paths].each do |path|
-      cmd += " \"#{path}\""
+      cmd << " \"#{path}\""
     end
     
     return cmd

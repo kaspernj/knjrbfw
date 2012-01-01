@@ -156,33 +156,33 @@ class Knj::Db
     sql = ""
     
     conn_exec do |driver|
-      sql += "INSERT INTO #{driver.escape_table}#{tablename.to_s}#{driver.escape_table} ("
+      sql << "INSERT INTO #{driver.escape_table}#{tablename.to_s}#{driver.escape_table} ("
       
       first = true
       arr_insert.each do |key, value|
         if first
           first = false
         else
-          sql += ", "
+          sql << ", "
         end
         
-        sql += "#{driver.escape_col}#{key.to_s}#{driver.escape_col}"
+        sql << "#{driver.escape_col}#{key.to_s}#{driver.escape_col}"
       end
       
-      sql += ") VALUES ("
+      sql << ") VALUES ("
       
       first = true
       arr_insert.each do |key, value|
         if first
           first = false
         else
-          sql += ", "
+          sql << ", "
         end
         
-        sql += "#{driver.escape_val}#{driver.escape(value.to_s)}#{driver.escape_val}"
+        sql << "#{driver.escape_val}#{driver.escape(value.to_s)}#{driver.escape_val}"
       end
       
-      sql += ")"
+      sql << ")"
       
       driver.query(sql)
       return driver.lastID if args[:return_id]
@@ -207,22 +207,22 @@ class Knj::Db
     
     conn_exec do |driver|
       sql = ""
-      sql += "UPDATE #{driver.escape_col}#{tablename.to_s}#{driver.escape_col} SET "
+      sql << "UPDATE #{driver.escape_col}#{tablename.to_s}#{driver.escape_col} SET "
       
       first = true
       arr_update.each do |key, value|
         if first
           first = false
         else
-          sql += ", "
+          sql << ", "
         end
         
-        sql += "#{driver.escape_col}#{key.to_s}#{driver.escape_col} = "
-        sql += "#{driver.escape_val}#{driver.escape(value.to_s)}#{driver.escape_val}"
+        sql << "#{driver.escape_col}#{key.to_s}#{driver.escape_col} = "
+        sql << "#{driver.escape_val}#{driver.escape(value.to_s)}#{driver.escape_val}"
       end
       
       if arr_terms and arr_terms.length > 0
-        sql += " WHERE #{self.makeWhere(arr_terms, driver)}"
+        sql << " WHERE #{self.makeWhere(arr_terms, driver)}"
       end
       
       driver.query(sql)
@@ -233,27 +233,27 @@ class Knj::Db
     sql = ""
     
     conn_exec do |driver|
-      sql += "SELECT * FROM #{driver.escape_table}#{tablename.to_s}#{driver.escape_table}"
+      sql << "SELECT * FROM #{driver.escape_table}#{tablename.to_s}#{driver.escape_table}"
       
       if arr_terms != nil and !arr_terms.empty?
-        sql += " WHERE #{self.makeWhere(arr_terms, driver)}"
+        sql << " WHERE #{self.makeWhere(arr_terms, driver)}"
       end
       
       if args != nil
         if args["orderby"]
-          sql += " ORDER BY "
-          sql += args["orderby"]
+          sql << " ORDER BY "
+          sql << args["orderby"]
         end
         
         if args["limit"]
-          sql += " LIMIT " + args["limit"].to_s
+          sql << " LIMIT " + args["limit"].to_s
         end
         
         if args["limit_from"] and args["limit_to"]
           raise "'limit_from' was not numeric: '#{args["limit_from"]}'." if !Knj::Php.is_numeric(args["limit_from"])
           raise "'limit_to' was not numeric: '#{args["limit_to"]}'." if !Knj::Php.is_numeric(args["limit_to"])
           
-          sql += " LIMIT #{args["limit_from"]}, #{args["limit_to"]}"
+          sql << " LIMIT #{args["limit_from"]}, #{args["limit_to"]}"
         end
       end
       
@@ -277,10 +277,10 @@ class Knj::Db
     sql = ""
     
     conn_exec do |driver|
-      sql += "DELETE FROM #{driver.escape_table}#{tablename}#{driver.escape_table}"
+      sql << "DELETE FROM #{driver.escape_table}#{tablename}#{driver.escape_table}"
       
       if arr_terms != nil
-        sql += " WHERE #{self.makeWhere(arr_terms, driver)}"
+        sql << " WHERE #{self.makeWhere(arr_terms, driver)}"
       end
       
       driver.query(sql)
@@ -295,13 +295,13 @@ class Knj::Db
       if first
         first = false
       else
-        sql += " AND "
+        sql << " AND "
       end
       
       if value.is_a?(Array)
-        sql += "#{driver.escape_col}#{key}#{driver.escape_col} IN (#{Knj::ArrayExt.join(:arr => value, :sep => ",", :surr => "'", :callback => proc{|ele| self.esc(ele)})})"
+        sql << "#{driver.escape_col}#{key}#{driver.escape_col} IN (#{Knj::ArrayExt.join(:arr => value, :sep => ",", :surr => "'", :callback => proc{|ele| self.esc(ele)})})"
       else
-        sql += "#{driver.escape_col}#{key}#{driver.escape_col} = #{driver.escape_val}#{driver.escape(value)}#{driver.escape_val}"
+        sql << "#{driver.escape_col}#{key}#{driver.escape_col} = #{driver.escape_val}#{driver.escape(value)}#{driver.escape_val}"
       end
     end
     

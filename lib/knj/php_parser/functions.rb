@@ -16,18 +16,18 @@ class Knj::Php_parser
       end
     end
     
-    @retcont += "#{self.tabs}module Knj::Php_parser::Functions\n"
-    @tabs += 1
-    @retcont += "#{self.tabs}def self.#{func_name}("
+    @retcont << "#{self.tabs}module Knj::Php_parser::Functions\n"
+    @tabs << 1
+    @retcont << "#{self.tabs}def self.#{func_name}("
     
     first = true
     args.each do |arg|
-      @retcont += ", " if !first
+      @retcont << ", " if !first
       first = false if first
-      @retcont += arg["newname"]
+      @retcont << arg["newname"]
     end
     
-    @retcont += ")\n"
+    @retcont << ")\n"
     @tabs += 1
     @funcs_started += 1
     
@@ -39,18 +39,18 @@ class Knj::Php_parser
     
     loop do
       if !arg_found and match = self.matchclear(/\A\"/)
-        @retcont += "\""
+        @retcont << "\""
         self.match_semi
-        @retcont += ")"
+        @retcont << ")"
         arg_found = true
       elsif !arg_found and match = self.matchclear(/\A\$(#{@regex_varname})/)
-        @retcont += "phpvar_#{match[1]}"
+        @retcont << "phpvar_#{match[1]}"
         arg_found = true
       elsif arg_found and match = self.matchclear(/\A\.\s*/)
-        @retcont += " + "
+        @retcont << " + "
         arg_found = false
       elsif arg_found and match = self.matchclear(/\A;/)
-        @retcont += "\n"
+        @retcont << "\n"
         break
       else
         raise "Could not figure out what to do."
@@ -63,18 +63,18 @@ class Knj::Php_parser
     
     loop do
       if !arg_found and match = self.matchclear(/\A\"/)
-        @retcont += "\""
+        @retcont << "\""
         self.match_semi
-        @retcont += ")"
+        @retcont << ")"
         arg_found = true
       elsif !arg_found and match = self.matchclear(/\A\$(#{@regex_varname})/)
-        @retcont += "phpvar_#{match[1]}"
+        @retcont << "phpvar_#{match[1]}"
         arg_found = true
       elsif arg_found and match = self.matchclear(/\A\.\s*/)
-        @retcont += " + "
+        @retcont << " + "
         arg_found = false
       elsif arg_found and match = self.matchclear(/\A\)\s*;/)
-        @retcont += "\n"
+        @retcont << "\n"
         break
       else
         raise "Could not figure out what to do."
@@ -85,9 +85,9 @@ class Knj::Php_parser
   def match_semi
     loop do
       if match = self.matchclear(/\A[A-z\d_\.]+/)
-        @retcont += match[0]
+        @retcont << match[0]
       elsif match = self.matchclear(/\A\"/)
-        @retcont += "\""
+        @retcont << "\""
         break
       else
         raise "Could not figure out what to do."

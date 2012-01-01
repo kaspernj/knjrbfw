@@ -87,13 +87,13 @@ class KnjDB_mysql::Tables
     
     first = true
     data["columns"].each do |col_data|
-      sql += ", " if !first
+      sql << ", " if !first
       first = false if first
       col_data.delete("after") if col_data["after"]
-      sql += @db.cols.data_sql(col_data)
+      sql << @db.cols.data_sql(col_data)
     end
     
-    sql += ")"
+    sql << ")"
     
     @db.query(sql)
     @list_should_be_reloaded = true
@@ -238,13 +238,13 @@ class KnjDB_mysql::Tables::Table
       
       first = true
       index_data["columns"].each do |col_name|
-        sql += ", " if !first
+        sql << ", " if !first
         first = false if first
         
-        sql += "#{@db.escape_col}#{@db.esc_col(col_name)}#{@db.escape_col}"
+        sql << "#{@db.escape_col}#{@db.esc_col(col_name)}#{@db.escape_col}"
       end
       
-      sql += ")"
+      sql << ")"
       
       @db.query(sql)
     end

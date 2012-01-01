@@ -301,13 +301,13 @@ class Knj::Objects
     html = ""
     
     if args[:addnew] or args[:add]
-      html += "<option"
-      html += " selected=\"selected\"" if !args[:selected]
-      html += " value=\"\">#{_("Add new")}</option>"
+      html << "<option"
+      html << " selected=\"selected\"" if !args[:selected]
+      html << " value=\"\">#{_("Add new")}</option>"
     end
     
     self.list(classname, args[:list_args]) do |object|
-      html += "<option value=\"#{object.id.html}\""
+      html << "<option value=\"#{object.id.html}\""
       
       selected = false
       if args[:selected].is_a?(Array) and args[:selected].index(object) != nil
@@ -316,7 +316,7 @@ class Knj::Objects
         selected = true
       end
       
-      html += " selected=\"selected\"" if selected
+      html << " selected=\"selected\"" if selected
       
       obj_methods = object.class.instance_methods(false)
       
@@ -338,9 +338,9 @@ class Knj::Objects
         end
         
         raise "Could not figure out which name-method to call?" if !objhtml
-        html += ">#{objhtml}</option>"
+        html << ">#{objhtml}</option>"
       rescue Exception => e
-        html += ">[#{object.class.name}: #{e.message}]</option>"
+        html << ">[#{object.class.name}: #{e.message}]</option>"
       end
     end
     
@@ -521,10 +521,10 @@ class Knj::Objects
       #raise "Could not find object class in cache: #{classname}."
     #elsif !@objects[classname].key?(object.id.to_i)
       #errstr = ""
-      #errstr += "Could not unset object from cache.\n"
-      #errstr += "Class: #{object.class.name}.\n"
-      #errstr += "ID: #{object.id}.\n"
-      #errstr += "Could not find object ID in cache."
+      #errstr << "Could not unset object from cache.\n"
+      #errstr << "Class: #{object.class.name}.\n"
+      #errstr << "ID: #{object.id}.\n"
+      #errstr << "Could not find object ID in cache."
       #raise errstr
     #else
       @objects[classname].delete(object.id.to_i)

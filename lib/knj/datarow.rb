@@ -183,9 +183,9 @@ class Knj::Datarow
     
     ret = self.list_helper(d)
     
-    sql += " FROM #{table_str}"
-    sql += ret[:sql_joins]
-    sql += " WHERE 1=1"
+    sql << " FROM #{table_str}"
+    sql << ret[:sql_joins]
+    sql << " WHERE 1=1"
     
     d.args.each do |key, val|
       case key
@@ -196,27 +196,27 @@ class Knj::Datarow
       end
     end
     
-    sql += ret[:sql_where]
+    sql << ret[:sql_where]
     
     #The count will bug if there is a group-by-statement.
     grp_shown = false
     if !count and !ret[:sql_groupby]
-      sql += " GROUP BY #{table_str}.#{ec_col}id#{ec_col}"
+      sql << " GROUP BY #{table_str}.#{ec_col}id#{ec_col}"
       grp_shown = true
     end
     
     if ret[:sql_groupby]
       if !grp_shown
-        sql += " GROUP BY"
+        sql << " GROUP BY"
       else
-        sql += ", "
+        sql << ", "
       end
       
-      sql += ret[:sql_groupby]
+      sql << ret[:sql_groupby]
     end
     
-    sql += ret[:sql_order]
-    sql += ret[:sql_limit]
+    sql << ret[:sql_order]
+    sql << ret[:sql_limit]
     
     return sql.to_s if d.args["return_sql"]
     
@@ -238,7 +238,14 @@ class Knj::Datarow
   end
   
   def self.load_columns(d)
-    @classname = self.name.match(/($|::)([A-z\d_]+?)$/)[2].to_sym if !@classname
+    if !@classname
+      if match = self.name.match(/($|::)([A-z\d_]+?)$/)
+        @classname = match[2].to_sym 
+      else
+        @classname = self.name.to_sym
+      end
+    end
+    
     @mutex = Mutex.new if !@mutex
     
     @mutex.synchronize do

@@ -316,7 +316,7 @@ class Knj::Datet
     str = "%04d" % @time.year.to_s + "-" + "%02d" % @time.month.to_s + "-" + "%02d" % @time.day.to_s
     
     if !args.key?(:time) or args[:time]
-      str += " " + "%02d" % @time.hour.to_s + ":" + "%02d" % @time.min.to_s + ":" + "%02d" % @time.sec.to_s
+      str << " " + "%02d" % @time.hour.to_s + ":" + "%02d" % @time.min.to_s + ":" + "%02d" % @time.sec.to_s
     end
     
     return str
@@ -351,17 +351,17 @@ class Knj::Datet
     
     if !args.key?(:date) or args[:date]
       date_shown = true
-      str += "%02d" % @time.day.to_s + "/" + "%02d" % @time.month.to_s
+      str << "%02d" % @time.day.to_s + "/" + "%02d" % @time.month.to_s
       
       if !args.key?(:year) or args[:year]
-        str += " " + "%04d" % @time.year.to_s
+        str << " " + "%04d" % @time.year.to_s
       end
     end
     
     if !args.key?(:time) or args[:time]
       time_shown = true
-      str += " - " if date_shown
-      str += "%02d" % @time.hour.to_s + ":" + "%02d" % @time.min.to_s
+      str << " - " if date_shown
+      str << "%02d" % @time.hour.to_s + ":" + "%02d" % @time.min.to_s
     end
     
     return str

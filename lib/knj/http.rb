@@ -59,8 +59,8 @@ class Knj::Http
   def cookiestr
     cookiestr = ""
     @cookies.each do |key, value|
-      cookiestr += "; " if cookiestr != ""
-      cookiestr += "#{Knj::Php.urlencode(key)}=#{Knj::Php.urlencode(value.to_s)}"
+      cookiestr << "; " if cookiestr != ""
+      cookiestr << "#{Knj::Php.urlencode(key)}=#{Knj::Php.urlencode(value.to_s)}"
     end
     
     return cookiestr
@@ -148,8 +148,8 @@ class Knj::Http
     
     postdata = ""
     posthash.each do |key, value|
-      postdata += "&" if postdata != ""
-      postdata += "#{Knj::Web.urlenc(key)}=#{Knj::Web.urlenc(value)}"
+      postdata << "&" if postdata != ""
+      postdata << "#{Knj::Web.urlenc(key)}=#{Knj::Web.urlenc(value)}"
     end
     
     @mutex.synchronize do
@@ -178,12 +178,12 @@ class Knj::Http
         }
       end
       
-      postdata += "--#{boundary}\r\n"
-      postdata += "Content-Disposition: form-data; name=\"#{file["pname"]}\"; filename=\"#{file["fname"]}\"\r\n"
-      postdata += "Content-Type: text/plain\r\n"
-      postdata += "\r\n"
-      postdata += File.read(file["path"])
-      postdata += "\r\n--#{boundary}--\r\n"
+      postdata << "--#{boundary}\r\n"
+      postdata << "Content-Disposition: form-data; name=\"#{file["pname"]}\"; filename=\"#{file["fname"]}\"\r\n"
+      postdata << "Content-Type: text/plain\r\n"
+      postdata << "\r\n"
+      postdata << File.read(file["path"])
+      postdata << "\r\n--#{boundary}--\r\n"
     end
     
     @mutex.synchronize do

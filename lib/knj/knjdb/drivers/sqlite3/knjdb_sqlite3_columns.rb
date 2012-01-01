@@ -20,15 +20,15 @@ class KnjDB_sqlite3::Columns
     type = "integer" if @db.int_types.index(type) and (data["autoincr"] or data["primarykey"])
     
     sql = "`#{data["name"]}` #{type}"
-    sql += "(#{data["maxlength"]})" if data["maxlength"] and !data["autoincr"]
-    sql += "(11)" if !data.key?("maxlength") and !data["autoincr"]
-    sql += " PRIMARY KEY" if data["primarykey"]
-    sql += " NOT NULL" if !data["null"] and data.key?("null")
+    sql << "(#{data["maxlength"]})" if data["maxlength"] and !data["autoincr"]
+    sql << "(11)" if !data.key?("maxlength") and !data["autoincr"]
+    sql << " PRIMARY KEY" if data["primarykey"]
+    sql << " NOT NULL" if !data["null"] and data.key?("null")
     
     if data.key?("default_func")
-      sql += " DEFAULT #{data["default_func"]}"
+      sql << " DEFAULT #{data["default_func"]}"
     elsif data.key?("default") and data["default"] != false
-      sql += " DEFAULT '#{@db.escape(data["default"])}'"
+      sql << " DEFAULT '#{@db.escape(data["default"])}'"
     end
     
     return sql

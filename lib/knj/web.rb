@@ -251,9 +251,9 @@ class Knj::Web
       next if key == "name" or key == "value"
       
       if key.to_s.downcase == "expires" and val.is_a?(Time)
-        cookiestr += "; Expires=#{val.httpdate}"
+        cookiestr << "; Expires=#{val.httpdate}"
       else
-        cookiestr += "; #{key}=#{val}"
+        cookiestr << "; #{key}=#{val}"
       end
     end
     
@@ -434,7 +434,7 @@ class Knj::Web
   def self.inputs(arr)
     html = ""
     arr.each do |args|
-      html += self.input(args)
+      html << self.input(args)
     end
     
     return html
@@ -446,10 +446,10 @@ class Knj::Web
     str = " style=\""
     
     css.each do |key, val|
-      str += "#{key}: #{val};"
+      str << "#{key}: #{val};"
     end
     
-    str += "\""
+    str << "\""
     
     return str
   end
@@ -459,7 +459,7 @@ class Knj::Web
     
     html = ""
     attrs.each do |key, val|
-      html += " #{key}=\"#{val.to_s.html}\""
+      html << " #{key}=\"#{val.to_s.html}\""
     end
     
     return html
@@ -558,28 +558,28 @@ class Knj::Web
       attr["checked"] = "checked" if value.is_a?(String) and value == "1" or value.to_s == "1" or value.to_s == "on" or value.to_s == "true"
       attr["checked"] = "checked" if value.is_a?(TrueClass)
       
-      html += "<tr>"
-      html += "<td colspan=\"2\" class=\"tdcheck\">"
-      html += "<input#{self.attr_html(attr)} />"
-      html += "<label for=\"#{args[:id].html}\">#{args[:title].html}</label>"
-      html += "</td>"
-      html += "</tr>"
+      html << "<tr>"
+      html << "<td colspan=\"2\" class=\"tdcheck\">"
+      html << "<input#{self.attr_html(attr)} />"
+      html << "<label for=\"#{args[:id].html}\">#{args[:title].html}</label>"
+      html << "</td>"
+      html << "</tr>"
     elsif args[:type] == :headline
-      html += "<tr><td colspan=\"2\"><h2 class=\"input_headline\">#{args[:title].html}</h2></td></tr>"
+      html << "<tr><td colspan=\"2\"><h2 class=\"input_headline\">#{args[:title].html}</h2></td></tr>"
     elsif args[:type] == :spacer
-      html += "<tr><td colspan=\"2\">&nbsp;</td></tr>"
+      html << "<tr><td colspan=\"2\">&nbsp;</td></tr>"
     else
-      html += "<tr>"
-      html += "<td class=\"tdt\">"
-      html += args[:title].to_s.html
-      html += "</td>"
-      html += "<td#{self.style_html(css)} class=\"tdc\">"
+      html << "<tr>"
+      html << "<td class=\"tdt\">"
+      html << args[:title].to_s.html
+      html << "</td>"
+      html << "<td#{self.style_html(css)} class=\"tdc\">"
       
       if args[:type] == :textarea
         css["height"] = "#{args[:height]}px" if args.key?(:height)
         
-        html += "<textarea#{self.style_html(css)} class=\"input_textarea\" name=\"#{args[:name].html}\" id=\"#{args[:id].html}\">#{value}</textarea>"
-        html += "</td>"
+        html << "<textarea#{self.style_html(css)} class=\"input_textarea\" name=\"#{args[:name].html}\" id=\"#{args[:id].html}\">#{value}</textarea>"
+        html << "</td>"
       elsif args[:type] == :fckeditor
         args[:height] = 400 if !args[:height]
         
@@ -587,47 +587,47 @@ class Knj::Web
         fck = FCKeditor.new(args[:name])
         fck.Height = args[:height].to_i
         fck.Value = value
-        html += fck.CreateHtml
+        html << fck.CreateHtml
         
-        html += "</td>"
+        html << "</td>"
       elsif args[:type] == :select
         attr["multiple"] = "multiple" if args[:multiple]
         attr["size"] = args["size"] if args[:size]
         
-        html += "<select#{self.attr_html(attr)}>"
-        html += Knj::Web.opts(args[:opts], value, args[:opts_args])
-        html += "</select>"
-        html += "</td>"
+        html << "<select#{self.attr_html(attr)}>"
+        html << Knj::Web.opts(args[:opts], value, args[:opts_args])
+        html << "</select>"
+        html << "</td>"
       elsif args[:type] == :imageupload
-        html += "<table class=\"designtable\"><tr><td style=\"width: 100%;\">"
-        html += "<input type=\"file\" name=\"#{args[:name].html}\" class=\"input_file\" />"
-        html += "</td><td style=\"padding-left: 5px;\">"
+        html << "<table class=\"designtable\"><tr><td style=\"width: 100%;\">"
+        html << "<input type=\"file\" name=\"#{args[:name].html}\" class=\"input_file\" />"
+        html << "</td><td style=\"padding-left: 5px;\">"
         
         raise "No path given for imageupload-input." if !args.key?(:path)
         raise "No value given in arguments for imageupload-input." if !args.key?(:value)
         
         path = args[:path].gsub("%value%", value.to_s).untaint
         if File.exists?(path)
-          html += "<img src=\"image.rhtml?path=#{self.urlenc(path).html}&smartsize=100&rounded_corners=10&border_color=black&force=true&ts=#{Time.new.to_f}\" alt=\"Image\" />"
+          html << "<img src=\"image.rhtml?path=#{self.urlenc(path).html}&smartsize=100&rounded_corners=10&border_color=black&force=true&ts=#{Time.new.to_f}\" alt=\"Image\" />"
           
           if args[:dellink]
             dellink = args[:dellink].gsub("%value%", value.to_s)
-            html += "<div style=\"text-align: center;\">(<a href=\"javascript: if (confirm('#{_("Do you want to delete the image?")}')){location.href='#{dellink}';}\">#{_("delete")}</a>)</div>"
+            html << "<div style=\"text-align: center;\">(<a href=\"javascript: if (confirm('#{_("Do you want to delete the image?")}')){location.href='#{dellink}';}\">#{_("delete")}</a>)</div>"
           end
         end
         
-        html += "</td></tr></table>"
-        html += "</td>"
+        html << "</td></tr></table>"
+        html << "</td>"
       elsif args[:type] == :file
-        html += "<input type=\"#{args[:type].to_s}\" class=\"input_#{args[:type].to_s}\" name=\"#{args[:name].html}\" /></td>"
+        html << "<input type=\"#{args[:type].to_s}\" class=\"input_#{args[:type].to_s}\" name=\"#{args[:name].html}\" /></td>"
       elsif args[:type] == :textshow or args[:type] == :info
-        html += "#{value}</td>"
+        html << "#{value}</td>"
       elsif args[:type] == :plain
-        html += "#{Knj::Php.nl2br(Knj::Web.html(value))}"
+        html << "#{Knj::Php.nl2br(Knj::Web.html(value))}"
       elsif args[:type] == :editarea
         css["width"] = "100%"
         css["height"] = args[:height] if args.key?(:height)
-        html += "<textarea#{self.attr_html(attr)}#{self.style_html(css)} id=\"#{args[:id]}\" name=\"#{args[:name]}\">#{value}</textarea>"
+        html << "<textarea#{self.attr_html(attr)}#{self.style_html(css)} id=\"#{args[:id]}\" name=\"#{args[:name]}\">#{value}</textarea>"
         
         jshash = {
           "id" => args[:id],
@@ -639,21 +639,21 @@ class Knj::Web
           jshash[key.to_s] = args[key] if args.key?(key)
         end
         
-        html += "<script type=\"text/javascript\">"
-        html += "function knj_web_init_#{args[:name]}(){"
-        html += "editAreaLoader.init(#{Knj::Php.json_encode(jshash)});"
-        html += "}"
-        html += "</script>"
+        html << "<script type=\"text/javascript\">"
+        html << "function knj_web_init_#{args[:name]}(){"
+        html << "editAreaLoader.init(#{Knj::Php.json_encode(jshash)});"
+        html << "}"
+        html << "</script>"
       else
         attr[:value] = value
-        html += "<input#{self.attr_html(attr)} /></td>"
-        html += "</td>"
+        html << "<input#{self.attr_html(attr)} /></td>"
+        html << "</td>"
       end
       
-      html += "</tr>"
+      html << "</tr>"
     end
     
-    html += "<tr><td colspan=\"2\" class=\"tdd\">#{args[:descr]}</td></tr>" if args[:descr]
+    html << "<tr><td colspan=\"2\" class=\"tdd\">#{args[:descr]}</td></tr>" if args[:descr]
     return html
   end
   
@@ -673,14 +673,14 @@ class Knj::Web
     html = ""
     addsel = " selected=\"selected\"" if !curvalue
     
-    html += "<option#{addsel} value=\"\">#{_("Add new")}</option>" if opts_args and (opts_args[:add] or opts_args[:addnew])
-    html += "<option#{addsel} value=\"\">#{_("Choose")}</option>" if opts_args and opts_args[:choose]
-    html += "<option#{addsel} value=\"\">#{_("None")}</option>" if opts_args and opts_args[:none]
-    html += "<option#{addsel} value=\"\">#{_("All")}</option>" if opts_args and opts_args[:all]
+    html << "<option#{addsel} value=\"\">#{_("Add new")}</option>" if opts_args and (opts_args[:add] or opts_args[:addnew])
+    html << "<option#{addsel} value=\"\">#{_("Choose")}</option>" if opts_args and opts_args[:choose]
+    html << "<option#{addsel} value=\"\">#{_("None")}</option>" if opts_args and opts_args[:none]
+    html << "<option#{addsel} value=\"\">#{_("All")}</option>" if opts_args and opts_args[:all]
     
     if opthash.is_a?(Hash) or opthash.class.to_s == "Dictionary"
       opthash.each do |key, value|
-        html += "<option"
+        html << "<option"
         
         sel = false
         
@@ -692,15 +692,15 @@ class Knj::Web
           sel = true
         end
         
-        html += " selected=\"selected\"" if sel
-        html += " value=\"#{Knj::Web.html(key)}\">#{Knj::Web.html(value)}</option>"
+        html << " selected=\"selected\"" if sel
+        html << " value=\"#{Knj::Web.html(key)}\">#{Knj::Web.html(value)}</option>"
       end
     elsif opthash.is_a?(Array)
       opthash.each_index do |key|
         if opthash[key.to_i] != nil
-          html += "<option"
-          html += " selected=\"selected\"" if curvalue.to_i == key.to_i
-          html += " value=\"#{key.to_s}\">#{opthash[key].to_s}</option>"
+          html << "<option"
+          html << " selected=\"selected\"" if curvalue.to_i == key.to_i
+          html << " value=\"#{key.to_s}\">#{opthash[key].to_s}</option>"
         end
       end
     end
@@ -967,7 +967,7 @@ class Knj::Web
         end
       end
       
-      html += "<input type=\"hidden\" name=\"#{hidden_hash[:name].to_s.html}\" value=\"#{hidden_hash[:value].to_s.html}\" />"
+      html << "<input type=\"hidden\" name=\"#{hidden_hash[:name].to_s.html}\" value=\"#{hidden_hash[:value].to_s.html}\" />"
     end
     
     return html
@@ -1002,7 +1002,7 @@ class Knj::Web
   def self.html_args(h)
     str = ""
     h.each do |key, val|
-      str += "&#{Knj::Php.urlencode(key)}=#{Knj::Php.urlencode(val)}"
+      str << "&#{Knj::Php.urlencode(key)}=#{Knj::Php.urlencode(val)}"
     end
     
     return str
@@ -1019,13 +1019,13 @@ class Knj::Web
     url = ""
     
     if meta["HTTP_SSL_ENABLED"] == "1"
-      url += "https://"
+      url << "https://"
     else
-      url += "http://"
+      url << "http://"
     end
     
-    url += meta["HTTP_HOST"]
-    url += meta["REQUEST_URI"] if !args.key?(:uri) or args[:uri]
+    url << meta["HTTP_HOST"]
+    url << meta["REQUEST_URI"] if !args.key?(:uri) or args[:uri]
     
     return url
   end

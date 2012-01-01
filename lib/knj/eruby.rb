@@ -95,14 +95,14 @@ class Knj::Eruby
     header_str = ""
     
     @headers.each do |header|
-      header_str += "#{header[0]}: #{header[1]}\n"
+      header_str << "#{header[0]}: #{header[1]}\n"
     end
     
     @cookies.each do |cookie|
-      header_str += "Set-Cookie: #{Knj::Web.cookie_str(cookie)}\n"
+      header_str << "Set-Cookie: #{Knj::Web.cookie_str(cookie)}\n"
     end
     
-    header_str += "\n"
+    header_str << "\n"
     self.reset_headers if @fcgi
     return header_str
   end

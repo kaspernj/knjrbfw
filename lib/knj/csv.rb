@@ -6,14 +6,14 @@ class Knj::Csv
       if first
         first = false
       else
-        str += del
+        str << del
       end
       
       val = val.to_s.encode("utf-8").gsub(del, "").gsub(encl, "")
-      str += "#{encl}#{val}#{encl}"
+      str << "#{encl}#{val}#{encl}"
     end
     
-    str += "\n"
+    str << "\n"
     
     return str
   end

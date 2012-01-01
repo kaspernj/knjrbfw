@@ -4,10 +4,10 @@ class Knj::X11VNC
     @open = true
     
     cmd = "x11vnc -q"
-    cmd += " -shared" if @args[:shared] or !@args.key?(:shared)
-    cmd += " -forever" if @args[:forever] or !@args.key?(:forever)
-    cmd += " -rfbport #{@args[:port]}" if @args[:port]
-    cmd += " -nolookup" if @args[:nolookup] or !@args.key?(:nolookup)
+    cmd << " -shared" if @args[:shared] or !@args.key?(:shared)
+    cmd << " -forever" if @args[:forever] or !@args.key?(:forever)
+    cmd << " -rfbport #{@args[:port]}" if @args[:port]
+    cmd << " -nolookup" if @args[:nolookup] or !@args.key?(:nolookup)
     
     print cmd + "\n"
     

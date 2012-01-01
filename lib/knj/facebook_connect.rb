@@ -19,7 +19,7 @@ class Knj::Facebook_connect
     payload = ""
     hash.each do |key, val|
       next if key == "sig"
-      payload += "#{key}=#{val}"
+      payload << "#{key}=#{val}"
     end
     
     raise "Invalid payload or signature." if Digest::MD5.hexdigest("#{payload}#{@args[:app_secret]}") != hash["sig"]

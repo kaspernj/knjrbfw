@@ -36,7 +36,7 @@ class Knj::Objects
         found = true if args[:cols].key?(orderstr)
         
         if found
-          sql_order += " ORDER BY "
+          sql_order << " ORDER BY "
           ordermode = " ASC"
           if list_args.key?("ordermode")
             if list_args["ordermode"] == "desc"
@@ -49,11 +49,11 @@ class Knj::Objects
             list_args.delete("ordermode")
           end
           
-          sql_order += "#{table_def}`#{db.esc_col(list_args["orderby"])}`#{ordermode}"
+          sql_order << "#{table_def}`#{db.esc_col(list_args["orderby"])}`#{ordermode}"
           list_args.delete("orderby")
         end
       elsif list_args["orderby"].is_a?(Array)
-        sql_order += " ORDER BY "
+        sql_order << " ORDER BY "
         
         list_args["orderby"].each do |val|
           ordermode = nil
@@ -85,7 +85,7 @@ class Knj::Objects
                 args[:joined_tables].each do |table_name, table_data|
                   if table_name == col.first
                     do_joins[table_name] = true
-                    caseorder += " WHEN `#{db.esc_table(table_name)}`.`#{db.esc_col(col.last)}`#{ordermode} = '#{db.esc(isval)}' THEN '#{db.esc(caseval)}'"
+                    caseorder << " WHEN `#{db.esc_table(table_name)}`.`#{db.esc_col(col.last)}`#{ordermode} = '#{db.esc(isval)}' THEN '#{db.esc(caseval)}'"
                     found = true
                     break
                   end
@@ -98,10 +98,10 @@ class Knj::Objects
             end
             
             if val[:else]
-              caseorder += " ELSE '#{db.esc(val[:else])}'"
+              caseorder << " ELSE '#{db.esc(val[:else])}'"
             end
             
-            caseorder += " END"
+            caseorder << " END"
             orders << caseorder
           elsif val.is_a?(Hash)
             raise "No joined tables." if !args.key?(:joined_tables)
@@ -137,7 +137,7 @@ class Knj::Objects
           orders << "#{table_def}`#{db.esc_col(orderstr)}`#{ordermode}" if orderstr
         end
         
-        sql_order += orders.join(", ")
+        sql_order << orders.join(", ")
         list_args.delete("orderby")
       else
         raise "Unknown orderby object: #{list_args["orderby"].class.name}."
@@ -174,7 +174,7 @@ class Knj::Objects
             },
             :sep => ",",
             :surr => "'")
-          sql_where += " AND #{table}`#{db.esc_col(key)}` IN (#{escape_sql})"
+          sql_where << " AND #{table}`#{db.esc_col(key)}` IN (#{escape_sql})"
         elsif val.is_a?(Hash) and val[:type] == "col"
           if !val.key?(:table)
             Knj::Php.print_r(val)
@@ -182,12 +182,12 @@ class Knj::Objects
           end
           
           do_joins[val[:table].to_sym] = true
-          sql_where += " AND #{table}`#{db.esc_col(key)}` = `#{db.esc_table(val[:table])}`.`#{db.esc_col(val[:name])}`"
+          sql_where << " AND #{table}`#{db.esc_col(key)}` = `#{db.esc_table(val[:table])}`.`#{db.esc_col(val[:name])}`"
         elsif val.is_a?(Proc)
           call_args = Knj::Hash_methods.new(:ob => self, :db => db)
-          sql_where += " AND #{table}`#{db.esc_col(key)}` = '#{db.esc(val.call(call_args))}'"
+          sql_where << " AND #{table}`#{db.esc_col(key)}` = '#{db.esc(val.call(call_args))}'"
         else
-          sql_where += " AND #{table}`#{db.esc_col(key)}` = '#{db.esc(val)}'"
+          sql_where << " AND #{table}`#{db.esc_col(key)}` = '#{db.esc(val)}'"
         end
         
         found = true
@@ -200,7 +200,7 @@ class Knj::Objects
           raise "Could not make real value out of class: #{val.class.name} => #{val}."
         end
         
-        sql_where += " AND #{table}`#{db.esc_col(key)}` = '#{db.esc(realval)}'"
+        sql_where << " AND #{table}`#{db.esc_col(key)}` = '#{db.esc(realval)}'"
         found = true
       elsif key.to_s == "limit_from"
         limit_from = val.to_i
@@ -214,37 +214,37 @@ class Knj::Objects
         found = true
       elsif args.key?(:cols_dbrows) and args[:cols_dbrows].index("#{key.to_s}_id") != nil
         if val == false
-          sql_where += " AND #{table}`#{db.esc_col(key.to_s + "_id")}` = '0'"
+          sql_where << " AND #{table}`#{db.esc_col(key.to_s + "_id")}` = '0'"
         elsif val.is_a?(Array)
           if val.empty?
-            sql_where += " AND false"
+            sql_where << " AND false"
           else
-            sql_where += " AND #{table}`#{db.esc_col("#{key}_id")}` IN (#{Knj::ArrayExt.join(:arr => val, :sep => ",", :surr => "'", :callback => proc{|obj| obj.id.sql})})"
+            sql_where << " AND #{table}`#{db.esc_col("#{key}_id")}` IN (#{Knj::ArrayExt.join(:arr => val, :sep => ",", :surr => "'", :callback => proc{|obj| obj.id.sql})})"
           end
         else
-          sql_where += " AND #{table}`#{db.esc_col(key.to_s + "_id")}` = '#{db.esc(val.id)}'"
+          sql_where << " AND #{table}`#{db.esc_col(key.to_s + "_id")}` = '#{db.esc(val.id)}'"
         end
         
         found = true
       elsif match = key.match(/^([A-z_\d]+)_(search|has)$/) and args[:cols].key?(match[1]) != nil
         if match[2] == "search"
           Knj::Strings.searchstring(val).each do |str|
-            sql_where += " AND #{table}`#{db.esc_col(match[1])}` LIKE '%#{db.esc(str)}%'"
+            sql_where << " AND #{table}`#{db.esc_col(match[1])}` LIKE '%#{db.esc(str)}%'"
           end
         elsif match[2] == "has"
           if val
-            sql_where += " AND #{table}`#{db.esc_col(match[1])}` != ''"
+            sql_where << " AND #{table}`#{db.esc_col(match[1])}` != ''"
           else
-            sql_where += " AND #{table}`#{db.esc_col(match[1])}` = ''"
+            sql_where << " AND #{table}`#{db.esc_col(match[1])}` = ''"
           end
         end
         
         found = true
       elsif match = key.match(/^([A-z_\d]+)_(not|lower)$/) and args[:cols].key?(match[1])
         if match[2] == "not"
-          sql_where += " AND #{table}`#{db.esc_col(match[1])}` != '#{db.esc(val)}'"
+          sql_where << " AND #{table}`#{db.esc_col(match[1])}` != '#{db.esc(val)}'"
         elsif match[2] == "lower"
-          sql_where += " AND LOWER(#{table}`#{db.esc_col(match[1])}`) = LOWER('#{db.esc(val)}')"
+          sql_where << " AND LOWER(#{table}`#{db.esc_col(match[1])}`) = LOWER('#{db.esc(val)}')"
         else
           raise "Unknown mode: '#{match[2]}'."
         end
@@ -255,29 +255,29 @@ class Knj::Objects
         
         if match[2] == "day"
           if val.is_a?(Array)
-            sql_where += " AND ("
+            sql_where << " AND ("
             first = true
             
             val.each do |realval|
               if first
                 first = false
               else
-                sql_where += " OR "
+                sql_where << " OR "
               end
               
-              sql_where += "DATE_FORMAT(#{table}`#{db.esc_col(match[1])}`, '%d %m %Y') = DATE_FORMAT('#{db.esc(realval.dbstr)}', '%d %m %Y')"
+              sql_where << "DATE_FORMAT(#{table}`#{db.esc_col(match[1])}`, '%d %m %Y') = DATE_FORMAT('#{db.esc(realval.dbstr)}', '%d %m %Y')"
             end
             
-            sql_where += ")"
+            sql_where << ")"
           else
-            sql_where += " AND DATE_FORMAT(#{table}`#{db.esc_col(match[1])}`, '%d %m %Y') = DATE_FORMAT('#{db.esc(val.dbstr)}', '%d %m %Y')"
+            sql_where << " AND DATE_FORMAT(#{table}`#{db.esc_col(match[1])}`, '%d %m %Y') = DATE_FORMAT('#{db.esc(val.dbstr)}', '%d %m %Y')"
           end
         elsif match[2] == "month"
-          sql_where += " AND DATE_FORMAT(#{table}`#{db.esc_col(match[1])}`, '%m %Y') = DATE_FORMAT('#{db.esc(val.dbstr)}', '%m %Y')"
+          sql_where << " AND DATE_FORMAT(#{table}`#{db.esc_col(match[1])}`, '%m %Y') = DATE_FORMAT('#{db.esc(val.dbstr)}', '%m %Y')"
         elsif match[2] == "from" or match[2] == "above"
-          sql_where += " AND #{table}`#{db.esc_col(match[1])}` >= '#{db.esc(val.dbstr)}'"
+          sql_where << " AND #{table}`#{db.esc_col(match[1])}` >= '#{db.esc(val.dbstr)}'"
         elsif match[2] == "to" or match[2] == "below"
-          sql_where += " AND #{table}`#{db.esc_col(match[1])}` <= '#{db.esc(val.dbstr)}'"
+          sql_where << " AND #{table}`#{db.esc_col(match[1])}` <= '#{db.esc(val.dbstr)}'"
         else
           raise "Unknown date-key: #{match[2]}."
         end
@@ -285,21 +285,21 @@ class Knj::Objects
         found = true
       elsif args.key?(:cols_num) and match = key.match(/^(.+)_(from|to|above|below)$/) and args[:cols_num].index(match[1]) != nil
         if match[2] == "from"
-          sql_where += " AND #{table}`#{db.esc_col(match[1])}` <= '#{db.esc(val)}'"
+          sql_where << " AND #{table}`#{db.esc_col(match[1])}` <= '#{db.esc(val)}'"
         elsif match[2] == "to"
-          sql_where += " AND #{table}`#{db.esc_col(match[1])}` >= '#{db.esc(val)}'"
+          sql_where << " AND #{table}`#{db.esc_col(match[1])}` >= '#{db.esc(val)}'"
         elsif match[2] == "above"
-          sql_where += " AND #{table}`#{db.esc_col(match[1])}` > '#{db.esc(val)}'"
+          sql_where << " AND #{table}`#{db.esc_col(match[1])}` > '#{db.esc(val)}'"
         elsif match[2] == "below"
-          sql_where += " AND #{table}`#{db.esc_col(match[1])}` < '#{db.esc(val)}'"
+          sql_where << " AND #{table}`#{db.esc_col(match[1])}` < '#{db.esc(val)}'"
         else
           raise "Unknown method of treating cols-num-argument: #{match[2]}."
         end
         
         found = true
       elsif match = key.match(/^(.+)_lookup$/) and args[:cols].key?("#{match[1]}_id") and args[:cols].key?("#{match[1]}_class")
-        sql_where += " AND #{table}`#{db.esc_col("#{match[1]}_class")}` = '#{db.esc(val.table)}'"
-        sql_where += " AND #{table}`#{db.esc_col("#{match[1]}_id")}` = '#{db.esc(val.id)}'"
+        sql_where << " AND #{table}`#{db.esc_col("#{match[1]}_class")}` = '#{db.esc(val.table)}'"
+        sql_where << " AND #{table}`#{db.esc_col("#{match[1]}_id")}` = '#{db.esc(val.id)}'"
         found = true
       elsif realkey == "groupby"
         found = true
@@ -307,12 +307,12 @@ class Knj::Objects
         if val.is_a?(Array)
           val.each do |col_name|
             raise "Column '#{val}' not found on table '#{table}'." if !args[:cols].key?(col_name)
-            sql_groupby += ", " if sql_groupby.length > 0
-            sql_groupby += "#{table}`#{db.esc_col(col_name)}`"
+            sql_groupby << ", " if sql_groupby.length > 0
+            sql_groupby << "#{table}`#{db.esc_col(col_name)}`"
           end
         elsif val.is_a?(String)
-          sql_groupby += ", " if sql_groupby.length > 0
-          sql_groupby += "#{table}`#{db.esc_col(val)}`"
+          sql_groupby << ", " if sql_groupby.length > 0
+          sql_groupby << "#{table}`#{db.esc_col(val)}`"
         else
           raise "Unknown class given for 'groupby': '#{val.class.name}'."
         end
@@ -332,10 +332,10 @@ class Knj::Objects
         
         if table_data.key?(:parent_table)
           join_table_name_real = table_name
-          sql_joins += " LEFT JOIN `#{table_name_real}` AS `#{table_name}` ON 1=1"
+          sql_joins << " LEFT JOIN `#{table_name_real}` AS `#{table_name}` ON 1=1"
         else
           join_table_name_real = @args[:module].const_get(table_name).table
-          sql_joins += " LEFT JOIN `#{join_table_name_real}` ON 1=1"
+          sql_joins << " LEFT JOIN `#{join_table_name_real}` ON 1=1"
         end
         
         if table_data[:ob]
@@ -365,7 +365,7 @@ class Knj::Objects
         #Clone the where-arguments and run them against another sqlhelper to sub-join.
         join_args = table_data[:where].clone
         ret = self.sqlhelper(join_args, newargs)
-        sql_joins += ret[:sql_where]
+        sql_joins << ret[:sql_where]
         
         #If any of the join-arguments are left, then we should throw an error.
         join_args.each do |key, val|
