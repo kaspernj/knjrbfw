@@ -26,6 +26,10 @@ class Knj::Objects
       :name => :no_date,
       :connections_max => 1
     )
+    @events.add_event(
+      :name => :missing_class,
+      :connections_max => 1
+    )
     
     raise "No DB given." if !@args[:db] and !@args[:custom]
     raise "No class path given." if !@args[:class_path] and (@args[:require] or !@args.key?(:require))
@@ -139,7 +143,18 @@ class Knj::Objects
       if args[:class]
         classob = args[:class]
       else
-        classob = @args[:module].const_get(classname)
+        begin
+          classob = @args[:module].const_get(classname)
+        rescue NameError => e
+          if @events.connected?(:missing_class)
+            @events.call(:missing_class, {
+              :class => classname
+            })
+            classob = @args[:module].const_get(classname)
+          else
+            raise e
+          end
+        end
       end
       
       if (classob.respond_to?(:load_columns) or classob.respond_to?(:datarow_init)) and (!args.key?(:load) or args[:load])
@@ -480,15 +495,11 @@ class Knj::Objects
     self.requireclass(class_name)
     class_obj = @args[:module].const_get(class_name)
     raise "The class '#{class_obj.name}' has no such method: '#{method_name}'." if !class_obj.respond_to?(method_name)
-    method_obj = class_obj.method(method_name)
     
     pass_args = []
     
     if @args[:datarow]
-      pass_args << Knj::Hash_methods.new(
-        :ob => self,
-        :db => self.db
-      )
+      pass_args << Knj::Hash_methods.new(:ob => self, :db => self.db)
     else
       pass_args << Knj::Hash_methods.new(:ob => self)
     end
@@ -497,7 +508,7 @@ class Knj::Objects
       pass_args << arg
     end
     
-    method_obj.call(*pass_args)
+    class_obj.send(method_name, *pass_args)
   end
   
   # Unset object. Do this if you are sure, that there are no more references left. This will be done automatically when deleting it.

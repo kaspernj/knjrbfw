@@ -176,13 +176,12 @@ class Knj::Objects
             :surr => "'")
           sql_where << " AND #{table}`#{db.esc_col(key)}` IN (#{escape_sql})"
         elsif val.is_a?(Hash) and val[:type] == "col"
-          if !val.key?(:table)
-            Knj::Php.print_r(val)
-            raise "No table was given for join."
-          end
+          raise "No table was given for join." if !val.key?(:table)
           
           do_joins[val[:table].to_sym] = true
           sql_where << " AND #{table}`#{db.esc_col(key)}` = `#{db.esc_table(val[:table])}`.`#{db.esc_col(val[:name])}`"
+        elsif val.is_a?(Hash) and val[:type] == :sqlval and val[:val] == :null
+          sql_where << " AND #{table}`#{db.esc_col(key)}` IS NULL"
         elsif val.is_a?(Proc)
           call_args = Knj::Hash_methods.new(:ob => self, :db => db)
           sql_where << " AND #{table}`#{db.esc_col(key)}` = '#{db.esc(val.call(call_args))}'"
@@ -395,8 +394,6 @@ class Knj::Objects
     class_name = class_name.to_sym
     
     if !args.key?(:joined_tables)
-      Knj::Php.print_r(list_args)
-      Knj::Php.print_r(args)
       raise "No joined tables on '#{args[:table]}' to find datarow for: '#{class_name}'."
     end
     

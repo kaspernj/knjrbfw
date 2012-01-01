@@ -289,7 +289,7 @@ module Knj::Php
   end
   
   def substr(string, from, to = -1)
-    string = string[from.to_i, to.to_i]
+    string = "#{string[from.to_i, to.to_i]}"
     
     if !string.valid_encoding? and Knj::Php.class_exists("Iconv")
       ic = Iconv.new("UTF-8//IGNORE", "UTF-8")
