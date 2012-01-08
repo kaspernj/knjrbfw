@@ -1,3 +1,5 @@
+#encoding: utf-8
+
 module Knj::Strings
   def self.UnixSafe(tha_string)
     return tha_string.to_s.gsub(" ", "\\ ").gsub("&", "\&").gsub("(", "\\(").gsub(")", "\\)").gsub('"', '\"').gsub("\n", "\"\n\"")

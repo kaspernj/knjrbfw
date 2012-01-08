@@ -177,6 +177,10 @@ class Knj::Datarow
       count = true
       d.args.delete("count")
       sql = "SELECT COUNT(#{table_str}.#{ec_col}id#{ec_col}) AS count"
+    elsif d.args["select_col_as_array"]
+      select_col_as_array = true
+      sql = "SELECT #{table_str}.#{ec_col}#{d.args["select_col_as_array"]}#{ec_col} AS id"
+      d.args.delete("select_col_as_array")
     else
       sql = "SELECT #{table_str}.*"
     end
@@ -186,6 +190,7 @@ class Knj::Datarow
     sql << " FROM #{table_str}"
     sql << ret[:sql_joins]
     sql << " WHERE 1=1"
+    sql << ret[:sql_where]
     
     d.args.each do |key, val|
       case key
@@ -195,8 +200,6 @@ class Knj::Datarow
           raise "Invalid key: '#{key}' for '#{self.name}'."
       end
     end
-    
-    sql << ret[:sql_where]
     
     #The count will bug if there is a group-by-statement.
     grp_shown = false
@@ -220,7 +223,22 @@ class Knj::Datarow
     
     return sql.to_s if d.args["return_sql"]
     
-    if count
+    if select_col_as_array
+      ids = [] if !block
+      d.db.q(sql) do |data|
+        if block
+          block.call(data[:id])
+        else
+          ids << data[:id]
+        end
+      end
+      
+      if !block
+        return ids
+      else
+        return nil
+      end
+    elsif count
       ret = d.db.query(sql).fetch
       return ret[:count].to_i if ret
       return 0
@@ -284,7 +302,7 @@ class Knj::Datarow
           sqlhelper_args[:cols_bools] << col_name
         elsif col_type == "int" and col_name.slice(-3, 3) == "_id"
           sqlhelper_args[:cols_dbrows] << col_name
-        elsif col_type == "int" or col_type == "bigint"
+        elsif col_type == "int" or col_type == "bigint" or col_type == "decimal"
           sqlhelper_args[:cols_num] << col_name
         elsif col_type == "varchar" or col_type == "text" or col_type == "enum"
           sqlhelper_args[:cols_str] << col_name

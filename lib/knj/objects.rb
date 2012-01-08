@@ -14,6 +14,7 @@ class Knj::Objects
     @args[:cache] = :weak if !@args.key?(:cache)
     @objects = {}
     @data = {}
+    @mutex_require = Mutex.new
     
     require "weakref" if @args[:cache] == :weak and !Kernel.const_defined?(:WeakRef)
     
@@ -132,7 +133,9 @@ class Knj::Objects
   def requireclass(classname, args = {})
     classname = classname.to_sym
     
-    if !@objects.key?(classname)
+    return false if @objects.key?(classname)
+    
+    @mutex_require.synchronize do
       if (@args[:require] or !@args.key?(:require)) and (!args.key?(:require) or args[:require])
         filename = "#{@args[:class_path]}/#{@args[:class_pre]}#{classname.to_s.downcase}.rb"
         filename_req = "#{@args[:class_path]}/#{@args[:class_pre]}#{classname.to_s.downcase}"
@@ -487,14 +490,16 @@ class Knj::Objects
     end
   end
   
-  def static(class_name, method_name, *args)
+  def static(class_name, method_name, *args, &block)
     raise "Only available with datarow enabled." if !@args[:datarow] and !@args[:custom]
-    class_name = class_name.to_sym
-    method_name = method_name.to_sym
+    class_name = class_name
+    method_name = method_name
     
     self.requireclass(class_name)
     class_obj = @args[:module].const_get(class_name)
-    raise "The class '#{class_obj.name}' has no such method: '#{method_name}'." if !class_obj.respond_to?(method_name)
+    
+    #Sometimes this raises the exception but actually responds to the class? Therefore commented out. - knj
+    #raise "The class '#{class_obj.name}' has no such method: '#{method_name}' (#{class_obj.methods.sort.join(", ")})." if !class_obj.respond_to?(method_name)
     
     pass_args = []
     
@@ -508,7 +513,7 @@ class Knj::Objects
       pass_args << arg
     end
     
-    class_obj.send(method_name, *pass_args)
+    class_obj.send(method_name, *pass_args, &block)
   end
   
   # Unset object. Do this if you are sure, that there are no more references left. This will be done automatically when deleting it.
