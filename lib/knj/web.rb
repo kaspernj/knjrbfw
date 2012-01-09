@@ -283,20 +283,17 @@ class Knj::Web
       try = 0
       
       loop do
-        if !seton.key?(try)
+        if !seton.key?(try.to_s)
           break
         else
           try += 1
         end
       end
       
-      secname = try
-    else
-      secname = secname.to_i if Knj::Php.is_numeric(secname)
+      secname = try.to_s
     end
     
-    secname = secname.to_sym if args[:syms] and secname.is_a?(String)
-    
+    secname = secname.to_sym if args[:syms] and secname.is_a?(String) and !Knj::Php.is_numeric(secname)
     return [secname, secname_empty]
   end
   
@@ -309,26 +306,22 @@ class Knj::Web
       realvalue = realvalue.force_encoding("utf-8") if args[:force_utf8] if realvalue.respond_to?(:force_encoding)
     end
     
-    if varname and varname.index("[") != nil
-      if match = varname.match(/\[(.*?)\]/)
-        namepos = varname.index(match[0])
-        name = varname.slice(0..namepos - 1)
-        name = name.to_sym if args[:syms]
-        seton[name] = {} if !seton.key?(name)
-        
-        secname, secname_empty = Knj::Web.parse_secname(seton[name], match[1], args)
-        
-        valuefrom = namepos + secname.to_s.length + 2
-        restname = varname.slice(valuefrom..-1)
-        
-        if restname and restname.index("[") != nil
-          seton[name][secname] = {} if !seton[name].key?(secname)
-          Knj::Web.parse_name_second(seton[name][secname], restname, value, args)
-        else
-          seton[name][secname] = realvalue
-        end
+    if varname and varname.index("[") != nil and match = varname.match(/\[(.*?)\]/)
+      namepos = varname.index(match[0])
+      name = varname.slice(0..namepos - 1)
+      name = name.to_sym if args[:syms]
+      seton[name] = {} if !seton.key?(name)
+      
+      secname, secname_empty = Knj::Web.parse_secname(seton[name], match[1], args)
+      
+      valuefrom = namepos + secname.to_s.length + 2
+      restname = varname.slice(valuefrom..-1)
+      
+      if restname and restname.index("[") != nil
+        seton[name][secname] = {} if !seton[name].key?(secname)
+        Knj::Web.parse_name_second(seton[name][secname], restname, value, args)
       else
-        seton[varname][match[1]] = realvalue
+        seton[name][secname] = realvalue
       end
     else
       seton[varname] = realvalue
@@ -534,7 +527,7 @@ class Knj::Web
     attr.merge!(args[:attr]) if args[:attr]
     attr["disabled"] = "disabled" if args[:disabled]
     
-    raise "No name given to the Web::input()-method." if !args[:name] and args[:type] != :info and args[:type] != :textshow and args[:type] != :plain and args[:type] != :spacer
+    raise "No name given to the Web::input()-method." if !args[:name] and args[:type] != :info and args[:type] != :textshow and args[:type] != :plain and args[:type] != :spacer and args[:type] != :headline
     
     css = {}
     css["text-align"] = args[:align] if args.key?(:align)
@@ -545,6 +538,15 @@ class Knj::Web
       if args.key?(tag)
         attr[tag] = args[tag]
       end
+    end
+    
+    classes_tr = []
+    classes_tr += args[:classes_tr] if args[:classes_tr]
+    
+    if !classes_tr.empty?
+      classes_tr_html = " class=\"#{classes_tr.join(" ")}\""
+    else
+      classes_tr_html = ""
     end
     
     html = ""
@@ -558,25 +560,31 @@ class Knj::Web
       attr["checked"] = "checked" if value.is_a?(String) and value == "1" or value.to_s == "1" or value.to_s == "on" or value.to_s == "true"
       attr["checked"] = "checked" if value.is_a?(TrueClass)
       
-      html << "<tr>"
+      html << "<tr#{classes_tr_html}>"
       html << "<td colspan=\"2\" class=\"tdcheck\">"
       html << "<input#{self.attr_html(attr)} />"
       html << "<label for=\"#{args[:id].html}\">#{args[:title].html}</label>"
       html << "</td>"
       html << "</tr>"
     elsif args[:type] == :headline
-      html << "<tr><td colspan=\"2\"><h2 class=\"input_headline\">#{args[:title].html}</h2></td></tr>"
+      html << "<tr#{classes_tr_html}><td colspan=\"2\"><h2 class=\"input_headline\">#{args[:title].html}</h2></td></tr>"
     elsif args[:type] == :spacer
-      html << "<tr><td colspan=\"2\">&nbsp;</td></tr>"
+      html << "<tr#{classes_tr_html}><td colspan=\"2\">&nbsp;</td></tr>"
     else
-      html << "<tr>"
+      html << "<tr#{classes_tr_html}>"
       html << "<td class=\"tdt\">"
       html << args[:title].to_s.html
       html << "</td>"
       html << "<td#{self.style_html(css)} class=\"tdc\">"
       
       if args[:type] == :textarea
-        css["height"] = "#{args[:height]}px" if args.key?(:height)
+        if args.key?(:height)
+          if Knj::Php.is_numeric(args[:height])
+            css["height"] = "#{args[:height]}px"
+          else
+            css["height"] = args[:height]
+          end
+        end
         
         html << "<textarea#{self.style_html(css)} class=\"input_textarea\" name=\"#{args[:name].html}\" id=\"#{args[:id].html}\">#{value}</textarea>"
         html << "</td>"
@@ -599,7 +607,7 @@ class Knj::Web
         html << "</select>"
         html << "</td>"
       elsif args[:type] == :imageupload
-        html << "<table class=\"designtable\"><tr><td style=\"width: 100%;\">"
+        html << "<table class=\"designtable\"><tr#{classes_tr_html}><td style=\"width: 100%;\">"
         html << "<input type=\"file\" name=\"#{args[:name].html}\" class=\"input_file\" />"
         html << "</td><td style=\"padding-left: 5px;\">"
         
@@ -653,7 +661,7 @@ class Knj::Web
       html << "</tr>"
     end
     
-    html << "<tr><td colspan=\"2\" class=\"tdd\">#{args[:descr]}</td></tr>" if args[:descr]
+    html << "<tr#{classes_tr_html}><td colspan=\"2\" class=\"tdd\">#{args[:descr]}</td></tr>" if args[:descr]
     return html
   end
   

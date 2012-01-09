@@ -281,7 +281,7 @@ class Knj::Db
     conn_exec do |driver|
       sql << "DELETE FROM #{driver.escape_table}#{tablename}#{driver.escape_table}"
       
-      if arr_terms != nil
+      if arr_terms != nil and !arr_terms.empty?
         sql << " WHERE #{self.makeWhere(arr_terms, driver)}"
       end
       
@@ -349,7 +349,15 @@ class Knj::Db
   end
   
   def query(string)
-    print "SQL: #{string}\n" if @opts[:debug]
+    if @opts[:debug]
+      begin
+        raise "test"
+      rescue => e
+        print "SQL: #{string}\n"
+        print e.backtrace.join("\n")
+        print "\n"
+      end
+    end
     
     conn_exec do |driver|
       return driver.query(string)
