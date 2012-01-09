@@ -61,12 +61,26 @@ class Knj::Objects
           found = false
           
           if val.is_a?(Array)
-            orderstr = val[0]
-            
             if val[1] == "asc"
               ordermode = " ASC"
             elsif val[1] == "desc"
               ordermode = "DESC"
+            end
+            
+            if val[0].is_a?(Array)
+              if args[:joined_tables]
+                args[:joined_tables].each do |table_name, table_data|
+                  next if table_name.to_s != val[0][0]
+                  do_joins[table_name] = true
+                  orders << "`#{db.esc_table(table_name)}`.`#{db.esc_col(val[0][1])}`#{ordermode}"
+                  found = true
+                  break
+                end
+              end
+              
+              raise "Could not find joined table for ordering: '#{val[0][0]}'." if !found
+            else
+              orderstr = val[0]
             end
           elsif val.is_a?(String)
             orderstr = val
@@ -131,9 +145,9 @@ class Knj::Objects
           found = true if args[:cols].key?(orderstr)
           
           if !found
-            _kas.dprint(args[:joined_tables])
             raise "Column not found for ordering: #{orderstr}."
           end
+          
           orders << "#{table_def}`#{db.esc_col(orderstr)}`#{ordermode}" if orderstr
         end
         
@@ -152,11 +166,13 @@ class Knj::Objects
           datarow_obj = self.datarow_obj_from_args(args_def, list_args, realkey[0])
           args = datarow_obj.columns_sqlhelper_args
         else
+          datarow_obj = @args[:module].const_get(realkey[0])
           args = args_def
         end
         
-        do_joins[realkey[0].to_sym] = true
-        list_table_name_real = @args[:module].const_get(realkey[0]).table
+        table_sym = realkey[0].to_sym
+        do_joins[table_sym] = true
+        list_table_name_real = table_sym
         table = "`#{db.esc_table(list_table_name_real)}`."
         key = realkey[1]
       else
@@ -331,7 +347,7 @@ class Knj::Objects
         
         if table_data.key?(:parent_table)
           join_table_name_real = table_name
-          sql_joins << " LEFT JOIN `#{table_name_real}` AS `#{table_name}` ON 1=1"
+          sql_joins << " LEFT JOIN `#{table_data[:parent_table]}` AS `#{table_name}` ON 1=1"
         else
           join_table_name_real = @args[:module].const_get(table_name).table
           sql_joins << " LEFT JOIN `#{join_table_name_real}` ON 1=1"

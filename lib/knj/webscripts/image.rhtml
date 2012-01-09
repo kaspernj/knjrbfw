@@ -1,5 +1,5 @@
 <%
-	idstr = Knj::Php.md5("#{_get["path"]}_#{_get["smartsize"].to_i}_#{_get["width"].to_i}_#{_get["height"].to_i}_#{_get["maxwidth"].to_i}_#{_get["maxheight"].to_i}_#{_get["rounded_corners"].to_i}_#{_get["border"].to_i}_#{_get["border_color"]}")
+	idstr = Digest::MD5.hexdigest("#{_get["path"]}_#{_get["smartsize"].to_i}_#{_get["width"].to_i}_#{_get["height"].to_i}_#{_get["maxwidth"].to_i}_#{_get["maxheight"].to_i}_#{_get["rounded_corners"].to_i}_#{_get["border"].to_i}_#{_get["border_color"]}")
 	
 	tmp_use = false
 	tmp_write = false
@@ -85,17 +85,36 @@
 		blob_cont = pic.to_blob
 	end
 	
+	print "wee"
+	
+	
 	if tmp_write and blob_cont
+    print "hmm"
 		Knj::Php.file_put_contents(tmp_path, blob_cont)
 	end
 	
 	if tmp_use
-    Knj::Php.header("Last-Modified: #{time_orig.httpdate} GMT") if time_orig
-		Knj::Php.header("Content-Type: image/png")
-		print File.read(tmp_path)
+    begin
+      print "tmppp"
+      print "2"
+      
+      #_kas.header("Last-Modified", "#{time_orig.httpdate} GMT") if time_orig
+      #_kas.header("Content-Type", "image/png")
+      print "File read:\n"
+      print File.read(tmp_path)
+      print "Done with file read.\n"
+		rescue => e
+      STDOUT.print Knj::Errors.error_str(e)
+      raise e
+		end
+		
+		exit
 	else
-    Knj::Php.header("Last-Modified: #{time_orig.httpdate} GMT") if time_orig
-		Knj::Php.header("Content-Type: image/png")
+    print "no tmp"
+    
+    
+    #_kas.header("Last-Modified", "#{time_orig.httpdate} GMT") if time_orig
+		#_kas.header("Content-Type", "image/png")
 		print blob_cont
 	end
 %>
