@@ -1,6 +1,13 @@
 <%
 	idstr = Digest::MD5.hexdigest("#{_get["path"]}_#{_get["smartsize"].to_i}_#{_get["width"].to_i}_#{_get["height"].to_i}_#{_get["maxwidth"].to_i}_#{_get["maxheight"].to_i}_#{_get["rounded_corners"].to_i}_#{_get["border"].to_i}_#{_get["border_color"]}")
 	
+	if !_get["path"] or !File.exists?(_get["path"])
+    print "File does not exist: '#{_get["path"]}'.\n"
+    exit
+  end
+	
+	time_orig = File.mtime(_get["path"])
+	
 	tmp_use = false
 	tmp_write = false
 	if $knj_webscripts_image_config
@@ -10,7 +17,6 @@
 		tmp_write = true if !tmp_exists
 		
 		if !tmp_write and tmp_exists
-			time_orig = File.mtime(_get["path"])
 			time_cache = File.mtime(tmp_path)
 			
 			if time_orig > time_cache
@@ -19,11 +25,19 @@
 		end
 	end
 	
-	if !_get["path"] or !File.exists?(_get["path"])
-    print "File does not exist: '#{_get["path"]}'.\n"
+	notchanged = false
+	
+	if _httpsession.handler.modified_since and time_cache and _httpsession.handler.modified_since.utc.to_s == time_cache.utc.to_s
+    notchanged = true
+  elsif _httpsession.handler.modified_since and _httpsession.handler.modified_since.utc.to_s == time_orig.utc.to_s
+    notchanged = true
+  end
+  
+  if notchanged
+    _httpsession.resp.status = 304
     exit
   end
-	
+  
 	if !tmp_use or tmp_write or _get["force"].to_i > 0
     pic = Magick::Image.read(_get["path"]).first
     pic.format = "png"
@@ -85,36 +99,19 @@
 		blob_cont = pic.to_blob
 	end
 	
-	print "wee"
-	
-	
 	if tmp_write and blob_cont
-    print "hmm"
-		Knj::Php.file_put_contents(tmp_path, blob_cont)
+    File.open(tmp_path, "w") do |fp|
+      fp.write(blob_cont)
+    end
 	end
 	
 	if tmp_use
-    begin
-      print "tmppp"
-      print "2"
-      
-      #_kas.header("Last-Modified", "#{time_orig.httpdate} GMT") if time_orig
-      #_kas.header("Content-Type", "image/png")
-      print "File read:\n"
-      print File.read(tmp_path)
-      print "Done with file read.\n"
-		rescue => e
-      STDOUT.print Knj::Errors.error_str(e)
-      raise e
-		end
-		
-		exit
+    _kas.header("Last-Modified", "#{time_orig.httpdate} GMT") if time_orig
+		_kas.header("Content-Type", "image/png")
+		print File.read(tmp_path)
 	else
-    print "no tmp"
-    
-    
-    #_kas.header("Last-Modified", "#{time_orig.httpdate} GMT") if time_orig
-		#_kas.header("Content-Type", "image/png")
+    _kas.header("Last-Modified", "#{time_orig.httpdate} GMT") if time_orig
+		_kas.header("Content-Type", "image/png")
 		print blob_cont
 	end
 %>
