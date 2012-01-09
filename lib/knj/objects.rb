@@ -301,9 +301,13 @@ class Knj::Objects
         block.call(obj)
       end
       return nil
+    elsif block and ret != nil
+      raise "Return should return nil because of block but didnt. It wasnt an array either..."
+    elsif block
+      return nil
+    else
+      return ret
     end
-    
-    return ret
   end
   
   def list_opts(classname, args = {})
