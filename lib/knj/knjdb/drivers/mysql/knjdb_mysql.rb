@@ -224,7 +224,6 @@ class KnjDB_mysql
     
     sql << ") VALUES ("
     
-    STDOUT.print "Parsing hashes into string...\n"
     first = true
     arr_hashes.each do |hash|
       if first
@@ -247,7 +246,6 @@ class KnjDB_mysql
     
     sql << ")"
     
-    STDOUT.print "Sending query.\n"
     self.query(sql)
   end
 end
