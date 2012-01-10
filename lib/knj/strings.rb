@@ -160,4 +160,35 @@ module Knj::Strings
     
     return module_use
   end
+  
+  #Email content may only be 1000 characters wrong. This method shortens them gracefully.
+  def self.email_str_safe(str)
+    str = str.to_s
+    strcopy = "#{str}"
+    
+    str.each_line("\n") do |substr_orig|
+      substr = "#{substr_orig}"
+      next if substr.length <= 1000
+      
+      lines = []
+      
+      while substr.length > 1000 do
+        whitespace_index = substr.rindex(/\s/, 1000)
+        
+        if whitespace_index == nil
+          lines << substr.slice(0, 1000)
+          substr = substr.slice(1000, substr.length)
+        else
+          lines << substr.slice(0, whitespace_index + 1)
+          substr = substr.slice(whitespace_index + 1, substr.length)
+        end
+      end
+      
+      lines << substr
+      
+      strcopy.gsub!(/^#{Regexp.escape(substr_orig)}$/, lines.join("\n"))
+    end
+    
+    return strcopy
+  end
 end
