@@ -133,6 +133,54 @@ class Knj::Datarow
     end
   end
   
+  #This method initializes joins, sets methods to update translations and makes the translations automatically be deleted when the object is deleted.
+  def self.has_translation(arr)
+    @translations = [] if !@translations
+    
+    arr.each do |val|
+      @translations << val
+      
+      table_name = "Translation_#{val}".to_sym
+      
+      joined_tables(
+        table_name => {
+          :where => {
+            "object_class" => self.class,
+            "object_id" => {:type => "col", :name => "id"},
+            "key" => val.to_s,
+            "locale" => proc{|d| _session[:locale]}
+          },
+          :parent_table => :Translation,
+          :datarow => Knj::Translations::Translation,
+          :ob => @ob
+        }
+      )
+      
+      define_method("#{val}=") do |newtransval|
+        _kas.trans_set(self, {
+          val => newtransval
+        })
+      end
+      
+      define_method("#{val}") do
+        return _kas.trans(self, val)
+      end
+      
+      define_method("#{val}_html") do
+        str = _kas.trans(self, val)
+        if str.to_s.strip.length <= 0
+          return "[no translation for #{val}]"
+        end
+        
+        return str
+      end
+    end
+  end
+  
+  def self.translations
+    return @translations
+  end
+  
   def self.joined_tables(hash)
     @columns_joined_tables = {} if !@columns_joined_tables
     @columns_joined_tables.merge!(hash)

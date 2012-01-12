@@ -581,6 +581,10 @@ class Knj::Objects
         end
       end
       
+      if object.class.translations
+        _kas.trans_del(object)
+      end
+      
       @args[:db].delete(object.table, {:id => obj_id})
     end
     
