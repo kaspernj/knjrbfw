@@ -81,17 +81,25 @@ class Knj::Db
   def get_and_register_thread
     raise "KnjDB-object is not in threadding mode." if !@conns
     
+    thread_cur = Thread.current
     tid = self.__id__
-    Thread.current[:knjdb] = {} if !Thread.current[:knjdb]
-    Thread.current[:knjdb][tid] = @conns.get_and_lock if !Thread.current[:knjdb][tid]
+    thread_cur[:knjdb] = {} if !thread_cur[:knjdb]
+    
+    if thread_cur[:knjdb][tid]
+      #An object has already been spawned - free that first to avoid endless "used" objects.
+      self.free_thread
+    end
+    
+    thread_cur[:knjdb][tid] = @conns.get_and_lock if !thread_cur[:knjdb][tid]
   end
   
   def free_thread
+    thread_cur = Thread.current
     tid = self.__id__
     
-    if Thread.current[:knjdb] and Thread.current[:knjdb].key?(tid)
-      db = Thread.current[:knjdb][tid]
-      Thread.current[:knjdb].delete(tid)
+    if thread_cur[:knjdb] and thread_cur[:knjdb].key?(tid)
+      db = thread_cur[:knjdb][tid]
+      thread_cur[:knjdb].delete(tid)
       @conns.free(db) if @conns
     end
   end
