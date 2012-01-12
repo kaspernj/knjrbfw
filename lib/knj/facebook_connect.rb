@@ -21,7 +21,13 @@ class Knj::Facebook_connect
     if resp.body.length > 0
       begin
         jdata = JSON.parse(resp.body)
-        raise "#{jdata["error"]["type"]}: #{jdata["error"]["message"]}" if jdata["error"]
+        
+        error_type = RuntimeError
+        if jdata["error"] and jdata["error"]["message"] == "Code was invalid or expired. The session is invalid because the user logged out."
+          error_type = Knj::Errors::InvalidData
+        end
+        
+        raise error_type, "#{jdata["error"]["type"]}: #{jdata["error"]["message"]}" if jdata["error"]
       rescue JSON::ParserError
         #ignore
       end
