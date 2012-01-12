@@ -41,6 +41,7 @@ module Knj
   autoload :Nvidia_settings, $knjpath + "nvidia_settings"
   autoload :Web, $knjpath + "web"
   autoload :Google_sitemap, $knjpath + "google_sitemap"
+  autoload :Process, $knjpath + "process"
   autoload :Sms, $knjpath + "sms"
   autoload :Os, $knjpath + "os"
   autoload :Gtk2, $knjpath + "gtk2"
