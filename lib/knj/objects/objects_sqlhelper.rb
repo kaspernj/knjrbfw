@@ -128,7 +128,13 @@ class Knj::Objects
             
             if args[:joined_tables]
               args[:joined_tables].each do |table_name, table_data|
-                table_name_real = @args[:module].const_get(table_name).table
+                if table_data[:parent_table]
+                  table_name_real = table_name
+                elsif table_data[:datarow]
+                  table_name_real = table_data[:datarow].table
+                else
+                  table_name_real = @args[:module].const_get(table_name).table
+                end
                 
                 if table_name.to_s == val[:table].to_s
                   do_joins[table_name] = true
