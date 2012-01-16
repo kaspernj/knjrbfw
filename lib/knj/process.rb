@@ -11,6 +11,7 @@ class Knj::Process
     @out_mutex = Mutex.new
     @debug = @args[:debug]
     @args[:sleep_answer] = 0.001 if !@args.key?(:sleep_answer)
+    @thread_error = nil
     
     if @args[:listen]
       require "#{$knjpath}/thread"
@@ -18,7 +19,8 @@ class Knj::Process
         begin
           self.listen
         rescue Exception => e
-          STDOUT.print Knj::Errors.error_str(e)
+          STDOUT.print "#{Knj::Errors.error_str(e)}\n\n"
+          @thread_error = e
         end
       end
     end
@@ -28,10 +30,22 @@ class Knj::Process
     @listen_thread.kill
   end
   
+  def join
+    @listen_thread.join
+    sleep 0.5
+    raise @thread_error if @thread_error
+  end
+  
   #Listens for a new incoming object.
   def listen
     loop do
       str = @in.gets
+      if str == nil
+        raise "Socket closed." if @in.closed?
+        sleep 0.1
+        next
+      end
+      
       data = str.strip.split(":")
       raise "Expected length of 3 but got: '#{data.length}'." if data.length != 3
       
