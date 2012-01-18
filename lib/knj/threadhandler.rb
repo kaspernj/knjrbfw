@@ -1,5 +1,5 @@
 class Knj::Threadhandler
-  attr_reader :inactive_blocks, :args, :activate_blocks, :mutex
+  attr_reader :inactive_blocks, :args, :activate_blocks, :mutex, :objects
   
   def initialize(args = {})
     require "#{$knjpath}thread"
@@ -7,6 +7,7 @@ class Knj::Threadhandler
     @args = args
     @objects = []
     @args[:timeout] = 5 if !@args[:timeout]
+    @args[:max] = 25 if !@args[:max]
     @inactive_blocks = []
     @activate_blocks = []
     @mutex = Mutex.new
@@ -75,41 +76,54 @@ class Knj::Threadhandler
   def get_and_lock
     raise "Destroyed Knj::Threadhandler." if !@mutex
     newobj = nil
+    sleep_do = false
     
-    @mutex.synchronize do
-      retdata = false
-      @objects.each do |data|
-        if data[:free]
-          retdata = data
-          break
+    begin
+      @mutex.synchronize do
+        retdata = false
+        @objects.each do |data|
+          if data[:free]
+            retdata = data
+            break
+          end
         end
-      end
-      
-      if retdata
-        #Test if object is still free - if not, try again - knj.
-        return get_and_lock if !retdata[:free]
-        retdata[:free] = false
         
-        if retdata[:inactive]
-          @activate_blocks.each do |block|
-            block.call(:obj => retdata[:object])
+        if retdata
+          #Test if object is still free - if not, try again - knj.
+          return get_and_lock if !retdata[:free]
+          retdata[:free] = false
+          
+          if retdata[:inactive]
+            @activate_blocks.each do |block|
+              block.call(:obj => retdata[:object])
+            end
+            
+            retdata.delete(:inactive)
           end
           
-          retdata.delete(:inactive)
+          return retdata[:object]
         end
         
-        return retdata[:object]
+        if @objects.length >= @args[:max]
+          #The maximum amount of objects has already been spawned... Sleep 0.1 sec and try to lock an object again...
+          raise Knj::Errors::Retry
+        else
+          #No free objects, but we can spawn a new one and use that...
+          newobj = @spawn_new_block.call
+          @objects << {
+            :free => false,
+            :object => newobj
+          }
+          STDOUT.print "Spawned db and locked new.\n" if @args[:debug]
+        end
       end
       
-      newobj = @spawn_new_block.call
-      @objects << {
-        :free => false,
-        :object => newobj
-      }
-      STDOUT.print "Spawned db and locked new.\n" if @args[:debug]
+      return newobj
+    rescue Knj::Errors::Retry
+      STDOUT.print "All objects was taken - sleeping 0.1 sec and tries again.\n" #if @args[:debug]
+      sleep 0.1
+      retry
     end
-    
-    return newobj
   end
   
   def free(obj)

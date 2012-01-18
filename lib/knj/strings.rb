@@ -68,7 +68,7 @@ module Knj::Strings
     return str
   end
   
-  def self.yn_str(value, str_yes, str_no)
+  def self.yn_str(value, str_yes = "Yes", str_no = "No")
     value = value.to_i if Knj::Php.is_numeric(value)
     
     if value.is_a?(Integer)

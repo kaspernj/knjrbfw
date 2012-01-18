@@ -81,17 +81,25 @@ class Knj::Db
   def get_and_register_thread
     raise "KnjDB-object is not in threadding mode." if !@conns
     
+    thread_cur = Thread.current
     tid = self.__id__
-    Thread.current[:knjdb] = {} if !Thread.current[:knjdb]
-    Thread.current[:knjdb][tid] = @conns.get_and_lock if !Thread.current[:knjdb][tid]
+    thread_cur[:knjdb] = {} if !thread_cur[:knjdb]
+    
+    if thread_cur[:knjdb][tid]
+      #An object has already been spawned - free that first to avoid endless "used" objects.
+      self.free_thread
+    end
+    
+    thread_cur[:knjdb][tid] = @conns.get_and_lock if !thread_cur[:knjdb][tid]
   end
   
   def free_thread
+    thread_cur = Thread.current
     tid = self.__id__
     
-    if Thread.current[:knjdb] and Thread.current[:knjdb].key?(tid)
-      db = Thread.current[:knjdb][tid]
-      Thread.current[:knjdb].delete(tid)
+    if thread_cur[:knjdb] and thread_cur[:knjdb].key?(tid)
+      db = thread_cur[:knjdb][tid]
+      thread_cur[:knjdb].delete(tid)
       @conns.free(db) if @conns
     end
   end
@@ -155,10 +163,8 @@ class Knj::Db
   end
   
   def insert(tablename, arr_insert, args = {})
-    sql = ""
-    
     conn_exec do |driver|
-      sql << "INSERT INTO #{driver.escape_table}#{tablename.to_s}#{driver.escape_table} ("
+      sql = "INSERT INTO #{driver.escape_table}#{tablename.to_s}#{driver.escape_table} ("
       
       first = true
       arr_insert.each do |key, value|
@@ -232,10 +238,8 @@ class Knj::Db
   end
   
   def select(tablename, arr_terms = nil, args = nil)
-    sql = ""
-    
     conn_exec do |driver|
-      sql << "SELECT * FROM #{driver.escape_table}#{tablename.to_s}#{driver.escape_table}"
+      sql = "SELECT * FROM #{driver.escape_table}#{tablename.to_s}#{driver.escape_table}"
       
       if arr_terms != nil and !arr_terms.empty?
         sql << " WHERE #{self.makeWhere(arr_terms, driver)}"
@@ -261,8 +265,6 @@ class Knj::Db
       
       return driver.query(sql)
     end
-    
-    raise "Something went wrong."
   end
   
   def selectsingle(tablename, arr_terms = nil, args = {})
@@ -276,10 +278,8 @@ class Knj::Db
   end
   
   def delete(tablename, arr_terms)
-    sql = ""
-    
     conn_exec do |driver|
-      sql << "DELETE FROM #{driver.escape_table}#{tablename}#{driver.escape_table}"
+      sql = "DELETE FROM #{driver.escape_table}#{tablename}#{driver.escape_table}"
       
       if arr_terms != nil and !arr_terms.empty?
         sql << " WHERE #{self.makeWhere(arr_terms, driver)}"
@@ -371,6 +371,8 @@ class Knj::Db
       while data = ret.fetch
         yield data
       end
+      
+      return nil
     end
     
     return ret
