@@ -140,7 +140,8 @@ class Knj::Datarow
     arr.each do |val|
       @translations << val
       
-      table_name = "Translation_#{val}".to_sym
+      val_dc = val.to_s.downcase
+      table_name = "Translation_#{val_dc}".to_sym
       
       joined_tables(
         table_name => {
@@ -156,17 +157,17 @@ class Knj::Datarow
         }
       )
       
-      define_method("#{val}=") do |newtransval|
+      define_method("#{val_dc}=") do |newtransval|
         _kas.trans_set(self, {
           val => newtransval
         })
       end
       
-      define_method("#{val}") do
+      define_method("#{val_dc}") do
         return _kas.trans(self, val)
       end
       
-      define_method("#{val}_html") do
+      define_method("#{val_dc}_html") do
         str = _kas.trans(self, val)
         if str.to_s.strip.length <= 0
           return "[no translation for #{val}]"

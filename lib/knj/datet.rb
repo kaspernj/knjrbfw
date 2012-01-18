@@ -425,6 +425,7 @@ class Knj::Datet
     raise Knj::Errors::InvalidData.new("Wrong format: '#{timestr}', class: '#{timestr.class.name}'")
   end
   
+  #Returns a hash with the month-no as key and month-name as value.
   def self.months_arr(args = {})
     if args["short"]
       return {
