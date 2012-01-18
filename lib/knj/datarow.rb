@@ -145,7 +145,7 @@ class Knj::Datarow
       joined_tables(
         table_name => {
           :where => {
-            "object_class" => self.class,
+            "object_class" => self.name,
             "object_id" => {:type => "col", :name => "id"},
             "key" => val.to_s,
             "locale" => proc{|d| _session[:locale]}
