@@ -359,9 +359,19 @@ class Knj::Datet
     end
     
     if !args.key?(:time) or args[:time]
-      time_shown = true
-      str << " - " if date_shown
-      str << "%02d" % @time.hour.to_s + ":" + "%02d" % @time.min.to_s
+      show_time = true
+      
+      if args.key?(:zerotime) and !args[:zerotime]
+        if @time.hour == 0 and @time.min == 0
+          show_time = false
+        end
+      end
+      
+      if show_time
+        time_shown = true
+        str << " - " if date_shown
+        str << "%02d" % @time.hour.to_s + ":" + "%02d" % @time.min.to_s
+      end
     end
     
     return str
@@ -425,25 +435,9 @@ class Knj::Datet
     raise Knj::Errors::InvalidData.new("Wrong format: '#{timestr}', class: '#{timestr.class.name}'")
   end
   
+  #Returns a hash with the month-no as key and month-name as value.
   def self.months_arr(args = {})
-    if args["short"]
-      return {
-        1 => _("Jan"),
-        2 => _("Feb"),
-        3 => _("Mar"),
-        4 => _("Apr"),
-        5 => _("May"),
-        6 => _("Jun"),
-        7 => _("Jul"),
-        8 => _("Aug"),
-        9 => _("Sep"),
-        10 => _("Oct"),
-        11 => _("Nov"),
-        12 => _("Dec")
-      }
-    end
-    
-    return {
+    ret = {
       1 => _("January"),
       2 => _("February"),
       3 => _("March"),
@@ -457,10 +451,21 @@ class Knj::Datet
       11 => _("November"),
       12 => _("December")
     }
+    
+    if args["short"]
+      ret_short = {}
+      ret.each do |key, val|
+        ret_short[key] = val[0..2]
+      end
+      
+      return ret_short
+    end
+    
+    return ret
   end
   
-  def self.days_arr
-    return {
+  def self.days_arr(args = {})
+    ret = {
       1 => _("Monday"),
       2 => _("Tuesday"),
       3 => _("Wednesday"),
@@ -469,6 +474,17 @@ class Knj::Datet
       6 => _("Saturday"),
       0 => _("Sunday")
     }
+    
+    if args["short"]
+      ret_short = {}
+      ret.each do |key, val|
+        ret_short[key] = val[0..2]
+      end
+      
+      return ret_short
+    end
+    
+    return ret
   end
   
   def self.month_str_to_no(str)

@@ -163,10 +163,8 @@ class Knj::Db
   end
   
   def insert(tablename, arr_insert, args = {})
-    sql = ""
-    
     conn_exec do |driver|
-      sql << "INSERT INTO #{driver.escape_table}#{tablename.to_s}#{driver.escape_table} ("
+      sql = "INSERT INTO #{driver.escape_table}#{tablename.to_s}#{driver.escape_table} ("
       
       first = true
       arr_insert.each do |key, value|
@@ -240,10 +238,8 @@ class Knj::Db
   end
   
   def select(tablename, arr_terms = nil, args = nil)
-    sql = ""
-    
     conn_exec do |driver|
-      sql << "SELECT * FROM #{driver.escape_table}#{tablename.to_s}#{driver.escape_table}"
+      sql = "SELECT * FROM #{driver.escape_table}#{tablename.to_s}#{driver.escape_table}"
       
       if arr_terms != nil and !arr_terms.empty?
         sql << " WHERE #{self.makeWhere(arr_terms, driver)}"
@@ -269,8 +265,6 @@ class Knj::Db
       
       return driver.query(sql)
     end
-    
-    raise "Something went wrong."
   end
   
   def selectsingle(tablename, arr_terms = nil, args = {})
@@ -284,10 +278,8 @@ class Knj::Db
   end
   
   def delete(tablename, arr_terms)
-    sql = ""
-    
     conn_exec do |driver|
-      sql << "DELETE FROM #{driver.escape_table}#{tablename}#{driver.escape_table}"
+      sql = "DELETE FROM #{driver.escape_table}#{tablename}#{driver.escape_table}"
       
       if arr_terms != nil and !arr_terms.empty?
         sql << " WHERE #{self.makeWhere(arr_terms, driver)}"
@@ -379,6 +371,8 @@ class Knj::Db
       while data = ret.fetch
         yield data
       end
+      
+      return nil
     end
     
     return ret

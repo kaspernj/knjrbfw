@@ -150,27 +150,34 @@ class KnjDB_mysql
     end
   end
   
+  #Escapes a string to be safe to use in a query.
   def escape(string)
     if !@subtype or @subtype == "mysql"
       return @conn.escape_string(string.to_s)
     elsif @subtype == "mysql2"
       return @conn.escape(string.to_s)
     elsif @subtype == "java"
-      #This is copied from the Ruby/MySQL framework at: http://www.tmtm.org/en/ruby/mysql/
-      return string.to_s.gsub(/([\0\n\r\032\'\"\\])/) do
-        case $1
-          when "\0" then "\\0"
-          when "\n" then "\\n"
-          when "\r" then "\\r"
-          when "\032" then "\\Z"
-          else "\\" + $1
-        end
-      end
+      return self.escape_alternative(string)
     else
       raise "Unknown subtype: '#{@subtype}'."
     end
   end
   
+  #An alternative to the MySQL framework's escape.
+  def escape_alternative(string)
+    #This is copied from the Ruby/MySQL framework at: http://www.tmtm.org/en/ruby/mysql/
+    return string.to_s.gsub(/([\0\n\r\032\'\"\\])/) do
+      case $1
+        when "\0" then "\\0"
+        when "\n" then "\\n"
+        when "\r" then "\\r"
+        when "\032" then "\\Z"
+        else "\\" + $1
+      end
+    end
+  end
+  
+  #Escapes a string to be safe to use as a column in a query.
   def esc_col(string)
     string = string.to_s
     raise "Invalid column-string: #{string}" if string.index(@escape_col) != nil
@@ -180,6 +187,7 @@ class KnjDB_mysql
   alias :esc_table :esc_col
   alias :esc :escape
   
+  #Returns the last inserted ID for the connection.
   def lastID
     if !@subtype or @subtype == "mysql"
       @mutex.synchronize do
@@ -196,12 +204,14 @@ class KnjDB_mysql
     end
   end
   
+  #Closes the connection threadsafe.
   def close
     @mutex.synchronize do
       @conn.close
     end
   end
   
+  #Destroyes the connection.
   def destroy
     @conn = nil
     @knjdb = nil
