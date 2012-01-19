@@ -483,10 +483,7 @@ class Knj::Datarow
   
   #Returns true if the object has been deleted.
   def deleted?
-    if !@ob and !@data
-      return true
-    end
-    
+    return true if !@ob and !@data
     return false
   end
   
