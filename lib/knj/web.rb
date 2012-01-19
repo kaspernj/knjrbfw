@@ -965,13 +965,20 @@ class Knj::Web
     html = ""
     
     hidden_arr.each do |hidden_hash|
-      if hidden_hash[:value].is_a?(Array)
-        if !hidden_hash[:value][0]
-          hidden_hash[:value] = nil
-        else
-          key = hidden_hash[:value][1]
-          obj = hidden_hash[:value][0]
-          hidden_hash[:value] = obj[key]
+      if hidden_hash.is_a?(Array)
+        hidden_hash = {
+          :name => hidden_hash[0],
+          :value => hidden_hash[1]
+        }
+      else
+        if hidden_hash[:value].is_a?(Array)
+          if !hidden_hash[:value][0]
+            hidden_hash[:value] = nil
+          else
+            key = hidden_hash[:value][1]
+            obj = hidden_hash[:value][0]
+            hidden_hash[:value] = obj[key]
+          end
         end
       end
       
