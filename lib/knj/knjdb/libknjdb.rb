@@ -14,6 +14,8 @@ class Knj::Db
     if !@opts[:threadsafe]
       @mutex = Mutex.new
     end
+    
+    @debug = @opts[:debug]
   end
   
   def col_table
@@ -310,6 +312,7 @@ class Knj::Db
     return sql
   end
   
+  #Returns a driver-object based on the current thread and free driver-objects.
   def conn_exec
     if Thread.current[:knjdb]
       tid = self.__id__
@@ -348,8 +351,9 @@ class Knj::Db
     raise "Could not figure out how to find a driver to use?"
   end
   
+  #Executes a query and returns the result.
   def query(string)
-    if @opts[:debug]
+    if @debug
       begin
         raise "test"
       rescue => e
@@ -359,35 +363,35 @@ class Knj::Db
       end
     end
     
-    conn_exec do |driver|
+    self.conn_exec do |driver|
       return driver.query(string)
     end
   end
   
-  def q(str)
+  #Executes a query and returns the result. If a block is given the result is iterated over that block instead and it returns nil.
+  def q(str, &block)
     ret = self.query(str)
     
-    if block_given?
-      while data = ret.fetch
-        yield data
-      end
-      
+    if block
+      ret.each(&block)
       return nil
     end
     
     return ret
   end
   
+  #Returns the last inserted ID.
   def lastID
-    conn_exec do |driver|
+    self.conn_exec do |driver|
       return driver.lastID
     end
   end
   
   alias :last_id :lastID
   
+  #Escapes a string to be safe-to-use in a query-string.
   def escape(string)
-    conn_exec do |driver|
+    self.conn_exec do |driver|
       return driver.escape(string)
     end
   end
@@ -395,20 +399,20 @@ class Knj::Db
   alias :esc :escape
   
   def esc_col(str)
-    conn_exec do |driver|
+    self.conn_exec do |driver|
       return driver.esc_col(str)
     end
   end
   
   def esc_table(str)
-    conn_exec do |driver|
+    self.conn_exec do |driver|
       return driver.esc_table(str)
     end
   end
   
   def enc_table
     if !@enc_table
-      conn_exec do |driver|
+      self.conn_exec do |driver|
         @enc_table = driver.escape_table
       end
     end
@@ -418,7 +422,7 @@ class Knj::Db
   
   def enc_col
     if !@enc_col
-      conn_exec do |driver|
+      self.conn_exec do |driver|
         @enc_col = driver.escape_col
       end
     end
@@ -434,6 +438,7 @@ class Knj::Db
     return Knj::Datet.in(date_obj)
   end
   
+  #Returns the table-module and spawns it if it isnt already spawned.
   def tables
     conn_exec do |driver|
       if !driver.tables
@@ -448,6 +453,7 @@ class Knj::Db
     end
   end
   
+  #Returns the columns-module and spawns it if it isnt already spawned.
   def cols
     if !@cols
       require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_columns" if (!@opts.key?(:require) or @opts[:require])
@@ -460,6 +466,7 @@ class Knj::Db
     return @cols
   end
   
+  #Returns the index-module and spawns it if it isnt already spawned.
   def indexes
     if !@indexes
       require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_indexes" if (!@opts.key?(:require) or @opts[:require])

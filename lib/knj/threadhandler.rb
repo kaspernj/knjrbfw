@@ -7,7 +7,7 @@ class Knj::Threadhandler
     @args = args
     @objects = []
     @args[:timeout] = 5 if !@args[:timeout]
-    @args[:max] = 25 if !@args[:max]
+    @args[:max] = 50 if !@args[:max]
     @inactive_blocks = []
     @activate_blocks = []
     @mutex = Mutex.new
