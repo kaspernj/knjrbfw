@@ -359,7 +359,8 @@ module Knj::Php
   end
   
   def parse_str(str, hash)
-    CGI.parse(str).each do |key, val|
+    res = Knj::Web.parse_urlquery(str, {:urldecode => true})
+    res.each do |key, val|
       hash[key] = val
     end
   end
