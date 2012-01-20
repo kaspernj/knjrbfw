@@ -85,12 +85,16 @@ class Knj::Objects
           elsif val.is_a?(String)
             orderstr = val
             ordermode = " ASC"
+          elsif val.is_a?(Hash) and val[:type] == :sql
+            orders << val[:sql]
+            found = true
           elsif val.is_a?(Hash) and val[:type] == :case
             caseorder = " CASE"
             
             val[:case].each do |key, caseval|
               col = key.first
               isval = key.last
+              col_str = nil
               
               if col.is_a?(Array)
                 raise "No joined tables for '#{args[:table]}'." if !args[:joined_tables]
@@ -99,16 +103,22 @@ class Knj::Objects
                 args[:joined_tables].each do |table_name, table_data|
                   if table_name == col.first
                     do_joins[table_name] = true
-                    caseorder << " WHEN `#{db.esc_table(table_name)}`.`#{db.esc_col(col.last)}`#{ordermode} = '#{db.esc(isval)}' THEN '#{db.esc(caseval)}'"
+                    col_str = "`#{db.esc_table(table_name)}`.`#{db.esc_col(col.last)}`"
                     found = true
                     break
                   end
                 end
                 
                 raise "No such joined table on '#{args[:table]}': '#{col.first}' (#{col.first.class.name}) with the following joined table:\n#{Knj::Php.print_r(args[:joined_tables], true)}" if !found
+              elsif col.is_a?(String) or col.is_a?(Symbol)
+                col_str = "#{table_def}`#{col}`"
+                found = true
               else
-                raise "Unknown type: '#{col.class.name}'."
+                raise "Unknown type for case-ordering: '#{col.class.name}'."
               end
+              
+              raise "'colstr' was not set." if !col_str
+              caseorder << " WHEN #{col_str} = '#{db.esc(isval)}' THEN '#{db.esc(caseval)}'"
             end
             
             if val[:else]
@@ -138,7 +148,15 @@ class Knj::Objects
                 
                 if table_name.to_s == val[:table].to_s
                   do_joins[table_name] = true
-                  orders << "`#{db.esc_table(table_name_real)}`.`#{db.esc_col(val[:col])}`#{ordermode}"
+                  
+                  if val[:sql]
+                    orders << val[:sql]
+                  elsif val[:col]
+                    orders << "`#{db.esc_table(table_name_real)}`.`#{db.esc_col(val[:col])}`#{ordermode}"
+                  else
+                    raise "Couldnt figure out how to order based on keys: '#{val.keys.sort}'."
+                  end
+                  
                   found = true
                   break
                 end
