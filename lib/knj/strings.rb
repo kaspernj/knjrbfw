@@ -191,4 +191,17 @@ module Knj::Strings
     
     return strcopy
   end
+  
+  #Returns a float as human locaically readable. 1.0 will be 1, 1.5 will be 1.5 and so on.
+  def self.float_as_human_logic(floatval)
+    raise "Not a float." if !floatval.is_a?(Float)
+    
+    float_s = floatval.to_s
+    parts = float_s.split(".")
+    if parts[1].to_i > 0
+      return float_s
+    else
+      return parts[0].to_s
+    end
+  end
 end
