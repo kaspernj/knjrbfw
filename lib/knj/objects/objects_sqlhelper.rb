@@ -141,9 +141,9 @@ class Knj::Objects
                 if table_data[:parent_table]
                   table_name_real = table_name
                 elsif table_data[:datarow]
-                  table_name_real = table_data[:datarow].table
+                  table_name_real = table_data[:datarow].classname
                 else
-                  table_name_real = @args[:module].const_get(table_name).table
+                  table_name_real = @args[:module].const_get(table_name).classname
                 end
                 
                 if table_name.to_s == val[:table].to_s
@@ -213,7 +213,8 @@ class Knj::Objects
               db.escape(value)
             },
             :sep => ",",
-            :surr => "'")
+            :surr => "'"
+          )
           sql_where << " AND #{table}`#{db.esc_col(key)}` IN (#{escape_sql})"
         elsif val.is_a?(Hash) and val[:type] == "col"
           raise "No table was given for join." if !val.key?(:table)
@@ -281,7 +282,19 @@ class Knj::Objects
         found = true
       elsif match = key.match(/^([A-z_\d]+)_(not|lower)$/) and args[:cols].key?(match[1])
         if match[2] == "not"
-          sql_where << " AND #{table}`#{db.esc_col(match[1])}` != '#{db.esc(val)}'"
+          if val.is_a?(Array)
+            escape_sql = Knj::ArrayExt.join(
+              :arr => val,
+              :callback => proc{|value|
+                db.escape(value)
+              },
+              :sep => ",",
+              :surr => "'"
+            )
+            sql_where << " AND #{table}`#{db.esc_col(match[1])}` NOT IN (#{escape_sql})"
+          else
+            sql_where << " AND #{table}`#{db.esc_col(match[1])}` != '#{db.esc(val)}'"
+          end
         elsif match[2] == "lower"
           sql_where << " AND LOWER(#{table}`#{db.esc_col(match[1])}`) = LOWER('#{db.esc(val)}')"
         else
@@ -373,8 +386,9 @@ class Knj::Objects
           join_table_name_real = table_name
           sql_joins << " LEFT JOIN `#{table_data[:parent_table]}` AS `#{table_name}` ON 1=1"
         else
-          join_table_name_real = @args[:module].const_get(table_name).table
-          sql_joins << " LEFT JOIN `#{join_table_name_real}` ON 1=1"
+          const = @args[:module].const_get(table_name)
+          join_table_name_real = const.classname
+          sql_joins << " LEFT JOIN `#{const.table}` AS `#{const.classname}` ON 1=1"
         end
         
         if table_data[:ob]

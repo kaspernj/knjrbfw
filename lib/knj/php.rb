@@ -573,19 +573,22 @@ module Knj::Php
   end
   
   def utf8_encode(str)
-    str = str.to_s if str.respond_to?(:to_s)
+    str = str.to_s if str.respond_to?("to_s")
     require "iconv" if RUBY_PLATFORM == "java" #This fixes a bug in JRuby where Iconv otherwise would not be detected.
+    doiconv = false
     
-    if str.respond_to?(:encode)
-      return str.encode("iso-8859-1", "utf-8")
-    elsif Knj::Php.class_exists("Iconv")
+    if str.respond_to?("encode")
       begin
-        return Iconv.conv("iso-8859-1", "utf-8", str)
-      rescue
-        return Iconv.conv("iso-8859-1//ignore", "utf-8", str + "  ").slice(0..-2)
+        return str.encode("iso-8859-1", "utf-8")
+      rescue Encoding::InvalidByteSequenceError
+        #ignore - try iconv
       end
-    else
-      raise "Could not figure out how to utf8-encode string."
+    end
+    
+    begin
+      return Iconv.conv("iso-8859-1", "utf-8", str)
+    rescue
+      return Iconv.conv("iso-8859-1//ignore", "utf-8", "#{str}  ").slice(0..-2)
     end
   end
   

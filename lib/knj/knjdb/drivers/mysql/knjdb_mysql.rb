@@ -81,12 +81,13 @@ class KnjDB_mysql
     query_conn(@conn, "SET NAMES '#{esc(@encoding)}'") if @encoding
   end
   
+  #For JQuery this scans if it is a data-manipulating query and executes the correct method on the driver.
   def query_conn(conn, str)
     case @subtype
       when "java"
         stmt = conn.createStatement
         
-        if str.match(/insert\s+into\s+/i) or str.match(/update\s+/i) or str.match(/^\s*delete\s+/i) or str.match(/^\s*create\s*/i)
+        if str.match(/^\s*(delete|update|create|drop\s+table|insert\s+into)\s+/i)
           return stmt.execute(str)
         else
           return stmt.executeQuery(str)
@@ -98,6 +99,7 @@ class KnjDB_mysql
     end
   end
   
+  #Executes a query and returns the result.
   def query(string)
     string = string.to_s
     string = string.force_encoding("UTF-8") if @encoding == "utf8" and string.respond_to?(:force_encoding)
@@ -140,13 +142,14 @@ class KnjDB_mysql
         when "java"
           begin
             tries += 1
-            return KnjDB_java_mysql_result.new(@knjdb, query_conn(@conn, string))
+            return KnjDB_java_mysql_result.new(@knjdb, self.query_conn(@conn, string))
           rescue => e
             if e.to_s.index("No operations allowed after connection closed") != nil
               reconnect
               retry
             end
             
+            print string
             raise e
           end
         else
