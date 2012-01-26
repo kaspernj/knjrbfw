@@ -427,7 +427,7 @@ class Knj::Web
   def self.inputs(arr)
     html = ""
     arr.each do |args|
-      html << self.input(args)
+      html << self.input(args).to_s.encode(html.encoding)
     end
     
     return html
