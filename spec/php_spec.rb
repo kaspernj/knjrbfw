@@ -25,8 +25,19 @@ describe "Php" do
   end
   
   it "number_format" do
-    raise "Failed." if Knj::Php.number_format(123123.12, 3, ",", ".") != "123.123,120"
-    raise "Failed." if Knj::Php.number_format(123123.12, 4, ".", ",") != "123,123.1200"
+    tests = {
+      Knj::Php.number_format(123123.12, 3, ",", ".") => "123.123,120",
+      Knj::Php.number_format(123123.12, 4, ".", ",") => "123,123.1200",
+      Knj::Php.number_format(-123123.12, 2, ",", ".") => "-123.123,12",
+      Knj::Php.number_format(-120, 2, ",", ".") => "-120,00",
+      Knj::Php.number_format(-12, 2, ".", ",") => "-12.00"
+    }
+    
+    tests.each do |key, val|
+      if key != val
+        raise "Key was not the same as value (#{key}) (#{val})."
+      end
+    end
   end
   
   it "parse_str" do
