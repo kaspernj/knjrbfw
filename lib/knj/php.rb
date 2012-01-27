@@ -192,14 +192,19 @@ module Knj::Php
   def number_format(number, precision = 2, seperator = ".", delimiter = ",")
     number = number.to_f if !number.is_a?(Float)
     precision = precision.to_i
-    return sprintf("%.#{precision.to_s}f", number).gsub(".", seperator) if number < 1
+    return sprintf("%.#{precision.to_s}f", number).gsub(".", seperator) if number < 1 and number > -1
     
     number = sprintf("%.#{precision.to_s}f", number).split(".")
     
     str = ""
     number[0].reverse.scan(/(.{1,3})/) do |match|
-      str << delimiter if str.length > 0
-      str << match[0]
+      if match[0] == "-"
+        #This happens if the number is a negative number and we have reaches the minus-sign.
+        str << match[0]
+      else
+        str << delimiter if str.length > 0
+        str << match[0]
+      end
     end
     
     str = str.reverse
