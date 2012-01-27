@@ -344,6 +344,32 @@ class Knj::Datet
     return false
   end
   
+  #Returns the day of the year (0-365).
+  def day_of_year
+    return @time.strftime("%j").to_i
+  end
+  
+  #Returns how many days there is between the two timestamps given.
+  def self.days_between(t1, t2)
+    raise "Timestamp 2 should be larger than timestamp 1." if t2 < t1
+    
+    doy1 = t1.day_of_year
+    doy2 = t2.day_of_year
+    
+    yot1 = t1.year
+    yot2 = t2.year
+    
+    if yot1 == yot2
+      days_between = doy2 - doy1
+      return days_between
+    end
+    
+    upto = 365 - doy1
+    after = doy2
+    
+    return upto + after
+  end
+  
   def out(args = {})
     str = ""
     date_shown = false
