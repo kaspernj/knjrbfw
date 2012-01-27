@@ -17,7 +17,7 @@ class Knj::Eruby
       @cache = {}
     end
     
-    if RUBY_PLATFORM == "java"
+    if RUBY_PLATFORM == "java" or RUBY_ENGINE == "rbx"
       @cache_mode = :code_eval
       #@cache_mode = :compile_knj
     elsif RUBY_VERSION.slice(0..2) == "1.9" and RubyVM::InstructionSequence.respond_to?(:compile_file)
