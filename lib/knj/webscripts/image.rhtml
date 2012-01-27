@@ -138,10 +138,10 @@
 	if tmp_use
     _kas.header("Last-Modified", "#{time_orig.httpdate} GMT") if time_orig
 		_kas.header("Content-Type", "image/png")
-		print File.read(tmp_path)
+		_httpsession.force_content(File.new(tmp_path))
 	else
     _kas.header("Last-Modified", "#{time_orig.httpdate} GMT") if time_orig
 		_kas.header("Content-Type", "image/png")
-		print blob_cont
+		_httpsession.force_content(blob_cont)
 	end
 %>
