@@ -2,9 +2,12 @@
   #Support for the PHP-version... Comes handy when converting PHP to Ruby...
   if !_get["path"]
     trans = {
-      "picture" => "path",
-      "edgesize" => "rounded_corners"
+      "picture" => "path"
     }
+    
+    if _get["edgesize"]
+      _get["rounded_corners"] = (_get["edgesize"].to_f / 3.0).to_i
+    end
     
     if _get["edgeborder"]
       if _get["edgeborder"].length == 6
