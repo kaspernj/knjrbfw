@@ -372,14 +372,16 @@ class KnjDB_mysql_unbuffered_result
     if !ret and !@res and !@enum
       begin
         @res = @conn.use_result
+        @enum = @res.to_enum
+        ret = @enum.next
       rescue Mysql::Error
         #Reset it to run non-unbuffered again and then return false.
         @conn.query_with_result = true
         return false
+      rescue StopIteration
+        sleep 0.1
+        retry
       end
-      
-      @enum = @res.to_enum
-      ret = @enum.next
     end
     
     if !@as_hash
