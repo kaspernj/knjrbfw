@@ -27,4 +27,18 @@ class KnjDB_mysql::Indexes::Index
       "columns" => @columns
     }
   end
+  
+  #Returns true if the index is a unique-index.
+  def unique?
+    if @args[:data][:Index_type] == "UNIQUE"
+      return true
+    else
+      return false
+    end
+  end
+  
+  #Inspect crashes if this is not present? - knj.
+  def to_s
+    return "#<#{self.class.name}>"
+  end
 end

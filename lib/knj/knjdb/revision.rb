@@ -150,6 +150,14 @@ class Knj::Db::Revision
             table_data["indexes"].each do |index_data|
               begin
                 index_obj = table_obj.index(index_data["name"])
+                
+                rewrite_index = false
+                rewrite_index = true if index_data.key?("unique") and index_data["unique"] != index_obj.unique?
+                
+                if rewrite_index
+                  index_obj.drop
+                  table_obj.create_indexes([index_data])
+                end
               rescue Knj::Errors::NotFound => e
                 table_obj.create_indexes([index_data])
               end

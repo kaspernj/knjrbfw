@@ -368,6 +368,22 @@ class Knj::Db
     end
   end
   
+  #Execute an ubuffered query and returns the result.
+  def query_ubuf(string, &block)
+    ret = nil
+    
+    self.conn_exec do |driver|
+      ret = driver.query_ubuf(string, &block)
+    end
+    
+    if block
+      ret.each(&block)
+      return nil
+    end
+    
+    return ret
+  end
+  
   #Executes a query and returns the result. If a block is given the result is iterated over that block instead and it returns nil.
   def q(str, &block)
     ret = self.query(str)
