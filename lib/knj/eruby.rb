@@ -196,6 +196,7 @@ class Knj::Eruby
     end
   end
   
+  #This method will handle an error without crashing simply adding the error to the print-queue.
   def handle_error(e)
     begin
       if @connects and @connects.key?("error")
