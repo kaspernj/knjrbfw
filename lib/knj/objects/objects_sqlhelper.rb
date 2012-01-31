@@ -207,15 +207,19 @@ class Knj::Objects
       
       if args[:cols].key?(key)
         if val.is_a?(Array)
-          escape_sql = Knj::ArrayExt.join(
-            :arr => val,
-            :callback => proc{|value|
-              db.escape(value)
-            },
-            :sep => ",",
-            :surr => "'"
-          )
-          sql_where << " AND #{table}`#{db.esc_col(key)}` IN (#{escape_sql})"
+          if val.empty?
+            sql_where << " AND false"
+          else
+            escape_sql = Knj::ArrayExt.join(
+              :arr => val,
+              :callback => proc{|value|
+                db.escape(value)
+              },
+              :sep => ",",
+              :surr => "'"
+            )
+            sql_where << " AND #{table}`#{db.esc_col(key)}` IN (#{escape_sql})"
+          end
         elsif val.is_a?(Hash) and val[:type] == "col"
           raise "No table was given for join." if !val.key?(:table)
           
