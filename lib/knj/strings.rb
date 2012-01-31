@@ -16,14 +16,9 @@ module Knj::Strings
     first_pos = 1
     
     second_pos = str.rindex("/")
-    pattern = str[first_pos, second_pos]
+    pattern = str[first_pos, second_pos - 1]
     
     flags = str[second_pos + 1, str.length].to_s
-    
-    print "Pattern: '#{pattern}' from '#{str}'.\n"
-    print "Flags: '#{flags}'.\n"
-    raise "test"
-    
     arg_two = 0
     
     if flags
@@ -43,7 +38,6 @@ module Knj::Strings
       end
     end
     
-    print "Pattern: #{pattern}\n"
     regex = Regexp.new(pattern, arg_two)
     
     return regex
