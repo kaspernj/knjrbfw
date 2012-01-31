@@ -309,6 +309,7 @@ module Knj::Php
   end
   
   def md5(string)
+    require "digest"
     return Digest::MD5.hexdigest(string.to_s)
   end
   

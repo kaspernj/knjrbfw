@@ -158,6 +158,23 @@ class KnjDB_mysql
     end
   end
   
+  #Executes an unbuffered query and returns the result that can be used to access the data.
+  def query_ubuf(str)
+    @mutex.synchronize do
+      case @subtype
+        when "mysql"
+          conn.query_with_result = false
+          return KnjDB_mysql_unbuffered_result.new(@conn, @opts, @conn.query(str))
+        when "mysql2"
+          raise "MySQL2 does not support unbuffered queries yet! Waiting for :stream..."
+        when "java"
+          raise "Not implemented yet."
+        else
+          raise "Unknown subtype: '#{@subtype}'"
+      end
+    end
+  end
+  
   #Escapes a string to be safe to use in a query.
   def escape_alternative(string)
     case @subtype
@@ -315,6 +332,74 @@ class KnjDB_mysql_result
   
   def each
     while data = self.fetch_hash_symbols
+      yield(data)
+    end
+  end
+end
+
+class KnjDB_mysql_unbuffered_result
+  def initialize(conn, opts, result)
+    @conn = conn
+    @result = result
+    
+    if !opts.key?(:result) or opts[:result] == "hash"
+      @as_hash = true
+    elsif opts[:result] == "array"
+      @as_hash = false
+    else
+      raise "Unknown type of result: '#{opts[:result]}'."
+    end
+  end
+  
+  def load_keys
+    @keys = []
+    keys = @res.fetch_fields
+    keys.each do |key|
+      @keys << key.name.to_sym
+    end
+  end
+  
+  def fetch
+    if @enum
+      begin
+        ret = @enum.next
+      rescue StopIteration
+        @enum = nil
+        @res = nil
+      end
+    end
+    
+    if !ret and !@res and !@enum
+      begin
+        @res = @conn.use_result
+        @enum = @res.to_enum
+        ret = @enum.next
+      rescue Mysql::Error
+        #Reset it to run non-unbuffered again and then return false.
+        @conn.query_with_result = true
+        return false
+      rescue StopIteration
+        sleep 0.1
+        retry
+      end
+    end
+    
+    if !@as_hash
+      return ret
+    else
+      self.load_keys if !@keys
+      
+      ret_h = {}
+      @keys.each_index do |key_no|
+        ret_h[@keys[key_no]] = ret[key_no]
+      end
+      
+      return ret_h
+    end
+  end
+  
+  def each
+    while data = self.fetch
       yield(data)
     end
   end
