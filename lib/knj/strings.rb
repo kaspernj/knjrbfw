@@ -9,6 +9,46 @@ module Knj::Strings
     return Knj::Strings.UnixSafe(string)
   end
   
+  #Returns a Regexp-object from the string formatted as what you would give to Php's preg_match.
+  def self.regex(str)
+    first_char = str[0, 1]
+    raise "First char should be '/' but wasnt: '#{first_char}'." if first_char != "/"
+    first_pos = 1
+    
+    second_pos = str.rindex("/")
+    pattern = str[first_pos, second_pos]
+    
+    flags = str[second_pos + 1, str.length].to_s
+    
+    print "Pattern: '#{pattern}' from '#{str}'.\n"
+    print "Flags: '#{flags}'.\n"
+    raise "test"
+    
+    arg_two = 0
+    
+    if flags
+      flags.length.times do |i|
+        arg = flags[i, 1]
+        
+        case arg
+          when "i"
+            arg_two |= Regexp::IGNORECASE
+          when "m"
+            arg_two |= Regexp::MULTILINE
+          when "x"
+            arg_two |= Regexp::EXTENDED
+          else
+            raise "Unknown argument: '#{arg}'."
+        end
+      end
+    end
+    
+    print "Pattern: #{pattern}\n"
+    regex = Regexp.new(pattern, arg_two)
+    
+    return regex
+  end
+  
   def self.searchstring(string, &block)
     words = [] if !block
     string = string.to_s
