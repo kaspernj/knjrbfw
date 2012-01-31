@@ -1,6 +1,7 @@
 require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
 require "knj/strings"
+require "knj/errors"
 
 describe "Strings" do
   it "regex" do
@@ -9,5 +10,12 @@ describe "Strings" do
     
     regex = Knj::Strings.regex("/\d+/")
     raise "Regex should be '(?-mix:d+)' but wasnt: '#{regex}'." if "#{regex}" != "(?-mix:d+)"
+    
+    begin
+      regex = Knj::Strings.regex("/\d+/U")
+      raise "Ruby doesnt support the U-modifier - an exception should be thrown!"
+    rescue Knj::Errors::InvalidData
+      #this should happen - Ruby doesnt support U-modifier...
+    end
   end
 end

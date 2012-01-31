@@ -32,6 +32,8 @@ module Knj::Strings
             arg_two |= Regexp::MULTILINE
           when "x"
             arg_two |= Regexp::EXTENDED
+          when "U"
+            raise Knj::Errors::InvalidData, "Ruby does (as far as I know) not support the 'U'-modifier. You should rewrite your regex with non-greedy operators such as '(\d+?)' instead."
           else
             raise "Unknown argument: '#{arg}'."
         end
