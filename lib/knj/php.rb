@@ -293,7 +293,11 @@ module Knj::Php
     return haystack.index(needle)
   end
   
-  def substr(string, from, to = -1)
+  def substr(string, from, to = nil)
+    if to == nil
+      to = string.length
+    end
+    
     string = "#{string[from.to_i, to.to_i]}"
     
     if !string.valid_encoding? and Knj::Php.class_exists("Iconv")

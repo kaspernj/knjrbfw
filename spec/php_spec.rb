@@ -40,6 +40,17 @@ describe "Php" do
     end
   end
   
+  it "substr" do
+    res = Knj::Php.substr("selcol_15", 7)
+    raise "substr should have returned '15' but didnt: '#{res}'." if res != "15"
+    
+    res = Knj::Php.substr("test_kasper", -6, 6)
+    raise "substr should have returned 'kasper' but didnt: '#{res}'." if res != "kasper"
+    
+    res = Knj::Php.substr("test_kasper", 1, 3)
+    raise "substr should have returned 'est' but didnt: '#{res}'." if res != "est"
+  end
+  
   it "parse_str" do
     require "knj/php"
     require "knj/web"
