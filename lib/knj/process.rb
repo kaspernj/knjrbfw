@@ -75,7 +75,7 @@ class Knj::Process
       raise "Invalid ID: '#{data[1]}'." if data[1].to_s.strip.length <= 0
       id = data[1].to_i
       
-      raise "Invalid length: '#{data[2]}'." if data[2].to_s.strip.length <= 0
+      raise "Invalid length: '#{data[2]}' (#{str.to_s.strip})." if data[2].to_s.strip.length <= 0
       length = data[2].to_i
       
       $stderr.print "Received ID #{id}.\n" if @debug
@@ -99,7 +99,7 @@ class Knj::Process
             
             begin
               @on_rec.call(result_obj)
-            rescue => e
+            rescue Exception => e
               #Error was raised - try to forward it to the server.
               result_obj.answer("type" => "process_error", "class" => e.class.name, "msg" => e.message, "backtrace" => e.backtrace)
             end
@@ -132,7 +132,7 @@ class Knj::Process
                   end
                 end
               end
-            rescue => e
+            rescue Exception => e
               $stderr.print Knj::Errors.error_str(e) if @debug
               #Error was raised - try to forward it to the server.
               result_obj.answer("type" => "process_error", "class" => e.class.name, "msg" => e.message, "backtrace" => e.backtrace)
@@ -239,7 +239,8 @@ class Knj::Process
     
     if ret.is_a?(Hash) and ret["type"] == "process_error"
       err = RuntimeError.new(ret["msg"])
-      err.set_backtrace(ret["backtrace"])
+      bt = ret["backtrace"] + caller
+      err.set_backtrace(bt)
       raise err
     end
     

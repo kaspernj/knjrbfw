@@ -7,24 +7,48 @@ class Knj::Process_meta
     @args = args
     @objects = {}
     
-    exec_path = Knj::Os.executed_executable
+    if @args["exec_path"]
+      exec_path = @args["exec_path"]
+    else
+      exec_path = Knj::Os.executed_executable
+    end
+    
     exec_file = "#{File.dirname(__FILE__)}/scripts/process_meta_exec.rb"
     
     @stdin, @stdout, @stderr, @wait_thr = Open3.popen3("#{exec_path} #{exec_file}")
     
-    @process = Knj::Process.new(
+    args = {
       :out => @stdin,
       :in => @stdout,
-      :err => @stderr,
       :listen => true,
-      :debug => false,
-      :on_err => proc{|line|
+      :debug => @args["debug"]
+    }
+    
+    if @args["debug"]
+      args[:err] = @stderr
+      args[:on_err] = proc{|line|
         $stderr.print "stderr: #{line}"
       }
-    )
+    end
+    
+    @process = Knj::Process.new(args)
   end
   
-  def spawn_object(class_name, var_name, *args)
+  #Executes a static method on a class in the sub-process.
+  def static(const, method_name, *args, &block)
+    res = @process.send({
+      "type" => "static",
+      "const" => const,
+      "method_name" => method_name,
+      "args" => args,
+    }, &block)
+    
+    return res["result"] if res["type"] == "call_const_success"
+    raise "Unknown result: '#{Knj::Php.print_r(res, true)}'."
+  end
+  
+  #Spawns a new object in the subprocess and returns a proxy-variable for that subprocess-object.
+  def spawn_object(class_name, var_name, *args, &block)
     proxy_obj = Knj::Process_meta::Proxy_obj.new(:process_meta => self, :name => var_name)
     
     if var_name == nil
@@ -32,14 +56,25 @@ class Knj::Process_meta
       proxy_obj._process_meta_args[:name] = var_name
     end
     
-    res = @process.send(
+    res = @process.send({
       "type" => "spawn_object",
       "class_name" => class_name,
       "var_name" => var_name,
       "args" => args
-    )
+    }, &block)
     
     return proxy_obj
+  end
+  
+  #Evaluates a string in the sub-process.
+  def str_eval(str)
+    res = @process.send({
+      "type" => "str_eval",
+      "str" => str
+    })
+    
+    return res["result"] if res.is_a?(Hash) and res["type"] == "call_eval_success"
+    return "Unknown result: '#{Knj::Php.print_r(res, true)}'."
   end
   
   def call_object(var_name, method_name, *args, &block)
@@ -58,16 +93,30 @@ class Knj::Process_meta
   end
   
   def destroy
-    @process.send("type" => "exit")
+    begin
+      @process.send("type" => "exit")
+    rescue Exception => e
+      raise e if e.message != "exit"
+    end
+    
     @err_thread.kill if @err_thread
     @process.destroy
+    Process.kill("TERM", @wait_thr.pid)
+    
+    @process = nil
+    @wait_thr = nil
+    @stdin = nil
+    @stdout = nil
+    @stderr = nil
+    @objects = nil
+    @args = nil
   end
 end
 
 #This proxies all events to the sub-process.
 class Knj::Process_meta::Proxy_obj
   #Overwrite internal methods some truly simulate the sub-process-methods.
-  proxy_methods = ["to_s"]
+  proxy_methods = ["to_s", "respond_to?"]
   proxy_methods.each do |method_name|
     define_method(method_name) do |*args|
       return self.method_missing(method_name, *args)

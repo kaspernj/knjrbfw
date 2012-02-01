@@ -48,6 +48,13 @@ objects = {}
         raise "Var-name doesnt exist: '#{obj["var_name"]}'." if !objects.key?(obj["var_name"])
         objects.delete(obj["var_name"])
         d.answer("type" => "unset_success")
+      elsif obj["type"] == "static"
+        const = Knj::Strings.const_get_full(obj["const"])
+        res = const.send(obj["method_name"], *obj["args"], &block)
+        d.answer("type" => "call_const_success", "result" => res)
+      elsif obj["type"] == "str_eval"
+        res = eval(obj["str"])
+        d.answer("type" => "call_eval_success", "result" => res)
       elsif obj["type"] == "exit"
         d.answer("type" => "exit_success")
         exit
