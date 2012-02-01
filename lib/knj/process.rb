@@ -90,7 +90,9 @@ class Knj::Process
         when "answer_block"
           @blocks[id][:results] << obj
         when "answer_block_end"
-          @out_answers[id] = true
+          $stderr.print "Answer-block-end received!\n"
+          @blocks[id][:block_result] = obj
+          @blocks[id][:finished] = true
         when "send"
           Knj::Thread.new do
             result_obj = Knj::Process::Resultobject.new(:process => self, :id => id, :obj => obj)
@@ -105,10 +107,11 @@ class Knj::Process
         when "send_block"
           Knj::Thread.new do
             result_obj = Knj::Process::Resultobject.new(:process => self, :id => id, :obj => obj)
+            block_res = nil
             
             begin
               count = 0
-              @on_rec.call(result_obj) do |answer_block|
+              block_res = @on_rec.call(result_obj) do |answer_block|
                 count += 1
                 self.answer(id, answer_block, "answer_block")
                 
@@ -116,7 +119,7 @@ class Knj::Process
                   count = 0
                   
                   loop do
-                    answer = self.send(id, true, "send_block_count")
+                    answer = self.send(id, nil, "send_block_count")
                     $stderr.print "Answer was: #{answer}\n" if @debug
                     
                     if answer >= 100
@@ -134,7 +137,8 @@ class Knj::Process
               #Error was raised - try to forward it to the server.
               result_obj.answer("type" => "process_error", "class" => e.class.name, "msg" => e.message, "backtrace" => e.backtrace)
             ensure
-              self.answer(id, nil, "answer_block_end")
+              $stderr.print "Answering with block-end.\n" if @debug
+              self.answer(id, block_res, "answer_block_end")
             end
           end
         when "send_block_count"
@@ -173,11 +177,11 @@ class Knj::Process
       $stderr.print "Writing #{my_id} to socket.\n" if @debug
       
       if block
-        @blocks[my_id] = {:block => block, :results => []}
-        @out.write("send_block:#{my_id}:#{str.length}\n#{str}")
-      else
-        @out.write("#{type}:#{my_id}:#{str.length}\n#{str}")
+        type = "send_block" if type == "send"
+        @blocks[my_id] = {:block => block, :results => [], :finished => false}
       end
+      
+      @out.write("#{type}:#{my_id}:#{str.length}\n#{str}")
     end
     
     if wait_for_answer
@@ -214,10 +218,16 @@ class Knj::Process
   #Waits for data with a certain ID and returns it when it exists.
   def read_answer(id)
     $stderr.print "Reading answer (#{id}).\n" if @debug
-    block_res = @blocks.key?(id)
+    block_res = @blocks[id]
     
-    while !@out_answers.key?(id)
-      self.exec_block_results(id) if block_res
+    loop do
+      if block_res
+        self.exec_block_results(id)
+        break if block_res and block_res[:finished]
+      else
+        break if @out_answers.key?(id)
+      end
+      
       sleep @args[:sleep_answer]
     end
     
@@ -247,6 +257,7 @@ end
 class Knj::Process::Resultobject
   def initialize(args)
     @args = args
+    @answered = false
   end
   
   #The object that was passed to the current process/socket.
@@ -266,6 +277,12 @@ class Knj::Process::Resultobject
   
   #Answers the call with the given object.
   def answer(obj)
+    @answered = true
     @args[:process].answer(@args[:id], obj)
+  end
+  
+  #Returns true if this result has been answered.
+  def answered?
+    return @answered
   end
 end

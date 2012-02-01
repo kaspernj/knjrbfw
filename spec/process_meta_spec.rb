@@ -33,8 +33,20 @@ describe "Process_meta" do
       thread.join
     end
     
+    #Try to define an integer and run upto with a block.
+    proxy_int = process_eval.spawn_object(:Integer, nil, 5)
+    expect = 5
+    proxy_int.upto(10) do |i|
+      raise "Expected '#{expect}' but got: '#{i}'." if i != expect
+      expect += 1
+    end
+    
+    #Ensure the expected has actually been increased by running the block.
+    raise "Expected end-result of 11 but got: '#{expect}'." if expect != 11
+    
     #Try to unset an object.
-    proxy_obj.process_eval_unset
+    proxy_obj._process_meta_unset
+    proxy_int._process_meta_unset
     
     #Destroy the process-eval which should stop the process.
     process_eval.destroy

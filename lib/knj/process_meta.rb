@@ -25,6 +25,13 @@ class Knj::Process_meta
   end
   
   def spawn_object(class_name, var_name, *args)
+    proxy_obj = Knj::Process_meta::Proxy_obj.new(:process_meta => self, :name => var_name)
+    
+    if var_name == nil
+      var_name = proxy_obj.__id__
+      proxy_obj._process_meta_args[:name] = var_name
+    end
+    
     res = @process.send(
       "type" => "spawn_object",
       "class_name" => class_name,
@@ -32,15 +39,18 @@ class Knj::Process_meta
       "args" => args
     )
     
-    proxy_obj = Knj::Process_meta::Proxy_obj.new(:process_meta => self, :name => var_name)
+    return proxy_obj
   end
   
-  def call_object(var_name, method_name, *args)
+  def call_object(var_name, method_name, *args, &block)
     res = @process.send(
-      "type" => "call_object",
-      "var_name" => var_name,
-      "method_name" => method_name,
-      "args" => args
+      {
+        "type" => "call_object_block",
+        "var_name" => var_name,
+        "method_name" => method_name,
+        "args" => args
+      },
+      &block
     )
     
     return res["result"] if res.is_a?(Hash) and res["type"] == "call_object_success"
@@ -69,11 +79,15 @@ class Knj::Process_meta::Proxy_obj
   end
   
   #This proxies all method-calls through the process-handeler and returns the result as the object was precent inside the current process-memory, even though it is not.
-  def method_missing(method_name, *args)
-    @args[:process_meta].call_object(@args[:name], method_name, *args)
+  def method_missing(method_name, *args, &block)
+    @args[:process_meta].call_object(@args[:name], method_name, *args, &block)
   end
   
-  def process_eval_unset
+  def _process_meta_unset
     @args[:process_meta].process.send("type" => "unset", "var_name" => @args[:name])
+  end
+  
+  def _process_meta_args
+    return @args
   end
 end
