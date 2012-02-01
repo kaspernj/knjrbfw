@@ -45,6 +45,7 @@ module Knj::Strings
     return regex
   end
   
+  #Partens a string up in blocks for whatever words can be used to search for. Supports a block or returns an array.
   def self.searchstring(string, &block)
     words = [] if !block
     string = string.to_s
@@ -78,11 +79,13 @@ module Knj::Strings
     return words
   end
   
+  #Returns true if the given string is formatted as an email.
   def self.is_email?(str)
     return true if str.to_s.match(/^\S+@\S+\.\S+$/)
     return false
   end
   
+  #Returns true if the given string is formatted as a international phone-number (example: +4512345678).
   def self.is_phonenumber?(str)
     return true if str.to_s.match(/^\+\d{2}\d+$/)
     return false
@@ -104,6 +107,7 @@ module Knj::Strings
     return str
   end
   
+  #Returns yes or no based on value-variable. value-variable can be boolean, "yes", "no", 0 or 1.
   def self.yn_str(value, str_yes = "Yes", str_no = "No")
     value = value.to_i if Knj::Php.is_numeric(value)
     
@@ -119,6 +123,7 @@ module Knj::Strings
     return str_yes
   end
   
+  #Shortens a string to maxlength and adds "..." if it was shortened.
   def self.shorten(str, maxlength)
     str = str.to_s
     str = str.slice(0..(maxlength - 1)).strip + "..." if str.length > maxlength
@@ -198,7 +203,7 @@ module Knj::Strings
     return module_use
   end
   
-  #Email content may only be 1000 characters wrong. This method shortens them gracefully.
+  #Email content may only be 1000 characters long. This method shortens them gracefully.
   def self.email_str_safe(str)
     str = str.to_s
     strcopy = "#{str}"
