@@ -188,9 +188,10 @@ module Knj::Strings
   
   #Returns the module from the given string - even if formed as SomeClass::SomeNewClass.
   def self.const_get_full(str)
+    raise "Invalid object: '#{str.class.name}'." if !str.is_a?(String) and !str.is_a?(Symbol)
     module_use = Kernel
     
-    str.scan(/(.+?)(::|$)/) do |match|
+    str.to_s.scan(/(.+?)(::|$)/) do |match|
       module_use = module_use.const_get(match[0])
     end
     
