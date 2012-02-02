@@ -110,15 +110,24 @@ class Knj::Process
             block_res = nil
             
             begin
+              buffer_use = true
               buffer_answers = []
               buffer_done = false
               
-              buffer_thread = Knj::Thread.new do
-                loop do
-                  arr = buffer_answers.shift(100)
-                  $stderr.print "Sending: #{arr.length} results.\n"
-                  self.answer(id, arr, "answer_block")
-                  break if buffer_done and buffer_answers.empty?
+              if buffer_use
+                buffer_thread = Knj::Thread.new do
+                  loop do
+                    arr = buffer_answers.shift(200)
+                    
+                    if !arr.empty?
+                      $stderr.print "Sending: #{arr.length} results.\n" if @debug
+                      self.answer(id, arr, "answer_block")
+                    else
+                      sleep 0.05
+                    end
+                    
+                    break if buffer_done and buffer_answers.empty?
+                  end
                 end
               end
               
@@ -127,8 +136,8 @@ class Knj::Process
                   count = 0
                   block_res = @on_rec.call(result_obj) do |answer_block|
                     loop do
-                      if buffer_answers.length > 500
-                        $stderr.print "Buffer is more than 100 - sleeping and tries again in 0.1 sec.\n"
+                      if buffer_answers.length > 1000
+                        $stderr.print "Buffer is more than 1000 - sleeping and tries again in 0.05 sec.\n" if @debug
                         sleep 0.05
                       else
                         break
@@ -136,14 +145,17 @@ class Knj::Process
                     end
                     
                     count += 1
-                    $stderr.print "Adding result to buffer.\n"
-                    buffer_answers << answer_block
+                    if buffer_use
+                      buffer_answers << answer_block
+                    else
+                      self.answer(id, [answer_block], "answer_block")
+                    end
                     
                     if count >= 100
                       count = 0
                       
                       loop do
-                        answer = self.send(id, nil, "send_block_count")
+                        answer = self.send(id, true, "send_block_count")
                         $stderr.print "Answer was: #{answer}\n" if @debug
                         
                         if answer >= 100
@@ -157,10 +169,10 @@ class Knj::Process
                     end
                   end
                 ensure
-                  buffer_done = true
+                  buffer_done = true if buffer_use
                 end
               ensure
-                buffer_thread.join
+                buffer_thread.join if buffer_use
               end
             rescue Exception => e
               $stderr.print Knj::Errors.error_str(e) if @debug

@@ -5,7 +5,7 @@ describe "Process_meta" do
     require "knj/autoload"
     
     #Start the activity.
-    process_eval = Knj::Process_meta.new
+    process_eval = Knj::Process_meta.new("debug_err" => true)
     
     #Spawn a test-object - a string.
     proxy_obj = process_eval.spawn_object(:String, "my_test_var", "Kasper")
@@ -36,13 +36,13 @@ describe "Process_meta" do
     #Try to define an integer and run upto with a block.
     proxy_int = process_eval.spawn_object(:Integer, nil, 5)
     expect = 5
-    proxy_int.upto(10) do |i|
+    proxy_int.upto(1000) do |i|
       raise "Expected '#{expect}' but got: '#{i}'." if i != expect
       expect += 1
     end
     
     #Ensure the expected has actually been increased by running the block.
-    raise "Expected end-result of 11 but got: '#{expect}'." if expect != 11
+    raise "Expected end-result of 11 but got: '#{expect}'." if expect != 1001
     
     #Try to unset an object.
     proxy_obj._process_meta_unset

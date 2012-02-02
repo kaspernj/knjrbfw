@@ -77,6 +77,7 @@ class Knj::Process_meta
     return "Unknown result: '#{Knj::Php.print_r(res, true)}'."
   end
   
+  #Calls a method on an object and returns the result.
   def call_object(var_name, method_name, *args, &block)
     res = @process.send(
       {
@@ -92,6 +93,7 @@ class Knj::Process_meta
     raise "Unknown result: '#{Knj::Php.print_r(res, true)}'."
   end
   
+  #Destroyes the project and unsets all variables on the Process_meta-object.
   def destroy
     begin
       @process.send("type" => "exit")
