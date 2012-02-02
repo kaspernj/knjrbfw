@@ -13,20 +13,20 @@ class KnjDB_mysql::Columns
     data["maxlength"] = 255 if data["type"] == "varchar" and !data.key?("maxlength")
     
     sql = "`#{data["name"]}` #{data["type"]}"
-    sql += "(#{data["maxlength"]})" if data["maxlength"]
-    sql += " PRIMARY KEY" if data["primarykey"]
-    sql += " AUTO_INCREMENT" if data["autoincr"]
-    sql += " NOT NULL" if !data["null"]
+    sql << "(#{data["maxlength"]})" if data["maxlength"]
+    sql << " PRIMARY KEY" if data["primarykey"]
+    sql << " AUTO_INCREMENT" if data["autoincr"]
+    sql << " NOT NULL" if !data["null"]
     
     if data.key?("default_func")
-      sql += " DEFAULT #{data["default_func"]}"
+      sql << " DEFAULT #{data["default_func"]}"
     elsif data.key?("default") and data["default"] != false
-      sql += " DEFAULT '#{@db.escape(data["default"])}'"
+      sql << " DEFAULT '#{@db.escape(data["default"])}'"
     end
     
-    sql += " COMMENT '#{@db.escape(data["comment"])}'" if data.key?("comment")
-    sql += " AFTER `#{@db.esc_col(data["after"])}`" if data["after"] and !data["first"]
-    sql += " FIRST" if data["first"]
+    sql << " COMMENT '#{@db.escape(data["comment"])}'" if data.key?("comment")
+    sql << " AFTER `#{@db.esc_col(data["after"])}`" if data["after"] and !data["first"]
+    sql << " FIRST" if data["first"]
     
     return sql
   end

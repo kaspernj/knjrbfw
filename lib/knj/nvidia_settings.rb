@@ -37,7 +37,7 @@ class Knj::Nvidia_settings
     str = ""
     
     if @data["display"]
-      str += " --display #{@data["display"]}"
+      str << " --display #{@data["display"]}"
     end
     
     return str

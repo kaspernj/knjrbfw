@@ -32,12 +32,12 @@ class KnjDB_sqlite3::Tables
     
     first = true
     data["columns"].each do |col_data|
-      sql += ", " if !first
+      sql << ", " if !first
       first = false if first
-      sql += @db.cols.data_sql(col_data)
+      sql << @db.cols.data_sql(col_data)
     end
     
-    sql += ")"
+    sql << ")"
     
     @db.query(sql)
     @list = nil
@@ -113,30 +113,30 @@ class KnjDB_sqlite3::Tables::Table
     sql = "CREATE TABLE `#{self.name}` ("
     first = true
     cols_cur.each do |name, col|
-      sql += ", " if !first
+      sql << ", " if !first
       first = false if first
-      sql += @db.cols.data_sql(col.data)
+      sql << @db.cols.data_sql(col.data)
       
       if col_data["after"] and col_data["after"] == name
-        sql += ", #{@db.cols.data_sql(col_data)}"
+        sql << ", #{@db.cols.data_sql(col_data)}"
       end
     end
-    sql += ");"
+    sql << ");"
     @db.query(sql)
     
     sql = "INSERT INTO `#{self.name}` SELECT "
     first = true
     cols_cur.each do |name, col|
-      sql += ", " if !first
+      sql << ", " if !first
       first = false if first
       
-      sql += "`#{name}`"
+      sql << "`#{name}`"
       
       if col_data["after"] and col_data["after"] == name
-        sql += ", ''"
+        sql << ", ''"
       end
     end
-    sql += " FROM `#{temp_name}`"
+    sql << " FROM `#{temp_name}`"
     @db.query(sql)
     @db.query("DROP TABLE `#{temp_name}`")
   end
@@ -148,12 +148,12 @@ class KnjDB_sqlite3::Tables::Table
     sql = "CREATE TABLE `#{newname}` ("
     first = true
     cols_cur.each do |name, col|
-      sql += ", " if !first
+      sql << ", " if !first
       first = false if first
-      sql += @db.cols.data_sql(col.data)
+      sql << @db.cols.data_sql(col.data)
     end
     
-    sql += ");"
+    sql << ");"
     @db.query(sql)
     
     sql = "INSERT INTO `#{newname}` SELECT * FROM `#{self.name}`"
@@ -172,24 +172,24 @@ class KnjDB_sqlite3::Tables::Table
     cols_cur.each do |name, col|
       next if args["drops"] and args["drops"].index(name) != nil
       
-      sql += ", " if !first
+      sql << ", " if !first
       first = false if first
       
       if args.key?("alter_columns") and args["alter_columns"][name.to_s]
-        sql += @db.cols.data_sql(args["alter_columns"][name.to_s])
+        sql << @db.cols.data_sql(args["alter_columns"][name.to_s])
       else
-        sql += @db.cols.data_sql(col.data)
+        sql << @db.cols.data_sql(col.data)
       end
       
       if args["new"]
         args["new"].each do |col_data|
           if col_data["after"] and col_data["after"] == name
-            sql += ", #{@db.cols.data_sql(col_data)}"
+            sql << ", #{@db.cols.data_sql(col_data)}"
           end
         end
       end
     end
-    sql += ");"
+    sql << ");"
     @db.query(sql)
     
     sql = "INSERT INTO `#{self.name}` SELECT "
@@ -197,21 +197,21 @@ class KnjDB_sqlite3::Tables::Table
     cols_cur.each do |name, col|
       next if args["drops"] and args["drops"].index(name) != nil
       
-      sql += ", " if !first
+      sql << ", " if !first
       first = false if first
       
-      sql += "`#{name}`"
+      sql << "`#{name}`"
       
       if args["news"]
         args["news"].each do |col_data|
           if col_data["after"] and col_data["after"] == name
-            sql += ", ''"
+            sql << ", ''"
           end
         end
       end
     end
     
-    sql += " FROM `#{temp_name}`"
+    sql << " FROM `#{temp_name}`"
     @db.query(sql)
     @db.query("DROP TABLE `#{temp_name}`")
   end
@@ -267,13 +267,13 @@ class KnjDB_sqlite3::Tables::Table
       
       first = true
       index_data["columns"].each do |col_name|
-        sql += ", " if !first
+        sql << ", " if !first
         first = false if first
         
-        sql += "#{@db.escape_col}#{@db.esc_col(col_name)}#{@db.escape_col}"
+        sql << "#{@db.escape_col}#{@db.esc_col(col_name)}#{@db.escape_col}"
       end
       
-      sql += ")"
+      sql << ")"
       
       @db.query(sql)
       @indexes_list = nil

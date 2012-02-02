@@ -14,6 +14,7 @@ class Knj::Objects
     @args[:cache] = :weak if !@args.key?(:cache)
     @objects = {}
     @data = {}
+    @mutex_require = Mutex.new
     
     require "weakref" if @args[:cache] == :weak and !Kernel.const_defined?(:WeakRef)
     
@@ -24,6 +25,10 @@ class Knj::Objects
     )
     @events.add_event(
       :name => :no_date,
+      :connections_max => 1
+    )
+    @events.add_event(
+      :name => :missing_class,
       :connections_max => 1
     )
     
@@ -128,7 +133,9 @@ class Knj::Objects
   def requireclass(classname, args = {})
     classname = classname.to_sym
     
-    if !@objects.key?(classname)
+    return false if @objects.key?(classname)
+    
+    @mutex_require.synchronize do
       if (@args[:require] or !@args.key?(:require)) and (!args.key?(:require) or args[:require])
         filename = "#{@args[:class_path]}/#{@args[:class_pre]}#{classname.to_s.downcase}.rb"
         filename_req = "#{@args[:class_path]}/#{@args[:class_pre]}#{classname.to_s.downcase}"
@@ -139,7 +146,18 @@ class Knj::Objects
       if args[:class]
         classob = args[:class]
       else
-        classob = @args[:module].const_get(classname)
+        begin
+          classob = @args[:module].const_get(classname)
+        rescue NameError => e
+          if @events.connected?(:missing_class)
+            @events.call(:missing_class, {
+              :class => classname
+            })
+            classob = @args[:module].const_get(classname)
+          else
+            raise e
+          end
+        end
       end
       
       if (classob.respond_to?(:load_columns) or classob.respond_to?(:datarow_init)) and (!args.key?(:load) or args[:load])
@@ -162,6 +180,7 @@ class Knj::Objects
     classob.datarow_init(pass_arg) if classob.respond_to?(:datarow_init)
   end
   
+  #Gets an object from the ID or the full data-hash in the database.
   def get(classname, data)
     classname = classname.to_sym
     
@@ -180,13 +199,12 @@ class Knj::Objects
       case @args[:cache]
         when :weak
           begin
-            obj = @objects[classname][id]
-            obj = obj.__getobj__ if obj.is_a?(WeakRef)
+            obj = @objects[classname][id].__getobj__
             
-            #This actually happens sometimes... WTF!? - knj
             if obj.is_a?(Knj::Datarow) and obj.respond_to?(:table) and obj.respond_to?(:id) and obj.table.to_sym == classname and obj.id.to_i == id
               return obj
             else
+              #This actually happens sometimes... WTF!? - knj
               raise WeakRef::RefError
             end
           rescue WeakRef::RefError
@@ -210,6 +228,8 @@ class Knj::Objects
     case @args[:cache]
       when :weak
         @objects[classname][id] = WeakRef.new(obj)
+      when :none
+        return obj
       else
         @objects[classname][id] = obj
     end
@@ -259,6 +279,7 @@ class Knj::Objects
     end
   end
   
+  #Returns an array-list of objects. If given a block the block will be called for each element and memory will be spared if running weak-link-mode.
   def list(classname, args = {}, &block)
     args = {} if args == nil
     classname = classname.to_sym
@@ -281,11 +302,16 @@ class Knj::Objects
         block.call(obj)
       end
       return nil
+    elsif block and ret != nil
+      raise "Return should return nil because of block but didnt. It wasnt an array either..."
+    elsif block
+      return nil
+    else
+      return ret
     end
-    
-    return ret
   end
   
+  #Returns select-options-HTML for inserting into a HTML-select-element.
   def list_opts(classname, args = {})
     Knj::ArrayExt.hash_sym(args)
     classname = classname.to_sym
@@ -299,13 +325,13 @@ class Knj::Objects
     html = ""
     
     if args[:addnew] or args[:add]
-      html += "<option"
-      html += " selected=\"selected\"" if !args[:selected]
-      html += " value=\"\">#{_("Add new")}</option>"
+      html << "<option"
+      html << " selected=\"selected\"" if !args[:selected]
+      html << " value=\"\">#{_("Add new")}</option>"
     end
     
     self.list(classname, args[:list_args]) do |object|
-      html += "<option value=\"#{object.id.html}\""
+      html << "<option value=\"#{object.id.html}\""
       
       selected = false
       if args[:selected].is_a?(Array) and args[:selected].index(object) != nil
@@ -314,7 +340,7 @@ class Knj::Objects
         selected = true
       end
       
-      html += " selected=\"selected\"" if selected
+      html << " selected=\"selected\"" if selected
       
       obj_methods = object.class.instance_methods(false)
       
@@ -336,15 +362,16 @@ class Knj::Objects
         end
         
         raise "Could not figure out which name-method to call?" if !objhtml
-        html += ">#{objhtml}</option>"
+        html << ">#{objhtml}</option>"
       rescue Exception => e
-        html += ">[#{object.class.name}: #{e.message}]</option>"
+        html << ">[#{object.class.name}: #{e.message}]</option>"
       end
     end
     
     return html
   end
   
+  #Returns a hash which can be used to generate HTML-select-elements.
   def list_optshash(classname, args = {})
     Knj::ArrayExt.hash_sym(args)
     classname = classname.to_sym
@@ -384,19 +411,19 @@ class Knj::Objects
     return list
   end
   
-  # Returns a list of a specific object by running specific SQL against the database.
-  def list_bysql(classname, sql, d = nil)
+  #Returns a list of a specific object by running specific SQL against the database.
+  def list_bysql(classname, sql, d = nil, &block)
     classname = classname.to_sym
-    ret = [] if !block_given?
+    ret = [] if !block
     @args[:db].q(sql) do |d_obs|
-      if block_given?
-        yield(self.get(classname, d_obs))
+      if block
+        block.call(self.get(classname, d_obs))
       else
         ret << self.get(classname, d_obs)
       end
     end
     
-    return ret if !block_given?
+    return ret if !block
   end
   
   # Add a new object to the database and to the cache.
@@ -427,7 +454,7 @@ class Knj::Objects
         end
       end
       
-      ins_id = @args[:db].insert(classname, data, {:return_id => true})
+      ins_id = @args[:db].insert(classobj.table, data, {:return_id => true})
       retob = self.get(classname, ins_id)
     elsif @args[:custom]
       classobj = @args[:module].const_get(classname)
@@ -449,6 +476,7 @@ class Knj::Objects
     return retob
   end
   
+  #Adds several objects to the database at once. This is faster than adding every single object by itself, since this will do multi-inserts if supported by the database.
   def adds(classname, datas)
     if !@args[:datarow]
       datas.each do |data|
@@ -470,23 +498,22 @@ class Knj::Objects
     end
   end
   
-  def static(class_name, method_name, *args)
+  #Calls a static method on a class. Passes the d-variable which contains the Objects-object, database-reference and more...
+  def static(class_name, method_name, *args, &block)
     raise "Only available with datarow enabled." if !@args[:datarow] and !@args[:custom]
-    class_name = class_name.to_sym
-    method_name = method_name.to_sym
+    class_name = class_name
+    method_name = method_name
     
     self.requireclass(class_name)
     class_obj = @args[:module].const_get(class_name)
-    raise "The class '#{class_obj.name}' has no such method: '#{method_name}'." if !class_obj.respond_to?(method_name)
-    method_obj = class_obj.method(method_name)
+    
+    #Sometimes this raises the exception but actually responds to the class? Therefore commented out. - knj
+    #raise "The class '#{class_obj.name}' has no such method: '#{method_name}' (#{class_obj.methods.sort.join(", ")})." if !class_obj.respond_to?(method_name)
     
     pass_args = []
     
     if @args[:datarow]
-      pass_args << Knj::Hash_methods.new(
-        :ob => self,
-        :db => self.db
-      )
+      pass_args << Knj::Hash_methods.new(:ob => self, :db => self.db)
     else
       pass_args << Knj::Hash_methods.new(:ob => self)
     end
@@ -495,10 +522,10 @@ class Knj::Objects
       pass_args << arg
     end
     
-    method_obj.call(*pass_args)
+    class_obj.send(method_name, *pass_args, &block)
   end
   
-  # Unset object. Do this if you are sure, that there are no more references left. This will be done automatically when deleting it.
+  #Unset object. Do this if you are sure, that there are no more references left. This will be done automatically when deleting it.
   def unset(object)
     if object.is_a?(Array)
       object.each do |obj|
@@ -519,10 +546,10 @@ class Knj::Objects
       #raise "Could not find object class in cache: #{classname}."
     #elsif !@objects[classname].key?(object.id.to_i)
       #errstr = ""
-      #errstr += "Could not unset object from cache.\n"
-      #errstr += "Class: #{object.class.name}.\n"
-      #errstr += "ID: #{object.id}.\n"
-      #errstr += "Could not find object ID in cache."
+      #errstr << "Could not unset object from cache.\n"
+      #errstr << "Class: #{object.class.name}.\n"
+      #errstr << "ID: #{object.id}.\n"
+      #errstr << "Could not find object ID in cache."
       #raise errstr
     #else
       @objects[classname].delete(object.id.to_i)
@@ -544,7 +571,7 @@ class Knj::Objects
     @objects[classname] = {}
   end
   
-  # Delete an object. Both from the database and from the cache.
+  #Delete an object. Both from the database and from the cache.
   def delete(object)
     self.call("object" => object, "signal" => "delete_before")
     self.unset(object)
@@ -559,6 +586,10 @@ class Knj::Objects
         end
       end
       
+      if object.class.translations
+        _kas.trans_del(object)
+      end
+      
       @args[:db].delete(object.table, {:id => obj_id})
     end
     
@@ -566,6 +597,7 @@ class Knj::Objects
     object.destroy
   end
   
+  #Deletes several objects as one. If running datarow-mode it checks all objects before it starts to actually delete them. Its faster than deleting every single object by itself...
   def deletes(objs)
     if !@args[:datarow]
       objs.each do |obj|
@@ -593,7 +625,7 @@ class Knj::Objects
   
   # Try to clean up objects by unsetting everything, start the garbagecollector, get all the remaining objects via ObjectSpace and set them again. Some (if not all) should be cleaned up and our cache should still be safe... dirty but works.
   def clean(classn)
-    return false if @args[:cache] == :weak
+    return false if @args[:cache] == :weak or @args[:cache] == :none
     
     if classn.is_a?(Array)
       classn.each do |realclassn|
@@ -606,9 +638,10 @@ class Knj::Objects
     end
   end
   
-  # Erases the whole cache if not running weak-link-caching.
+  #Erases the whole cache and regenerates is from ObjectSpace if not running weak-link-caching. If running weaklink-caching then only removes the dead links.
   def clean_all
-    return false if @args[:cache] == :weak
+    return self.clean_all_weak if @args[:cache] == :weak
+    return false if @args[:cache] == :none
     
     classnames = []
     @objects.keys.each do |classn|
@@ -620,10 +653,25 @@ class Knj::Objects
     end
     
     GC.start
+    self.clean_recover
   end
   
+  #Runs through all objects-weaklink-references and removes the weaklinks if the object has been recycled.
+  def clean_all_weak
+    @objects.keys.each do |classn|
+      @objects[classn].keys.each do |object_id|
+        object = @objects[classn][object_id]
+        
+        if !object.weakref_alive?
+          @objects[classn].delete(object_id)
+        end
+      end
+    end
+  end
+  
+  #Regenerates cache from ObjectSpace. Its pretty dangerous but can be used in envs where WeakRef is not supported (did someone say Rhodes?).
   def clean_recover
-    return false if @args[:cache] == :weak
+    return false if @args[:cache] == :weak or @args[:cache] == :none
     return false if RUBY_ENGINE == "jruby" and !JRuby.objectspace
     
     @objects.keys.each do |classn|

@@ -39,6 +39,12 @@ class Knj::Event_handler
     return count
   end
   
+  #Returns true if the given event is connected.
+  def connected?(name)
+    return true if @events.key?(name)
+    return false
+  end
+  
   def disconnect(name, callback_id)
     raise "No such event: '#{name}'." if !@events.key?(name)
     raise "No such connection: '#{name}' --> '#{callback_id}'" if !@events[name].key?(callback_id)

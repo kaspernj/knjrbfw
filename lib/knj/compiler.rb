@@ -17,8 +17,8 @@ class Knj::Compiler
     defname = def_name_for_file_path(args[:filepath])
     
     evalcont = "class Knj::Compiler::Container; def self.#{defname};"
-    evalcont += File.read(args[:filepath])
-    evalcont += ";end;end"
+    evalcont << File.read(args[:filepath])
+    evalcont << ";end;end"
     
     eval(evalcont, nil, args[:fileident])
     @compiled[args[:filepath]] = Time.new

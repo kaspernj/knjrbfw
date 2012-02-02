@@ -13,15 +13,18 @@ module Knj::ArrayExt
     str = ""
     first = true
     
-    args[:arr].each do |value|
+    Knj::Php.foreach(args[:arr]) do |key, value|
       if first
         first = false
       else
-        str += args[:sep]
+        str << args[:sep]
       end
       
-      value = value[key] if args[:key]
-      value = value if !args[:key]
+      if args[:key]
+        value = key
+      else
+        value = value
+      end
       
       if args[:callback]
         if args[:callback].is_a?(Proc) or args[:callback].is_a?(Method)
@@ -33,9 +36,9 @@ module Knj::ArrayExt
       
       raise "Callback returned nothing." if args[:callback] and !value
       
-      str += args[:surr] if args[:surr]
-      str += value.to_s
-      str += args[:surr] if args[:surr]
+      str << args[:surr] if args[:surr]
+      str << value.to_s
+      str << args[:surr] if args[:surr]
     end
     
     return str
@@ -95,10 +98,10 @@ module Knj::ArrayExt
     combined_val = ""
     hash.each do |key, val|
       if combined_val.length > 0
-        combined_val += ";"
+        combined_val << ";"
       end
       
-      combined_val += "#{key}:#{val}"
+      combined_val << "#{key}:#{val}"
     end
     
     return Digest::MD5.hexdigest(combined_val)
@@ -174,5 +177,41 @@ module Knj::ArrayExt
         raise Knj::Errors::InvalidData, sprintf(args[:not_empty_error], key)
       end
     end
+  end
+  
+  #Sorts the hash without being a retard...
+  def self.hash_sort(hash, &block)
+    sorted = hash.sort(&block)
+    
+    ret = {}
+    sorted.each do |ele|
+      ret[ele[0]] = ele[1]
+    end
+    
+    return ret
+  end
+  
+  #Forces all strings in an array or a hash to be encoded to a specific encoding recursively.
+  def self.clone_encode(hash, encoding, args = {})
+    return hash if !hash
+    
+    hash = hash.clone
+    Knj::Php.foreach(hash) do |key, val|
+      if val.is_a?(String)
+        begin
+          hash[key] = Knj::Php.utf8_encode(encoding)
+        rescue Encoding::UndefinedConversionError => e
+          if args["ignore_encoding_errors"]
+            next
+          else
+            raise e
+          end
+        end
+      elsif val.is_a?(Array) or val.is_a?(Hash)
+        hash[key] = Knj::ArrayExt.clone_encode(val, encoding, args)
+      end
+    end
+    
+    return hash
   end
 end

@@ -1,3 +1,5 @@
+#encoding: utf-8
+
 module Knj::Strings
   def self.UnixSafe(tha_string)
     return tha_string.to_s.gsub(" ", "\\ ").gsub("&", "\&").gsub("(", "\\(").gsub(")", "\\)").gsub('"', '\"').gsub("\n", "\"\n\"")
@@ -7,8 +9,45 @@ module Knj::Strings
     return Knj::Strings.UnixSafe(string)
   end
   
-  def self.searchstring(string)
-    words = []
+  #Returns a Regexp-object from the string formatted as what you would give to Php's preg_match.
+  def self.regex(str)
+    first_char = str[0, 1]
+    raise "First char should be '/' but wasnt: '#{first_char}'." if first_char != "/"
+    first_pos = 1
+    
+    second_pos = str.rindex("/")
+    pattern = str[first_pos, second_pos - 1]
+    
+    flags = str[second_pos + 1, str.length].to_s
+    arg_two = 0
+    
+    if flags
+      flags.length.times do |i|
+        arg = flags[i, 1]
+        
+        case arg
+          when "i"
+            arg_two |= Regexp::IGNORECASE
+          when "m"
+            arg_two |= Regexp::MULTILINE
+          when "x"
+            arg_two |= Regexp::EXTENDED
+          when "U"
+            raise Knj::Errors::InvalidData, "Ruby does (as far as I know) not support the 'U'-modifier. You should rewrite your regex with non-greedy operators such as '(\d+?)' instead for: '#{str}'."
+          else
+            raise "Unknown argument: '#{arg}'."
+        end
+      end
+    end
+    
+    regex = Regexp.new(pattern, arg_two)
+    
+    return regex
+  end
+  
+  #Partens a string up in blocks for whatever words can be used to search for. Supports a block or returns an array.
+  def self.searchstring(string, &block)
+    words = [] if !block
     string = string.to_s
     
     matches = string.scan /(\"(.+?)\")/
@@ -16,33 +55,60 @@ module Knj::Strings
       word = matcharr[1]
       
       if word and word.length > 0
-        words << matcharr[1]
+        if block
+          yield(matcharr[1])
+        else
+          words << matcharr[1]
+        end
+        
         string = string.gsub(matcharr[0], "")
       end
     end
     
     string.split(/\s/).each do |word|
-      words << word if word and word.length > 0
+      if word and word.length > 0
+        if block
+          yield(word)
+        else
+          words << word
+        end
+      end
     end
     
+    return nil if block
     return words
   end
   
+  #Returns true if the given string is formatted as an email.
   def self.is_email?(str)
     return true if str.to_s.match(/^\S+@\S+\.\S+$/)
     return false
   end
   
+  #Returns true if the given string is formatted as a international phone-number (example: +4512345678).
   def self.is_phonenumber?(str)
     return true if str.to_s.match(/^\+\d{2}\d+$/)
     return false
   end
   
-  def self.js_safe(str)
-    return str.gsub("\r", "").gsub("\n", "\\n").gsub('"', '\"');
+  def self.js_safe(str, args = {})
+    str = "#{str}"
+    
+    if args[:quotes_to_single]
+      str.gsub!('"', "'")
+    end
+    
+    str = str.gsub("\r", "").gsub("\n", "\\n").gsub("'", "\\\\'")
+    
+    if !args.key?(:quotes) or args[:quotes]
+      str.gsub!('"', '\"')
+    end
+    
+    return str
   end
   
-  def self.yn_str(value, str_yes, str_no)
+  #Returns yes or no based on value-variable. value-variable can be boolean, "yes", "no", 0 or 1.
+  def self.yn_str(value, str_yes = "Yes", str_no = "No")
     value = value.to_i if Knj::Php.is_numeric(value)
     
     if value.is_a?(Integer)
@@ -53,10 +119,11 @@ module Knj::Strings
       end
     end
     
-    return str_no if !value
+    return str_no if !value or value == "no"
     return str_yes
   end
   
+  #Shortens a string to maxlength and adds "..." if it was shortened.
   def self.shorten(str, maxlength)
     str = str.to_s
     str = str.slice(0..(maxlength - 1)).strip + "..." if str.length > maxlength
@@ -74,7 +141,7 @@ module Knj::Strings
           html = "<a"
         end
         
-        html += " href=\"#{match[0]}\">#{match[0]}</a>"
+        html << " href=\"#{match[0]}\">#{match[0]}</a>"
         str = str.gsub(match[0], html)
       end
     end
@@ -126,12 +193,57 @@ module Knj::Strings
   
   #Returns the module from the given string - even if formed as SomeClass::SomeNewClass.
   def self.const_get_full(str)
+    raise "Invalid object: '#{str.class.name}'." if !str.is_a?(String) and !str.is_a?(Symbol)
     module_use = Kernel
     
-    str.scan(/(.+?)(::|$)/) do |match|
+    str.to_s.scan(/(.+?)(::|$)/) do |match|
       module_use = module_use.const_get(match[0])
     end
     
     return module_use
+  end
+  
+  #Email content may only be 1000 characters long. This method shortens them gracefully.
+  def self.email_str_safe(str)
+    str = str.to_s
+    strcopy = "#{str}"
+    
+    str.each_line("\n") do |substr_orig|
+      substr = "#{substr_orig}"
+      next if substr.length <= 1000
+      
+      lines = []
+      
+      while substr.length > 1000 do
+        whitespace_index = substr.rindex(/\s/, 1000)
+        
+        if whitespace_index == nil
+          lines << substr.slice(0, 1000)
+          substr = substr.slice(1000, substr.length)
+        else
+          lines << substr.slice(0, whitespace_index + 1)
+          substr = substr.slice(whitespace_index + 1, substr.length)
+        end
+      end
+      
+      lines << substr
+      
+      strcopy.gsub!(/^#{Regexp.escape(substr_orig)}$/, lines.join("\n"))
+    end
+    
+    return strcopy
+  end
+  
+  #Returns a float as human locaically readable. 1.0 will be 1, 1.5 will be 1.5 and so on.
+  def self.float_as_human_logic(floatval)
+    raise "Not a float." if !floatval.is_a?(Float)
+    
+    float_s = floatval.to_s
+    parts = float_s.split(".")
+    if parts[1].to_i > 0
+      return float_s
+    else
+      return parts[0].to_s
+    end
   end
 end

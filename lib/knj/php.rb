@@ -17,6 +17,21 @@ module Knj::Php
     end
   end
   
+  def method_exists(obj, method_name)
+    return obj.respond_to?(method_name.to_s)
+  end
+  
+  def is_a(obj, classname)
+    classname = classname.to_s
+    classname = "#{classname[0..0].upcase}#{classname[1..999]}"
+    
+    if obj.is_a?(classname)
+      return true
+    end
+    
+    return false
+  end
+  
   def print_r(argument, ret = false, count = 1)
     retstr = ""
     cstr = argument.class.to_s
@@ -30,11 +45,11 @@ module Knj::Php
         argument_use = argument
       end
       
-      retstr += argument.class.to_s + "{\n"
+      retstr << argument.class.to_s + "{\n"
       argument_use.each do |pair|
         i = 0
         while(i < count)
-          retstr += "   "
+          retstr << "   "
           i += 1
         end
         
@@ -44,23 +59,23 @@ module Knj::Php
           keystr = pair[0].to_s
         end
         
-        retstr += "[#{keystr}] => "
-        retstr += print_r(pair[1], true, count + 1).to_s
+        retstr << "[#{keystr}] => "
+        retstr << print_r(pair[1], true, count + 1).to_s
       end
       
       i = 0
       while(i < count - 1)
-        retstr += "   "
+        retstr << "   "
         i += 1
       end
       
-      retstr += "}\n"
+      retstr << "}\n"
     elsif cstr == "Dictionary"
-      retstr += argument.class.to_s + "{\n"
+      retstr << argument.class.to_s + "{\n"
       argument.each do |key, val|
         i = 0
         while(i < count)
-          retstr += "   "
+          retstr << "   "
           i += 1
         end
         
@@ -70,92 +85,92 @@ module Knj::Php
           keystr = key.to_s
         end
         
-        retstr += "[#{keystr}] => "
-        retstr += Knj::Php.print_r(val, true, count + 1).to_s
+        retstr << "[#{keystr}] => "
+        retstr << Knj::Php.print_r(val, true, count + 1).to_s
       end
       
       i = 0
       while(i < count - 1)
-        retstr += "   "
+        retstr << "   "
         i += 1
       end
       
-      retstr += "}\n"
+      retstr << "}\n"
     elsif argument.is_a?(MatchData) or argument.is_a?(Array) or cstr == "Array" or supercl.is_a?(Array)
-      retstr += argument.class.to_s + "{\n"
+      retstr << argument.class.to_s + "{\n"
       
       arr_count = 0
       argument.to_a.each do |i|
         i_spaces = 0
         while(i_spaces < count)
-          retstr += "   "
+          retstr << "   "
           i_spaces += 1
         end
         
-        retstr += "[" + arr_count.to_s + "] => "
-        retstr += print_r(i, true, count + 1).to_s
+        retstr << "[" + arr_count.to_s + "] => "
+        retstr << print_r(i, true, count + 1).to_s
         arr_count += 1
       end
       
       i_spaces = 0
       while(i_spaces < count - 1)
-        retstr += "   "
+        retstr << "   "
         i_spaces += 1
       end
       
-      retstr += "}\n"
+      retstr << "}\n"
     elsif cstr == "WEBrick::HTTPUtils::FormData"
-      retstr += "{#{argument.class.to_s}}"
+      retstr << "{#{argument.class.to_s}}"
     elsif argument.is_a?(String) or argument.is_a?(Integer) or argument.is_a?(Fixnum) or argument.is_a?(Float)
-      retstr += argument.to_s + "\n"
+      retstr << argument.to_s + "\n"
     elsif argument.is_a?(Symbol)
-      retstr += ":#{argument.to_s}\n"
+      retstr << ":#{argument.to_s}\n"
     elsif argument.is_a?(Exception)
-      retstr += "#\{#{argument.class.to_s}: #{argument.message}}\n"
+      retstr << "#\{#{argument.class.to_s}: #{argument.message}}\n"
     elsif cstr == "Knj::Unix_proc"
-      retstr += "#{argument.class.to_s}::data - "
-      retstr += print_r(argument.data, true, count).to_s
+      retstr << "#{argument.class.to_s}::data - "
+      retstr << print_r(argument.data, true, count).to_s
     elsif cstr == "Thread"
-      retstr += "#{argument.class.to_s} - "
+      retstr << "#{argument.class.to_s} - "
       
       hash = {}
       argument.keys.each do |key|
         hash[key] = argument[key]
       end
       
-      retstr += print_r(hash, true, count).to_s
+      retstr << print_r(hash, true, count).to_s
     elsif cstr == "Class"
-      retstr += "#{argument.class.to_s} - "
+      retstr << "#{argument.class.to_s} - "
       hash = {"name" => argument.name}
-      retstr += print_r(hash, true, count).to_s
+      retstr << print_r(hash, true, count).to_s
     elsif cstr == "URI::Generic"
-      retstr += "#{argument.class.to_s}{\n"
+      retstr << "#{argument.class.to_s}{\n"
       methods = [:host, :port, :scheme, :path]
       count += 1
       methods.each do |method|
         i_spaces = 0
         while(i_spaces < count - 1)
-          retstr += "   "
+          retstr << "   "
           i_spaces += 1
         end
         
-        retstr += "#{method}: #{argument.send(method)}\n"
+        retstr << "#{method}: #{argument.send(method)}\n"
       end
       
       count -= 1
       
       i = 0
       while(i < count - 1)
-        retstr += "   "
+        retstr << "   "
         i += 1
       end
       
-      retstr += "}\n"
+      retstr << "}\n"
     elsif cstr == "Time"
-      retstr += "Time::#{argument.year}-#{argument.month}-#{argument.day} #{argument.hour}:#{argument.min}:#{argument.sec}\n"
+      retstr << "Time::#{argument.year}-#{argument.month}-#{argument.day} #{argument.hour}:#{argument.min}:#{argument.sec}\n"
     else
       #print argument.to_s, "\n"
-      retstr += "Unknown class: '#{cstr}' with superclass '#{supercl}'.\n"
+      retstr << "Unknown class: '#{cstr}' with superclass '#{supercl}'.\n"
     end
     
     if ret.is_a?(TrueClass)
@@ -173,48 +188,31 @@ module Knj::Php
     return GetText._(string)
   end
   
+  #Returns the number as a formatted string.
   def number_format(number, precision = 2, seperator = ".", delimiter = ",")
-    if !number.is_a?(Float)
-      number = number.to_f
-    end
+    number = number.to_f if !number.is_a?(Float)
+    precision = precision.to_i
+    return sprintf("%.#{precision.to_s}f", number).gsub(".", seperator) if number < 1 and number > -1
     
-    if number < 1
-      return sprintf("%.#{precision.to_s}f", number).gsub(".", seperator)
-    end
+    number = sprintf("%.#{precision.to_s}f", number).split(".")
     
-    number = sprintf("%.#{precision.to_s}f", number)
-    
-    #thanks for jmoses wrote some of tsep-code: http://snippets.dzone.com/posts/show/693
-    st = number.reverse
-    r = ""
-    max = if st[-1].chr == '-'
-      st.size - 1
-    else
-      st.size
-    end
-    
-    if st.to_i == st.to_f
-      1.upto(st.size) do |i|
-        r << st[i-1].chr if st[i-1].chr != "."
-        r << ',' if i%3 == 0 and i < max
-      end
-    else
-      start = nil
-      1.upto(st.size) do |i|
-        r << st[i-1].chr
-        start = 0 if r[-1].chr == '.' and not start
-        if start
-          r << ',' if start % 3 == 0 and start != 0  and i < max
-          start += 1
-        end
+    str = ""
+    number[0].reverse.scan(/(.{1,3})/) do |match|
+      if match[0] == "-"
+        #This happens if the number is a negative number and we have reaches the minus-sign.
+        str << match[0]
+      else
+        str << delimiter if str.length > 0
+        str << match[0]
       end
     end
     
-    numberstr = r.to_s.reverse
-    numberstr = numberstr.gsub(",", "comma").gsub(".", "dot")
-    numberstr = numberstr.gsub("comma", delimiter).gsub("dot", seperator)
+    str = str.reverse
+    if precision > 0
+      str << "#{seperator}#{number[1]}"
+    end
     
-    return numberstr
+    return str
   end
   
   def ucwords(string)
@@ -233,6 +231,57 @@ module Knj::Php
     return Knj::Web.html(string)
   end
   
+  def http_build_query(obj)
+    return self.http_build_query_rec("", obj)
+  end
+  
+  def http_build_query_rec(orig_key, obj, first = true)
+    url = ""
+    first_ele = true
+    
+    if obj.is_a?(Array)
+      ele_count = 0
+      
+      obj.each do |val|
+        orig_key_str = "#{orig_key}[#{ele_count}]"
+        val = "#<Model::#{val.table}::#{val.id}>" if val.is_a?(Knj::Datarow) or val.is_a?(Knj::Datarow_custom)
+        
+        if val.is_a?(Hash) or val.is_a?(Array)
+          url << self.http_build_query_rec(orig_key_str, val, false)
+        else
+          url << "&" if !first or !first_ele
+          url << "#{Knj::Web.urlenc(orig_key_str)}=#{Knj::Web.urlenc(val)}"
+        end
+        
+        first_ele = false if first_ele
+        ele_count += 1
+      end
+    elsif obj.is_a?(Hash)
+      obj.each do |key, val|
+        if first
+          orig_key_str = key
+        else
+          orig_key_str = "#{orig_key}[#{key}]"
+        end
+        
+        val = "#<Model::#{val.table}::#{val.id}>" if val.is_a?(Knj::Datarow) or val.is_a?(Knj::Datarow_custom)
+        
+        if val.is_a?(Hash) or val.is_a?(Array)
+          url << self.http_build_query_rec(orig_key_str, val, false)
+        else
+          url << "&" if !first or !first_ele
+          url << "#{Knj::Web.urlenc(orig_key_str)}=#{Knj::Web.urlenc(val)}"
+        end
+        
+        first_ele = false if first_ele
+      end
+    else
+      raise "Unknown class: '#{obj.class.name}'."
+    end
+    
+    return url
+  end
+  
   def isset(var)
     return false if var == nil or var == false
     return true
@@ -244,10 +293,14 @@ module Knj::Php
     return haystack.index(needle)
   end
   
-  def substr(string, from, to = -1)
-    string = string.to_s.slice(from.to_i, to.to_i)
+  def substr(string, from, to = nil)
+    if to == nil
+      to = string.length
+    end
     
-    if Knj::Php.class_exists("Iconv")
+    string = "#{string[from.to_i, to.to_i]}"
+    
+    if !string.valid_encoding? and Knj::Php.class_exists("Iconv")
       ic = Iconv.new("UTF-8//IGNORE", "UTF-8")
       string = ic.iconv(string + "  ")[0..-2]
     end
@@ -256,6 +309,7 @@ module Knj::Php
   end
   
   def md5(string)
+    require "digest"
     return Digest::MD5.hexdigest(string.to_s)
   end
   
@@ -315,7 +369,8 @@ module Knj::Php
   end
   
   def parse_str(str, hash)
-    CGI.parse(str).each do |key, val|
+    res = Knj::Web.parse_urlquery(str, {:urldecode => true})
+    res.each do |key, val|
       hash[key] = val
     end
   end
@@ -467,6 +522,22 @@ module Knj::Php
     exit
   end
   
+  def opendir(dirpath)
+    res = {:files => [], :index => 0}
+    Dir.foreach(dirpath) do |file|
+      res[:files] << file
+    end
+    
+    return res
+  end
+  
+  def readdir(res)
+    ret = res[:files][res[:index]] if res[:files].index(res[:index]) != nil
+    return false if !ret
+    res[:index] += 1
+    return ret
+  end
+  
   def fopen(filename, mode)
     begin
       return File.open(filename, mode)
@@ -512,19 +583,22 @@ module Knj::Php
   end
   
   def utf8_encode(str)
-    str = str.to_s if str.respond_to?(:to_s)
-    require "iconv" if RUBY_PLATFORM == "java" #This fixes a bug in JRuby where Iconv otherwise would not be detected.
+    str = str.to_s if str.respond_to?("to_s")
     
-    if str.respond_to?(:encode)
-      return str.encode("iso-8859-1", "utf-8")
-    elsif Knj::Php.class_exists("Iconv")
+    if str.respond_to?("encode")
       begin
-        return Iconv.conv("iso-8859-1", "utf-8", str)
-      rescue
-        return Iconv.conv("iso-8859-1//ignore", "utf-8", str + "  ").slice(0..-2)
+        return str.encode("iso-8859-1", "utf-8")
+      rescue Encoding::InvalidByteSequenceError
+        #ignore - try iconv
       end
-    else
-      raise "Could not figure out how to utf8-encode string."
+    end
+    
+    require "iconv"
+    
+    begin
+      return Iconv.conv("iso-8859-1", "utf-8", str.to_s)
+    rescue
+      return Iconv.conv("iso-8859-1//ignore", "utf-8", "#{str}  ").slice(0..-2)
     end
   end
   
@@ -533,15 +607,19 @@ module Knj::Php
     require "iconv" if RUBY_PLATFORM == "java" #This fixes a bug in JRuby where Iconv otherwise would not be detected.
     
     if str.respond_to?(:encode)
-      return str.encode("utf-8", "iso-8859-1")
-    elsif Knj::Php.class_exists("Iconv")
       begin
-        return Iconv.conv("utf-8", "iso-8859-1", str.to_s)
-      rescue
-        return Iconv.conv("utf-8//ignore", "iso-8859-1", str.to_s)
+        return str.encode("utf-8", "iso-8859-1")
+      rescue Encoding::InvalidByteSequenceError
+        #ignore - try iconv
       end
-    else
-      raise "Could not figure out how to utf8-decode string."
+    end
+    
+    require "iconv"
+      
+    begin
+      return Iconv.conv("utf-8", "iso-8859-1", str.to_s)
+    rescue
+      return Iconv.conv("utf-8//ignore", "iso-8859-1", str.to_s)
     end
   end
   
@@ -563,6 +641,11 @@ module Knj::Php
     end
     
     return status
+  end
+  
+  #This method is only here for convertion support - it doesnt do anything.
+  def session_start
+    
   end
   
   def explode(expl, strexp)
@@ -607,7 +690,9 @@ module Knj::Php
     end
   end
   
-  def json_decode(data)
+  def json_decode(data, as_array = false)
+    #FIXME: Should be able to return as object, which will break all projects using it without second argument...
+    
     raise "String was not given to 'Knj::Php.json_decode'." if !data.is_a?(String)
     
     if Knj::Php.class_exists("Rho")
@@ -620,7 +705,7 @@ module Knj::Php
   end
   
   def time
-    return Time.new.to_i
+    return Time.now.to_i
   end
   
   def microtime(get_as_float = false)
@@ -646,20 +731,21 @@ module Knj::Php
     return new_time.to_i
   end
   
-  def date(date_format, date_unixt = nil)
-    date_unixt = Time.now.to_i if date_unixt == nil
+  def date(date_format, date_input = nil)
+    if date_input == nil
+      date_object = Time.now
+    elsif Knj::Php.is_numeric(date_input)
+      date_object = Time.at(date_input.to_i)
+    elsif date_input.is_a?(Knj::Datet)
+      date_object = date_input.time
+    elsif date_input.is_a?(Time)
+      date_object = date_input
+    else
+      raise "Unknown date given: '#{date_input}', '#{date_input.class.name}'."
+    end
     
-    date_object = Time.at(date_unixt.to_i)
-    
-    date_format = date_format.gsub("d", "%02d" % date_object.mday)
-    date_format = date_format.gsub("m", "%02d" % date_object.mon)
-    date_format = date_format.gsub("y", "%02d" % date_object.year.to_s[2,2].to_i)
-    date_format = date_format.gsub("Y", "%04d" % date_object.year)
-    date_format = date_format.gsub("H", "%02d" % date_object.hour)
-    date_format = date_format.gsub("i", "%02d" % date_object.min)
-    date_format = date_format.gsub("s", "%02d" % date_object.sec)
-    
-    return date_format
+    date_format = date_format.gsub("Y", "%Y").gsub("y", "%y").gsub("m", "%m").gsub("d", "%d").gsub("H", "%H").gsub("i", "%M").gsub("s", "%S")
+    return date_object.strftime(date_format)
   end
   
   def basename(filepath)
@@ -694,6 +780,8 @@ module Knj::Php
   end
   
   def realpath(pname)
+    require "pathname"
+    
     begin
       return Pathname.new(pname.to_s).realpath.to_s
     rescue => e
@@ -761,6 +849,85 @@ module Knj::Php
     end
     
     return newhash
+  end
+  
+  #Foreach emulator.
+  def foreach(element, &block)
+    raise "No or unsupported block given." if !block.respond_to?(:call) or !block.respond_to?(:arity)
+    arity = block.arity
+    
+    if element.is_a?(Array)
+      element.each_index do |key|
+        if arity == 2
+          block.call(key, element[key])
+        elsif arity == 1
+          block.call(element[key])
+        else
+          raise "Unknown arity: '#{arity}'."
+        end
+      end
+    elsif element.is_a?(Hash)
+      element.each do |key, val|
+        if arity == 2
+          block.call(key, val)
+        elsif arity == 1
+          block.call(val)
+        else
+          raise "Unknown arity: '#{arity}'."
+        end
+      end
+    else
+      raise "Unknown element: '#{element.class.name}'."
+    end
+  end
+  
+  #Array-function emulator.
+  def array(*ele)
+    return {} if ele.length <= 0
+    
+    if ele.length == 1 and ele.first.is_a?(Hash)
+      return ele.first
+    end
+    
+    return ele
+  end
+  
+  def array_key_exists(key, arr)
+    if arr.is_a?(Hash)
+      return arr.key?(key)
+    elsif arr.is_a?(Array)
+      return true if arr.index(key) != nil
+      return false
+    else
+      raise "Unknown type of argument: '#{arr.class.name}'."
+    end
+  end
+  
+  def empty(obj)
+    if obj.respond_to?("empty?")
+      return obj.empty?
+    else
+      raise "Dont know how to handle object on 'empty': '#{obj.class.name}'."
+    end
+  end
+  
+  def trim(argument)
+    return argument.to_s.strip
+  end
+  
+  def serialize(argument)
+    require "php_serialize" #gem: php-serialize
+    return PHP.serialize(argument)
+  end
+  
+  def unserialize(argument)
+    require "php_serialize" #gem: php-serialize
+    return PHP.unserialize(argument.to_s)
+  end
+  
+  @methods = instance_methods
+  def self.php_list_defined_methods
+    return @methods
   end
   
   module_function(*instance_methods)

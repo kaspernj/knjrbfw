@@ -51,11 +51,11 @@ class Knj::Datestamp
     str = ""
     
     if !args.key?(:date) or args[:date] == true
-      str += "%02d" % time.day.to_s + "/" + "%02d" % time.month.to_s + " " + "%04d" % time.year.to_s
+      str << "%02d" % time.day.to_s + "/" + "%02d" % time.month.to_s + " " + "%04d" % time.year.to_s
     end
       
     if !args.key?(:time) or args[:time] == true
-      str += " " + "%02d" % time.hour.to_s + ":" + "%02d" % time.min.to_s
+      str << " " + "%02d" % time.hour.to_s + ":" + "%02d" % time.min.to_s
     end
     
     return str
@@ -79,7 +79,7 @@ class Knj::Datestamp
     
     datestr = ""
     datestr = "#{year}-#{month}-#{date}" if date and month and year
-    datestr += " #{hour}:#{minute}" if hour and minute
+    datestr << " #{hour}:#{minute}" if hour and minute
     
     return Knj::Datestamp.from_dbstr(datestr)
   end

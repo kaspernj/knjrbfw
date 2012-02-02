@@ -17,9 +17,9 @@ class Knj::Eruby
       @cache = {}
     end
     
-    if RUBY_PLATFORM == "java"
-      #@cache_mode = :code_eval
-      @cache_mode = :compile_knj
+    if RUBY_PLATFORM == "java" or RUBY_ENGINE == "rbx"
+      @cache_mode = :code_eval
+      #@cache_mode = :compile_knj
     elsif RUBY_VERSION.slice(0..2) == "1.9" and RubyVM::InstructionSequence.respond_to?(:compile_file)
       @cache_mode = :inseq
       #@cache_mode = :compile_knj
@@ -95,14 +95,14 @@ class Knj::Eruby
     header_str = ""
     
     @headers.each do |header|
-      header_str += "#{header[0]}: #{header[1]}\n"
+      header_str << "#{header[0]}: #{header[1]}\n"
     end
     
     @cookies.each do |cookie|
-      header_str += "Set-Cookie: #{Knj::Web.cookie_str(cookie)}\n"
+      header_str << "Set-Cookie: #{Knj::Web.cookie_str(cookie)}\n"
     end
     
-    header_str += "\n"
+    header_str << "\n"
     self.reset_headers if @fcgi
     return header_str
   end
@@ -196,6 +196,7 @@ class Knj::Eruby
     end
   end
   
+  #This method will handle an error without crashing simply adding the error to the print-queue.
   def handle_error(e)
     begin
       if @connects and @connects.key?("error")

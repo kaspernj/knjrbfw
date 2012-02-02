@@ -109,10 +109,10 @@ class KnjEruby < Erubis::Eruby
     header_str = ""
     
     @headers.each do |header|
-      header_str += "#{header[0]}: #{header[1]}\n"
+      header_str << "#{header[0]}: #{header[1]}\n"
     end
     
-    header_str += "\n"
+    header_str << "\n"
     self.reset_headers if @fcgi
     return header_str
   end

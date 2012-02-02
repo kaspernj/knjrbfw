@@ -1,5 +1,40 @@
 <%
-	idstr = Knj::Php.md5("#{_get["path"]}_#{_get["smartsize"].to_i}_#{_get["width"].to_i}_#{_get["height"].to_i}_#{_get["maxwidth"].to_i}_#{_get["maxheight"].to_i}_#{_get["rounded_corners"].to_i}_#{_get["border"].to_i}_#{_get["border_color"]}")
+  #Support for the PHP-version... Comes handy when converting PHP to Ruby...
+  if !_get["path"]
+    trans = {
+      "picture" => "path"
+    }
+    
+    if _get["edgesize"]
+      _get["rounded_corners"] = (_get["edgesize"].to_f / 3.0).to_i
+    end
+    
+    if _get["edgeborder"]
+      if _get["edgeborder"].length == 6
+        _get["border_color"] = "##{_get["edgeborder"]}"
+      else
+        _get["border_color"] = _get["edbeborder"]
+      end
+    end
+    
+    if _get["edgeborder"]
+      _get["border"] = 1
+    end
+    
+    trans.each do |key, val|
+      _get[val] = _get[key] if _get[key]
+    end
+  end
+  
+  
+	idstr = Digest::MD5.hexdigest("#{_get["path"]}_#{_get["smartsize"].to_i}_#{_get["width"].to_i}_#{_get["height"].to_i}_#{_get["maxwidth"].to_i}_#{_get["maxheight"].to_i}_#{_get["rounded_corners"].to_i}_#{_get["border"].to_i}_#{_get["border_color"]}")
+	
+	if !_get["path"] or !File.exists?(_get["path"])
+    print "File does not exist: '#{_get["path"]}'.\n"
+    exit
+  end
+	
+	time_orig = File.mtime(_get["path"])
 	
 	tmp_use = false
 	tmp_write = false
@@ -10,7 +45,6 @@
 		tmp_write = true if !tmp_exists
 		
 		if !tmp_write and tmp_exists
-			time_orig = File.mtime(_get["path"])
 			time_cache = File.mtime(tmp_path)
 			
 			if time_orig > time_cache
@@ -19,13 +53,26 @@
 		end
 	end
 	
-	if !_get["path"] or !File.exists?(_get["path"])
-    print "File does not exist: '#{_get["path"]}'.\n"
+	notchanged = false
+	
+	if _httpsession.handler.modified_since and time_cache and _httpsession.handler.modified_since.utc.to_s == time_cache.utc.to_s
+    notchanged = true
+  elsif _httpsession.handler.modified_since and _httpsession.handler.modified_since.utc.to_s == time_orig.utc.to_s
+    notchanged = true
+  end
+  
+  if notchanged
+    _httpsession.resp.status = 304
     exit
   end
-	
+  
 	if !tmp_use or tmp_write or _get["force"].to_i > 0
     pic = Magick::Image.read(_get["path"]).first
+    if !pic
+      print "Could not open image from '#{_get["path"]}'."
+      exit
+    end
+    
     pic.format = "png"
     
 		width = pic.columns
@@ -86,16 +133,18 @@
 	end
 	
 	if tmp_write and blob_cont
-		Knj::Php.file_put_contents(tmp_path, blob_cont)
+    File.open(tmp_path, "w") do |fp|
+      fp.write(blob_cont)
+    end
 	end
 	
 	if tmp_use
-    Knj::Php.header("Last-Modified: #{time_orig.httpdate} GMT") if time_orig
-		Knj::Php.header("Content-Type: image/png")
-		print File.read(tmp_path)
+    _kas.header("Last-Modified", "#{time_orig.httpdate} GMT") if time_orig
+		_kas.header("Content-Type", "image/png")
+		_httpsession.force_content(File.new(tmp_path))
 	else
-    Knj::Php.header("Last-Modified: #{time_orig.httpdate} GMT") if time_orig
-		Knj::Php.header("Content-Type: image/png")
-		print blob_cont
+    _kas.header("Last-Modified", "#{time_orig.httpdate} GMT") if time_orig
+		_kas.header("Content-Type", "image/png")
+		_httpsession.force_content(blob_cont)
 	end
 %>

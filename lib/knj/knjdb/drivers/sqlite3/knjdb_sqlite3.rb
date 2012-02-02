@@ -115,6 +115,12 @@ class KnjDB_sqlite3_result_java
     @index += 1
     return ret
   end
+  
+  def each
+    while data = self.fetch
+      yield(data)
+    end
+  end
 end
 
 class KnjDB_sqlite3_result
@@ -146,5 +152,11 @@ class KnjDB_sqlite3_result
     end
     
     return ret
+  end
+  
+  def each
+    while data = self.fetch
+      yield(data)
+    end
   end
 end

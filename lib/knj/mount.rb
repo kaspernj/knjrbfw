@@ -43,25 +43,25 @@ class Knj::Mount
   
   def self.mount(args)
     cmd = "mount"
-    cmd += " -t #{Knj::Strings.unixsafe(args["type"])}" if args.key?("type")
-    cmd += " --bind" if args["bind"]
-    cmd += " #{Knj::Strings.unixsafe(args["from"])} #{Knj::Strings.unixsafe(args["to"])}"
+    cmd << " -t #{Knj::Strings.unixsafe(args["type"])}" if args.key?("type")
+    cmd << " --bind" if args["bind"]
+    cmd << " #{Knj::Strings.unixsafe(args["from"])} #{Knj::Strings.unixsafe(args["to"])}"
     
     if args.key?("opts")
       raise "opts argument must be an array." if !args["opts"].is_a?(Array)
       
-      cmd += "-O "
+      cmd << "-O "
       
       first = true
       args["opts"].each do |opt|
-        cmd += "," if !first
+        cmd << "," if !first
         first = false if first
         
         if opt.is_a?(Array)
           raise "Array-opt must have a length of 2." if opt.length != 2
-          cmd += "#{Knj::Strings.unixsafe(opt[0])}=#{Knj::Strings.unixsafe(opt[1])}"
+          cmd << "#{Knj::Strings.unixsafe(opt[0])}=#{Knj::Strings.unixsafe(opt[1])}"
         elsif arg.is_a?(String)
-          cmd += "#{Knj::Strings.unixsafe(opt)}"
+          cmd << "#{Knj::Strings.unixsafe(opt)}"
         else
           raise "Unknown class: #{opt.class.name}."
         end

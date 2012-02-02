@@ -20,7 +20,7 @@ class Knj::Unix_proc
     
     if args["grep"]
       grepstr = "grep #{Knj::Strings.unixsafe(args["grep"])}"
-      cmdstr += " | #{grepstr}"
+      cmdstr << " | #{grepstr}"
     end
     
     ret = []

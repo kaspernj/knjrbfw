@@ -4,10 +4,10 @@ class Knj::Notify
     
     if args["time"]
       raise "Time is not numeric." if !Php.is_numeric(args["time"])
-      cmd += " -t " + args["time"].to_s
+      cmd << " -t " + args["time"].to_s
     end
     
-    cmd += " " + Strings.UnixSafe(args["title"]) + " " + Strings.UnixSafe(args["msg"])
+    cmd << " " + Strings.UnixSafe(args["title"]) + " " + Strings.UnixSafe(args["msg"])
     system(cmd)
   end
 end

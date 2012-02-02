@@ -316,7 +316,7 @@ class Knj::Datet
     str = "%04d" % @time.year.to_s + "-" + "%02d" % @time.month.to_s + "-" + "%02d" % @time.day.to_s
     
     if !args.key?(:time) or args[:time]
-      str += " " + "%02d" % @time.hour.to_s + ":" + "%02d" % @time.min.to_s + ":" + "%02d" % @time.sec.to_s
+      str << " " + "%02d" % @time.hour.to_s + ":" + "%02d" % @time.min.to_s + ":" + "%02d" % @time.sec.to_s
     end
     
     return str
@@ -344,6 +344,32 @@ class Knj::Datet
     return false
   end
   
+  #Returns the day of the year (0-365).
+  def day_of_year
+    return @time.strftime("%j").to_i
+  end
+  
+  #Returns how many days there is between the two timestamps given.
+  def self.days_between(t1, t2)
+    raise "Timestamp 2 should be larger than timestamp 1." if t2 < t1
+    
+    doy1 = t1.day_of_year
+    doy2 = t2.day_of_year
+    
+    yot1 = t1.year
+    yot2 = t2.year
+    
+    if yot1 == yot2
+      days_between = doy2 - doy1
+      return days_between
+    end
+    
+    upto = 365 - doy1
+    after = doy2
+    
+    return upto + after
+  end
+  
   def out(args = {})
     str = ""
     date_shown = false
@@ -351,17 +377,27 @@ class Knj::Datet
     
     if !args.key?(:date) or args[:date]
       date_shown = true
-      str += "%02d" % @time.day.to_s + "/" + "%02d" % @time.month.to_s
+      str << "%02d" % @time.day.to_s + "/" + "%02d" % @time.month.to_s
       
       if !args.key?(:year) or args[:year]
-        str += " " + "%04d" % @time.year.to_s
+        str << " " + "%04d" % @time.year.to_s
       end
     end
     
     if !args.key?(:time) or args[:time]
-      time_shown = true
-      str += " - " if date_shown
-      str += "%02d" % @time.hour.to_s + ":" + "%02d" % @time.min.to_s
+      show_time = true
+      
+      if args.key?(:zerotime) and !args[:zerotime]
+        if @time.hour == 0 and @time.min == 0
+          show_time = false
+        end
+      end
+      
+      if show_time
+        time_shown = true
+        str << " - " if date_shown
+        str << "%02d" % @time.hour.to_s + ":" + "%02d" % @time.min.to_s
+      end
     end
     
     return str
@@ -417,13 +453,17 @@ class Knj::Datet
       
       time = Time.local(match[1].to_i, match[2].to_i, match[3].to_i, match[5].to_i, match[6].to_i, match[7].to_i, utc_str)
       return Knj::Datet.new(time)
+    elsif match = timestr.to_s.match(/^\s*(\d{2,4})-(\d{1,2})-(\d{1,2})(|\s+(\d{1,2}):(\d{1,2}):(\d{1,2})(:(\d{1,2})|)\s*)$/)
+      time = Time.local(match[1].to_i, match[2].to_i, match[3].to_i, match[5].to_i, match[6].to_i, match[7].to_i)
+      return Knj::Datet.new(time)
     end
     
     raise Knj::Errors::InvalidData.new("Wrong format: '#{timestr}', class: '#{timestr.class.name}'")
   end
   
-  def self.months_arr
-    return {
+  #Returns a hash with the month-no as key and month-name as value.
+  def self.months_arr(args = {})
+    ret = {
       1 => _("January"),
       2 => _("February"),
       3 => _("March"),
@@ -437,10 +477,21 @@ class Knj::Datet
       11 => _("November"),
       12 => _("December")
     }
+    
+    if args["short"]
+      ret_short = {}
+      ret.each do |key, val|
+        ret_short[key] = val[0..2]
+      end
+      
+      return ret_short
+    end
+    
+    return ret
   end
   
-  def self.days_arr
-    return {
+  def self.days_arr(args = {})
+    ret = {
       1 => _("Monday"),
       2 => _("Tuesday"),
       3 => _("Wednesday"),
@@ -449,6 +500,17 @@ class Knj::Datet
       6 => _("Saturday"),
       0 => _("Sunday")
     }
+    
+    if args["short"]
+      ret_short = {}
+      ret.each do |key, val|
+        ret_short[key] = val[0..2]
+      end
+      
+      return ret_short
+    end
+    
+    return ret
   end
   
   def self.month_str_to_no(str)

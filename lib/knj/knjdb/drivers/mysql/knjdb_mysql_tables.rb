@@ -1,6 +1,6 @@
 class KnjDB_mysql::Tables
   attr_reader :db, :driver
-  attr_accessor :list
+  attr_accessor :list_should_be_reloaded
   
   def initialize(args)
     @args = args
@@ -8,18 +8,33 @@ class KnjDB_mysql::Tables
     @driver = @args[:driver]
     @subtype = @db.opts[:subtype]
     @list_mutex = Mutex.new
+    @list = {}
+    @list_should_be_reloaded = true
   end
   
   def [](table_name)
+    table_name = table_name.to_s
     list = self.list
-    return list[table_name.to_s] if list[table_name.to_s]
+    
+    if !list.key?(table_name) and @db.opts[:table_not_found_refresh_retry]
+      print "Reloading list because table doesnt exist: '#{table_name}'.\n"
+      list = self.list(:force => true)
+    end
+    
+    if list.key?(table_name)
+      return list[table_name]
+    end
+    
     raise Knj::Errors::NotFound.new("Table was not found: #{table_name}.")
   end
   
-  def list
-    if !@list
+  def list(args = {})
+    if @list.empty? or args[:force] or @list_should_be_reloaded
+      @list_should_be_reloaded = false
+      
       @list_mutex.synchronize do
-        list = {}
+        found = []
+        
         @db.q("SHOW TABLE STATUS") do |d_tables|
           if @subtype == "java"
             d_tables = {
@@ -44,19 +59,25 @@ class KnjDB_mysql::Tables
             }
           end
           
-          list[d_tables[:Name]] = KnjDB_mysql::Tables::Table.new(
-            :db => @db,
-            :driver => @driver,
-            :data => d_tables,
-            :tables => self
-          )
+          found << d_tables[:Name]
+          
+          if !@list.key?(d_tables[:Name])
+            @list[d_tables[:Name]] = KnjDB_mysql::Tables::Table.new(
+              :db => @db,
+              :driver => @driver,
+              :data => d_tables,
+              :tables => self
+            )
+          end
         end
         
-        @list = list
+        @list.each do |name, table|
+          @list.delete(name) if found.index(name) == nil
+        end
       end
     end
     
-    return @list
+    return @list.clone
   end
   
   def create(name, data)
@@ -66,16 +87,16 @@ class KnjDB_mysql::Tables
     
     first = true
     data["columns"].each do |col_data|
-      sql += ", " if !first
+      sql << ", " if !first
       first = false if first
       col_data.delete("after") if col_data["after"]
-      sql += @db.cols.data_sql(col_data)
+      sql << @db.cols.data_sql(col_data)
     end
     
-    sql += ")"
+    sql << ")"
     
     @db.query(sql)
-    @list = nil
+    @list_should_be_reloaded = true
     
     if data["indexes"]
       table_obj = self[name]
@@ -107,7 +128,8 @@ class KnjDB_mysql::Tables::Table
   end
   
   def optimize
-    raise "stub!"
+    @db.query("OPTIMIZE TABLE `#{self.name}`")
+    return self
   end
   
   def column(name)
@@ -138,12 +160,14 @@ class KnjDB_mysql::Tables::Table
           }
         end
         
-        @list[d_cols[:Field]] = KnjDB_mysql::Columns::Column.new(
-          :table => self,
-          :db => @db,
-          :driver => @driver,
-          :data => d_cols
-        )
+        if !@list.key?(d_cols[:Field])
+          @list[d_cols[:Field]] = KnjDB_mysql::Columns::Column.new(
+            :table => self,
+            :db => @db,
+            :driver => @driver,
+            :data => d_cols
+          )
+        end
       end
     end
     
@@ -210,19 +234,20 @@ class KnjDB_mysql::Tables::Table
       raise "No name was given." if !index_data.key?("name") or index_data["name"].strip.length <= 0
       raise "No columns was given on index: '#{index_data["name"]}'." if !index_data["columns"] or index_data["columns"].empty?
       
-      sql = "CREATE INDEX #{@db.escape_col}#{@db.esc_col(index_data["name"])}#{@db.escape_col} ON #{@db.escape_table}#{@db.esc_table(self.name)}#{@db.escape_table} ("
+      sql = "CREATE"
+      sql << " UNIQUE" if index_data["unique"]
+      sql << " INDEX #{@db.escape_col}#{@db.esc_col(index_data["name"])}#{@db.escape_col} ON #{@db.escape_table}#{@db.esc_table(self.name)}#{@db.escape_table} ("
       
       first = true
       index_data["columns"].each do |col_name|
-        sql += ", " if !first
+        sql << ", " if !first
         first = false if first
         
-        sql += "#{@db.escape_col}#{@db.esc_col(col_name)}#{@db.escape_col}"
+        sql << "#{@db.escape_col}#{@db.esc_col(col_name)}#{@db.escape_col}"
       end
       
-      sql += ")"
+      sql << ")"
       
-      print sql + "\n"
       @db.query(sql)
     end
   end
@@ -233,6 +258,11 @@ class KnjDB_mysql::Tables::Table
     @args[:tables].list[newname] = self
     @args[:tables].list.delete(oldname)
     @data[:Name] = newname
+  end
+  
+  def truncate
+    @db.query("TRUNCATE `#{self.name}`")
+    return self
   end
   
   def data

@@ -158,6 +158,7 @@ module Knj::Os
     return ret
   end
   
+  #Returns the command used to execute the current process.
   def self.executed_cmd
     return ENV["SUDO_COMMAND"] if ENV["SUDO_COMMAND"]
     
@@ -167,5 +168,11 @@ module Knj::Os
     cmd.gsub!(/^ruby([\d\.]+)/, ENV["_"]) if ENV["_"]
     
     return cmd
+  end
+  
+  #Returns the Ruby executable that is running the current process if possible.
+  def self.executed_executable
+    return ENV["rvm_ruby_string"] if ENV["rvm_ruby_string"].to_s.length > 0
+    raise "Could not figure out the executed executable."
   end
 end
