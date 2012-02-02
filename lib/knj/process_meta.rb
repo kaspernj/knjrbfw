@@ -24,7 +24,7 @@ class Knj::Process_meta
       :debug => @args["debug"]
     }
     
-    if @args["debug"]
+    if @args["debug"] or @args["debug_err"]
       args[:err] = @stderr
       args[:on_err] = proc{|line|
         $stderr.print "stderr: #{line}"
