@@ -44,6 +44,17 @@ describe "Process_meta" do
     #Ensure the expected has actually been increased by running the block.
     raise "Expected end-result of 11 but got: '#{expect}'." if expect != 1001
     
+    
+    proxy_int._process_meta_block_buffer_use = true
+    expect = 5
+    proxy_int.upto(1000) do |i|
+      raise "Expected '#{expect}' but got: '#{i}'." if i != expect
+      expect += 1
+    end
+    
+    #Ensure the expected has actually been increased by running the block.
+    raise "Expected end-result of 11 but got: '#{expect}'." if expect != 1001
+    
     #Try to unset an object.
     proxy_obj._process_meta_unset
     proxy_int._process_meta_unset

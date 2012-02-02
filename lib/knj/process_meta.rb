@@ -36,12 +36,15 @@ class Knj::Process_meta
   
   #Executes a static method on a class in the sub-process.
   def static(const, method_name, *args, &block)
-    res = @process.send({
-      "type" => "static",
-      "const" => const,
-      "method_name" => method_name,
-      "args" => args,
-    }, &block)
+    res = @process.send(
+      "obj" => {
+        "type" => "static",
+        "const" => const,
+        "method_name" => method_name,
+        "args" => args,
+      },
+      &block
+    )
     
     return res["result"] if res["type"] == "call_const_success"
     raise "Unknown result: '#{Knj::Php.print_r(res, true)}'."
@@ -56,12 +59,17 @@ class Knj::Process_meta
       proxy_obj._process_meta_args[:name] = var_name
     end
     
-    res = @process.send({
-      "type" => "spawn_object",
-      "class_name" => class_name,
-      "var_name" => var_name,
-      "args" => args
-    }, &block)
+    res = @process.send(
+      {
+        "obj" => {
+          "type" => "spawn_object",
+          "class_name" => class_name,
+          "var_name" => var_name,
+          "args" => args
+        }
+      },
+      &block
+    )
     
     return proxy_obj
   end
@@ -78,13 +86,16 @@ class Knj::Process_meta
   end
   
   #Calls a method on an object and returns the result.
-  def call_object(var_name, method_name, *args, &block)
+  def call_object(args, &block)
     res = @process.send(
       {
-        "type" => "call_object_block",
-        "var_name" => var_name,
-        "method_name" => method_name,
-        "args" => args
+        "buffer_use" => args["buffer_use"],
+        "obj" => {
+          "type" => "call_object_block",
+          "var_name" => args["var_name"],
+          "method_name" => args["method_name"],
+          "args" => args["args"]
+        }
       },
       &block
     )
@@ -96,7 +107,7 @@ class Knj::Process_meta
   #Destroyes the project and unsets all variables on the Process_meta-object.
   def destroy
     begin
-      @process.send("type" => "exit")
+      @process.send("obj" => {"type" => "exit"})
     rescue Exception => e
       raise e if e.message != "exit"
     end
@@ -127,18 +138,31 @@ class Knj::Process_meta::Proxy_obj
   
   def initialize(args)
     @args = args
+    @_process_meta_buffer_use = false
   end
   
   #This proxies all method-calls through the process-handeler and returns the result as the object was precent inside the current process-memory, even though it is not.
   def method_missing(method_name, *args, &block)
-    @args[:process_meta].call_object(@args[:name], method_name, *args, &block)
+    @args[:process_meta].call_object(
+      {
+        "var_name" => @args[:name],
+        "method_name" => method_name,
+        "args" => args,
+        "buffer_use" => @_process_meta_block_buffer_use
+      },
+      &block
+    )
   end
   
   def _process_meta_unset
-    @args[:process_meta].process.send("type" => "unset", "var_name" => @args[:name])
+    @args[:process_meta].process.send("obj" => {"type" => "unset", "var_name" => @args[:name]})
   end
   
   def _process_meta_args
     return @args
+  end
+  
+  def _process_meta_block_buffer_use=(newval)
+    @_process_meta_block_buffer_use = newval
   end
 end
