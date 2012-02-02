@@ -156,6 +156,10 @@ class Knj::Http2
       headers["Accept-Encoding"] = "none"
     end
     
+    if @args[:basic_auth]
+      headers["Authorization"] = "Basic #{Base64.encode64("#{@args[:basic_auth][:user]}:#{@args[:basic_auth][:passwd]}")}"
+    end
+    
     return headers
   end
   
