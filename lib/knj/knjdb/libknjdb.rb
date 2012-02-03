@@ -239,7 +239,9 @@ class Knj::Db
     end
   end
   
-  def select(tablename, arr_terms = nil, args = nil)
+  def select(tablename, arr_terms = nil, args = nil, &block)
+    sql = ""
+    
     conn_exec do |driver|
       sql = "SELECT * FROM #{driver.escape_table}#{tablename.to_s}#{driver.escape_table}"
       
@@ -264,9 +266,9 @@ class Knj::Db
           sql << " LIMIT #{args["limit_from"]}, #{args["limit_to"]}"
         end
       end
-      
-      return driver.query(sql)
     end
+    
+    return self.q(sql, &block)
   end
   
   def selectsingle(tablename, arr_terms = nil, args = {})

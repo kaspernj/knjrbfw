@@ -115,7 +115,7 @@ class KnjDB_mysql::Tables::Table
     @data = args[:data]
     @subtype = @db.opts[:subtype]
     
-    raise "Could not figure out name." if !@data[:Name]
+    raise "Could not figure out name from: '#{Knj::Php.print_r(@data, true)}'." if !@data[:Name]
   end
   
   def name
@@ -281,5 +281,9 @@ class KnjDB_mysql::Tables::Table
     end
     
     return ret
+  end
+  
+  def insert(data)
+    @db.insert(self.name, data)
   end
 end
