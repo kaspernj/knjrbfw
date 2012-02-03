@@ -88,9 +88,9 @@ class Knj::Process
         when "answer"
           @out_answers[id] = obj
         when "answer_block"
-          @blocks[id][:results] << obj
+          @blocks[id][:results] += obj
         when "answer_block_end"
-          $stderr.print "Answer-block-end received!\n"
+          $stderr.print "Answer-block-end received!\n" if @debug
           @blocks[id][:block_result] = obj
           @blocks[id][:finished] = true
         when "send"
@@ -104,33 +104,84 @@ class Knj::Process
               result_obj.answer("type" => "process_error", "class" => e.class.name, "msg" => e.message, "backtrace" => e.backtrace)
             end
           end
-        when "send_block"
+        when "send_block", "send_block_buffer"
+          if data[0] == "send_block_buffer"
+            $stderr.print "USE BUFFER!\n" if @debug
+            buffer_use = true
+          else
+            $stderr.print "Dont use buffer.\n" if @debug
+            buffer_use = false
+          end
+          
           Knj::Thread.new do
             result_obj = Knj::Process::Resultobject.new(:process => self, :id => id, :obj => obj)
             block_res = nil
             
             begin
-              count = 0
-              block_res = @on_rec.call(result_obj) do |answer_block|
-                count += 1
-                self.answer(id, answer_block, "answer_block")
+              if buffer_use
+                buffer_answers = []
+                buffer_done = false
                 
-                if count >= 100
-                  count = 0
-                  
+                buffer_thread = Knj::Thread.new do
                   loop do
-                    answer = self.send(id, nil, "send_block_count")
-                    $stderr.print "Answer was: #{answer}\n" if @debug
+                    arr = buffer_answers.shift(200)
                     
-                    if answer >= 100
-                      $stderr.print "More than 100 results are buffered on the other side - wait for them to be handeled before sending more.\n" if @debug
-                      sleep 0.05
+                    if !arr.empty?
+                      $stderr.print "Sending: #{arr.length} results.\n" if @debug
+                      self.answer(id, arr, "answer_block")
                     else
-                      $stderr.print "Less than 100 results in buffer - send more.\n" if @debug
-                      break
+                      sleep 0.05
                     end
+                    
+                    break if buffer_done and buffer_answers.empty?
                   end
                 end
+              end
+              
+              begin
+                begin
+                  count = 0
+                  block_res = @on_rec.call(result_obj) do |answer_block|
+                    if buffer_use
+                      loop do
+                        if buffer_answers.length > 1000
+                          $stderr.print "Buffer is more than 1000 - sleeping and tries again in 0.05 sec.\n" if @debug
+                          sleep 0.05
+                        else
+                          break
+                        end
+                      end
+                    end
+                    
+                    count += 1
+                    if buffer_use
+                      buffer_answers << answer_block
+                    else
+                      self.answer(id, [answer_block], "answer_block")
+                    end
+                    
+                    if count >= 100
+                      count = 0
+                      
+                      loop do
+                        answer = self.send("obj" => id, "type" => "send_block_count")
+                        $stderr.print "Answer was: #{answer}\n" if @debug
+                        
+                        if answer >= 100
+                          $stderr.print "More than 100 results are buffered on the other side - wait for them to be handeled before sending more.\n" if @debug
+                          sleep 0.05
+                        else
+                          $stderr.print "Less than 100 results in buffer - send more.\n" if @debug
+                          break
+                        end
+                      end
+                    end
+                  end
+                ensure
+                  buffer_done = true if buffer_use
+                end
+              ensure
+                buffer_thread.join if buffer_use
               end
             rescue Exception => e
               $stderr.print Knj::Errors.error_str(e) if @debug
@@ -150,8 +201,8 @@ class Knj::Process
           
           self.answer(id, count)
         else
-          $stderr.print "Unknown command: '#{res[0]}'."
-          raise "Unknown command: '#{res[0]}'."
+          $stderr.print "Unknown command: '#{data[0]}'."
+          raise "Unknown command: '#{data[0]}'."
       end
     end
   end
@@ -167,9 +218,19 @@ class Knj::Process
   end
   
   #Sends a command to the client.
-  def send(obj, wait_for_answer = true, type = "send", &block)
+  def send(args, &block)
     my_id = nil
-    str = Marshal.dump(obj)
+    raise "No 'obj' was given." if !args["obj"]
+    str = Marshal.dump(args["obj"])
+    
+    if args.key?("type")
+      type = args["type"]
+    else
+      type = "send"
+    end
+    
+    raise "Invalid type: '#{type}'." if type.to_s.strip.length <= 0
+    args["wait_for_answer"] = true if !args.key?("wait_for_answer")
     
     @out_mutex.synchronize do
       my_id = @out_count
@@ -177,14 +238,21 @@ class Knj::Process
       $stderr.print "Writing #{my_id} to socket.\n" if @debug
       
       if block
-        type = "send_block" if type == "send"
+        if type == "send"
+          if args["buffer_use"]
+            type = "send_block_buffer"
+          else
+            type = "send_block"
+          end
+        end
+        
         @blocks[my_id] = {:block => block, :results => [], :finished => false}
       end
       
       @out.write("#{type}:#{my_id}:#{str.length}\n#{str}")
     end
     
-    if wait_for_answer
+    if args["wait_for_answer"]
       #Make very, very short sleep, if the result is almost instant this will heavily optimize the speed, because :sleep_answer-argument wont be used.
       sleep 0.00001
       return self.read_answer(my_id)
