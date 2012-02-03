@@ -180,6 +180,10 @@ class Knj::Db::Revision
           
           if table_data["indexes"]
             table_data["indexes"].each do |index_data|
+              if index_data.is_a?(String)
+                index_data = {"name" => index_data, "columns" => [index_data]}
+              end
+              
               begin
                 index_obj = table_obj.index(index_data["name"])
                 
