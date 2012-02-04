@@ -35,14 +35,18 @@ objects = {}
         d.answer("type" => "call_object_success", "result" => res)
       elsif obj["type"] == "call_object_block"
         raise "Invalid var-name: '#{obj["var_name"]}'." if obj["var_name"].to_s.strip.length <= 0
+        res = nil
         
-        obj_to_call = objects[obj["var_name"]]
-        raise "No object by that name: '#{obj["var_name"]}'." if !obj
-        res = obj_to_call.send(obj["method_name"], *obj["args"]) do |*args|
-          block_res = block.call(*args)
+        begin
+          obj_to_call = objects[obj["var_name"]]
+          raise "No object by that name: '#{obj["var_name"]}'." if !obj
+          res = obj_to_call.send(obj["method_name"], *obj["args"]) do |*args|
+            block_res = block.call(*args)
+          end
+        ensure
+          #This has to be ensured, because this block wont be runned any more after enumerable has been broken...
+          d.answer("type" => "call_object_success", "result" => res)
         end
-        
-        d.answer("type" => "call_object_success", "result" => res)
       elsif obj["type"] == "unset"
         raise "Invalid var-name: '#{obj["var_name"]}'." if obj["var_name"].to_s.strip.length <= 0
         raise "Var-name doesnt exist: '#{obj["var_name"]}'." if !objects.key?(obj["var_name"])
