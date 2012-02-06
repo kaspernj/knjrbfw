@@ -76,7 +76,7 @@ class Knj::Process_meta
   
   #Evaluates a string in the sub-process.
   def str_eval(str)
-    res = @process.send({
+    res = @process.send("obj" => {
       "type" => "str_eval",
       "str" => str
     })

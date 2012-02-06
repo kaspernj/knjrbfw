@@ -7,7 +7,7 @@ class Knj::Eruby
     
     require "tmpdir"
     @tmpdir = "#{Dir.tmpdir}/knj_erb"
-    Dir.mkdir(@tmpdir) if !File.exists?(@tmpdir)
+    Dir.mkdir(@tmpdir, 0777) if !File.exists?(@tmpdir)
     
     
     #This argument can be used if a shared cache should be used to speed up performance.
