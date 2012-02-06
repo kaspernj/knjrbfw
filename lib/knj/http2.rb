@@ -183,7 +183,6 @@ class Knj::Http2
       praw = ""
       pdata.each do |key, val|
         praw << "--#{boundary}#{@nl}"
-        praw << "Content-Type: text/plain#{@nl}"
         
         if val.class.name == "Tempfile" and val.respond_to?("original_filename")
           praw << "Content-Disposition: form-data; name=\"#{key}\"; filename=\"#{val.original_filename}\";#{@nl}"
@@ -191,8 +190,16 @@ class Knj::Http2
           praw << "Content-Disposition: form-data; name=\"#{key}\";#{@nl}"
         end
         
+        praw << "Content-Type: text/plain#{@nl}"
+        praw << "Content-Length: #{val.length}#{@nl}"
         praw << @nl
-        praw << val.to_s
+        
+        if val.is_a?(StringIO)
+          praw << val.read
+        else
+          praw << val.to_s
+        end
+        
         praw << @nl
       end
       
