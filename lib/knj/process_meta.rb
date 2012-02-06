@@ -50,8 +50,13 @@ class Knj::Process_meta
     raise "Unknown result: '#{Knj::Php.print_r(res, true)}'."
   end
   
+  #Spawns a new object in the subprocess by that classname, with those arguments and with that block.
+  def new(class_name, *args, &block)
+    return self.spawn_object(class_name, nil, *args, &block)
+  end
+  
   #Spawns a new object in the subprocess and returns a proxy-variable for that subprocess-object.
-  def spawn_object(class_name, var_name, *args, &block)
+  def spawn_object(class_name, var_name = nil, *args, &block)
     proxy_obj = Knj::Process_meta::Proxy_obj.new(:process_meta => self, :name => var_name)
     
     if var_name == nil

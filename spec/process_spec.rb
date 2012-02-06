@@ -40,6 +40,8 @@ describe "Process" do
             #$stderr.print "Calling block with: #{i}\n"
             block.call(i)
           end
+          
+          d.answer("ok")
         else
           raise "Received unknown object: '#{d.obj}'."
         end
@@ -59,7 +61,7 @@ describe "Process" do
     #Stress it by doing 1000 requests.
     Timeout.timeout(2) do
       0.upto(1000) do |count|
-        #print "Testing #{count}\n"
+        #$stderr.print "Testing #{count}\n"
         answer = $process_client.send("test #{count}")
         match = answer.match(/^testanswer (\d+)$/)
         raise "Unexpected answer: '#{answer}'." if !match

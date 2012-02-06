@@ -17,7 +17,12 @@ class Knj::Process
     @debug = @args[:debug]
     @args[:sleep_answer] = 0.001 if !@args.key?(:sleep_answer)
     @thread_error = nil
+    
+    #Used when this process is trying to receive block-results from the subprocess.
     @blocks = {}
+    
+    #Used when the other process is trying to receive block-results from this object.
+    @blocks_send = {}
     
     #Else the sockets might hang when waiting for results and stuff like that... - knj.
     @in.sync = true
@@ -80,12 +85,12 @@ class Knj::Process
       
       $stderr.print "Received ID #{id}.\n" if @debug
       res = @in.read(length)
-      $stderr.print "Got content for '#{id}' (#{data[0]}).\n" if @debug
-      
       obj = Marshal.load(res)
+      $stderr.print "Got content for '#{id}' (#{data[0]}).\n" if @debug
       
       case data[0]
         when "answer"
+          #raise "Already have answer for '#{id}'." if @out_answers.key?(id)
           @out_answers[id] = obj
         when "answer_block"
           @blocks[id][:results] += obj
@@ -99,19 +104,61 @@ class Knj::Process
             
             begin
               @on_rec.call(result_obj)
+            rescue SystemExit => e
+              raise e
             rescue Exception => e
               #Error was raised - try to forward it to the server.
               result_obj.answer("type" => "process_error", "class" => e.class.name, "msg" => e.message, "backtrace" => e.backtrace)
             end
           end
-        when "send_block", "send_block_buffer"
-          if data[0] == "send_block_buffer"
-            $stderr.print "USE BUFFER!\n" if @debug
-            buffer_use = true
-          else
-            $stderr.print "Dont use buffer.\n" if @debug
-            buffer_use = false
+        when "send_block"
+          result_obj = Knj::Process::Resultobject.new(:process => self, :id => id, :obj => obj)
+          @blocks_send[id] = {:result_obj => result_obj, :waiting_for_result => false}
+          
+          @blocks_send[id][:enum] = Enumerator.new do |y|
+            @on_rec.call(result_obj) do |answer_block|
+              $stderr.print "Running enum-block for #{answer_block}\n" if @debug
+              
+              break if !@blocks_send.key?(id)
+              y << answer_block
+              
+              dobreak = false
+              loop do
+                if !@blocks_send.key?(id)
+                  dobreak = true
+                  break
+                end
+                
+                break if @blocks_send[id][:waiting_for_result]
+                sleep 0.01
+              end
+              
+              break if dobreak
+            end
           end
+        when "send_block_res"
+          begin
+            @blocks_send[obj][:waiting_for_result] = true
+            res = @blocks_send[obj][:enum].next
+            self.answer(id, {"result" => res})
+          rescue StopIteration
+            self.answer(id, "StopIteration")
+          end
+        when "send_block_end"
+          if @blocks_send.key?(obj)
+            enum = @blocks_send[obj][:enum]
+            @blocks_send.delete(obj)
+            
+            begin
+              enum.next #this has to be called to stop Enumerator from blocking...
+            rescue StopIteration
+              #do nothing.
+            end
+          end
+          
+          self.answer(id, "ok")
+        when "send_block_buffer"
+          buffer_use = true
           
           Knj::Thread.new do
             result_obj = Knj::Process::Resultobject.new(:process => self, :id => id, :obj => obj)
@@ -219,6 +266,8 @@ class Knj::Process
   
   #Sends a command to the client.
   def send(args, &block)
+    args = {"obj" => args} if !args.is_a?(Hash)
+    
     my_id = nil
     raise "No 'obj' was given." if !args["obj"]
     str = Marshal.dump(args["obj"])
@@ -235,30 +284,54 @@ class Knj::Process
     @out_mutex.synchronize do
       my_id = @out_count
       @out_count += 1
-      $stderr.print "Writing #{my_id} to socket.\n" if @debug
       
       if block
         if type == "send"
           if args["buffer_use"]
             type = "send_block_buffer"
+            @blocks[my_id] = {:block => block, :results => [], :finished => false, :buffer => args["buffer_use"]}
           else
             type = "send_block"
           end
         end
-        
-        @blocks[my_id] = {:block => block, :results => [], :finished => false}
       end
       
+      $stderr.print "Writing #{type}:#{my_id} to socket.\n" if @debug
       @out.write("#{type}:#{my_id}:#{str.length}\n#{str}")
     end
     
-    if args["wait_for_answer"]
-      #Make very, very short sleep, if the result is almost instant this will heavily optimize the speed, because :sleep_answer-argument wont be used.
-      sleep 0.00001
-      return self.read_answer(my_id)
+    #If block is broken it might never give us control to return anything - thats why we use ensure.
+    begin
+      if type == "send_block"
+        loop do
+          res = self.send("obj" => my_id, "type" => "send_block_res")
+          
+          if res == "StopIteration"
+            break
+          elsif res.is_a?(Hash) and res.key?("result")
+            #do nothing.
+          else
+            raise "Unknown result: '#{res}'."
+          end
+          
+          block.call(res["result"])
+        end
+      end
+    ensure
+      #Tell the subprocess we are done with the block (if break, exceptions or anything else like that was used).
+      if type == "send_block"
+        res = self.send("obj" => my_id, "type" => "send_block_end")
+        raise "Unknown result: '#{res}'." if res != "ok"
+      end
+      
+      if args["wait_for_answer"]
+        #Make very, very short sleep, if the result is almost instant this will heavily optimize the speed, because :sleep_answer-argument wont be used.
+        sleep 0.00001
+        return self.read_answer(my_id)
+      end
+      
+      return {:id => my_id}
     end
-    
-    return {:id => my_id}
   end
   
   #Returns true if an answer with a certain ID has arrived.
@@ -287,6 +360,7 @@ class Knj::Process
   def read_answer(id)
     $stderr.print "Reading answer (#{id}).\n" if @debug
     block_res = @blocks[id]
+    $stderr.print "Answer is block for #{id} #{Knj::Php.print_r(block_res, true)}\n" if @debug and block_res
     
     loop do
       if block_res
@@ -299,15 +373,26 @@ class Knj::Process
       sleep @args[:sleep_answer]
     end
     
-    self.exec_block_results(id) if block_res
-    @blocks.delete(id)
+    if block_res
+      self.exec_block_results(id)
+      @blocks.delete(id)
+    end
     
     ret = @out_answers[id]
     @out_answers.delete(id)
     
     if ret.is_a?(Hash) and ret["type"] == "process_error"
+      $stderr.print "Process-error - begin generating error...\n"
       err = RuntimeError.new(ret["msg"])
-      bt = ret["backtrace"] + caller
+      bt = []
+      ret["backtrace"].each do |subproc_bt|
+        bt << "Subprocess: #{subproc_bt}"
+      end
+      
+      caller.each do |proc_bt|
+        bt << proc_bt
+      end
+      
       err.set_backtrace(bt)
       raise err
     end
@@ -324,6 +409,8 @@ class Knj::Process
 end
 
 class Knj::Process::Resultobject
+  attr_reader :args
+  
   def initialize(args)
     @args = args
     @answered = false

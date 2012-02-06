@@ -115,7 +115,7 @@ class KnjDB_mysql::Tables::Table
     @data = args[:data]
     @subtype = @db.opts[:subtype]
     
-    raise "Could not figure out name." if !@data[:Name]
+    raise "Could not figure out name from: '#{Knj::Php.print_r(@data, true)}'." if !@data[:Name]
   end
   
   def name
@@ -231,6 +231,10 @@ class KnjDB_mysql::Tables::Table
   
   def create_indexes(index_arr)
     index_arr.each do |index_data|
+      if index_data.is_a?(String)
+        index_data = {"name" => index_data, "columns" => [index_data]}
+      end
+      
       raise "No name was given." if !index_data.key?("name") or index_data["name"].strip.length <= 0
       raise "No columns was given on index: '#{index_data["name"]}'." if !index_data["columns"] or index_data["columns"].empty?
       
@@ -281,5 +285,9 @@ class KnjDB_mysql::Tables::Table
     end
     
     return ret
+  end
+  
+  def insert(data)
+    @db.insert(self.name, data)
   end
 end
