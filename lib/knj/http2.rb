@@ -185,10 +185,10 @@ class Knj::Http2
         praw << "--#{boundary}#{@nl}"
         praw << "Content-Type: text/plain#{@nl}"
         
-        if val.class.name == "Tempfile"
-          if val.respond_to?("original_filename")
-            praw << "Content-Cisposition: form-data; name=\"#{val.original_filename}\"#{@nl}"
-          end
+        if val.class.name == "Tempfile" and val.respond_to?("original_filename")
+          praw << "Content-Disposition: form-data; name=\"#{key}\"; filename=\"#{val.original_filename}\";#{@nl}"
+        else
+          praw << "Content-Disposition: form-data; name=\"#{key}\";#{@nl}"
         end
         
         praw << @nl
@@ -202,8 +202,6 @@ class Knj::Http2
       header_str << "#{@nl}"
       header_str << praw
       header_str << "--#{boundary}--"
-      
-      Knj::Php.file_put_contents("/tmp/multipart_post.txt", header_str)
       
       self.write(header_str)
       return self.read_response(args)

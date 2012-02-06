@@ -1,6 +1,20 @@
 require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
 describe "Http2" do
+  it "should be able to do multipart-requests." do
+    require "knj/http2"
+    require "knj/php"
+    
+    http = Knj::Http2.new(:host => "www.partyworm.dk")
+    resp = http.post_multipart("multipart_test.php", {
+      "test_var" => "true"
+    })
+    
+    if resp.body != "multipart-test-test_var=true"
+      raise "Expected body to be 'test_var=true' but it wasnt: '#{resp.body}'."
+    end
+  end
+  
   it "it should be able to handle keep-alive correctly" do
     require "knj/http2"
     
