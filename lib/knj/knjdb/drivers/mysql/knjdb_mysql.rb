@@ -21,7 +21,7 @@ class KnjDB_mysql
     
     @subtype = @knjdb.opts[:subtype]
     @subtype = "mysql" if @subtype.to_s.length <= 0
-    reconnect
+    self.reconnect
   end
   
   def reconnect
