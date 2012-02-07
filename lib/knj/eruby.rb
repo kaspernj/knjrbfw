@@ -1,6 +1,5 @@
 class Knj::Eruby
-  attr_reader :fcgi
-  attr_reader :connects, :headers, :cookies
+  attr_reader :connects, :error, :headers, :cookies, :fcgi
   
   def initialize(args = {})
     @args = args
@@ -35,6 +34,7 @@ class Knj::Eruby
   end
   
   def import(filename)
+    @error = false
     Dir.mkdir(@tmpdir) if !File.exists?(@tmpdir)
     filename = File.expand_path(filename)
     raise "File does not exist: #{filename}" if !File.exists?(filename)
@@ -73,6 +73,7 @@ class Knj::Eruby
     rescue SystemExit
       #do nothing.
     rescue Exception => e
+      @error = true
       self.handle_error(e)
     end
   end

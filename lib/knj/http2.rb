@@ -305,7 +305,7 @@ class Knj::Http2
     
     raise "No status-code was received from the server.\n\nHeaders:\n#{Knj::Php.print_r(resp.headers)}\n\nBody:\n#{resp.args[:body]}" if !resp.args[:code]
     
-    if resp.args[:code] == "302" and resp.header?("location") and (!@args.key?(:follow_redirects) or @args[:follow_redirects])
+    if resp.args[:code].to_s == "302" and resp.header?("location") and (!@args.key?(:follow_redirects) or @args[:follow_redirects])
       uri = URI.parse(resp.header("location"))
       
       args = {:host => uri.host}
@@ -318,6 +318,8 @@ class Knj::Http2
         http = Knj::Http2.new(args)
         return http.get(uri.path)
       end
+    elsif resp.args[:code].to_s == "500"
+      raise "500 - Internal server error."
     else
       return resp
     end
