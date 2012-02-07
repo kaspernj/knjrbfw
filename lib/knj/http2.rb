@@ -105,18 +105,17 @@ class Knj::Http2
     end
   end
   
-  def get(addr)
+  def get(addr, args = {})
     @mutex.synchronize do
-      print "Http2: Beginning to get url: '#{addr}'.\n" if @debug
       header_str = "GET /#{addr} HTTP/1.1#{@nl}"
-      header_str << self.header_str(self.default_headers)
+      header_str << self.header_str(self.default_headers(args), args)
       header_str << "#{@nl}"
       
       print "Http2: Writing headers.\n" if @debug
       self.write(header_str)
       
       print "Http2: Reading response.\n" if @debug
-      resp = self.read_response
+      resp = self.read_response(args)
       
       print "Http2: Done with get request.\n" if @debug
       return resp
@@ -141,7 +140,9 @@ class Knj::Http2
     @request_last = Time.now
   end
   
-  def default_headers
+  def default_headers(args = {})
+    return args[:default_headers] if args[:default_headers]
+    
     headers = {
       "Host" => @args[:host],
       "Connection" => "Keep-Alive",
@@ -157,7 +158,7 @@ class Knj::Http2
     return headers
   end
   
-  def post(addr, pdata = {})
+  def post(addr, pdata = {}, args = {})
     @mutex.synchronize do
       praw = ""
       pdata.each do |key, val|
@@ -166,17 +167,56 @@ class Knj::Http2
       end
       
       header_str = "POST /#{addr} HTTP/1.1#{@nl}"
-      header_str << self.header_str(self.default_headers.merge("Content-Length" => praw.length))
+      header_str << self.header_str(self.default_headers(args).merge("Content-Length" => praw.length), args)
       header_str << "#{@nl}"
       header_str << praw
       
       self.write(header_str)
-      return self.read_response
+      return self.read_response(args)
     end
   end
   
-  def header_str(headers_hash)
-    if @cookies.length > 0
+  def post_multipart(addr, pdata, args = {})
+    @mutex.synchronize do
+      boundary = Digest::MD5.hexdigest(Time.now.to_f.to_s)
+      
+      praw = ""
+      pdata.each do |key, val|
+        praw << "--#{boundary}#{@nl}"
+        
+        if val.class.name == "Tempfile" and val.respond_to?("original_filename")
+          praw << "Content-Disposition: form-data; name=\"#{key}\"; filename=\"#{val.original_filename}\";#{@nl}"
+        else
+          praw << "Content-Disposition: form-data; name=\"#{key}\";#{@nl}"
+        end
+        
+        praw << "Content-Type: text/plain#{@nl}"
+        praw << "Content-Length: #{val.length}#{@nl}"
+        praw << @nl
+        
+        if val.is_a?(StringIO)
+          praw << val.read
+        else
+          praw << val.to_s
+        end
+        
+        praw << @nl
+      end
+      
+      header_str = "POST /#{addr} HTTP/1.1#{@nl}"
+      header_str << "Content-Type: multipart/form-data; boundary=#{boundary}#{@nl}"
+      header_str << self.header_str(self.default_headers(args).merge("Content-Length" => praw.length), args)
+      header_str << "#{@nl}"
+      header_str << praw
+      header_str << "--#{boundary}--"
+      
+      self.write(header_str)
+      return self.read_response(args)
+    end
+  end
+  
+  def header_str(headers_hash, args = {})
+    if @cookies.length > 0 and (!args.key?(:cookies) or args[:cookies])
       cstr = ""
       
       first = true
@@ -198,7 +238,11 @@ class Knj::Http2
     return headers_str
   end
   
-  def read_response
+  def on_content_call(args, line)
+    args[:on_content].call(line) if args.key?(:on_content)
+  end
+  
+  def read_response(args = {})
     @mode = "headers"
     @resp = Knj::Http2::Response.new
     
@@ -224,9 +268,10 @@ class Knj::Http2
       end
       
       if @mode == "headers"
-        self.parse_header(line)
+        self.parse_header(line, args)
       elsif @mode == "body"
-        stat = self.parse_body(line)
+        self.on_content_call(args, "\r\n")
+        stat = self.parse_body(line, args)
         break if stat == "break"
         next if stat == "next"
       end
@@ -278,7 +323,7 @@ class Knj::Http2
     end
   end
   
-  def parse_header(line)
+  def parse_header(line, args)
     if match = line.match(/^(.+?):\s*(.+)#{@nl}$/)
       key = match[1].to_s.downcase
       
@@ -314,6 +359,10 @@ class Knj::Http2
         @resp.args[:contenttype] = @ctype
       end
       
+      if key != "transfer-encoding" and key != "content-length" and key != "connection" and key != "keep-alive"
+        self.on_content_call(args, line)
+      end
+      
       @resp.headers[key] = [] if !@resp.headers.key?(key)
       @resp.headers[key] << match[2]
     elsif match = line.match(/^HTTP\/([\d\.]+)\s+(\d+)\s+(.+)$/)
@@ -324,7 +373,7 @@ class Knj::Http2
     end
   end
   
-  def parse_body(line)
+  def parse_body(line, args)
     if @resp.args[:http_version] = "1.1"
       return "break" if @length == 0
       
@@ -335,6 +384,7 @@ class Knj::Http2
           read = @sock.read(len)
           return "break" if read == "" or read == @nl
           @resp.args[:body] << read
+          self.on_content_call(args, read)
         end
         
         nl = @sock.gets
@@ -349,6 +399,7 @@ class Knj::Http2
         raise "Should have read newline but didnt: '#{nl}'." if nl != @nl
       else
         @resp.args[:body] << line.to_s
+        self.on_content_call(args, line)
         return "break" if @resp.header?("content-length") and @resp.args[:body].length >= @resp.header("content-length").to_i
       end
     else

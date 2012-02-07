@@ -11,15 +11,18 @@ class Knj::Datarow
     return @depending_data
   end
   
+  #This helps various parts of the framework determine if this is a datarow class without requiring it.
   def is_knj?
     return true
   end
   
+  #This tests if a certain string is a date-null-stamp.
   def self.is_nullstamp?(stamp)
     return true if !stamp or stamp == "0000-00-00 00:00:00" or stamp == "0000-00-00"
     return false
   end
   
+  #This is used to define datarows that this object can have a lot of.
   def self.has_many(arr)
     arr.each do |val|
       if val.is_a?(Array)
@@ -85,6 +88,7 @@ class Knj::Datarow
     end
   end
   
+  #This define is this object has one element of another datarow-class. It define various methods and joins based on that.
   def self.has_one(arr)
     arr.each do |val|
       methodname = nil
@@ -182,6 +186,7 @@ class Knj::Datarow
     end
   end
   
+  #This returns all translations for this datarow-class.
   def self.translations
     return @translations
   end

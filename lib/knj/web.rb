@@ -427,7 +427,11 @@ class Knj::Web
   def self.inputs(arr)
     html = ""
     arr.each do |args|
-      html << self.input(args)
+      if RUBY_ENGINE == "rbx"
+        html << self.input(args).to_s.encode(html.encoding)
+      else
+        html << self.input(args)
+      end
     end
     
     return html

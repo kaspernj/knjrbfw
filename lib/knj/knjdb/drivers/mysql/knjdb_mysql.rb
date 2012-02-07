@@ -21,7 +21,7 @@ class KnjDB_mysql
     
     @subtype = @knjdb.opts[:subtype]
     @subtype = "mysql" if @subtype.to_s.length <= 0
-    reconnect
+    self.reconnect
   end
   
   def reconnect
@@ -79,29 +79,13 @@ class KnjDB_mysql
         raise "Unknown subtype: #{@subtype}"
     end
     
-    query_conn(@conn, "SET NAMES '#{esc(@encoding)}'") if @encoding
+    self.query("SET NAMES '#{self.esc(@encoding)}'") if @encoding
   end
   
-  def query_conn(conn, str)
-    case @subtype
-      when "java"
-        stmt = conn.createStatement
-        
-        if str.match(/insert\s+into\s+/i) or str.match(/update\s+/i) or str.match(/^\s*delete\s+/i) or str.match(/^\s*create\s*/i)
-          return stmt.execute(str)
-        else
-          return stmt.executeQuery(str)
-        end
-      when "mysql", "mysql2"
-        return conn.query(str)
-      else
-        raise "Could not figure out the way to execute the query on #{conn.class.name}."
-    end
-  end
-  
-  def query(string)
-    string = string.to_s
-    string = string.force_encoding("UTF-8") if @encoding == "utf8" and string.respond_to?(:force_encoding)
+  #Executes a query and returns the result.
+  def query(str)
+    str = str.to_s
+    str = str.force_encoding("UTF-8") if @encoding == "utf8" and str.respond_to?(:force_encoding)
     tries = 0
     
     @mutex.synchronize do
@@ -109,7 +93,7 @@ class KnjDB_mysql
         when "mysql"
           begin
             tries += 1
-            return KnjDB_mysql_result.new(self, @conn.query(string))
+            return KnjDB_mysql_result.new(self, @conn.query(str))
           rescue Mysql::Error => e
             if e.message == "MySQL server has gone away" or e.message == "Can't connect to local MySQL server through socket"
               raise e if tries >= 3
@@ -123,7 +107,7 @@ class KnjDB_mysql
         when "mysql2"
           begin
             tries += 1
-            return KnjDB_mysql2_result.new(@conn.query(string, @query_args))
+            return KnjDB_mysql2_result.new(@conn.query(str, @query_args))
           rescue Mysql2::Error => e
             if e.message == "MySQL server has gone away" or e.message == "closed MySQL connection" or e.message == "Can't connect to local MySQL server through socket"
               raise e if tries >= 3
@@ -134,24 +118,60 @@ class KnjDB_mysql
               sleep 0.1
               retry
             else
-              print string
+              print str
               raise e
             end
           end
         when "java"
           begin
             tries += 1
-            return KnjDB_java_mysql_result.new(@knjdb, query_conn(@conn, string))
+            stmt = conn.createStatement
+            
+            if str.match(/^\s*(delete|update|create|drop|insert\s+into)\s+/i)
+              stmt.execute(str)
+              return nil
+            else
+              res = stmt.executeQuery(str)
+              return KnjDB_java_mysql_result.new(@knjdb, @opts, res)
+            end
           rescue => e
             if e.to_s.index("No operations allowed after connection closed") != nil
               reconnect
               retry
             end
             
+            print str
             raise e
           end
         else
           raise "Unknown subtype: '#{@subtype}'."
+      end
+    end
+  end
+  
+  #Executes an unbuffered query and returns the result that can be used to access the data.
+  def query_ubuf(str)
+    @mutex.synchronize do
+      case @subtype
+        when "mysql"
+          conn.query_with_result = false
+          return KnjDB_mysql_unbuffered_result.new(@conn, @opts, @conn.query(str))
+        when "mysql2"
+          raise "MySQL2 does not support unbuffered queries yet! Waiting for :stream..."
+        when "java"
+          stmt = conn.createStatement
+          
+          if str.match(/^\s*(delete|update|create|drop|insert\s+into)\s+/i)
+            stmt.execute(str)
+            return nil
+          else
+            stmt.setFetchSize(500)
+            res = stmt.executeQuery(str)
+            return KnjDB_java_mysql_result.new(@knjdb, @opts, res)
+          end
+          raise "Not implemented yet."
+        else
+          raise "Unknown subtype: '#{@subtype}'"
       end
     end
   end
@@ -318,6 +338,74 @@ class KnjDB_mysql_result
   end
 end
 
+class KnjDB_mysql_unbuffered_result
+  def initialize(conn, opts, result)
+    @conn = conn
+    @result = result
+    
+    if !opts.key?(:result) or opts[:result] == "hash"
+      @as_hash = true
+    elsif opts[:result] == "array"
+      @as_hash = false
+    else
+      raise "Unknown type of result: '#{opts[:result]}'."
+    end
+  end
+  
+  def load_keys
+    @keys = []
+    keys = @res.fetch_fields
+    keys.each do |key|
+      @keys << key.name.to_sym
+    end
+  end
+  
+  def fetch
+    if @enum
+      begin
+        ret = @enum.next
+      rescue StopIteration
+        @enum = nil
+        @res = nil
+      end
+    end
+    
+    if !ret and !@res and !@enum
+      begin
+        @res = @conn.use_result
+        @enum = @res.to_enum
+        ret = @enum.next
+      rescue Mysql::Error
+        #Reset it to run non-unbuffered again and then return false.
+        @conn.query_with_result = true
+        return false
+      rescue StopIteration
+        sleep 0.1
+        retry
+      end
+    end
+    
+    if !@as_hash
+      return ret
+    else
+      self.load_keys if !@keys
+      
+      ret_h = {}
+      @keys.each_index do |key_no|
+        ret_h[@keys[key_no]] = ret[key_no]
+      end
+      
+      return ret_h
+    end
+  end
+  
+  def each
+    while data = self.fetch
+      yield(data)
+    end
+  end
+end
+
 class KnjDB_mysql2_result
   def initialize(result)
     @result = result
@@ -339,35 +427,49 @@ class KnjDB_mysql2_result
 end
 
 class KnjDB_java_mysql_result
-  def initialize(knjdb, result)
+  def initialize(knjdb, opts, result)
     @knjdb = knjdb
     @result = result
-    @mutex = Mutex.new
+    
+    if !opts.key?(:result) or opts[:result] == "hash"
+      @as_hash = true
+    elsif opts[:result] == "array"
+      @as_hash = false
+    else
+      raise "Unknown type of result: '#{opts[:result]}'."
+    end
   end
   
+  #Reads meta-data about the query like keys and count.
   def read_meta
     @result.before_first
     meta = @result.meta_data
+    @count = meta.column_count
     
     @keys = []
-    0.upto(meta.column_count - 1) do |count|
-      @keys << meta.column_name(count + 1).to_sym
+    1.upto(@count) do |count|
+      @keys << meta.column_name(count).to_sym
     end
   end
   
   def fetch
-    @mutex.synchronize do
-      read_meta if !@keys
-      status = @result.next
-      return false if !status
-      
+    self.read_meta if !@keys
+    status = @result.next
+    return false if !status
+    
+    if @as_hash
       ret = {}
-      0.upto(@keys.length - 1) do |count|
-        ret[@keys[count]] = @result.string(count + 1).to_s.encode("utf-8")
+      1.upto(@keys.length) do |count|
+        ret[@keys[count - 1]] = @result.string(count).to_s.encode("utf-8")
       end
-      
-      return ret
+    else
+      ret = []
+      1.upto(@count) do |count|
+        ret << @result.string(count).to_s.encode("utf-8")
+      end
     end
+    
+    return ret
   end
   
   def each

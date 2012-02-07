@@ -25,8 +25,30 @@ describe "Php" do
   end
   
   it "number_format" do
-    raise "Failed." if Knj::Php.number_format(123123.12, 3, ",", ".") != "123.123,120"
-    raise "Failed." if Knj::Php.number_format(123123.12, 4, ".", ",") != "123,123.1200"
+    tests = {
+      Knj::Php.number_format(123123.12, 3, ",", ".") => "123.123,120",
+      Knj::Php.number_format(123123.12, 4, ".", ",") => "123,123.1200",
+      Knj::Php.number_format(-123123.12, 2, ",", ".") => "-123.123,12",
+      Knj::Php.number_format(-120, 2, ",", ".") => "-120,00",
+      Knj::Php.number_format(-12, 2, ".", ",") => "-12.00"
+    }
+    
+    tests.each do |key, val|
+      if key != val
+        raise "Key was not the same as value (#{key}) (#{val})."
+      end
+    end
+  end
+  
+  it "substr" do
+    res = Knj::Php.substr("selcol_15", 7)
+    raise "substr should have returned '15' but didnt: '#{res}'." if res != "15"
+    
+    res = Knj::Php.substr("test_kasper", -6, 6)
+    raise "substr should have returned 'kasper' but didnt: '#{res}'." if res != "kasper"
+    
+    res = Knj::Php.substr("test_kasper", 1, 3)
+    raise "substr should have returned 'est' but didnt: '#{res}'." if res != "est"
   end
   
   it "parse_str" do

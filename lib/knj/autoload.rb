@@ -42,6 +42,7 @@ module Knj
   autoload :Web, $knjpath + "web"
   autoload :Google_sitemap, $knjpath + "google_sitemap"
   autoload :Process, $knjpath + "process"
+  autoload :Process_meta, $knjpath + "process_meta"
   autoload :Sms, $knjpath + "sms"
   autoload :Os, $knjpath + "os"
   autoload :Gtk2, $knjpath + "gtk2"

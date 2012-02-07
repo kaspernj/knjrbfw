@@ -7,7 +7,7 @@ class Knj::Eruby
     
     require "tmpdir"
     @tmpdir = "#{Dir.tmpdir}/knj_erb"
-    Dir.mkdir(@tmpdir) if !File.exists?(@tmpdir)
+    Dir.mkdir(@tmpdir, 0777) if !File.exists?(@tmpdir)
     
     
     #This argument can be used if a shared cache should be used to speed up performance.
@@ -17,7 +17,7 @@ class Knj::Eruby
       @cache = {}
     end
     
-    if RUBY_PLATFORM == "java"
+    if RUBY_PLATFORM == "java" or RUBY_ENGINE == "rbx"
       @cache_mode = :code_eval
       #@cache_mode = :compile_knj
     elsif RUBY_VERSION.slice(0..2) == "1.9" and RubyVM::InstructionSequence.respond_to?(:compile_file)
@@ -196,6 +196,7 @@ class Knj::Eruby
     end
   end
   
+  #This method will handle an error without crashing simply adding the error to the print-queue.
   def handle_error(e)
     begin
       if @connects and @connects.key?("error")

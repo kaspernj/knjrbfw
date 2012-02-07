@@ -231,10 +231,16 @@ class KnjDB_mysql::Tables::Table
   
   def create_indexes(index_arr)
     index_arr.each do |index_data|
+      if index_data.is_a?(String)
+        index_data = {"name" => index_data, "columns" => [index_data]}
+      end
+      
       raise "No name was given." if !index_data.key?("name") or index_data["name"].strip.length <= 0
       raise "No columns was given on index: '#{index_data["name"]}'." if !index_data["columns"] or index_data["columns"].empty?
       
-      sql = "CREATE INDEX #{@db.escape_col}#{@db.esc_col(index_data["name"])}#{@db.escape_col} ON #{@db.escape_table}#{@db.esc_table(self.name)}#{@db.escape_table} ("
+      sql = "CREATE"
+      sql << " UNIQUE" if index_data["unique"]
+      sql << " INDEX #{@db.escape_col}#{@db.esc_col(index_data["name"])}#{@db.escape_col} ON #{@db.escape_table}#{@db.esc_table(self.name)}#{@db.escape_table} ("
       
       first = true
       index_data["columns"].each do |col_name|
@@ -279,5 +285,9 @@ class KnjDB_mysql::Tables::Table
     end
     
     return ret
+  end
+  
+  def insert(data)
+    @db.insert(self.name, data)
   end
 end
