@@ -42,7 +42,8 @@ class KnjDB_mysql
           :cache_rows => false
         }
         
-        @query_args = {}
+        #Symbolize keys should also be given here, else table-data wont be symbolized for some reason - knj.
+        @query_args = {:symbolize_keys => true}
         @query_args.merge!(@knjdb.opts[:query_args]) if @knjdb.opts[:query_args]
         
         pos_args = [:as, :async, :cast_booleans, :database_timezone, :application_timezone, :cache_rows, :connect_flags, :cast]

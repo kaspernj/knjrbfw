@@ -115,7 +115,7 @@ class KnjDB_mysql::Tables::Table
     @data = args[:data]
     @subtype = @db.opts[:subtype]
     
-    raise "Could not figure out name." if !@data[:Name]
+    raise "Could not figure out name from keys: '#{@data.keys.sort.join(", ")}'." if !@data[:Name]
   end
   
   def name

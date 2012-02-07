@@ -191,7 +191,6 @@ class Knj::Objects
     elsif data.is_a?(Hash) and data.key?(@args[:col_id].to_s)
       id = data[@args[:col_id].to_s].to_i
     elsif
-      _kas.dprint(data)
       raise Knj::Errors::InvalidData, "Unknown data: '#{data.class.to_s}'."
     end
     
@@ -383,8 +382,10 @@ class Knj::Objects
     end
     
     if RUBY_VERSION[0..2] == 1.8 and Knj::Php.class_exists("Dictionary")
+      print "Spawning dictionary.\n" if args[:debug]
       list = Dictionary.new
     else
+      print "Spawning normal hash.\n" if args[:debug]
       list = {}
     end
     
@@ -398,7 +399,10 @@ class Knj::Objects
       list["0"] = _("None")
     end
     
+    print "Doing loop\n" if args[:debug]
     self.list(classname, args[:list_args]) do |object|
+      print "Object: #{object.id}\n" if args[:debug]
+      
       if object.respond_to?(:name)
         list[object.id] = object.name
       elsif object.respond_to?(:title)
@@ -408,6 +412,7 @@ class Knj::Objects
       end
     end
     
+    print "Returning...\n" if args[:debug]
     return list
   end
   

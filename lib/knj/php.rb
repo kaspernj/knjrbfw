@@ -239,7 +239,7 @@ module Knj::Php
       
       obj.each do |val|
         orig_key_str = "#{orig_key}[#{ele_count}]"
-        val = "#<Model::#{val.table}::#{val.id}>" if val.is_a?(Knj::Datarow) or val.is_a?(Knj::Datarow_custom)
+        val = "#<Model::#{val.table}::#{val.id}>" if val.respond_to?("is_knj?")
         
         if val.is_a?(Hash) or val.is_a?(Array)
           url << self.http_build_query_rec(orig_key_str, val, false)
@@ -259,7 +259,7 @@ module Knj::Php
           orig_key_str = "#{orig_key}[#{key}]"
         end
         
-        val = "#<Model::#{val.table}::#{val.id}>" if val.is_a?(Knj::Datarow) or val.is_a?(Knj::Datarow_custom)
+        val = "#<Model::#{val.table}::#{val.id}>" if val.respond_to?("is_knj?")
         
         if val.is_a?(Hash) or val.is_a?(Array)
           url << self.http_build_query_rec(orig_key_str, val, false)

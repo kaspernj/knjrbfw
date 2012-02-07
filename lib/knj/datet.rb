@@ -340,7 +340,7 @@ class Knj::Datet
   end
   
   def self.is_nullstamp?(stamp)
-    return true if !stamp or stamp == "0000-00-00" or stamp == "0000-00-00 00:00:00"
+    return true if !stamp or stamp == "0000-00-00" or stamp == "0000-00-00 00:00:00" or stamp.to_s.strip == ""
     return false
   end
   

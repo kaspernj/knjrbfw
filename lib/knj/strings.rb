@@ -42,11 +42,13 @@ module Knj::Strings
     return words
   end
   
+  #Returns boolean if the strings is a correctly formatted email: k@spernj.org.
   def self.is_email?(str)
     return true if str.to_s.match(/^\S+@\S+\.\S+$/)
     return false
   end
   
+  #Returns boolean if the string is a correctly formatted phonenumber as: +4512345678.
   def self.is_phonenumber?(str)
     return true if str.to_s.match(/^\+\d{2}\d+$/)
     return false
@@ -68,6 +70,7 @@ module Knj::Strings
     return str
   end
   
+  #Returns 'Yes' or 'No' based on a value. The value can be 0, 1, yes, no, true or false.
   def self.yn_str(value, str_yes = "Yes", str_no = "No")
     value = value.to_i if Knj::Php.is_numeric(value)
     

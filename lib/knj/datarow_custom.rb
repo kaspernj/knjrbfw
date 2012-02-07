@@ -1,6 +1,10 @@
 require "#{$knjpath}event_handler"
 
 class Knj::Datarow_custom
+  def is_knj?
+    return true
+  end
+  
   def self.has_one(arr)
     arr.each do |val|
       methodname = nil

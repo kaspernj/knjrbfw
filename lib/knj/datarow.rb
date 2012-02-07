@@ -49,8 +49,12 @@ class Knj::Datarow
       methodname = "#{classname.to_s.downcase}s".to_sym if !methodname
       
       define_method(methodname) do |*args, &block|
-        list_args = args[0] if args and args[0]
-        list_args = {} if !list_args
+        if args and args[0]
+          list_args = args[0] 
+        else
+          list_args = {}
+        end
+        
         list_args.merge!(where_args) if where_args
         list_args[colname.to_s] = self.id
         
