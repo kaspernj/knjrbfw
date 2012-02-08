@@ -88,43 +88,15 @@ class KnjDB_mysql
     str = str.force_encoding("UTF-8") if @encoding == "utf8" and str.respond_to?(:force_encoding)
     tries = 0
     
-    @mutex.synchronize do
-      case @subtype
-        when "mysql"
-          begin
-            tries += 1
+    begin
+      tries += 1
+      @mutex.synchronize do
+        case @subtype
+          when "mysql"
             return KnjDB_mysql_result.new(self, @conn.query(str))
-          rescue Mysql::Error => e
-            if e.message == "MySQL server has gone away" or e.message == "Can't connect to local MySQL server through socket"
-              raise e if tries >= 3
-              sleep 0.5
-              reconnect
-              retry
-            else
-              raise e
-            end
-          end
-        when "mysql2"
-          begin
-            tries += 1
+          when "mysql2"
             return KnjDB_mysql2_result.new(@conn.query(str, @query_args))
-          rescue Mysql2::Error => e
-            if e.message == "MySQL server has gone away" or e.message == "closed MySQL connection" or e.message == "Can't connect to local MySQL server through socket"
-              raise e if tries >= 3
-              sleep 0.5
-              reconnect
-              retry
-            elsif e.message == "This connection is still waiting for a result, try again once you have the result"
-              sleep 0.1
-              retry
-            else
-              print str
-              raise e
-            end
-          end
-        when "java"
-          begin
-            tries += 1
+          when "java"
             stmt = conn.createStatement
             
             if str.match(/^\s*(delete|update|create|drop|insert\s+into)\s+/i)
@@ -134,18 +106,27 @@ class KnjDB_mysql
               res = stmt.executeQuery(str)
               return KnjDB_java_mysql_result.new(@knjdb, @opts, res)
             end
-          rescue => e
-            if e.to_s.index("No operations allowed after connection closed") != nil
-              reconnect
-              retry
-            end
-            
-            print str
-            raise e
-          end
-        else
-          raise "Unknown subtype: '#{@subtype}'."
+          else
+            raise "Unknown subtype: '#{@subtype}'."
+        end
       end
+    rescue => e
+      if tries < 3
+        if e.message == "MySQL server has gone away" or e.message == "closed MySQL connection" or e.message == "Can't connect to local MySQL server through socket"
+          sleep 0.5
+          self.reconnect
+          retry
+        elsif e.message == "This connection is still waiting for a result, try again once you have the result"
+          sleep 0.1
+          retry
+        elsif e.to_s.index("No operations allowed after connection closed") != nil
+          self.reconnect
+          retry
+        end
+      end
+      
+      print str
+      raise e
     end
   end
   
