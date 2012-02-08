@@ -44,7 +44,7 @@ module Knj::Os
   end
   
   def self.mode
-    Knj::Php.print_r(ENV)
+    raise "stub!"
   end
   
   def self.class_exist(classstr)
