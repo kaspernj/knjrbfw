@@ -1,8 +1,8 @@
 class Knj::Image
   #This function can make rounded transparent corners on an image with a given radius. Further more it can also draw borders around the entire image in a given color and take the border into account.
   def self.rounded_corners(args)
-    raise "No or invalid ':img' given." if !args[:img]
-    raise "No or invalid ':radius' given." if args[:radius].to_i <= 0
+    raise "No or invalid ':img' given: '#{args}'." if !args[:img]
+    raise "No or invalid ':radius' given: '#{args}'." if !args[:radius].respond_to?("to_i") or args[:radius].to_i <= 0
     
     pic = args[:img]
     

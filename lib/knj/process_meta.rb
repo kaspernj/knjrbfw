@@ -34,6 +34,67 @@ class Knj::Process_meta
     @process = Knj::Process.new(args)
   end
   
+  #Parses the arguments given. Proxy-object-arguments will be their natural objects in the subprocess.
+  def self.args_parse(args)
+    if args.is_a?(Array)
+      newargs = []
+      args.each do |val|
+        if val.is_a?(Knj::Process_meta::Proxy_obj)
+          newargs << {"type" => "proxy_obj", "var_name" => val._process_meta_args[:name]}
+        else
+          newargs << Knj::Process_meta.args_parse(val)
+        end
+      end
+      
+      return newargs
+    elsif args.is_a?(Hash)
+      newargs = {}
+      args.each do |key, val|
+        if key.is_a?(Knj::Process_meta::Proxy_obj)
+          key = {"type" => "proxy_obj", "var_name" => key._process_meta_args[:name]}
+        else
+          key = Knj::Process_meta.args_parse(key)
+        end
+        
+        if val.is_a?(Knj::Process_meta::Proxy_obj)
+          val = {"type" => "proxy_obj", "var_name" => val._process_meta_args[:name]}
+        else
+          val = Knj::Process_meta.args_parse(val)
+        end
+        
+        newargs[key] = val
+      end
+      
+      return newargs
+    else
+      return args
+    end
+  end
+  
+  #Parses the special hashes to reflect the natural objects instead of proxy-objects.
+  def self.args_parse_back(args, objects)
+    if args.is_a?(Array)
+      newargs = []
+      args.each do |val|
+        newargs << Knj::Process_meta.args_parse_back(val, objects)
+      end
+      
+      return newargs
+    elsif args.is_a?(Hash) and args["type"] == "proxy_obj" and args.key?("var_name")
+      raise "No object by that var-name: '#{args["var_name"]}' in '#{objects}'." if !objects.key?(args["var_name"])
+      return objects[args["var_name"]]
+    elsif args.is_a?(Hash)
+      newargs = {}
+      args.each do |key, val|
+        newargs[Knj::Process_meta.args_parse_back(key, objects)] = Knj::Process_meta.args_parse_back(val, objects)
+      end
+      
+      return newargs
+    else
+      return args
+    end
+  end
+  
   #Executes a static method on a class in the sub-process.
   def static(const, method_name, *args, &block)
     res = @process.send(
@@ -41,7 +102,7 @@ class Knj::Process_meta
         "type" => "static",
         "const" => const,
         "method_name" => method_name,
-        "args" => args,
+        "args" => Knj::Process_meta.args_parse(args),
       },
       &block
     )
@@ -70,7 +131,7 @@ class Knj::Process_meta
           "type" => "spawn_object",
           "class_name" => class_name,
           "var_name" => var_name,
-          "args" => args
+          "args" => Knj::Process_meta.args_parse(args)
         }
       },
       &block
@@ -99,7 +160,7 @@ class Knj::Process_meta
           "type" => "call_object_block",
           "var_name" => args["var_name"],
           "method_name" => args["method_name"],
-          "args" => args["args"]
+          "args" => Knj::Process_meta.args_parse(args["args"])
         }
       },
       &block
@@ -107,6 +168,59 @@ class Knj::Process_meta
     
     return res["result"] if res.is_a?(Hash) and res["type"] == "call_object_success"
     raise "Unknown result: '#{Knj::Php.print_r(res, true)}'."
+  end
+  
+  def proxy_from_eval(eval_str)
+    proxy_obj = Knj::Process_meta::Proxy_obj.new(:process_meta => self)
+    var_name = proxy_obj.__id__
+    proxy_obj._process_meta_args[:name] = var_name
+    
+    res = @process.send(
+      "obj" => {
+        "type" => "proxy_from_eval",
+        "str" => eval_str,
+        "var_name" => var_name
+      }
+    )
+    
+    return proxy_obj
+  end
+  
+  def proxy_from_static(class_name, method_name, *args)
+    proxy_obj = Knj::Process_meta::Proxy_obj.new(:process_meta => self)
+    var_name = proxy_obj.__id__
+    proxy_obj._process_meta_args[:name] = var_name
+    
+    res = @process.send(
+      "obj" => {
+        "type" => "proxy_from_static",
+        "const" => class_name,
+        "method_name" => method_name,
+        "var_name" => var_name,
+        "args" => Knj::Process_meta.args_parse(args)
+      }
+    )
+    
+    return proxy_obj
+  end
+  
+  #Returns a proxy-object to a object given from a call.
+  def proxy_from_call(proxy_obj_to_call, method_name, *args)
+    proxy_obj = Knj::Process_meta::Proxy_obj.new(:process_meta => self)
+    var_name = proxy_obj.__id__
+    proxy_obj._process_meta_args[:name] = var_name
+    
+    res = @process.send(
+      "obj" => {
+        "type" => "proxy_from_call",
+        "proxy_obj" => proxy_obj_to_call.__id__,
+        "method_name" => method_name,
+        "var_name" => var_name,
+        "args" => Knj::Process_meta.args_parse(args)
+      }
+    )
+    
+    return proxy_obj
   end
   
   #Destroyes the project and unsets all variables on the Process_meta-object.
@@ -148,11 +262,12 @@ class Knj::Process_meta::Proxy_obj
   
   #This proxies all method-calls through the process-handeler and returns the result as the object was precent inside the current process-memory, even though it is not.
   def method_missing(method_name, *args, &block)
+    raise "No arguments on the object?" if !@args
     @args[:process_meta].call_object(
       {
         "var_name" => @args[:name],
         "method_name" => method_name,
-        "args" => args,
+        "args" => Knj::Process_meta.args_parse(args),
         "buffer_use" => @_process_meta_block_buffer_use
       },
       &block

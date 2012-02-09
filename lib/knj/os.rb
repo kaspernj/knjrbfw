@@ -30,7 +30,7 @@ module Knj::Os
   def self.os
     if ENV["OS"]
       teststring = ENV["OS"].to_s
-    elsif (RUBY_PLATFORM)
+    elsif RUBY_PLATFORM
       teststring = RUBY_PLATFORM.to_s
     end
     
@@ -173,6 +173,17 @@ module Knj::Os
   #Returns the Ruby executable that is running the current process if possible.
   def self.executed_executable
     return ENV["rvm_ruby_string"] if ENV["rvm_ruby_string"].to_s.length > 0
+    
+    #Try to look the executeable up by command.
+    if self.os == "linux"
+      unix_proc = Knj::Unix_proc.find_self
+      if unix_proc
+        if match_cmd = unix_proc["cmd"].match(/^((j|iron|)ruby([\d\.-]+))(\s+|$)/)
+          return match_cmd[1]
+        end
+      end
+    end
+    
     raise "Could not figure out the executed executable."
   end
 end
