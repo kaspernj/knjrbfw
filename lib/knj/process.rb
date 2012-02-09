@@ -2,7 +2,7 @@ require "#{$knjpath}/errors"
 require "#{$knjpath}/thread"
 
 class Knj::Process
-  attr_reader :blocks
+  attr_reader :blocks, :blocks_send
   
   #Constructor. Sets in, out and various other needed variables.
   def initialize(args = {})
@@ -66,199 +66,203 @@ class Knj::Process
   #Listens for a new incoming object.
   def listen
     loop do
-      str = @in.gets("\n")
-      if str == nil
-        raise "Socket closed." if @in.closed?
-        sleep 0.1
-        next
-      end
+      self.listen_loop
+    end
+  end
+  
+  def listen_loop
+    str = @in.gets("\n")
+    if str == nil
+      raise "Socket closed." if @in.closed?
+      sleep 0.1
+      return nil
+    end
+    
+    
+    data = str.strip.split(":")
+    raise "Expected length of 2 or 3 but got: '#{data.length}'.\n#{Knj::Php.print_r(data, true)}" if data.length != 2 and data.length != 3
+    
+    raise "Invalid ID: '#{data[1]}'." if data[1].to_s.strip.length <= 0
+    id = data[1].to_i
+    
+    raise "Invalid length: '#{data[2]}' (#{str.to_s.strip})." if data[2].to_s.strip.length <= 0
+    length = data[2].to_i
+    
+    $stderr.print "Received ID #{id}.\n" if @debug
+    res = @in.read(length)
+    
+    begin
+      obj = Marshal.load(res)
+      $stderr.print "Got content for '#{id}' (#{data[0]}).\n" if @debug
       
-      
-      data = str.strip.split(":")
-      raise "Expected length of 2 or 3 but got: '#{data.length}'.\n#{Knj::Php.print_r(data, true)}" if data.length != 2 and data.length != 3
-      
-      raise "Invalid ID: '#{data[1]}'." if data[1].to_s.strip.length <= 0
-      id = data[1].to_i
-      
-      raise "Invalid length: '#{data[2]}' (#{str.to_s.strip})." if data[2].to_s.strip.length <= 0
-      length = data[2].to_i
-      
-      $stderr.print "Received ID #{id}.\n" if @debug
-      res = @in.read(length)
-      
-      begin
-        obj = Marshal.load(res)
-        $stderr.print "Got content for '#{id}' (#{data[0]}).\n" if @debug
-        
-        case data[0]
-          when "answer"
-            #raise "Already have answer for '#{id}'." if @out_answers.key?(id)
-            @out_answers[id] = obj
-          when "answer_block"
-            @blocks[id][:results] += obj
-          when "answer_block_end"
-            $stderr.print "Answer-block-end received!\n" if @debug
-            @blocks[id][:block_result] = obj
-            @blocks[id][:finished] = true
-          when "send"
-            Knj::Thread.new do
-              result_obj = Knj::Process::Resultobject.new(:process => self, :id => id, :obj => obj)
-              
-              begin
-                @on_rec.call(result_obj)
-              rescue SystemExit => e
-                raise e
-              rescue Exception => e
-                #Error was raised - try to forward it to the server.
-                result_obj.answer("type" => "process_error", "class" => e.class.name, "msg" => e.message, "backtrace" => e.backtrace)
-              end
-            end
-          when "send_block"
+      case data[0]
+        when "answer"
+          #raise "Already have answer for '#{id}'." if @out_answers.key?(id)
+          @out_answers[id] = obj
+        when "answer_block"
+          @blocks[id][:results] += obj
+        when "answer_block_end"
+          $stderr.print "Answer-block-end received!\n" if @debug
+          @blocks[id][:block_result] = obj
+          @blocks[id][:finished] = true
+        when "send"
+          Knj::Thread.new do
             result_obj = Knj::Process::Resultobject.new(:process => self, :id => id, :obj => obj)
-            @blocks_send[id] = {:result_obj => result_obj, :waiting_for_result => false}
             
-            @blocks_send[id][:enum] = Enumerator.new do |y|
-              @on_rec.call(result_obj) do |answer_block|
-                $stderr.print "Running enum-block for #{answer_block}\n" if @debug
-                
-                break if !@blocks_send.key?(id)
-                y << answer_block
-                
-                dobreak = false
-                loop do
-                  if !@blocks_send.key?(id)
-                    dobreak = true
-                    break
-                  end
-                  
-                  break if @blocks_send[id][:waiting_for_result]
-                  sleep 0.01
-                end
-                
-                break if dobreak
-              end
-            end
-          when "send_block_res"
             begin
-              @blocks_send[obj][:waiting_for_result] = true
-              res = @blocks_send[obj][:enum].next
-              self.answer(id, {"result" => res})
-            rescue StopIteration
-              self.answer(id, "StopIteration")
+              @on_rec.call(result_obj)
+            rescue SystemExit => e
+              raise e
+            rescue Exception => e
+              #Error was raised - try to forward it to the server.
+              result_obj.answer("type" => "process_error", "class" => e.class.name, "msg" => e.message, "backtrace" => e.backtrace)
             end
-          when "send_block_end"
-            if @blocks_send.key?(obj)
-              enum = @blocks_send[obj][:enum]
-              @blocks_send.delete(obj)
+          end
+        when "send_block"
+          result_obj = Knj::Process::Resultobject.new(:process => self, :id => id, :obj => obj)
+          @blocks_send[id] = {:result_obj => result_obj, :waiting_for_result => false}
+          
+          @blocks_send[id][:enum] = Enumerator.new do |y|
+            @on_rec.call(result_obj) do |answer_block|
+              $stderr.print "Running enum-block for #{answer_block}\n" if @debug
               
-              begin
-                enum.next #this has to be called to stop Enumerator from blocking...
-              rescue StopIteration
-                #do nothing.
-              end
-            end
-            
-            self.answer(id, "ok")
-          when "send_block_buffer"
-            buffer_use = true
-            
-            Knj::Thread.new do
-              result_obj = Knj::Process::Resultobject.new(:process => self, :id => id, :obj => obj)
-              block_res = nil
+              break if !@blocks_send.key?(id)
+              y << answer_block
+              dobreak = false
               
-              begin
-                if buffer_use
-                  buffer_answers = []
-                  buffer_done = false
-                  
-                  buffer_thread = Knj::Thread.new do
-                    loop do
-                      arr = buffer_answers.shift(200)
-                      
-                      if !arr.empty?
-                        $stderr.print "Sending: #{arr.length} results.\n" if @debug
-                        self.answer(id, arr, "answer_block")
-                      else
-                        sleep 0.05
-                      end
-                      
-                      break if buffer_done and buffer_answers.empty?
-                    end
-                  end
+              loop do
+                if !@blocks_send.key?(id)
+                  dobreak = true
+                  break
                 end
                 
+                break if @blocks_send[id][:waiting_for_result]
+                sleep 0.01
+              end
+              
+              break if dobreak
+            end
+          end
+        when "send_block_res"
+          begin
+            @blocks_send[obj][:waiting_for_result] = true
+            res = @blocks_send[obj][:enum].next
+            self.answer(id, {"result" => res})
+          rescue StopIteration
+            self.answer(id, "StopIteration")
+          end
+        when "send_block_end"
+          if @blocks_send.key?(obj)
+            enum = @blocks_send[obj][:enum]
+            @blocks_send.delete(obj)
+            
+            begin
+              enum.next #this has to be called to stop Enumerator from blocking...
+            rescue StopIteration
+              #do nothing.
+            end
+          end
+          
+          self.answer(id, "ok")
+        when "send_block_buffer"
+          buffer_use = true
+          
+          Knj::Thread.new do
+            result_obj = Knj::Process::Resultobject.new(:process => self, :id => id, :obj => obj)
+            block_res = nil
+            
+            begin
+              if buffer_use
+                buffer_answers = []
+                buffer_done = false
+                
+                buffer_thread = Knj::Thread.new do
+                  loop do
+                    arr = buffer_answers.shift(200)
+                    
+                    if !arr.empty?
+                      $stderr.print "Sending: #{arr.length} results.\n" if @debug
+                      self.answer(id, arr, "answer_block")
+                    else
+                      sleep 0.05
+                    end
+                    
+                    break if buffer_done and buffer_answers.empty?
+                  end
+                end
+              end
+              
+              begin
                 begin
-                  begin
-                    count = 0
-                    block_res = @on_rec.call(result_obj) do |answer_block|
-                      if buffer_use
-                        loop do
-                          if buffer_answers.length > 1000
-                            $stderr.print "Buffer is more than 1000 - sleeping and tries again in 0.05 sec.\n" if @debug
-                            sleep 0.05
-                          else
-                            break
-                          end
-                        end
-                      end
-                      
-                      count += 1
-                      if buffer_use
-                        buffer_answers << answer_block
-                      else
-                        self.answer(id, [answer_block], "answer_block")
-                      end
-                      
-                      if count >= 100
-                        count = 0
-                        
-                        loop do
-                          answer = self.send("obj" => id, "type" => "send_block_count")
-                          $stderr.print "Answer was: #{answer}\n" if @debug
-                          
-                          if answer >= 100
-                            $stderr.print "More than 100 results are buffered on the other side - wait for them to be handeled before sending more.\n" if @debug
-                            sleep 0.05
-                          else
-                            $stderr.print "Less than 100 results in buffer - send more.\n" if @debug
-                            break
-                          end
+                  count = 0
+                  block_res = @on_rec.call(result_obj) do |answer_block|
+                    if buffer_use
+                      loop do
+                        if buffer_answers.length > 1000
+                          $stderr.print "Buffer is more than 1000 - sleeping and tries again in 0.05 sec.\n" if @debug
+                          sleep 0.05
+                        else
+                          break
                         end
                       end
                     end
-                  ensure
-                    buffer_done = true if buffer_use
+                    
+                    count += 1
+                    if buffer_use
+                      buffer_answers << answer_block
+                    else
+                      self.answer(id, [answer_block], "answer_block")
+                    end
+                    
+                    if count >= 100
+                      count = 0
+                      
+                      loop do
+                        answer = self.send("obj" => id, "type" => "send_block_count")
+                        $stderr.print "Answer was: #{answer}\n" if @debug
+                        
+                        if answer >= 100
+                          $stderr.print "More than 100 results are buffered on the other side - wait for them to be handeled before sending more.\n" if @debug
+                          sleep 0.05
+                        else
+                          $stderr.print "Less than 100 results in buffer - send more.\n" if @debug
+                          break
+                        end
+                      end
+                    end
                   end
                 ensure
-                  buffer_thread.join if buffer_use
+                  buffer_done = true if buffer_use
                 end
-              rescue Exception => e
-                $stderr.print Knj::Errors.error_str(e) if @debug
-                #Error was raised - try to forward it to the server.
-                result_obj.answer("type" => "process_error", "class" => e.class.name, "msg" => e.message, "backtrace" => e.backtrace)
               ensure
-                $stderr.print "Answering with block-end.\n" if @debug
-                self.answer(id, block_res, "answer_block_end")
+                buffer_thread.join if buffer_use
               end
+            rescue Exception => e
+              $stderr.print Knj::Errors.error_str(e) if @debug
+              #Error was raised - try to forward it to the server.
+              result_obj.answer("type" => "process_error", "class" => e.class.name, "msg" => e.message, "backtrace" => e.backtrace)
+            ensure
+              $stderr.print "Answering with block-end.\n" if @debug
+              self.answer(id, block_res, "answer_block_end")
             end
-          when "send_block_count"
-            if @blocks.key?(obj)
-              count = @blocks[obj][:results].length
-            else
-              count = 0
-            end
-            
-            self.answer(id, count)
+          end
+        when "send_block_count"
+          if @blocks.key?(obj)
+            count = @blocks[obj][:results].length
           else
-            $stderr.print "Unknown command: '#{data[0]}'."
-            raise "Unknown command: '#{data[0]}'."
-        end
-      rescue Exception => e
-        $stderr.print Knj::Errors.error_str(e) if @debug
-        #Error was raised - try to forward it to the server.
-        result_obj = Knj::Process::Resultobject.new(:process => self, :id => id, :obj => obj)
-        result_obj.answer("type" => "process_error", "class" => e.class.name, "msg" => e.message, "backtrace" => e.backtrace)
+            count = 0
+          end
+          
+          self.answer(id, count)
+        else
+          $stderr.print "Unknown command: '#{data[0]}'."
+          raise "Unknown command: '#{data[0]}'."
       end
+    rescue Exception => e
+      $stderr.print Knj::Errors.error_str(e) if @debug
+      #Error was raised - try to forward it to the server.
+      result_obj = Knj::Process::Resultobject.new(:process => self, :id => id, :obj => obj)
+      result_obj.answer("type" => "process_error", "class" => e.class.name, "msg" => e.message, "backtrace" => e.backtrace)
     end
   end
   
@@ -390,7 +394,7 @@ class Knj::Process
     @out_answers.delete(id)
     
     if ret.is_a?(Hash) and ret["type"] == "process_error"
-      $stderr.print "Process-error - begin generating error...\n"
+      $stderr.print "Process-error - begin generating error...\n" if @debug
       err = RuntimeError.new(ret["msg"])
       bt = []
       ret["backtrace"].each do |subproc_bt|

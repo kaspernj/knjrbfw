@@ -6,6 +6,7 @@ class Knj::Process_meta
   def initialize(args = {})
     @args = args
     @objects = {}
+    @finalize = []
     
     if @args["exec_path"]
       exec_path = @args["exec_path"]
@@ -32,6 +33,25 @@ class Knj::Process_meta
     end
     
     @process = Knj::Process.new(args)
+  end
+  
+  def proxy_finalizer(id)
+    @finalize << id
+  end
+  
+  def check_finalizers
+    return nil if @finalize.empty?
+    
+    remove = []
+    @finalize.each do |id|
+      @process.send("obj" => {
+        "type" => "unset",
+        "var_name" => id
+      })
+      remove << id
+    end
+    
+    @finalize -= remove
   end
   
   #Parses the arguments given. Proxy-object-arguments will be their natural objects in the subprocess.
@@ -153,6 +173,7 @@ class Knj::Process_meta
   
   #Calls a method on an object and returns the result.
   def call_object(args, &block)
+    self.check_finalizers
     res = @process.send(
       {
         "buffer_use" => args["buffer_use"],
@@ -223,6 +244,27 @@ class Knj::Process_meta
     return proxy_obj
   end
   
+  #Returns true if the given name exists in the subprocess-objects-hash.
+  def proxy_has?(var_name)
+    self.check_finalizers
+    
+    begin
+      res = @process.send(
+        "obj" => {
+          "type" => "call_object_block",
+          "var_name" => var_name,
+          "method_name" => "__id__",
+          "args" => []
+        }
+      )
+    rescue => e
+      return false if e.message.to_s.match(/^No object by that name/)
+      raise e
+    end
+    
+    return true
+  end
+  
   #Destroyes the project and unsets all variables on the Process_meta-object.
   def destroy
     begin
@@ -258,6 +300,7 @@ class Knj::Process_meta::Proxy_obj
   def initialize(args)
     @args = args
     @_process_meta_buffer_use = false
+    ObjectSpace.define_finalizer(self, @args[:process_meta].method(:proxy_finalizer))
   end
   
   #This proxies all method-calls through the process-handeler and returns the result as the object was precent inside the current process-memory, even though it is not.
