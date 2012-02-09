@@ -78,6 +78,7 @@
       @subproc.static("Object", "require", "rubygems")
       @subproc.static("Object", "require", "#{File.dirname(Knj::Os.realpath(__FILE__))}/../../knjrbfw.rb")
       @subproc.static("Object", "require", "knj/autoload")
+      @subproc.static("Dir", "chdir", File.dirname(__FILE__))
       
       list_proxy = @subproc.proxy_from_static("Magick::Image", "read", _get["path"])
       pic = @subproc.proxy_from_call(list_proxy, "first")
