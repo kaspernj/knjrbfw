@@ -33,6 +33,15 @@ class Knj::Process_meta
     end
     
     @process = Knj::Process.new(args)
+    
+    #If block is given then run block and destroy self.
+    if block_given?
+      begin
+        yield(self)
+      ensure
+        self.destroy
+      end
+    end
   end
   
   def proxy_finalizer(id)
@@ -265,6 +274,11 @@ class Knj::Process_meta
     return true
   end
   
+  def pid
+    return @wait_thr.pid if @wait_thr
+    raise "Couldnt figure out PID."
+  end
+  
   #Destroyes the project and unsets all variables on the Process_meta-object.
   def destroy
     begin
@@ -283,6 +297,8 @@ class Knj::Process_meta
       process_exists = Knj::Unix_proc.list("pids" => [pid])
       raise "Process exists." if !process_exists.empty?
     rescue
+      STDOUT.print "Process wont kill - try to kill...\n"
+      
       begin
         Process.kill(9, pid) if process_exists
       rescue Errno::ESRCH => e

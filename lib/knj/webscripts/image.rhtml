@@ -73,17 +73,16 @@
   end
   
 	if !tmp_use or tmp_write or force
-    begin
-      @subproc = Knj::Process_meta.new("debug_err" => true)
-      @subproc.static("Object", "require", "rubygems")
-      @subproc.static("Object", "require", "#{File.dirname(Knj::Os.realpath(__FILE__))}/../../knjrbfw.rb")
-      @subproc.static("Object", "require", "knj/autoload")
-      @subproc.static("Dir", "chdir", File.dirname(__FILE__))
+    Knj::Process_meta.new("debug_err" => true) do |subproc|
+      subproc.static("Object", "require", "rubygems")
+      subproc.static("Object", "require", "#{File.dirname(Knj::Os.realpath(__FILE__))}/../../knjrbfw.rb")
+      subproc.static("Object", "require", "knj/autoload")
+      subproc.static("Dir", "chdir", File.dirname(__FILE__))
       
-      list_proxy = @subproc.proxy_from_static("Magick::Image", "read", _get["path"])
-      pic = @subproc.proxy_from_call(list_proxy, "first")
-      
+      list_proxy = subproc.proxy_from_static("Magick::Image", "read", _get["path"])
+      pic = subproc.proxy_from_call(list_proxy, "first")
       #pic = Magick::Image.read(_get["path"]).first
+      
       if !pic
         print "Could not open image from '#{_get["path"]}'."
         exit
@@ -134,7 +133,7 @@
       end
       
       if height != pic_rows or width != pic_columns
-        pic = @subproc.proxy_from_call(pic, "resize_to_fit", width.to_i, height.to_i)
+        pic = subproc.proxy_from_call(pic, "resize_to_fit", width.to_i, height.to_i)
         #pic = pic.resize_to_fit(width.to_i, height.to_i)
       end
       
@@ -147,19 +146,14 @@
         end
         
         #Spawn arguments-hash for Knj::Image.rounded_corners in subprocess.
-        proxy_hash = @subproc.new("{}", args)
+        proxy_hash = subproc.new("{}", args)
         
         #Call rounded_corners with the proxy-hash.
-        @subproc.static("Knj::Image", "rounded_corners", proxy_hash)
+        subproc.static("Knj::Image", "rounded_corners", proxy_hash)
         #Knj::Image.rounded_corners(args)
       end
       
       blob_cont = pic.to_blob
-    ensure
-      @subproc.destroy if @subproc
-      @subproc = nil
-      pic = nil
-      list_proxy = nil
     end
 	end
 	
