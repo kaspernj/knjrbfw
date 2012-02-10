@@ -73,6 +73,7 @@
   end
   
 	if !tmp_use or tmp_write or force
+    blob_cont = nil
     Knj::Process_meta.new("debug_err" => true) do |subproc|
       subproc.static("Object", "require", "rubygems")
       subproc.static("Object", "require", "#{File.dirname(Knj::Os.realpath(__FILE__))}/../../knjrbfw.rb")
