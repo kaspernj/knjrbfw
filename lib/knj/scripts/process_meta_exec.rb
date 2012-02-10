@@ -3,7 +3,8 @@
 Dir.chdir(File.dirname(__FILE__))
 require "../../knjrbfw"
 require "knj/process"
-require "knj/autoload"
+require "knj/process_meta"
+require "knj/strings"
 
 objects = {}
 @process = Knj::Process.new(

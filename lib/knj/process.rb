@@ -80,7 +80,7 @@ class Knj::Process
     
     
     data = str.strip.split(":")
-    raise "Expected length of 2 or 3 but got: '#{data.length}'.\n#{Knj::Php.print_r(data, true)}" if data.length != 2 and data.length != 3
+    raise "Expected length of 2 or 3 but got: '#{data.length}'.\n#{data}" if data.length != 2 and data.length != 3
     
     raise "Invalid ID: '#{data[1]}'." if data[1].to_s.strip.length <= 0
     id = data[1].to_i
@@ -372,7 +372,7 @@ class Knj::Process
   def read_answer(id)
     $stderr.print "Reading answer (#{id}).\n" if @debug
     block_res = @blocks[id]
-    $stderr.print "Answer is block for #{id} #{Knj::Php.print_r(block_res, true)}\n" if @debug and block_res
+    $stderr.print "Answer is block for #{id} #{block_res}\n" if @debug and block_res
     
     loop do
       if block_res

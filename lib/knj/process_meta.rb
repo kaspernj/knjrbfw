@@ -1,4 +1,5 @@
 require "#{$knjpath}/process"
+require "#{$knjpath}/os"
 
 class Knj::Process_meta
   attr_reader :process
@@ -137,7 +138,7 @@ class Knj::Process_meta
     )
     
     return res["result"] if res["type"] == "call_const_success"
-    raise "Unknown result: '#{Knj::Php.print_r(res, true)}'."
+    raise "Unknown result: '#{res}'."
   end
   
   #Spawns a new object in the subprocess by that classname, with those arguments and with that block.
@@ -177,7 +178,7 @@ class Knj::Process_meta
     })
     
     return res["result"] if res.is_a?(Hash) and res["type"] == "call_eval_success"
-    return "Unknown result: '#{Knj::Php.print_r(res, true)}'."
+    return "Unknown result: '#{res}'."
   end
   
   #Calls a method on an object and returns the result.
@@ -197,7 +198,7 @@ class Knj::Process_meta
     )
     
     return res["result"] if res.is_a?(Hash) and res["type"] == "call_object_success"
-    raise "Unknown result: '#{Knj::Php.print_r(res, true)}'."
+    raise "Unknown result: '#{res}'."
   end
   
   def proxy_from_eval(eval_str)

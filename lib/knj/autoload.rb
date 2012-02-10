@@ -142,7 +142,6 @@ end
 autoload :Dictionary, $knjpath + "autoload/facets_dictionary"
 
 #gems
-autoload :Twitter, $knjpath + "autoload/twitter"
 autoload :Facebooker, $knjpath + "autoload/facebooker"
 autoload :Cinch, $knjpath + "autoload/cinch"
 autoload :ActiveSupport, $knjpath + "autoload/activesupport"
