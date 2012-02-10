@@ -275,7 +275,22 @@ class Knj::Process_meta
     
     @err_thread.kill if @err_thread
     @process.destroy
-    Process.kill("TERM", @wait_thr.pid)
+    pid = @wait_thr.pid
+    Process.kill("TERM", pid)
+    
+    begin
+      sleep 0.1
+      process_exists = Knj::Unix_proc.list("pids" => [pid])
+      raise "Process exists." if !process_exists.empty?
+    rescue
+      begin
+        Process.kill(9, pid) if process_exists
+      rescue Errno::ESRCH => e
+        raise e if e.message != "No such process"
+      end
+      
+      retry
+    end
     
     @process = nil
     @wait_thr = nil
