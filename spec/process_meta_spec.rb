@@ -1,16 +1,17 @@
 require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
 describe "Process_meta" do
+  
   it "should be able to start a server and a client" do
     require "knj/autoload"
     
-    
     #Start the activity.
-    process_meta = Knj::Process_meta.new("debug" => false, "debug_err" => true)
-    
-    
+    $process_meta = Knj::Process_meta.new("debug" => false, "debug_err" => true)
+  end
+  
+  it "should be able to do various operations" do
     #Test that breaking a block wont continue to run in the process.
-    process_meta.str_eval("
+    $process_meta.str_eval("
       class Testclass
         attr_reader :last_num
         
@@ -27,7 +28,15 @@ describe "Process_meta" do
       end
     ")
     
-    proxy_obj = process_meta.new(:Testclass)
+    proxy_obj = $process_meta.new(:Testclass)
+    proxy_obj2 = $process_meta.new(:Testclass)
+    proxy_obj3 = $process_meta.new(:Testclass)
+    
+    $ids = []
+    $ids << proxy_obj.__id__
+    $ids << proxy_obj2.__id__
+    $ids << proxy_obj3.__id__
+    
     proxy_obj.test_block do |i|
       if i == 5
         break
@@ -37,10 +46,22 @@ describe "Process_meta" do
     last_num = proxy_obj.last_num
     raise "Expected last num to be 5 but it wasnt: '#{last_num}'." if last_num != 5
     
+    #Somehow define_finalizer is always one behind, so we have to do funny one here.
+    ObjectSpace.define_finalizer(self, $process_meta.method(:proxy_finalizer))
+  end
+  
+  it "should be able to do more" do
+    GC.start
+    
+    count = 0
+    $ids.each do |id|
+      count += 1
+      raise "The object should no longer exist but it does: #{count}." if $process_meta.proxy_has?(id)
+    end
     
     
     #Spawn a test-object - a string - with a variable-name.
-    proxy_obj = process_meta.spawn_object(:String, "my_test_var", "Kasper")
+    proxy_obj = $process_meta.spawn_object(:String, "my_test_var", "Kasper")
     raise "to_s should return 'Kasper' but didnt: '#{proxy_obj.to_s}'." if proxy_obj.to_s != "Kasper"
     
     #Stress it a little by doing 500 calls.
@@ -68,7 +89,7 @@ describe "Process_meta" do
     
     
     #Try to define an integer and run upto with a block.
-    proxy_int = process_meta.spawn_object(:Integer, nil, 5)
+    proxy_int = $process_meta.spawn_object(:Integer, nil, 5)
     expect = 5
     proxy_int.upto(1000) do |i|
       raise "Expected '#{expect}' but got: '#{i}'." if i != expect
@@ -95,6 +116,6 @@ describe "Process_meta" do
     proxy_int._process_meta_unset
     
     #Destroy the process-eval which should stop the process.
-    process_meta.destroy
+    $process_meta.destroy
   end
 end
