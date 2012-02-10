@@ -208,6 +208,9 @@ class Knj::Objects
             end
           rescue WeakRef::RefError
             @objects[classname].delete(id)
+          rescue NoMethodError => e
+            #NoMethodError because the object might have been deleted from the cache, and __getobj__ then throws it.
+            raise e if e.message != "undefined method `__getobj__' for nil:NilClass"
           end
         else
           return @objects[classname][id]

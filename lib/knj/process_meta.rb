@@ -125,6 +125,22 @@ class Knj::Process_meta
     end
   end
   
+  def static_noret(const, method_name, *args, &block)
+    res = @process.send(
+      "obj" => {
+        "type" => "static",
+        "const" => const,
+        "method_name" => method_name,
+        "capture_return" => false,
+        "args" => Knj::Process_meta.args_parse(args),
+      },
+      &block
+    )
+    
+    return res["result"] if res["type"] == "call_const_success"
+    raise "Unknown result: '#{res}'."
+  end
+  
   #Executes a static method on a class in the sub-process.
   def static(const, method_name, *args, &block)
     res = @process.send(
@@ -132,6 +148,7 @@ class Knj::Process_meta
         "type" => "static",
         "const" => const,
         "method_name" => method_name,
+        "capture_return" => true,
         "args" => Knj::Process_meta.args_parse(args),
       },
       &block
@@ -184,6 +201,13 @@ class Knj::Process_meta
   #Calls a method on an object and returns the result.
   def call_object(args, &block)
     self.check_finalizers
+    
+    if args.key?("capture_return")
+      capture_return = args["capture_return"]
+    else
+      capture_return = true
+    end
+    
     res = @process.send(
       {
         "buffer_use" => args["buffer_use"],
@@ -191,6 +215,7 @@ class Knj::Process_meta
           "type" => "call_object_block",
           "var_name" => args["var_name"],
           "method_name" => args["method_name"],
+          "capture_return" => capture_return,
           "args" => Knj::Process_meta.args_parse(args["args"])
         }
       },
@@ -342,7 +367,7 @@ class Knj::Process_meta::Proxy_obj
       {
         "var_name" => @args[:name],
         "method_name" => method_name,
-        "args" => Knj::Process_meta.args_parse(args),
+        "args" => args,
         "buffer_use" => @_process_meta_block_buffer_use
       },
       &block
@@ -359,5 +384,18 @@ class Knj::Process_meta::Proxy_obj
   
   def _process_meta_block_buffer_use=(newval)
     @_process_meta_block_buffer_use = newval
+  end
+  
+  def _pm_send_noret(method_name, *args, &block)
+    @args[:process_meta].call_object(
+      {
+        "var_name" => @args[:name],
+        "method_name" => method_name,
+        "args" => args,
+        "buffer_use" => @_process_meta_block_buffer_use,
+        "capture_return" => false
+      },
+      &block
+    )
   end
 end

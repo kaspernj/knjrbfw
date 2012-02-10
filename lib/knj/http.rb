@@ -10,7 +10,6 @@ class Knj::Http
   end
   
   def initialize(opts = {})
-    require "webrick" if !opts["skip_webrick"]
     require "net/http"
     
     @opts = opts

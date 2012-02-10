@@ -73,6 +73,7 @@
   end
   
 	if !tmp_use or tmp_write or force
+    blob_cont = nil
     Knj::Process_meta.new("debug_err" => true) do |subproc|
       subproc.static("Object", "require", "rubygems")
       subproc.static("Object", "require", "#{File.dirname(Knj::Os.realpath(__FILE__))}/../../knjrbfw.rb")
@@ -88,7 +89,7 @@
         exit
       end
       
-      pic.format = "png"
+      pic._pm_send_noret("format=", "png")
       
       pic_columns = pic.columns
       pic_rows = pic.rows
@@ -149,7 +150,7 @@
         proxy_hash = subproc.new("{}", args)
         
         #Call rounded_corners with the proxy-hash.
-        subproc.static("Knj::Image", "rounded_corners", proxy_hash)
+        subproc.static_noret("Knj::Image", "rounded_corners", proxy_hash)
         #Knj::Image.rounded_corners(args)
       end
       

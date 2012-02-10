@@ -37,7 +37,7 @@ objects = {}
         raise "No 'var_name' was given in arguments." if !obj["var_name"]
         raise "No object by that name: '#{obj["proxy_obj"]}' in '#{objects}'." if !objects.key?(obj["proxy_obj"])
         obj_to_call = objects[obj["proxy_obj"]]
-        res = obj_to_call.send(obj["method_name"], *obj["args"])
+        res = obj_to_call.__send__(obj["method_name"], *obj["args"])
         objects[obj["var_name"]] = res
         
         d.answer("type" => "success")
@@ -47,7 +47,7 @@ objects = {}
         d.answer("type" => "success")
       elsif obj["type"] == "proxy_from_static"
         const = Knj::Strings.const_get_full(obj["const"])
-        res = const.send(obj["method_name"], *obj["args"])
+        res = const.__send__(obj["method_name"], *obj["args"])
         objects[obj["var_name"]] = res
         d.answer("type" => "success")
       elsif obj["type"] == "call_object"
@@ -55,7 +55,8 @@ objects = {}
         
         obj_to_call = objects[obj["var_name"]]
         raise "No object by that name: '#{obj["var_name"]}'." if !obj
-        res = obj_to_call.send(obj["method_name"], *obj["args"])
+        res = obj_to_call.__send__(obj["method_name"], *obj["args"])
+        res = nil if obj["capture_return"] == false
         d.answer("type" => "call_object_success", "result" => res)
       elsif obj["type"] == "call_object_block"
         raise "Invalid var-name: '#{obj["var_name"]}'." if obj["var_name"].to_s.strip.length <= 0
@@ -65,11 +66,13 @@ objects = {}
           raise Knj::Errors::NotFound, "No object by that name: '#{obj["var_name"]}' in '#{objects}'." if !objects.key?(obj["var_name"])
           obj_to_call = objects[obj["var_name"]]
           raise "No object by that name: '#{obj["var_name"]}'." if !obj
-          res = obj_to_call.send(obj["method_name"], *obj["args"]) do |*args|
+          
+          res = obj_to_call.__send__(obj["method_name"], *obj["args"]) do |*args|
             block_res = block.call(*args) if block
           end
         ensure
           #This has to be ensured, because this block wont be runned any more after enumerable has been broken...
+          res = nil if obj["capture_return"] == false
           d.answer("type" => "call_object_success", "result" => res)
         end
       elsif obj["type"] == "unset"
@@ -79,7 +82,8 @@ objects = {}
         d.answer("type" => "unset_success")
       elsif obj["type"] == "static"
         const = Knj::Strings.const_get_full(obj["const"])
-        res = const.send(obj["method_name"], *obj["args"], &block)
+        res = const.__send__(obj["method_name"], *obj["args"], &block)
+        res = nil if obj["capture_return"] == false
         d.answer("type" => "call_const_success", "result" => res)
       elsif obj["type"] == "str_eval"
         res = eval(obj["str"])

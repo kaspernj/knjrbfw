@@ -1,15 +1,13 @@
 class Knj::Degulesider
-  include Knj
-  
   def initialize(args = {})
     @args = args
-    @http = Http.new(
+    @http = Knj::Http.new(
       "host" => "www.degulesider.dk"
     )
   end
   
   def search(sargs)
-    url = "/search/#{Php.urlencode(sargs[:where])}/-/1/"
+    url = "/search/#{Knj::Php.urlencode(sargs[:where])}/-/1/"
     
     html = @http.get(url)
     ret = []
