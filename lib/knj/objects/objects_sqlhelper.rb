@@ -70,7 +70,7 @@ class Knj::Objects
             if val[0].is_a?(Array)
               if args[:joined_tables]
                 args[:joined_tables].each do |table_name, table_data|
-                  next if table_name.to_s != val[0][0]
+                  next if table_name.to_s != val[0][0].to_s
                   do_joins[table_name] = true
                   orders << "`#{db.esc_table(table_name)}`.`#{db.esc_col(val[0][1])}`#{ordermode}"
                   found = true

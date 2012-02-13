@@ -69,6 +69,9 @@ class Knj::Translations
   
   #Sets translations for an object by the given hash-keys and hash-values.
   def set(obj, values, args = {})
+    #Reset cache to reflect the updates when read next time.
+    obj.instance_variable_set("@knj_translations_cache", {})
+    
     if args[:locale]
       locale = args[:locale]
     else
