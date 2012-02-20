@@ -2,7 +2,7 @@ require "#{$knjpath}/process"
 require "#{$knjpath}/os"
 
 class Knj::Process_meta
-  attr_reader :process
+  attr_reader :process, :pid
   
   def initialize(args = {})
     @args = args
@@ -17,7 +17,12 @@ class Knj::Process_meta
     
     exec_file = "#{File.dirname(__FILE__)}/scripts/process_meta_exec.rb"
     
-    @stdin, @stdout, @stderr, @wait_thr = Open3.popen3("#{exec_path} #{exec_file}")
+    if RUBY_ENGINE == "jruby"
+      @pid, @stdin, @stdout, @stderr = IO.popen4("#{exec_path} \"#{exec_file}\"")
+    else
+      @stdin, @stdout, @stderr, wait_thr = Open3.popen3("#{exec_path} \"#{exec_file}\"")
+      @pid = wait_thr.pid
+    end
     
     args = {
       :out => @stdin,
@@ -300,11 +305,6 @@ class Knj::Process_meta
     return true
   end
   
-  def pid
-    return @wait_thr.pid if @wait_thr
-    raise "Couldnt figure out PID."
-  end
-  
   #Destroyes the project and unsets all variables on the Process_meta-object.
   def destroy
     begin
@@ -315,12 +315,11 @@ class Knj::Process_meta
     
     @err_thread.kill if @err_thread
     @process.destroy
-    pid = @wait_thr.pid
-    Process.kill("TERM", pid)
+    Process.kill("TERM", @pid)
     
     begin
       sleep 0.1
-      process_exists = Knj::Unix_proc.list("pids" => [pid])
+      process_exists = Knj::Unix_proc.list("pids" => [@pid])
       raise "Process exists." if !process_exists.empty?
     rescue
       STDOUT.print "Process wont kill - try to kill...\n"
@@ -335,7 +334,6 @@ class Knj::Process_meta
     end
     
     @process = nil
-    @wait_thr = nil
     @stdin = nil
     @stdout = nil
     @stderr = nil

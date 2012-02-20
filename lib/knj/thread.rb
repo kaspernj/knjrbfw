@@ -6,7 +6,6 @@ class Knj::Thread < Thread
     @data = {}
     raise "No block was given." if !block_given?
     
-    self.abort_on_exception = true
     super(*args) do
       begin
         yield(*args)

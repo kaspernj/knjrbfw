@@ -2,7 +2,7 @@ class Knj::Threadhandler
   attr_reader :inactive_blocks, :args, :activate_blocks, :mutex, :objects
   
   def initialize(args = {})
-    require "#{$knjpath}thread"
+    require "#{$knjpath}errors"
     
     @args = args
     @objects = []
@@ -12,11 +12,15 @@ class Knj::Threadhandler
     @activate_blocks = []
     @mutex = Mutex.new
     
-    @thread_timeout = Knj::Thread.new do
-      loop do
-        sleep @args[:timeout]
-        break if !@mutex
-        check_inactive
+    @thread_timeout = Thread.new do
+      begin
+        loop do
+          sleep @args[:timeout]
+          break if !@mutex
+          check_inactive
+        end
+      rescue => e
+        STDOUT.print Knj::Errors.error_str(e)
       end
     end
   end

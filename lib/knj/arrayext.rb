@@ -44,7 +44,8 @@ module Knj::ArrayExt
     return str
   end
   
-  def self.hash(arr)
+  #Converts an array to a hash with the index a string-numbers.
+  def self.array_to_hash(arr)
     ret = {}
     arr.each do |item|
       ret[ret.length.to_s] = item
@@ -53,6 +54,7 @@ module Knj::ArrayExt
     return ret
   end
   
+  #Returns true if all keys in a hash are numeric objects.
   def self.hash_numeric_keys?(hash)
     all_num = true
     hash.each do |key, val|
@@ -66,22 +68,22 @@ module Knj::ArrayExt
   end
   
   #Converts all keys in the given hash to symbols.
-  def self.hash_sym(hash)
-    raise "Invalid argument-class: '#{hash.class.name}'." if !hash or !hash.respond_to?(:each)
+  def self.hash_sym(hash_given)
+    raise "Invalid argument-class: '#{hash_given.class.name}'." if !hash_given or !hash_given.respond_to?(:each)
     
     adds = {}
-    hash.each do |key, value|
+    hash_given.each do |key, value|
       if !key.is_a?(Symbol)
         adds[key.to_sym] = value
-        hash.delete(key)
+        hash_given.delete(key)
       end
     end
     
     adds.each do |key, value|
-      hash[key] = value
+      hash_given[key] = value
     end
     
-    return hash
+    return hash_given
   end
   
   def self.dict(arr)
