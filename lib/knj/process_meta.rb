@@ -130,6 +130,7 @@ class Knj::Process_meta
     end
   end
   
+  #Executes a static call in the subprocess but does not capture or return the result. Useful if the static method returns an object that would load a library after being un-marshaled.
   def static_noret(const, method_name, *args, &block)
     res = @process.send(
       "obj" => {

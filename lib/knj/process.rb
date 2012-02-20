@@ -100,7 +100,9 @@ class Knj::Process
           #raise "Already have answer for '#{id}'." if @out_answers.key?(id)
           @out_answers[id] = obj
         when "answer_block"
-          @blocks[id][:results] += obj
+          @blocks[id][:mutex].synchronize do
+            @blocks[id][:results] += obj
+          end
         when "answer_block_end"
           $stderr.print "Answer-block-end received!\n" if @debug
           @blocks[id][:block_result] = obj
@@ -301,7 +303,7 @@ class Knj::Process
         if type == "send"
           if args["buffer_use"]
             type = "send_block_buffer"
-            @blocks[my_id] = {:block => block, :results => [], :finished => false, :buffer => args["buffer_use"]}
+            @blocks[my_id] = {:block => block, :results => [], :finished => false, :buffer => args["buffer_use"], :mutex => Mutex.new}
           else
             type = "send_block"
           end
@@ -356,14 +358,13 @@ class Knj::Process
     return nil if @blocks[id][:results].empty?
     
     removes = []
-    begin
-      @blocks[id][:results].each do |res|
+    @blocks[id][:mutex].synchronize do
+      results = @blocks[id][:results]
+      @blocks[id][:results] = []
+      
+      results.each do |res|
         removes << res
         @blocks[id][:block].call(res)
-      end
-    ensure
-      removes.each do |remove|
-        @blocks[id][:results].delete(remove)
       end
     end
   end

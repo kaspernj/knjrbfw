@@ -1,7 +1,6 @@
 require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
 describe "Process_meta" do
-  
   it "should be able to start a server and a client" do
     require "knj/autoload"
     
@@ -53,10 +52,13 @@ describe "Process_meta" do
   it "should be able to do more" do
     GC.start
     
-    count = 0
-    $ids.each do |id|
-      count += 1
-      raise "The object should no longer exist but it does: #{count}." if $process_meta.proxy_has?(id)
+    #Its difficult to test this on JRuby.
+    if RUBY_ENGINE != "jruby"
+      count = 0
+      $ids.each do |id|
+        count += 1
+        raise "The object should no longer exist but it does: #{count}." if $process_meta.proxy_has?(id)
+      end
     end
     
     
