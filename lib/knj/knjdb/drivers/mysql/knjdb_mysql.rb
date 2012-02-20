@@ -121,7 +121,7 @@ class KnjDB_mysql
             else
               begin
                 res = stmt.executeQuery(str)
-                ret = KnjDB_java_mysql_result.new(@knjdb, @opts, stmt, res)
+                ret = KnjDB_java_mysql_result.new(@knjdb, @opts, res)
                 
                 #Save reference to result and statement, so we can close them when they are garbage collected.
                 @java_rs_data[ret.__id__] = {:res => res, :stmt => stmt}
@@ -183,13 +183,15 @@ class KnjDB_mysql
             
             begin
               res = stmt.executeQuery(str)
-              ret KnjDB_java_mysql_result.new(@knjdb, @opts, stmt, res)
+              ret = KnjDB_java_mysql_result.new(@knjdb, @opts, res)
               
+              #Save reference to result and statement, so we can close them when they are garbage collected.
               @java_rs_data[ret.__id__] = {:res => res, :stmt => stmt}
               ObjectSpace.define_finalizer(ret, self.method("java_mysql_resultset_killer"))
               
               return ret
             rescue => e
+              res.close if res
               stmt.close
               raise e
             end
