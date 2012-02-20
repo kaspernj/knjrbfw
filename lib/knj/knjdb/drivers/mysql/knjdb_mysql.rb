@@ -19,9 +19,20 @@ class KnjDB_mysql
       @port = 3306
     end
     
+    @java_rs_data = {}
     @subtype = @knjdb.opts[:subtype]
     @subtype = "mysql" if @subtype.to_s.length <= 0
     self.reconnect
+  end
+  
+  #This method handels the closing of statements and results for the Java MySQL-mode.
+  def java_mysql_resultset_killer(id)
+    data = @java_rs_data[id]
+    return nil if !data
+    
+    data[:res].close
+    data[:stmt].close
+    @java_rs_data.delete(id)
   end
   
   def reconnect
@@ -100,11 +111,28 @@ class KnjDB_mysql
             stmt = conn.createStatement
             
             if str.match(/^\s*(delete|update|create|drop|insert\s+into)\s+/i)
-              stmt.execute(str)
+              begin
+                stmt.execute(str)
+              ensure
+                stmt.close
+              end
+              
               return nil
             else
-              res = stmt.executeQuery(str)
-              return KnjDB_java_mysql_result.new(@knjdb, @opts, res)
+              begin
+                res = stmt.executeQuery(str)
+                ret = KnjDB_java_mysql_result.new(@knjdb, @opts, stmt, res)
+                
+                #Save reference to result and statement, so we can close them when they are garbage collected.
+                @java_rs_data[ret.__id__] = {:res => res, :stmt => stmt}
+                ObjectSpace.define_finalizer(ret, self.method("java_mysql_resultset_killer"))
+                
+                return ret
+              rescue => e
+                res.close if res
+                stmt.close
+                raise e
+              end
             end
           else
             raise "Unknown subtype: '#{@subtype}'."
@@ -143,12 +171,28 @@ class KnjDB_mysql
           stmt = conn.createStatement
           
           if str.match(/^\s*(delete|update|create|drop|insert\s+into)\s+/i)
-            stmt.execute(str)
+            begin
+              stmt.execute(str)
+            ensure
+              stmt.close
+            end
+            
             return nil
           else
             stmt.setFetchSize(500)
-            res = stmt.executeQuery(str)
-            return KnjDB_java_mysql_result.new(@knjdb, @opts, res)
+            
+            begin
+              res = stmt.executeQuery(str)
+              ret KnjDB_java_mysql_result.new(@knjdb, @opts, stmt, res)
+              
+              @java_rs_data[ret.__id__] = {:res => res, :stmt => stmt}
+              ObjectSpace.define_finalizer(ret, self.method("java_mysql_resultset_killer"))
+              
+              return ret
+            rescue => e
+              stmt.close
+              raise e
+            end
           end
           raise "Not implemented yet."
         else
@@ -434,8 +478,11 @@ class KnjDB_java_mysql_result
   end
   
   def fetch
+    return false if !@result
+    
     self.read_meta if !@keys
     status = @result.next
+    
     return false if !status
     
     if @as_hash

@@ -66,6 +66,8 @@ module Knj
   autoload :Unix_proc, $knjpath + "unix_proc"
   autoload :YouTube, $knjpath + "youtube"
   autoload :Win, $knjpath + "win"
+  autoload :Wref, $knjpath + "wref"
+  autoload :Wref_map, $knjpath + "wref"
 end
 
 #ruby objects.

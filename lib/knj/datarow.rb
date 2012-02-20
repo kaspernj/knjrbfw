@@ -210,19 +210,150 @@ class Knj::Datarow
     return self.class.table
   end
   
-  def self.columns(d)
-    columns_load(d) if !@columns
-    return @columns
-  end
-  
-  def self.columns_load(d)
-    return nil if @columns
-    @ob = d.ob
-    @columns = d.db.tables[table].columns
-  end
-  
   def self.columns_sqlhelper_args
     return @columns_sqlhelper_args
+  end
+  
+  def self.load_columns(d)
+    @ob = d.ob if !@ob
+    
+    if !@classname
+      if match = self.name.match(/($|::)([A-z\d_]+?)$/)
+        @classname = match[2].to_sym 
+      else
+        @classname = self.name.to_sym
+      end
+    end
+    
+    @mutex = Mutex.new if !@mutex
+    
+    @mutex.synchronize do
+      inst_methods = self.instance_methods(false)
+      
+      sqlhelper_args = {
+        :db => d.db,
+        :table => table,
+        :cols_bools => [],
+        :cols_date => [],
+        :cols_dbrows => [],
+        :cols_num => [],
+        :cols_str => [],
+        :cols => {}
+      }
+      
+      sqlhelper_args[:table] = @table if @table
+      
+      d.db.tables[table].columns do |col_obj|
+        col_name = col_obj.name
+        col_type = col_obj.type
+        col_type = "int" if col_type == "bigint" or col_type == "tinyint" or col_type == "mediumint" or col_type == "smallint"
+        sqlhelper_args[:cols][col_name] = true
+        
+        self.define_bool_methods(:inst_methods => inst_methods, :col_name => col_name)
+        
+        if col_type == "enum" and col_obj.maxlength == "'0','1'"
+          sqlhelper_args[:cols_bools] << col_name
+        elsif col_type == "int" and col_name.slice(-3, 3) == "_id"
+          sqlhelper_args[:cols_dbrows] << col_name
+        elsif col_type == "int" or col_type == "bigint" or col_type == "decimal"
+          sqlhelper_args[:cols_num] << col_name
+        elsif col_type == "varchar" or col_type == "text" or col_type == "enum"
+          sqlhelper_args[:cols_str] << col_name
+        elsif col_type == "date" or col_type == "datetime"
+          sqlhelper_args[:cols_date] << col_name
+          self.define_date_methods(:inst_methods => inst_methods, :col_name => col_name)
+        end
+        
+        if col_type == "int" or col_type == "decimal"
+          self.define_numeric_methods(:inst_methods => inst_methods, :col_name => col_name)
+        end
+        
+        if col_type == "int" or col_type == "varchar"
+          self.define_text_methods(:inst_methods => inst_methods, :col_name => col_name)
+        end
+        
+        if col_type == "time"
+          self.define_time_methods(:inst_methods => inst_methods, :col_name => col_name)
+        end
+      end
+      
+      if @columns_joined_tables
+        @columns_joined_tables.each do |table_name, table_data|
+          table_data[:where].each do |key, val|
+            val[:table] = self.table.to_sym if val.is_a?(Hash) and !val.key?(:table) and val[:type] == "col"
+          end
+          
+          table_data[:datarow] = @ob.args[:module].const_get(table_name.to_sym) if !table_data.key?(:datarow)
+        end
+        
+        sqlhelper_args[:joined_tables] = @columns_joined_tables
+      end
+      
+      @columns_sqlhelper_args = sqlhelper_args
+    end
+    
+    self.init_class(d) if self.respond_to?(:init_class)
+  end
+  
+  #Various methods to define methods based on the columns for the datarow.
+  def self.define_bool_methods(args)
+    #Spawns a method on the class which returns true if the data is 1.
+    method_name = "#{args[:col_name]}?".to_sym
+    
+    if args[:inst_methods].index(method_name) == nil
+      define_method(method_name) do
+        return true if self[args[:col_name].to_sym].to_s == "1"
+        return false
+      end
+    end
+  end
+  
+  def self.define_date_methods(args)
+    method_name = "#{args[:col_name]}_str".to_sym
+    if args[:inst_methods].index(method_name) == nil
+      define_method(method_name) do |*method_args|
+        if Knj::Datet.is_nullstamp?(self[args[:col_name].to_sym])
+          return @ob.events.call(:no_date, self.class.name)
+        end
+        
+        return Knj::Datet.in(self[args[:col_name].to_sym]).out(*method_args)
+      end
+    end
+    
+    method_name = "#{args[:col_name]}".to_sym
+    if args[:inst_methods].index(method_name) == nil
+      define_method(method_name) do |*method_args|
+        return false if Knj::Datet.is_nullstamp?(self[args[:col_name].to_sym])
+        return Knj::Datet.in(self[args[:col_name].to_sym])
+      end
+    end
+  end
+  
+  def self.define_numeric_methods(args)
+    method_name = "#{args[:col_name]}_format"
+    if args[:inst_methods].index(method_name) == nil
+      define_method(method_name) do |*method_args|
+        return Knj::Locales.number_out(self[args[:col_name].to_sym], *method_args)
+      end
+    end
+  end
+  
+  def self.define_text_methods(args)
+    method_name = "by_#{args[:col_name]}".to_sym
+    if args[:inst_methods].index(method_name) == nil and RUBY_VERSION.to_s.slice(0, 3) != "1.8"
+      define_singleton_method(method_name) do |arg|
+        return d.ob.get_by(self.table, {args[:col_name].to_s => arg})
+      end
+    end
+  end
+  
+  def self.define_time_methods(args)
+    method_name = "#{args[:col_name]}_dbt"
+    if args[:inst_methods].index(method_name) == nil
+      define_method(method_name) do
+        return Knj::Db::Dbtime.new(self[args[:col_name].to_sym])
+      end
+    end
   end
   
   def self.list(d, &block)
@@ -311,126 +442,6 @@ class Knj::Datarow
   
   def self.classname=(newclassname)
     @classname = newclassname
-  end
-  
-  def self.load_columns(d)
-    if !@classname
-      if match = self.name.match(/($|::)([A-z\d_]+?)$/)
-        @classname = match[2].to_sym 
-      else
-        @classname = self.name.to_sym
-      end
-    end
-    
-    @mutex = Mutex.new if !@mutex
-    
-    @mutex.synchronize do
-      cols = self.columns(d)
-      inst_methods = instance_methods(false)
-      
-      sqlhelper_args = {
-        :db => d.db,
-        :table => table,
-        :cols_bools => [],
-        :cols_date => [],
-        :cols_dbrows => [],
-        :cols_num => [],
-        :cols_str => [],
-        :cols => {}
-      }
-      
-      sqlhelper_args[:table] = @table if @table
-      
-      cols.each do |col_name, col_obj|
-        col_type = col_obj.type
-        col_type = "int" if col_type == "bigint" or col_type == "tinyint" or col_type == "mediumint" or col_type == "smallint"
-        sqlhelper_args[:cols][col_name] = true
-        
-        #Spawns a method on the class which returns true if the data is 1.
-        method_name = "#{col_name}?".to_sym
-        
-        if !inst_methods.index(method_name)
-          define_method(method_name) do
-            return true if self[col_name.to_sym].to_s == "1"
-            return false
-          end
-        end
-        
-        if col_type == "enum" and col_obj.maxlength == "'0','1'"
-          sqlhelper_args[:cols_bools] << col_name
-        elsif col_type == "int" and col_name.slice(-3, 3) == "_id"
-          sqlhelper_args[:cols_dbrows] << col_name
-        elsif col_type == "int" or col_type == "bigint" or col_type == "decimal"
-          sqlhelper_args[:cols_num] << col_name
-        elsif col_type == "varchar" or col_type == "text" or col_type == "enum"
-          sqlhelper_args[:cols_str] << col_name
-        elsif col_type == "date" or col_type == "datetime"
-          sqlhelper_args[:cols_date] << col_name
-          method_name = "#{col_name}_str".to_sym
-          
-          if !inst_methods.index(method_name)
-            define_method(method_name) do |*args|
-              if Knj::Datet.is_nullstamp?(self[col_name.to_sym])
-                return @ob.events.call(:no_date, self.class.name)
-              end
-              
-              return Knj::Datet.in(self[col_name.to_sym]).out(*args)
-            end
-          end
-          
-          method_name = "#{col_name}".to_sym
-          if !inst_methods.index(method_name)
-            define_method(method_name) do |*args|
-              return false if Knj::Datet.is_nullstamp?(self[col_name.to_sym])
-              return Knj::Datet.in(self[col_name.to_sym])
-            end
-          end
-        end
-        
-        if col_type == "int" or col_type == "decimal"
-          method_name = "#{col_name}_format"
-          if inst_methods.index(method_name) == nil
-            define_method(method_name) do |*args|
-              return Knj::Locales.number_out(self[col_name.to_sym], *args)
-            end
-          end
-        end
-        
-        if col_type == "int" or col_type == "varchar"
-          method_name = "by_#{col_name}".to_sym
-          if !inst_methods.index(method_name) and RUBY_VERSION.to_s.slice(0, 3) != "1.8"
-            define_singleton_method(method_name) do |arg|
-              return d.ob.get_by(self.table, {col_name.to_s => arg})
-            end
-          end
-        end
-        
-        if col_type == "time"
-          method_name = "#{col_name}_dbt"
-          if !inst_methods.index(method_name)
-            define_method(method_name) do
-              return Knj::Db::Dbtime.new(self[col_name.to_sym])
-            end
-          end
-        end
-      end
-      
-      if @columns_joined_tables
-        @columns_joined_tables.each do |table_name, table_data|
-          table_data[:where].each do |key, val|
-            val[:table] = self.table.to_sym if val.is_a?(Hash) and !val.key?(:table) and val[:type] == "col"
-          end
-          
-          table_data[:datarow] = @ob.args[:module].const_get(table_name.to_sym) if !table_data.key?(:datarow)
-        end
-        
-        sqlhelper_args[:joined_tables] = @columns_joined_tables
-      end
-      
-      @columns_sqlhelper_args = sqlhelper_args
-    end
-    
-    self.init_class(d) if self.respond_to?(:init_class)
   end
   
   def self.list_helper(d)

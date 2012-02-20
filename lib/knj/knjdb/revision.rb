@@ -48,7 +48,6 @@ class Knj::Db::Revision
       begin
         begin
           table_obj = db.tables[table_name.to_sym]
-          table_obj_columns = table_obj.columns
           
           if table_data["columns"]
             first_col = true
@@ -72,7 +71,7 @@ class Knj::Db::Revision
                   
                   actual_after = nil
                   set_next = false
-                  table_obj_columns.each do |name, col_iter|
+                  table_obj.columns do |col_iter|
                     if col_iter.name == col_obj.name
                       break
                     else

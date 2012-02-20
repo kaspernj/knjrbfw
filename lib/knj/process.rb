@@ -1,5 +1,5 @@
-require "#{$knjpath}/errors"
-require "#{$knjpath}/thread"
+require "#{$knjpath}errors"
+require "#{$knjpath}thread"
 
 class Knj::Process
   attr_reader :blocks, :blocks_send
@@ -157,7 +157,7 @@ class Knj::Process
             @blocks_send.delete(obj)
             
             begin
-              enum.next #this has to be called to stop Enumerator from blocking...
+              enum.next if enum #this has to be called to stop Enumerator from blocking...
             rescue StopIteration
               #do nothing.
             end
@@ -308,7 +308,7 @@ class Knj::Process
         end
       end
       
-      $stderr.print "Writing #{type}:#{my_id} to socket.\n" if @debug
+      $stderr.print "Writing #{type}:#{my_id}:#{args["obj"]} to socket.\n" if @debug
       @out.write("#{type}:#{my_id}:#{str.length}\n#{str}")
     end
     

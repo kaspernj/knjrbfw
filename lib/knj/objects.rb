@@ -168,6 +168,7 @@ class Knj::Objects
     end
   end
   
+  #Loads a Datarow-class by calling various static methods.
   def load_class(classname, args = {})
     if args[:class]
       classob = args[:class]
@@ -670,7 +671,12 @@ class Knj::Objects
       @objects[classn].keys.each do |object_id|
         object = @objects[classn][object_id]
         
-        if !object.weakref_alive?
+        begin
+          if !object or !object.weakref_alive?
+            @objects[classn].delete(object_id)
+          end
+        rescue WeakRef::RefError
+          #This happens if the object has been collected.
           @objects[classn].delete(object_id)
         end
       end

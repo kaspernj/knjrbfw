@@ -1,5 +1,5 @@
-require "#{$knjpath}/process"
-require "#{$knjpath}/os"
+require "#{$knjpath}process"
+require "#{$knjpath}os"
 
 class Knj::Process_meta
   attr_reader :process, :pid
@@ -18,7 +18,7 @@ class Knj::Process_meta
     exec_file = "#{File.dirname(__FILE__)}/scripts/process_meta_exec.rb"
     
     if RUBY_ENGINE == "jruby"
-      @pid, @stdin, @stdout, @stderr = IO.popen4("#{exec_path} \"#{exec_file}\"")
+      @pid, @stdin, @stdout, @stderr = IO.popen4("#{exec_path} --#{RUBY_VERSION[0, 3]} \"#{exec_file}\"")
     else
       @stdin, @stdout, @stderr, wait_thr = Open3.popen3("#{exec_path} \"#{exec_file}\"")
       @pid = wait_thr.pid

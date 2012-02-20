@@ -37,11 +37,14 @@ class KnjDB_mysql::Columns::Column
   
   def initialize(args)
     @args = args
-    @db = @args[:db]
   end
   
   def name
     return @args[:data][:Field]
+  end
+  
+  def table
+    return @args[:db].tables[@args[:table_name]]
   end
   
   def data
@@ -112,8 +115,8 @@ class KnjDB_mysql::Columns::Column
   
   def change(data)
     esc_col = @args[:driver].escape_col
-    col_escaped = "#{esc_col}#{@db.esc_col(self.name)}#{esc_col}"
-    table_escape = "#{@args[:driver].escape_table}#{@args[:driver].esc_table(@args[:table].name)}#{@args[:driver].escape_table}"
+    col_escaped = "#{esc_col}#{@args[:db].esc_col(self.name)}#{esc_col}"
+    table_escape = "#{@args[:driver].escape_table}#{@args[:driver].esc_table(self.table.name)}#{@args[:driver].escape_table}"
     newdata = data.clone
     
     newdata["name"] = self.name if !newdata.key?("name")
@@ -124,7 +127,6 @@ class KnjDB_mysql::Columns::Column
     newdata.delete("primarykey") if newdata.key?("primarykey")
     
     type_s = newdata["type"].to_s
-    @db.query("ALTER TABLE #{table_escape} CHANGE #{col_escaped} #{@db.cols.data_sql(newdata)}")
-    @args[:table].list = nil if data.key?("name") and data["name"] != self.name
+    @args[:db].query("ALTER TABLE #{table_escape} CHANGE #{col_escaped} #{@args[:db].cols.data_sql(newdata)}")
   end
 end

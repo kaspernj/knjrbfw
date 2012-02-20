@@ -16,8 +16,12 @@ class KnjDB_mysql::Indexes::Index
     return @args[:data][:Key_name]
   end
   
+  def table
+    return @args[:db].tables[@args[:table_name]]
+  end
+  
   def drop
-    sql = "DROP INDEX `#{self.name}` ON `#{@args[:table].name}`"
+    sql = "DROP INDEX `#{self.name}` ON `#{self.table.name}`"
     @args[:db].query(sql)
   end
   
