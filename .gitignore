@@ -48,3 +48,4 @@ pkg
 #*.rbc
 
 Gemfile.lock
+lib/knj/tests/test_http2_proxy_settings.marshal
