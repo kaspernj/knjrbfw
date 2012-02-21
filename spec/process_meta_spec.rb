@@ -116,8 +116,35 @@ describe "Process_meta" do
     #Try to unset an object.
     proxy_obj._process_meta_unset
     proxy_int._process_meta_unset
+  end
+  
+  it "should be able to do slow block-results in JRuby." do
+    $process_meta.str_eval("
+      class Kaspertest
+        def kaspertest
+          8.upto(12) do |i|
+            yield(i)
+            sleep 0.5
+          end
+        end
+      end
+      
+      nil
+    ")
     
-    #Destroy the process-eval which should stop the process.
+    Timeout.timeout(5) do
+      expect = 8
+      $process_meta.static("Kaspertest", "kaspertest") do |count|
+        raise "Expected '#{expect}' but got: '#{count}'."
+        expect += 1
+      end
+      
+      raise "Expected '13' but got: '#{expect}'."
+    end
+  end
+  
+  it "should be able to be destroyed." do
+    #Destroy the process-meta which should stop the process.
     $process_meta.destroy
   end
 end
