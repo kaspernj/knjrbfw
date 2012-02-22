@@ -2,7 +2,7 @@
 
 module Knj::Strings
   def self.UnixSafe(tha_string)
-    return tha_string.to_s.gsub(" ", "\\ ").gsub("&", "\&").gsub("(", "\\(").gsub(")", "\\)").gsub('"', '\"').gsub("\n", "\"\n\"")
+    return tha_string.to_s.gsub(" ", "\\ ").gsub("&", "\&").gsub("(", "\\(").gsub(")", "\\)").gsub('"', '\"').gsub("\n", "\"\n\"").gsub(":", "\\:").gsub('\'', "\\\\'").gsub("`", "\\\\`")
   end
   
   def self.unixsafe(string)

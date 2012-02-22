@@ -17,11 +17,18 @@ class Knj::Process_meta
     
     exec_file = "#{File.dirname(__FILE__)}/scripts/process_meta_exec.rb"
     
-    if RUBY_ENGINE == "jruby"
-      @pid, @stdin, @stdout, @stderr = IO.popen4("#{exec_path} --#{RUBY_VERSION[0, 3]} \"#{exec_file}\"")
+    if args["id"]
+      id = args["id"]
     else
-      @stdin, @stdout, @stderr, wait_thr = Open3.popen3("#{exec_path} \"#{exec_file}\"")
-      @pid = wait_thr.pid
+      id = caller[0].to_s.strip
+    end
+    
+    cmd = "#{exec_path} \"#{exec_file}\" #{Knj::Strings.unixsafe(id)}"
+    
+    if RUBY_ENGINE == "jruby"
+      pid, @stdin, @stdout, @stderr = IO.popen4("#{exec_path} --#{RUBY_VERSION[0, 3]} \"#{exec_file}\" \"#{id}\"")
+    else
+      @stdin, @stdout, @stderr = Open3.popen3(cmd)
     end
     
     args = {
@@ -39,6 +46,10 @@ class Knj::Process_meta
     end
     
     @process = Knj::Process.new(args)
+    
+    res = @process.send("obj" => {"type" => "process_data"})
+    raise "Unexpected process-data: '#{res}'." if !res.is_a?(Hash) or res["type"] != "process_data_success"
+    @pid = res["pid"]
     
     #If block is given then run block and destroy self.
     if block_given?
@@ -308,12 +319,7 @@ class Knj::Process_meta
   
   #Destroyes the project and unsets all variables on the Process_meta-object.
   def destroy
-    begin
-      @process.send("obj" => {"type" => "exit"})
-    rescue Exception => e
-      raise e if e.message != "exit"
-    end
-    
+    @process.send("obj" => {"type" => "exit"})
     @err_thread.kill if @err_thread
     @process.destroy
     Process.kill("TERM", @pid)
@@ -322,8 +328,8 @@ class Knj::Process_meta
       sleep 0.1
       process_exists = Knj::Unix_proc.list("pids" => [@pid])
       raise "Process exists." if !process_exists.empty?
-    rescue
-      STDOUT.print "Process wont kill - try to kill...\n"
+    rescue => e
+      raise e if e.message != "Process exists."
       
       begin
         Process.kill(9, pid) if process_exists
