@@ -215,7 +215,7 @@ class Knj::Db::Revision
             end
           end
           
-          self.rows_init("table" => table_obj, "rows" => table_data["rows"]) if table_data["rows"]
+          self.rows_init("table" => table_obj, "rows" => table_data["rows"]) if table_data and table_data["rows"]
         rescue Knj::Errors::NotFound => e
           if table_data["renames"]
             table_data["renames"].each do |table_name_rename|
