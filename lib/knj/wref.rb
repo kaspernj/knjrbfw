@@ -4,7 +4,7 @@ require "weakref"
 class Knj::Wref
   def initialize(obj)
     @weakref = WeakRef.new(obj)
-    @class = obj.class.name
+    @class = obj.class.name.to_sym
     @id = @class.__id__
   end
   
@@ -12,7 +12,7 @@ class Knj::Wref
   def get
     obj = @weakref.__getobj__ if @weakref
     
-    if !@weakref or @class != obj.class.name or @id != obj.__id__
+    if !@weakref or @class != obj.class.name.to_sym or @id != obj.__id__
       self.destroy
       raise WeakRef::RefError
     end
