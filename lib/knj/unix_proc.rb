@@ -40,7 +40,18 @@ class Knj::Unix_proc
       
       next if (!args.key?("ignore_self") or args["ignore_self"]) and match[1].to_i == $$.to_i
       next if grepstr.length > 0 and match[4].index(grepstr) != nil #dont return current process.
-      next if args.key?("pids") and args["pids"].index(pid) == nil
+      
+      if args.key?("pids")
+        found = false
+        args["pids"].each do |pid_given|
+          if pid_given.to_s == pid.to_s
+            found = true
+            break
+          end
+        end
+        
+        next if !found
+      end
       
       ret << Knj::Unix_proc.spawn(data)
     end

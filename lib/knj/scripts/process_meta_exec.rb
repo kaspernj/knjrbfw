@@ -90,7 +90,11 @@ objects = {}
         d.answer("type" => "call_eval_success", "result" => res)
       elsif obj["type"] == "exit"
         d.answer("type" => "exit_success")
+        sleep 0.1
+        @process.destroy
         exit
+      elsif obj["type"] == "process_data"
+        d.answer("type" => "process_data_success", "pid" => Process.pid)
       else
         raise "Didnt know how to handle hash: '#{Knj::Php.print_r(obj, true)}'."
       end
