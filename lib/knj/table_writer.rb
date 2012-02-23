@@ -54,6 +54,8 @@ class Knj::Table_writer
     else
       raise "Unsupported format: '#{@args["format"]}'."
     end
+    
+    return nil
   end
   
   def close
@@ -73,6 +75,8 @@ class Knj::Table_writer
     else
       raise "Unsupported format: '#{@args["format"]}'."
     end
+    
+    return nil
   end
   
   def ext
