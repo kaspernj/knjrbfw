@@ -310,13 +310,11 @@ class Knj::Process_meta
   def destroy
     begin
       @process.send("obj" => {"type" => "exit"})
-    rescue Exception => e
-      raise e if e.message != "exit"
+    ensure
+      @err_thread.kill if @err_thread
+      @process.destroy
+      Process.kill("TERM", @pid)
     end
-    
-    @err_thread.kill if @err_thread
-    @process.destroy
-    Process.kill("TERM", @pid)
     
     begin
       sleep 0.1
