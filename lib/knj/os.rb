@@ -78,9 +78,16 @@ module Knj::Os
       :err => ""
     }
     
-    Open3.popen3(cmd) do |stdin, stdout, stderr|
-      res[:out] << stdout.read
-      res[:err] << stderr.read
+    if RUBY_ENGINE == "jruby"
+      IO.popen4(cmd) do |pid, stdin, stdout, stderr|
+        res[:out] << stdout.read
+        res[:err] << stderr.read
+      end
+    else
+      Open3.popen3(cmd) do |stdin, stdout, stderr|
+        res[:out] << stdout.read
+        res[:err] << stderr.read
+      end
     end
     
     if res[:err].to_s.strip.length > 0
