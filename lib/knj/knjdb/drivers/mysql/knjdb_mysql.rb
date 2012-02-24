@@ -35,6 +35,10 @@ class KnjDB_mysql
     @java_rs_data.delete(id)
   end
   
+  def clean
+    self.tables.clean if self.tables
+  end
+  
   def reconnect
     case @subtype
       when "mysql"
@@ -163,14 +167,14 @@ class KnjDB_mysql
     @mutex.synchronize do
       case @subtype
         when "mysql"
-          conn.query_with_result = false
+          @conn.query_with_result = false
           return KnjDB_mysql_unbuffered_result.new(@conn, @opts, @conn.query(str))
         when "mysql2"
           raise "MySQL2 does not support unbuffered queries yet! Waiting for :stream..."
         when "java"
-          stmt = conn.createStatement
-          
           if str.match(/^\s*(delete|update|create|drop|insert\s+into)\s+/i)
+            stmt = @conn.createStatement
+            
             begin
               stmt.execute(str)
             ensure
@@ -179,7 +183,8 @@ class KnjDB_mysql
             
             return nil
           else
-            stmt.setFetchSize(500)
+            stmt = @conn.createStatement(java.sql.ResultSet.TYPE_FORWARD_ONLY, java.sql.ResultSet.CONCUR_READ_ONLY)
+            stmt.setFetchSize(java.lang.Integer::MIN_VALUE)
             
             begin
               res = stmt.executeQuery(str)
@@ -475,7 +480,7 @@ class KnjDB_java_mysql_result
     
     @keys = []
     1.upto(@count) do |count|
-      @keys << meta.column_name(count).to_sym
+      @keys << meta.column_label(count).to_sym
     end
   end
   

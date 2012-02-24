@@ -106,6 +106,17 @@ class Knj::Db
     end
   end
   
+  #Clean up various memory-stuff if possible.
+  def clean
+    if @conns
+      @conns.objects.each do |data|
+        data[:object].clean if data[:object].respond_to?("clean")
+      end
+    elsif @conn
+      @conn.clean if @conn.respond_to?("clean")
+    end
+  end
+  
   def close
     @conn.close if @conn
     @conns.destroy if @conns

@@ -1,5 +1,5 @@
 class KnjDB_mysql::Tables
-  attr_reader :db, :driver
+  attr_reader :db, :driver, :list
   attr_accessor :list_should_be_reloaded
   
   def initialize(args)
@@ -10,6 +10,10 @@ class KnjDB_mysql::Tables
     @list_mutex = Mutex.new
     @list = Knj::Wref_map.new
     @list_should_be_reloaded = true
+  end
+  
+  def clean
+    @list.clean
   end
   
   #Returns a table by the given table-name.
@@ -30,33 +34,10 @@ class KnjDB_mysql::Tables
   end
   
   def list(args = {})
-    ret = {}
+    ret = {} unless block_given?
     
     @list_mutex.synchronize do
       @db.q("SHOW TABLE STATUS") do |d_tables|
-        if @subtype == "java"
-          d_tables = {
-            :Name => d_tables[:TABLE_NAME],
-            :Engine => d_tables[:ENGINE],
-            :Version => d_tables[:VERSION],
-            :Row_format => d_tables[:ROW_FORMAT],
-            :Rows => d_tables[:TABLE_ROWS],
-            :Avg_row_length => d_tables[:AVG_ROW_LENGTH],
-            :Data_length => d_tables[:DATA_LENGTH],
-            :Max_data_length => d_tables[:MAX_DATA_LENGTH],
-            :Index_length => d_tables[:INDEX_LENGTH],
-            :Data_free => d_tables[:DATA_FREE],
-            :Auto_increment => d_tables[:AUTO_INCREMENT],
-            :Create_time => d_tables[:CREATE_TIME],
-            :Update_time => d_tables[:UPDATE_TIME],
-            :Check_time => d_tables[:CHECK_TIME],
-            :Collation => d_tables[:TABLE_COLLATION],
-            :Checksum => d_tables[:CHECKSUM],
-            :Create_options => d_tables[:CREATE_OPTIONS],
-            :Comment => d_tables[:TABLE_COMMENT]
-          }
-        end
-        
         obj = @list.get!(d_tables[:Name])
         
         if !obj
@@ -77,7 +58,11 @@ class KnjDB_mysql::Tables
       end
     end
     
-    return ret
+    if block_given?
+      return nil
+    else
+      return ret
+    end
   end
   
   def create(name, data)
@@ -117,7 +102,7 @@ class KnjDB_mysql::Tables::Table
     @list = Knj::Wref_map.new
     @indexes_list = Knj::Wref_map.new
     
-    raise "Could not figure out name from keys: '#{@data.keys.sort.join(", ")}'." if !@data[:Name]
+    raise "Could not figure out name from: '#{@data}'." if !@data[:Name]
   end
   
   def name
@@ -156,20 +141,6 @@ class KnjDB_mysql::Tables::Table
     sql = "SHOW FULL COLUMNS FROM `#{self.name}`"
     
     @db.q(sql) do |d_cols|
-      if @subtype == "java"
-        d_cols = {
-          :Field => d_cols[:COLUMN_NAME],
-          :Type => d_cols[:COLUMN_TYPE],
-          :Collation => d_cols[:COLLATION_NAME],
-          :Null => d_cols[:IS_NULLABLE],
-          :Key => d_cols[:COLUMN_KEY],
-          :Default => d_cols[:COLUMN_DEFAULT],
-          :Extra => d_cols[:EXTRA],
-          :Privileges => d_cols[:PRIVILEGES],
-          :Comment => d_cols[:COLUMN_COMMENT]
-        }
-      end
-      
       obj = @list.get!(d_cols[:Field])
       
       if !obj
@@ -199,23 +170,6 @@ class KnjDB_mysql::Tables::Table
     ret = {}
     
     @db.q("SHOW INDEX FROM `#{self.name}`") do |d_indexes|
-      if @subtype == "java"
-        d_indexes = {
-          :Table => d_indexes[:TABLE_NAME],
-          :Non_unique => d_indexes[:NON_UNIQUE],
-          :Key_name => d_indexes[:INDEX_NAME],
-          :Seq_in_index => d_indexes[:SEQ_IN_INDEX],
-          :Column_name => d_indexes[:COLUMN_NAME],
-          :Collation => d_indexes[:COLLATION],
-          :Cardinality => d_indexes[:CARDINALITY],
-          :Sub_part => d_indexes[:SUB_PART],
-          :Packed => d_indexes[:PACKED],
-          :Null => d_indexes[:NULLABLE],
-          :Index_type => d_indexes[:INDEX_TYPE],
-          :Comment => d_indexes[:COMMENT]
-        }
-      end
-      
       next if d_indexes[:Key_name] == "PRIMARY"
       
       obj = @indexes_list.get!(d_indexes[:Key_name])
