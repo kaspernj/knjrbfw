@@ -112,7 +112,7 @@ class KnjDB_mysql
           when "mysql2"
             return KnjDB_mysql2_result.new(@conn.query(str, @query_args))
           when "java"
-            stmt = conn.createStatement
+            stmt = conn.create_statement
             
             if str.match(/^\s*(delete|update|create|drop|insert\s+into)\s+/i)
               begin
@@ -124,7 +124,7 @@ class KnjDB_mysql
               return nil
             else
               begin
-                res = stmt.executeQuery(str)
+                res = stmt.execute_query(str)
                 ret = KnjDB_java_mysql_result.new(@knjdb, @opts, res)
                 
                 #Save reference to result and statement, so we can close them when they are garbage collected.

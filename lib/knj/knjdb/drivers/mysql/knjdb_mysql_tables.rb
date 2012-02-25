@@ -160,8 +160,6 @@ class KnjDB_mysql::Tables::Table
       end
     end
     
-    raise "No block was given." if !block_given?
-    
     return ret
   end
   
@@ -191,8 +189,6 @@ class KnjDB_mysql::Tables::Table
         ret[d_indexes[:Key_name]] = obj
       end
     end
-    
-    raise "No block was given." if !block_given?
     
     return ret
   end

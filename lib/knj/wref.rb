@@ -21,7 +21,7 @@ class Knj::Wref
   def initialize(obj)
     @weakref = WeakRef.new(obj)
     @class_name = obj.class.name.to_sym
-    @id = @class.__id__
+    @id = obj.__id__
   end
   
   #Returns the object that this weak reference holds or throws WeakRef::RefError.
@@ -96,6 +96,11 @@ class Knj::Wref_map
   end
   
   #Make it hash-compatible.
+  def key?(key)
+    return @map.key?(key)
+  end
+  
+  alias has_key? key?
   alias [] get
   alias []= set
   
