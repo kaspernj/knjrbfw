@@ -114,7 +114,7 @@ class KnjDB_mysql
           when "java"
             stmt = conn.create_statement
             
-            if str.match(/^\s*(delete|update|create|drop|insert\s+into)\s+/i)
+            if str.match(/^\s*(delete|update|create|drop|insert\s+into|alter)\s+/i)
               begin
                 stmt.execute(str)
               ensure
