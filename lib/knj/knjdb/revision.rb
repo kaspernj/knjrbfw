@@ -44,10 +44,17 @@ class Knj::Db::Revision
     raise "':return_keys' is not 'symbols' - Knjdbrevision will not work without it." if db.opts[:return_keys] != "symbols"
     raise "No tables given." if !schema.has_key?("tables")
     
+    #Cache tables to avoid constant reloading.
+    tables = db.tables.list
+    
     schema["tables"].each do |table_name, table_data|
       begin
         begin
-          table_obj = db.tables[table_name.to_sym]
+          table_obj = db.tables[table_name]
+          
+          #Cache indexes- and column-objects to avoid constant reloading.
+          cols = table_obj.columns
+          indexes = table_obj.indexes
           
           if table_data["columns"]
             first_col = true
@@ -215,7 +222,7 @@ class Knj::Db::Revision
             end
           end
           
-          self.rows_init("table" => table_obj, "rows" => table_data["rows"]) if table_data["rows"]
+          self.rows_init("table" => table_obj, "rows" => table_data["rows"]) if table_data and table_data["rows"]
         rescue Knj::Errors::NotFound => e
           if table_data["renames"]
             table_data["renames"].each do |table_name_rename|

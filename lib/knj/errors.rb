@@ -7,7 +7,10 @@ module Knj::Errors
   class Exists < StandardError; end
   
   def self.error_str(err, args = {})
-    raise "Invalid object of class '#{err.class.name}' given." if !err.is_a?(Exception)
+    if !err.is_a?(Exception) and err.class.message != "Java::JavaLang::LinkageError"
+      raise "Invalid object of class '#{err.class.name}' given."
+    end
+    
     str = ""
     
     if args[:html]

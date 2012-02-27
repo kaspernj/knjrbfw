@@ -91,6 +91,8 @@ class KnjDB_mysql::Columns::Column
   end
   
   def default
+    return false if self.type == "datetime" and @args[:data][:Default].to_s.strip.length <= 0
+    return false if self.type == "int" and @args[:data][:Default].to_s.strip.length <= 0
     return false if !@args[:data][:Default]
     return @args[:data][:Default]
   end
@@ -123,7 +125,7 @@ class KnjDB_mysql::Columns::Column
     newdata["type"] = self.type if !newdata.key?("type")
     newdata["maxlength"] = self.maxlength if !newdata.key?("maxlength") and self.maxlength
     newdata["null"] = self.null? if !newdata.key?("null")
-    newdata["default"] = self.default if !newdata.key?("default")
+    newdata["default"] = self.default if !newdata.key?("default") and self.default
     newdata.delete("primarykey") if newdata.key?("primarykey")
     
     type_s = newdata["type"].to_s

@@ -165,24 +165,7 @@ class Knj::Datarow
         }
       )
       
-      define_method("#{val_dc}=") do |newtransval|
-        _kas.trans_set(self, {
-          val => newtransval
-        })
-      end
-      
-      define_method("#{val_dc}") do
-        return _kas.trans(self, val)
-      end
-      
-      define_method("#{val_dc}_html") do
-        str = _kas.trans(self, val)
-        if str.to_s.strip.length <= 0
-          return "[no translation for #{val}]"
-        end
-        
-        return str
-      end
+      self.define_translation_methods(:val => val, :val_dc => val_dc)
     end
   end
   
@@ -296,6 +279,27 @@ class Knj::Datarow
   end
   
   #Various methods to define methods based on the columns for the datarow.
+  def self.define_translation_methods(args)
+    define_method("#{args[:val_dc]}=") do |newtransval|
+      _kas.trans_set(self, {
+        args[:val] => newtransval
+      })
+    end
+    
+    define_method("#{args[:val_dc]}") do
+      return _kas.trans(self, args[:val])
+    end
+    
+    define_method("#{args[:val_dc]}_html") do
+      str = _kas.trans(self, args[:val])
+      if str.to_s.strip.length <= 0
+        return "[no translation for #{args[:val]}]"
+      end
+      
+      return str
+    end
+  end
+  
   def self.define_bool_methods(args)
     #Spawns a method on the class which returns true if the data is 1.
     method_name = "#{args[:col_name]}?".to_sym

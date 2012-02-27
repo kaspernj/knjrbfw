@@ -805,6 +805,67 @@ module Knj::Php
     return IPAddr.new(ip).to_i
   end
   
+  # Execute an external program and display raw output.
+  def passthru(cmd)
+    if RUBY_ENGINE == "jruby"
+      IO.popen4(cmd) do |pid, stdin, stdout, stderr|
+        tout = Thread.new do
+          begin
+            stdout.sync = true
+            stdout.each do |str|
+              $stdout.print str
+            end
+          rescue Exception => e
+            $stdout.print Knj::Errors.error_str(e)
+          end
+        end
+        
+        terr = Thread.new do
+          begin
+            stderr.sync = true
+            stderr.each do |str|
+              $stderr.print str
+            end
+          rescue Exception => e
+            $stdout.print Knj::Errors.error_str(e)
+          end
+        end
+        
+        tout.join
+        terr.join
+      end
+    else
+      Open3.popen3(cmd) do |stdin, stdout, stderr|
+        tout = Thread.new do
+          begin
+            stdout.sync = true
+            stdout.each do |str|
+              $stdout.print str
+            end
+          rescue Exception => e
+            $stdout.print Knj::Errors.error_str(e)
+          end
+        end
+        
+        terr = Thread.new do
+          begin
+            stderr.sync = true
+            stderr.each do |str|
+              $stderr.print str
+            end
+          rescue Exception => e
+            $stdout.print Knj::Errors.error_str(e)
+          end
+        end
+        
+        tout.join
+        terr.join
+      end
+    end
+    
+    return nil
+  end
+  
   # Thanks to this link for the following functions: http://snippets.dzone.com/posts/show/4509
   def long2ip(long)
     ip = []
