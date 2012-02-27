@@ -1,3 +1,5 @@
+require "#{$knjpath}wref"
+
 class KnjDB_mysql::Tables
   attr_reader :db, :driver
   attr_accessor :list_should_be_reloaded
