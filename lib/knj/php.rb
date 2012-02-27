@@ -826,7 +826,7 @@ module Knj::Php
               $stderr.print str
             end
           rescue Exception => e
-            $stdout.print Knj::Errors.error_str(e)
+            $stderr.print Knj::Errors.error_str(e)
           end
         end
         
@@ -853,7 +853,7 @@ module Knj::Php
               $stderr.print str
             end
           rescue Exception => e
-            $stdout.print Knj::Errors.error_str(e)
+            $stderr.print Knj::Errors.error_str(e)
           end
         end
         

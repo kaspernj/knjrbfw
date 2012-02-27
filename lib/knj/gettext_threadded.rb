@@ -2,7 +2,9 @@ class Knj::Gettext_threadded
   attr_reader :langs, :args
   
   def initialize(args = {})
-    @args = args
+    @args = {
+      :encoding => "utf-8"
+    }.merge(args)
     @langs = {}
     @dirs = []
     load_dir(@args["dir"]) if @args["dir"]
@@ -24,7 +26,12 @@ class Knj::Gettext_threadded
             Dir.new(fpath).each do |pofile|
               if pofile.match(/\.po$/)
                 pofn = "#{dir}/#{file}/#{fname}/#{pofile}"
-                cont = File.read(pofn)
+                
+                cont = nil
+                File.open(pofn, {:encoding => @args[:encoding]}) do |fp|
+                  cont = fp.read
+                end
+                
                 cont.scan(/msgid\s+\"(.+)\"\nmsgstr\s+\"(.+)\"\n\n/) do |match|
                   @langs[file][match[0]] = match[1]
                 end
