@@ -141,7 +141,7 @@ class Knj::Objects
                 if table_data[:parent_table]
                   table_name_real = table_name
                 elsif table_data[:datarow]
-                  table_name_real = table_data[:datarow].classname
+                  table_name_real = self.datarow_from_datarow_argument(table_data[:datarow]).classname
                 else
                   table_name_real = @args[:module].const_get(table_name).classname
                 end
@@ -410,7 +410,7 @@ class Knj::Objects
         class_name = args[:table].to_sym
         
         if table_data[:datarow]
-          datarow = table_data[:datarow]
+          datarow = self.datarow_from_datarow_argument(table_data[:datarow])
         else
           self.requireclass(class_name) if @objects.key?(class_name)
           datarow = @args[:module].const_get(class_name)
@@ -463,12 +463,20 @@ class Knj::Objects
     
     args[:joined_tables].each do |table_name, table_data|
       next if table_name.to_sym != class_name
-      return table_data[:datarow] if table_data[:datarow]
+      return self.datarow_from_datarow_argument(table_data[:datarow]) if table_data[:datarow]
       
       self.requireclass(class_name) if @objects.key?(class_name)
       return @args[:module].const_get(class_name)
     end
     
     raise "Could not figure out datarow for: '#{class_name}'."
+  end
+  
+  def datarow_from_datarow_argument(datarow_argument)
+    if datarow_argument.is_a?(String)
+      return Knj::Strings.const_get_full(datarow_argument)
+    end
+    
+    return datarow_argument
   end
 end

@@ -2,17 +2,33 @@ require "weakref"
 
 #A weak-reference that wont bite you in the ass like the one in Ruby 1.9.
 class Knj::Wref
+  attr_reader :class_name, :id, :map, :map_id, :spawned
+  
+  #Yields debug-output for every weak-ref that is alive.
+  def self.debug_wrefs
+    ObjectSpace.each_object(Knj::Wref) do |wref|
+      begin
+        obj = wref.get
+      rescue WeakRef::RefError
+        yield("str" => "Dead wref: #{wref.class_name} (#{wref.id})", "alive" => false, "wref" => wref)
+        next
+      end
+      
+      yield("str" => "Alive wref: #{wref.class_name} (#{wref.id})", "alive" => true, "wref" => wref, "obj" => obj)
+    end
+  end
+  
   def initialize(obj)
     @weakref = WeakRef.new(obj)
-    @class = obj.class.name
-    @id = @class.__id__
+    @class_name = obj.class.name.to_sym
+    @id = obj.__id__
   end
   
   #Returns the object that this weak reference holds or throws WeakRef::RefError.
   def get
     obj = @weakref.__getobj__ if @weakref
     
-    if !@weakref or @class != obj.class.name or @id != obj.__id__
+    if !@weakref or @class_name != obj.class.name.to_sym or @id != obj.__id__
       self.destroy
       raise WeakRef::RefError
     end
@@ -32,9 +48,9 @@ class Knj::Wref
   
   #Removes all data from this object.
   def destroy
-    @class = nil
-    @id = nil
     @weakref = nil
+    @class_name = nil
+    @id = nil
   end
   
   #Make Wref compatible with the normal WeakRef.
@@ -48,9 +64,17 @@ class Knj::Wref_map
     @map = {}
   end
   
+  #Unsets everything to free up memory.
+  def destroy
+    @map.clear
+    @map = nil
+    @args = nil
+  end
+  
   #Sets a new object in the map with a given ID.
   def set(id, obj)
     @map[id] = Knj::Wref.new(obj)
+    return nil
   end
   
   #Returns a object by ID or raises a RefError.
@@ -60,13 +84,23 @@ class Knj::Wref_map
     begin
       return @map[id].get
     rescue WeakRef::RefError => e
-      @map[id].destroy
+      begin
+        @map[id].destroy
+      rescue NoMethodError
+        #happens if the object already got destroyed by another thread - ignore.
+      end
+      
       @map.delete(id)
       raise e
     end
   end
   
   #Make it hash-compatible.
+  def key?(key)
+    return @map.key?(key)
+  end
+  
+  alias has_key? key?
   alias [] get
   alias []= set
   
@@ -81,13 +115,15 @@ class Knj::Wref_map
   
   #Scans the whole map and removes dead references.
   def clean
-    @map.each_index do |key|
+    @map.keys.each do |key|
       begin
-        @map[key].get #this will remove the key if the object no longer exists.
+        self.get(key) #this will remove the key if the object no longer exists.
       rescue WeakRef::RefError
         #ignore.
       end
     end
+    
+    return nil
   end
   
   #Returns true if a given key exists and the object it holds is alive.
