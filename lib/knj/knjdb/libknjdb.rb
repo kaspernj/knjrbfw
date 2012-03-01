@@ -1,6 +1,8 @@
 class Knj::Db
-  autoload :Dbtime, "#{File.dirname(__FILE__)}/dbtime.rb"
-  autoload :Revision, "#{File.dirname(__FILE__)}/revision.rb"
+  unless Kernel.const_defined?("Rho")
+    autoload :Dbtime, "#{$knjpath}knjdb/dbtime.rb"
+    autoload :Revision, "#{$knjpath}knjdb/revision.rb"
+  end
   
   attr_reader :opts, :conn, :conns, :int_types
   

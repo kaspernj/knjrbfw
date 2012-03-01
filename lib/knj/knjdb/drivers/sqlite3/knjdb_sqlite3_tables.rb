@@ -105,7 +105,7 @@ class KnjDB_sqlite3::Tables::Table
   end
   
   def create_column_programmatic(col_data)
-    temp_name = "temptable_#{Knj::Php.md5(Knj::Datet.new.time.to_f)}"
+    temp_name = "temptable_#{Time.now.to_f.to_s.hash}"
     cloned_tabled = self.clone(temp_name)
     cols_cur = self.columns
     @db.query("DROP TABLE `#{self.name}`")
@@ -162,7 +162,7 @@ class KnjDB_sqlite3::Tables::Table
   end
   
   def copy(args = {})
-    temp_name = "temptable_#{Knj::Php.md5(Knj::Datet.new.time.to_f)}"
+    temp_name = "temptable_#{Time.now.to_f.to_s.hash}"
     cloned_tabled = self.clone(temp_name)
     cols_cur = self.columns
     @db.query("DROP TABLE `#{self.name}`")
