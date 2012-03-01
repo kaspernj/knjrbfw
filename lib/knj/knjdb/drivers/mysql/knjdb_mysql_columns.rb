@@ -92,7 +92,7 @@ class KnjDB_mysql::Columns::Column
   
   def default
     return false if self.type == "datetime" and @args[:data][:Default].to_s.strip.length <= 0
-    return false if self.type == "int" and @args[:data][:Default].to_s.strip.length <= 0
+    return false if (self.type == "int" or self.type == "bigint") and @args[:data][:Default].to_s.strip.length <= 0
     return false if !@args[:data][:Default]
     return @args[:data][:Default]
   end
