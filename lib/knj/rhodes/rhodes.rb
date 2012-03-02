@@ -63,7 +63,7 @@ class Knj::Rhodes
     }
     
     dbrev = Knj::Db::Revision.new
-    dbrev.init_db(schema, @db)
+    dbrev.init_db("schema" => schema, "db" => @db)
     
     @ob = Knj::Objects.new(
       :db => @db,
