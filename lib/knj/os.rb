@@ -79,9 +79,18 @@ module Knj::Os
     }
     
     if RUBY_ENGINE == "jruby"
-      IO.popen4(cmd) do |pid, stdin, stdout, stderr|
-        res[:out] << stdout.read
-        res[:err] << stderr.read
+      begin
+        IO.popen4(cmd) do |pid, stdin, stdout, stderr|
+          res[:out] << stdout.read
+          res[:err] << stderr.read
+        end
+      rescue Errno::EBADF => e
+        #Catch and rescue retarted JRuby.
+        if e.message == "Bad file descriptor - Bad file descriptor"
+          retry
+        else
+          raise e
+        end
       end
     else
       Open3.popen3(cmd) do |stdin, stdout, stderr|

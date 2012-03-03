@@ -31,6 +31,9 @@ class Knj::Process_meta
       @stdin, @stdout, @stderr = Open3.popen3(cmd)
     end
     
+    @stdout.sync = true
+    @stdin.sync = true
+    
     args = {
       :out => @stdin,
       :in => @stdout,
@@ -44,6 +47,10 @@ class Knj::Process_meta
         $stderr.print "stderr: #{line}"
       }
     end
+    
+    #Wait for process to start and check that it is returning the expected output.
+    start_line = @stdout.gets
+    raise "Expected startline from process to be 'process_meta_started' but got: '#{start_line}'." if start_line != "process_meta_started\n"
     
     @process = Knj::Process.new(args)
     

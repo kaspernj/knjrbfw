@@ -105,4 +105,6 @@ objects = {}
     block_res
   }
 )
+
+print "process_meta_started\n"
 @process.join

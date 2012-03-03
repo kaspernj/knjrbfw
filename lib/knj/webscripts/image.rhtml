@@ -164,7 +164,7 @@
     end
 	end
 	
-	if tmp_use
+	if tmp_use and !force
     _kas.header("Last-Modified", "#{time_orig.httpdate} GMT") if time_orig
 		_kas.header("Content-Type", "image/png")
 		_httpsession.force_content(File.new(tmp_path))
