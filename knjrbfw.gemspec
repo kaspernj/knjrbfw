@@ -5,7 +5,7 @@
 
 Gem::Specification.new do |s|
   s.name = %q{knjrbfw}
-  s.version = "0.0.18"
+  s.version = "0.0.19"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Kasper Johansen"]
@@ -49,6 +49,7 @@ Gem::Specification.new do |s|
     "lib/knj/autoload/soap.rb",
     "lib/knj/autoload/sqlite3.rb",
     "lib/knj/autoload/tmail.rb",
+    "lib/knj/autoload/tzinfo.rb",
     "lib/knj/autoload/xmlsimple.rb",
     "lib/knj/autoload/zip.rb",
     "lib/knj/cmd_gen.rb",
