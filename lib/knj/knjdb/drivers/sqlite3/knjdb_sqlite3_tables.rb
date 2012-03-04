@@ -72,9 +72,8 @@ class KnjDB_sqlite3::Tables
     sql << ")"
     
     @db.query(sql)
-    @list = nil
     
-    if data["indexes"]
+    if data.key?("indexes") and data["indexes"]
       table_obj = self[name]
       table_obj.create_indexes(data["indexes"])
     end
