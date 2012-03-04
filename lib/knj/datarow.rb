@@ -390,7 +390,7 @@ class Knj::Datarow
         when "return_sql"
           #ignore
         else
-          raise "Invalid key: '#{key}' for '#{self.name}'."
+          raise "Invalid key: '#{key}' for '#{self.name}'. Valid keys are: '#{@columns_sqlhelper_args[:cols].keys.sort}'."
       end
     end
     
@@ -440,18 +440,18 @@ class Knj::Datarow
     return d.ob.list_bysql(self.classname, sql, &block)
   end
   
+  def self.list_helper(d)
+    self.load_columns(d) if !@columns_sqlhelper_args
+    @columns_sqlhelper_args[:table] = @table if @table
+    return d.ob.sqlhelper(d.args, @columns_sqlhelper_args)
+  end
+  
   def self.classname
     return @classname
   end
   
   def self.classname=(newclassname)
     @classname = newclassname
-  end
-  
-  def self.list_helper(d)
-    self.load_columns(d) if !@columns_sqlhelper_args
-    @columns_sqlhelper_args[:table] = @table if @table
-    return d.ob.sqlhelper(d.args, @columns_sqlhelper_args)
   end
   
   def initialize(d)

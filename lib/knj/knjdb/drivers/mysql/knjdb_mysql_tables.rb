@@ -162,7 +162,11 @@ class KnjDB_mysql::Tables::Table
       end
     end
     
-    return ret
+    if block_given?
+      return nil
+    else
+      return ret
+    end
   end
   
   def indexes
@@ -192,7 +196,11 @@ class KnjDB_mysql::Tables::Table
       end
     end
     
-    return ret
+    if block_given?
+      return nil
+    else
+      return ret
+    end
   end
   
   def index(name)

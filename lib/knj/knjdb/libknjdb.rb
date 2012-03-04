@@ -252,6 +252,7 @@ class Knj::Db
     end
   end
   
+  #Makes a select from the given arguments: table-name, where-terms and other arguments as limits and orders. Also takes a block to avoid raping of memory.
   def select(tablename, arr_terms = nil, args = nil, &block)
     sql = ""
     
