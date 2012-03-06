@@ -966,6 +966,8 @@ module Knj::Php
   def empty(obj)
     if obj.respond_to?("empty?")
       return obj.empty?
+    elsif obj == nil
+      return true
     else
       raise "Dont know how to handle object on 'empty': '#{obj.class.name}'."
     end
