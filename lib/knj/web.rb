@@ -671,12 +671,7 @@ class Knj::Web
   
   def self.opts(opthash, curvalue = nil, opts_args = {})
     opts_args = {} if !opts_args
-    opts_args.each do |key, value|
-      if !key.is_a?(Symbol)
-        opts_args[key.to_sym] = value
-        opts_args.delete(key)
-      end
-    end
+    Knj::ArrayExt.hash_sym(opts_args)
     
     return "" if !opthash
     cname = curvalue.class.name
