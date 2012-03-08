@@ -194,9 +194,13 @@ module Knj::Os
     if self.os == "linux"
       unix_proc = Knj::Unix_proc.find_self
       if unix_proc
-        if match_cmd = unix_proc["cmd"].match(/^(\/usr\/bin\/|)((j|iron|)ruby([\d\.-]+))(\s+|$)/)
+        if match_cmd = unix_proc["cmd"].match(/^(\/usr\/bin\/|)((j|iron|)ruby([\d\.-]*))(\s+|$)/)
           return "#{match_cmd[1]}#{match_cmd[2]}"
+        else
+          raise "Could not match the executed command from the process."
         end
+      else
+        raise "Could not find the self-process."
       end
     end
     

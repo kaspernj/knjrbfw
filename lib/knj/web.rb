@@ -671,7 +671,7 @@ class Knj::Web
   
   def self.opts(opthash, curvalue = nil, opts_args = {})
     opts_args = {} if !opts_args
-    Knj::ArrayExt.hash_sym(opthash)
+    Knj::ArrayExt.hash_sym(opts_args)
     
     return "" if !opthash
     cname = curvalue.class.name
@@ -888,10 +888,26 @@ class Knj::Web
       version = "(unknown version)"
     end
     
+    os = nil
+    os_version = nil
+    if agent.index("linux") != nil
+      os = "linux"
+    elsif match = agent.match(/mac\s+os\s+x\s+([\d_+])/)
+      os = "mac"
+    elsif match = agent.match(/windows\s+nt\s+([\d\.]+)/)
+      os = "windows"
+      
+      if match[1] == "5.1"
+        os_version = "xp"
+      end
+    end
+    
     return {
       "browser" => browser,
       "title" => title,
-      "version" => version
+      "version" => version,
+      "os" => os,
+      "os_version" => os_version
     }
   end
   
