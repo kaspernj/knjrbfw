@@ -30,11 +30,11 @@ class Knj::Gettext_threadded
                 
                 cont = nil
                 File.open(pofn, {:encoding => @args[:encoding]}) do |fp|
-                  cont = fp.read
+                  cont = fp.read.encode("utf-8")
                 end
                 
                 cont.scan(/msgid\s+\"(.+)\"\nmsgstr\s+\"(.+)\"\n\n/) do |match|
-                  @langs[file][match[0]] = match[1]
+                  @langs[file][match[0]] = match[1].to_s.encode("utf-8")
                 end
               end
             end
