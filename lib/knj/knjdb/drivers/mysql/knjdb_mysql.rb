@@ -500,12 +500,12 @@ class KnjDB_java_mysql_result
     if @as_hash
       ret = {}
       1.upto(@keys.length) do |count|
-        ret[@keys[count - 1]] = @result.string(count).to_s.encode("utf-8")
+        ret[@keys[count - 1]] = @result.string(count)
       end
     else
       ret = []
       1.upto(@count) do |count|
-        ret << @result.string(count).to_s.encode("utf-8")
+        ret << @result.string(count)
       end
     end
     

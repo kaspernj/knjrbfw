@@ -58,6 +58,28 @@ objects = {}
         res = obj_to_call.__send__(obj["method_name"], *obj["args"])
         res = nil if obj["capture_return"] == false
         d.answer("type" => "call_object_success", "result" => res)
+      elsif obj["type"] == "call_object_buffered"
+        raise "Invalid var-name: '#{obj["var_name"]}'." if obj["var_name"].to_s.strip.length <= 0
+        
+        obj_to_call = objects[obj["var_name"]]
+        raise "No object by that name: '#{obj["var_name"]}'." if !obj
+        capt_return = obj["capture_return"]
+        
+        if capt_return != false
+          ret = []
+        else
+          ret = nil
+        end
+        
+        obj["args"].each do |args|
+          if capt_return != false
+            ret << obj_to_call.__send__(obj["method_name"], *args)
+          else
+            obj_to_call.__send__(obj["method_name"], *args)
+          end
+        end
+        
+        d.answer("type" => "call_object_success", "result" => res)
       elsif obj["type"] == "call_object_block"
         raise "Invalid var-name: '#{obj["var_name"]}'." if obj["var_name"].to_s.strip.length <= 0
         res = nil

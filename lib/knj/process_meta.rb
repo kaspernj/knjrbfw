@@ -232,11 +232,17 @@ class Knj::Process_meta
       capture_return = true
     end
     
+    if args["buffered"]
+      type = "call_object_buffered"
+    else
+      type = "call_object_block"
+    end
+    
     res = @process.send(
       {
         "buffer_use" => args["buffer_use"],
         "obj" => {
-          "type" => "call_object_block",
+          "type" => type,
           "var_name" => args["var_name"],
           "method_name" => args["method_name"],
           "capture_return" => capture_return,
@@ -409,5 +415,114 @@ class Knj::Process_meta::Proxy_obj
       },
       &block
     )
+  end
+  
+  def _pm_buffered_caller(args)
+    return Knj::Process_meta::Proxy_obj::Buffered_caller.new({
+      :name => @args[:name],
+      :process_meta => @args[:process_meta]
+    }.merge(args))
+  end
+end
+
+class Knj::Process_meta::Proxy_obj::Buffered_caller
+  def initialize(args)
+    @args = args
+    @buffer = []
+    @mutex = Mutex.new
+    @mutex_write = Mutex.new
+    @count = 0
+    @debug = @args[:debug] if @args[:debug]
+    
+    if @args[:count_to]
+      @count_to = @args[:count_to]
+    else
+      @count_to = 1000
+    end
+    
+    @buffer_max = @count_to * 2
+    @threads = [] if @args[:async]
+  end
+  
+  def method_missing(method_name, *args)
+    if method_name.to_s == @args[:method_name].to_s
+      self._pm_call(*args)
+    else
+      raise NoMethodError, "No such method: '#{method_name}'."
+    end
+  end
+  
+  def _pm_call(*args)
+    raise @raise_error if @raise_error
+    
+    @mutex.synchronize do
+      while @count >= @count_to and @buffer.length >= @buffer_max
+        STDOUT.print "Waiting for write to complete...\n" if @debug
+        sleep 0.1
+      end
+      
+      STDOUT.print "Adding to buffer #{@buffer.length}...\n" if @debug
+      @buffer << args
+      @count += 1
+    end
+    
+    self._pm_flush if @count >= @count_to and !@writing
+    return nil
+  end
+  
+  def _pm_flush(*args)
+    raise @raise_error if @raise_error
+    
+    buffer = nil
+    @mutex.synchronize do
+      buffer = @buffer
+      @buffer = []
+      @count = 0
+    end
+    
+    if @args[:async]
+      begin
+        @threads << Thread.new do
+          self._pm_flush_real(buffer)
+        end
+      rescue => e
+        @raise_error = e
+      end
+      
+      return nil
+    else
+      return self._pm_flush_real(buffer)
+    end
+  end
+  
+  def _pm_flush_real(buffer)
+    @mutex_write.synchronize do
+      STDOUT.print "Writing...\n" if @debug
+      @writing = true
+      
+      begin
+        return @args[:process_meta].call_object(
+          "var_name" => @args[:name],
+          "method_name" => @args[:method_name],
+          "args" => buffer,
+          "buffered" => true,
+          "capture_return" => false
+        )
+      ensure
+        @writing = false
+      end
+    end
+  end
+  
+  def _pm_close
+    self._pm_flush
+    
+    if @args[:async]
+      @threads.each do |thread|
+        thread.join
+      end
+    end
+    
+    raise @raise_error if @raise_error
   end
 end

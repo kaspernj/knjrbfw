@@ -13,6 +13,7 @@ class Knj::Objects
     @args[:module] = Kernel if !@args[:module]
     @args[:cache] = :weak if !@args.key?(:cache)
     @objects = {}
+    @locks = {}
     @data = {}
     @mutex_require = Mutex.new
     
@@ -59,6 +60,7 @@ class Knj::Objects
   def init_class(classname)
     return false if @objects.key?(classname)
     @objects[classname] = {}
+    @locks[classname] = Mutex.new
   end
   
   #Returns a cloned version of the @objects variable. Cloned because iteration on it may crash some of the other methods in Ruby 1.9+
@@ -76,6 +78,7 @@ class Knj::Objects
     return @args[:db]
   end
   
+  #Returns the total count of objects currently held by this instance.
   def count_objects
     count = 0
     @objects.keys.each do |key|
@@ -132,10 +135,12 @@ class Knj::Objects
   
   def requireclass(classname, args = {})
     classname = classname.to_sym
-    
     return false if @objects.key?(classname)
     
     @mutex_require.synchronize do
+      #Maybe the classname got required meanwhile the synchronized wait - check again.
+      return false if @objects.key?(classname)
+      
       if (@args[:require] or !@args.key?(:require)) and (!args.key?(:require) or args[:require])
         filename = "#{@args[:class_path]}/#{@args[:class_pre]}#{classname.to_s.downcase}.rb"
         filename_req = "#{@args[:class_path]}/#{@args[:class_pre]}#{classname.to_s.downcase}"
@@ -164,7 +169,7 @@ class Knj::Objects
         self.load_class(classname, args)
       end
       
-      @objects[classname] = {}
+      self.init_class(classname)
     end
   end
   
@@ -220,23 +225,33 @@ class Knj::Objects
     
     self.requireclass(classname) if !@objects.key?(classname)
     
-    if @args[:datarow] or @args[:custom]
-      obj = @args[:module].const_get(classname).new(Knj::Hash_methods.new(:ob => self, :data => data))
-    else
-      args = [data]
-      args = args | @args[:extra_args] if @args[:extra_args]
-      obj = @args[:module].const_get(classname).new(*args)
-    end
-    
-    case @args[:cache]
-      when :weak
-        @objects[classname][id] = WeakRef.new(obj)
-      when :none
-        return obj
+    @locks[classname].synchronize do
+      #Maybe the object got spawned while we waited for the lock? If so we shouldnt spawn another instance.
+      if @objects[classname].key?(id)
+        return self.get(classname, data)
+      end
+      
+      #Spawn object.
+      if @args[:datarow] or @args[:custom]
+        obj = @args[:module].const_get(classname).new(Knj::Hash_methods.new(:ob => self, :data => data))
       else
-        @objects[classname][id] = obj
+        args = [data]
+        args = args | @args[:extra_args] if @args[:extra_args]
+        obj = @args[:module].const_get(classname).new(*args)
+      end
+      
+      #Save object in cache.
+      case @args[:cache]
+        when :weak
+          @objects[classname][id] = WeakRef.new(obj)
+        when :none
+          return obj
+        else
+          @objects[classname][id] = obj
+      end
     end
     
+    #Return spawned object.
     return obj
   end
   
@@ -421,10 +436,23 @@ class Knj::Objects
   end
   
   #Returns a list of a specific object by running specific SQL against the database.
-  def list_bysql(classname, sql, d = nil, &block)
+  def list_bysql(classname, sql, args = nil, &block)
     classname = classname.to_sym
     ret = [] if !block
-    @args[:db].q(sql) do |d_obs|
+    qargs = nil
+    
+    if args
+      args.each do |key, val|
+        case key
+          when :cloned_ubuf
+            qargs = {:cloned_ubuf => true}
+          else
+            raise "Invalid key: '#{key}'."
+        end
+      end
+    end
+    
+    @args[:db].q(sql, qargs) do |d_obs|
       if block
         block.call(self.get(classname, d_obs))
       else
@@ -577,7 +605,7 @@ class Knj::Objects
     classname = classname.to_sym
     
     return false if !@objects.key?(classname)
-    @objects[classname] = {}
+    @objects.delete(classname)
   end
   
   #Delete an object. Both from the database and from the cache.
