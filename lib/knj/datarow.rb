@@ -11,6 +11,11 @@ class Knj::Datarow
     return @depending_data
   end
   
+  def self.autodelete_data
+    @autodelete_data = [] if !@autodelete_data
+    return @autodelete_data
+  end
+  
   #This helps various parts of the framework determine if this is a datarow class without requiring it.
   def is_knj?
     return true
@@ -33,7 +38,14 @@ class Knj::Datarow
         methodname = val[:method]
         
         if val[:depends]
-          depending_data << {
+          self.depending_data << {
+            :colname => colname,
+            :classname => classname
+          }
+        end
+        
+        if val[:autodelete]
+          self.autodelete_data << {
             :colname => colname,
             :classname => classname
           }
@@ -106,7 +118,7 @@ class Knj::Datarow
         
         if val[:required]
           colname = "#{classname.to_s.downcase}_id".to_sym if !colname
-          required_data << {
+          self.required_data << {
             :col => colname,
             :class => classname
           }
