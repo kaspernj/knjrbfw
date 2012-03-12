@@ -129,7 +129,7 @@ class Knj::Datet
   #Is a year a leap year in the Gregorian calendar? Copied from Date-class.
   def self.gregorian_leap?(y)
     if Date.respond_to?("gregorian_leap?")
-      return Date.gregorian_leap?
+      return Date.gregorian_leap?(y)
     elsif y % 4 == 0 && y % 100 != 0
       return true
     elsif y % 400 == 0
