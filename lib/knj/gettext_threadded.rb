@@ -2,12 +2,15 @@ class Knj::Gettext_threadded
   attr_reader :langs, :args
   
   def initialize(args = {})
-    @args = args
+    @args = {
+      :encoding => "utf-8"
+    }.merge(args)
     @langs = {}
     @dirs = []
     load_dir(@args["dir"]) if @args["dir"]
   end
   
+  #Loads a 'locales'-directory with .mo- and .po-files.
   def load_dir(dir)
     @dirs << dir
     check_folders = ["LC_MESSAGES", "LC_ALL"]
@@ -24,9 +27,14 @@ class Knj::Gettext_threadded
             Dir.new(fpath).each do |pofile|
               if pofile.match(/\.po$/)
                 pofn = "#{dir}/#{file}/#{fname}/#{pofile}"
-                cont = File.read(pofn)
+                
+                cont = nil
+                File.open(pofn, {:encoding => @args[:encoding]}) do |fp|
+                  cont = fp.read.encode("utf-8")
+                end
+                
                 cont.scan(/msgid\s+\"(.+)\"\nmsgstr\s+\"(.+)\"\n\n/) do |match|
-                  @langs[file][match[0]] = match[1]
+                  @langs[file][match[0]] = match[1].to_s.encode("utf-8")
                 end
               end
             end
@@ -62,7 +70,7 @@ class Knj::Gettext_threadded
       @dirs.each do |dir|
         title_file_path = "#{dir}/#{lang}/title.txt"
         if File.exists?(title_file_path)
-          title = File.read(title_file_path).to_s.strip
+          title = File.read(title_file_path, {:encoding => @args[:encoding]}).to_s.strip
         else
           title = lang.to_s.strip
         end

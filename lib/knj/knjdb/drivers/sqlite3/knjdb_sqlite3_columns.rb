@@ -48,7 +48,7 @@ class KnjDB_sqlite3::Columns::Column
   end
   
   def table
-    return @args[:table]
+    return @db.tables[@args[:table_name]]
   end
   
   def data

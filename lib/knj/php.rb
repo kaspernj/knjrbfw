@@ -301,8 +301,7 @@ module Knj::Php
     string = "#{string[from.to_i, to.to_i]}"
     
     if !string.valid_encoding? and Knj::Php.class_exists("Iconv")
-      ic = Iconv.new("UTF-8//IGNORE", "UTF-8")
-      string = ic.iconv(string + "  ")[0..-2]
+      string = Iconv.conv("UTF-8//IGNORE", "UTF-8", "#{string}  ")[0..-2]
     end
     
     return string
@@ -827,7 +826,7 @@ module Knj::Php
               $stderr.print str
             end
           rescue Exception => e
-            $stdout.print Knj::Errors.error_str(e)
+            $stderr.print Knj::Errors.error_str(e)
           end
         end
         
@@ -854,7 +853,7 @@ module Knj::Php
               $stderr.print str
             end
           rescue Exception => e
-            $stdout.print Knj::Errors.error_str(e)
+            $stderr.print Knj::Errors.error_str(e)
           end
         end
         
@@ -967,6 +966,8 @@ module Knj::Php
   def empty(obj)
     if obj.respond_to?("empty?")
       return obj.empty?
+    elsif obj == nil
+      return true
     else
       raise "Dont know how to handle object on 'empty': '#{obj.class.name}'."
     end

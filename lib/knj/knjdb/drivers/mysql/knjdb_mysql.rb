@@ -5,13 +5,18 @@ class KnjDB_mysql
   def initialize(knjdb_ob)
     @knjdb = knjdb_ob
     @opts = @knjdb.opts
-    @encoding = @opts[:encoding]
     @escape_table = "`"
     @escape_col = "`"
     @escape_val = "'"
     @esc_table = "`"
     @esc_col = "`"
     @mutex = Mutex.new
+    
+    if @opts[:encoding]
+      @encoding = @opts[:encoding]
+    else
+      @encoding = "utf8"
+    end
     
     if @knjdb.opts.key?(:port)
       @port = @knjdb.opts[:port].to_i
@@ -88,8 +93,8 @@ class KnjDB_mysql
           @jdbc_loaded = true
         end
         
-        @conn = java.sql::DriverManager.getConnection("jdbc:mysql://#{@knjdb.opts[:host]}:#{@port}/#{@knjdb.opts[:db]}?user=#{@knjdb.opts[:user]}&password=#{@knjdb.opts[:pass]}&populateInsertRowWithDefaultValues=true&zeroDateTimeBehavior=round")
-        query("SET SQL_MODE = ''")
+        @conn = java.sql::DriverManager.getConnection("jdbc:mysql://#{@knjdb.opts[:host]}:#{@port}/#{@knjdb.opts[:db]}?user=#{@knjdb.opts[:user]}&password=#{@knjdb.opts[:pass]}&populateInsertRowWithDefaultValues=true&zeroDateTimeBehavior=round&characterEncoding=#{@encoding}")
+        self.query("SET SQL_MODE = ''")
       else
         raise "Unknown subtype: #{@subtype}"
     end
@@ -495,12 +500,12 @@ class KnjDB_java_mysql_result
     if @as_hash
       ret = {}
       1.upto(@keys.length) do |count|
-        ret[@keys[count - 1]] = @result.string(count).to_s.encode("utf-8")
+        ret[@keys[count - 1]] = @result.string(count)
       end
     else
       ret = []
       1.upto(@count) do |count|
-        ret << @result.string(count).to_s.encode("utf-8")
+        ret << @result.string(count)
       end
     end
     

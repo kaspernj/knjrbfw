@@ -378,6 +378,7 @@ class Knj::Datarow
       sql = "SELECT #{table_str}.*"
     end
     
+    qargs = nil
     ret = self.list_helper(d)
     
     sql << " FROM #{table_str}"
@@ -389,8 +390,10 @@ class Knj::Datarow
       case key
         when "return_sql"
           #ignore
+        when :cloned_ubuf
+          qargs = {:cloned_ubuf => true}
         else
-          raise "Invalid key: '#{key}' for '#{self.name}'."
+          raise "Invalid key: '#{key}' for '#{self.name}'. Valid keys are: '#{@columns_sqlhelper_args[:cols].keys.sort}'."
       end
     end
     
@@ -418,7 +421,7 @@ class Knj::Datarow
     
     if select_col_as_array
       ids = [] if !block
-      d.db.q(sql) do |data|
+      d.db.q(sql, qargs) do |data|
         if block
           block.call(data[:id])
         else
@@ -437,7 +440,13 @@ class Knj::Datarow
       return 0
     end
     
-    return d.ob.list_bysql(self.classname, sql, &block)
+    return d.ob.list_bysql(self.classname, sql, qargs, &block)
+  end
+  
+  def self.list_helper(d)
+    self.load_columns(d) if !@columns_sqlhelper_args
+    @columns_sqlhelper_args[:table] = @table if @table
+    return d.ob.sqlhelper(d.args, @columns_sqlhelper_args)
   end
   
   def self.classname
@@ -446,12 +455,6 @@ class Knj::Datarow
   
   def self.classname=(newclassname)
     @classname = newclassname
-  end
-  
-  def self.list_helper(d)
-    self.load_columns(d) if !@columns_sqlhelper_args
-    @columns_sqlhelper_args[:table] = @table if @table
-    return d.ob.sqlhelper(d.args, @columns_sqlhelper_args)
   end
   
   def initialize(d)

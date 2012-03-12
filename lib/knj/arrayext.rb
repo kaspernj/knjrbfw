@@ -201,7 +201,7 @@ module Knj::ArrayExt
     Knj::Php.foreach(hash) do |key, val|
       if val.is_a?(String)
         begin
-          hash[key] = Knj::Php.utf8_encode(encoding)
+          hash[key] = Knj::Php.utf8_encode(val)
         rescue Encoding::UndefinedConversionError => e
           if args["ignore_encoding_errors"]
             next

@@ -530,6 +530,7 @@ class Knj::Web
     }
     attr.merge!(args[:attr]) if args[:attr]
     attr["disabled"] = "disabled" if args[:disabled]
+    attr["maxlength"] = args[:maxlength] if args.key?(:maxlength)
     
     raise "No name given to the Web::input()-method." if !args[:name] and args[:type] != :info and args[:type] != :textshow and args[:type] != :plain and args[:type] != :spacer and args[:type] != :headline
     
@@ -671,12 +672,7 @@ class Knj::Web
   
   def self.opts(opthash, curvalue = nil, opts_args = {})
     opts_args = {} if !opts_args
-    opts_args.each do |key, value|
-      if !key.is_a?(Symbol)
-        opts_args[key.to_sym] = value
-        opts_args.delete(key)
-      end
-    end
+    Knj::ArrayExt.hash_sym(opts_args)
     
     return "" if !opthash
     cname = curvalue.class.name
@@ -893,10 +889,26 @@ class Knj::Web
       version = "(unknown version)"
     end
     
+    os = nil
+    os_version = nil
+    if agent.index("linux") != nil
+      os = "linux"
+    elsif match = agent.match(/mac\s+os\s+x\s+([\d_+])/)
+      os = "mac"
+    elsif match = agent.match(/windows\s+nt\s+([\d\.]+)/)
+      os = "windows"
+      
+      if match[1] == "5.1"
+        os_version = "xp"
+      end
+    end
+    
     return {
       "browser" => browser,
       "title" => title,
-      "version" => version
+      "version" => version,
+      "os" => os,
+      "os_version" => os_version
     }
   end
   

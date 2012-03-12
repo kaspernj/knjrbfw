@@ -92,16 +92,27 @@ class Knj::Image
         next if y_to <= 0
         
         #Make corners transparent.
-        pixels = pic.get_pixels(x_from, y_from, 1, y_to)
-        pixels.each do |pixel|
-          pixel.opacity = Magick::TransparentOpacity
+        if false or RUBY_ENGINE == "jruby"
+          #Make up for the fact that "get_pixels" has not been implemented in "rmagick4j"...
+          pixels = []
+          0.upto(y_to) do |count|
+            pixels << Magick::Pixel.new(0, 0, 0, 255)
+          end
+          
+          pic.store_pixels(x_from, y_from, 1, y_to, pixels)
+        else
+          pixels = pic.get_pixels(x_from, y_from, 1, y_to)
+          pixels.each do |pixel|
+            pixel.opacity = Magick::TransparentOpacity
+          end
+          pic.store_pixels(x_from, y_from, 1, y_to, pixels)
         end
-        
-        pic.store_pixels(x_from, y_from, 1, y_to, pixels)
       end
     end
     
     if borders
+      color = args[:border_color]
+      
       borders.each do |border|
         if border.key?(:x)
           count_from = border[:yf]
@@ -112,12 +123,28 @@ class Knj::Image
         end
         
         count_from.upto(count_to - 1) do |coord|
-          pixel = Magick::Pixel.from_color(args[:border_color])
+          if RUBY_ENGINE == "jruby" and color[0, 1] == "#"
+            r = color[1, 2].hex
+            b = color[3, 2].hex
+            g = color[5, 2].hex
+            
+            pixel = Magick::Pixel.new(r, b, g)
+          else
+            pixel = Magick::Pixel.from_color(color)
+          end
           
           if border.key?(:x)
-            pic.pixel_color(border[:x], coord, pixel)
+            if RUBY_ENGINE == "jruby"
+              pic.store_pixels(border[:x], coord, 1, 1, [pixel])
+            else
+              pic.pixel_color(border[:x], coord, pixel)
+            end
           elsif border.key?(:y)
-            pic.pixel_color(coord, border[:y], pixel)
+            if RUBY_ENGINE == "jruby"
+              pic.store_pixels(coord, border[:y], 1, 1, [pixel])
+            else
+              pic.pixel_color(coord, border[:y], pixel)
+            end
           end
         end
       end

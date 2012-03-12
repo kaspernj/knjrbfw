@@ -1,6 +1,8 @@
 class Knj::Db
-  autoload :Dbtime, "#{File.dirname(__FILE__)}/dbtime.rb"
-  autoload :Revision, "#{File.dirname(__FILE__)}/revision.rb"
+  unless Kernel.const_defined?("Rho")
+    autoload :Dbtime, "#{$knjpath}knjdb/dbtime.rb"
+    autoload :Revision, "#{$knjpath}knjdb/revision.rb"
+  end
   
   attr_reader :opts, :conn, :conns, :int_types
   
@@ -250,6 +252,7 @@ class Knj::Db
     end
   end
   
+  #Makes a select from the given arguments: table-name, where-terms and other arguments as limits and orders. Also takes a block to avoid raping of memory.
   def select(tablename, arr_terms = nil, args = nil, &block)
     sql = ""
     
@@ -397,8 +400,48 @@ class Knj::Db
     return ret
   end
   
+  #Clones the connection, executes a unbuffered query and closes the connection again.
+  def cloned_conn(args = nil, &block)
+    subtype = @opts[:subtype]
+    
+    #MySQL2-driver doesnt support unbuffered queries yet.
+    if @opts[:type] == "mysql" and @opts[:subtype] == "mysql2"
+      subtype = "mysql"
+    end
+    
+    clone_conn_args = {
+      :subtype => subtype,
+      :threadsafe => false
+    }
+    
+    clone_conn_args.merge!(args[:clone_args]) if args and args[:clone_args]
+    dbconn = self.clone_conn(clone_conn_args)
+    
+    begin
+      yield(dbconn)
+    ensure
+      dbconn.close
+    end
+  end
+  
   #Executes a query and returns the result. If a block is given the result is iterated over that block instead and it returns nil.
-  def q(str, &block)
+  def q(str, args = nil, &block)
+    #If the query should be executed in a new connection unbuffered.
+    if args
+      if args[:cloned_ubuf]
+        raise "No block given." if !block
+        
+        self.cloned_conn(:clone_args => args[:clone_args]) do |cloned_conn|
+          ret = cloned_conn.query_ubuf(str)
+          ret.each(&block)
+        end
+        
+        return nil
+      else
+        raise "Invalid arguments given: '#{args}'."
+      end
+    end
+    
     ret = self.query(str)
     
     if block

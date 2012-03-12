@@ -126,9 +126,22 @@ class Knj::Datet
     return self
   end
   
+  #Is a year a leap year in the Gregorian calendar? Copied from Date-class.
+  def self.gregorian_leap?(y)
+    if Date.respond_to?("gregorian_leap?")
+      return Date.gregorian_leap?(y)
+    elsif y % 4 == 0 && y % 100 != 0
+      return true
+    elsif y % 400 == 0
+      return true
+    else
+      return false
+    end
+  end
+  
   #Returns the number of days in the current month.
   def days_in_month
-    return 29 if month == 2 and Date.gregorian_leap?(self.year)
+    return 29 if month == 2 and Knj::Datet.gregorian_leap?(self.year)
     
     #Thanks to ActiveSupport: http://rubydoc.info/docs/rails/2.3.8/ActiveSupport/CoreExtensions/Time/Calculations
     days_in_months = [nil, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]

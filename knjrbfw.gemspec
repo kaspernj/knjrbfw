@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{knjrbfw}
-  s.version = "0.0.12"
+  s.version = "0.0.21"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Kasper Johansen"]
-  s.date = %q{2012-02-25}
+  s.date = %q{2012-03-04}
   s.description = %q{Including stuff for HTTP, SSH and much more.}
   s.email = %q{k@spernj.org}
   s.extra_rdoc_files = [
@@ -49,6 +49,7 @@ Gem::Specification.new do |s|
     "lib/knj/autoload/soap.rb",
     "lib/knj/autoload/sqlite3.rb",
     "lib/knj/autoload/tmail.rb",
+    "lib/knj/autoload/tzinfo.rb",
     "lib/knj/autoload/xmlsimple.rb",
     "lib/knj/autoload/zip.rb",
     "lib/knj/cmd_gen.rb",

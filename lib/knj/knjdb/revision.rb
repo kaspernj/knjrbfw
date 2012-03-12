@@ -40,7 +40,7 @@ class Knj::Db::Revision
     @db = db
     
     #Check for normal bugs and raise apropiate error.
-    raise "'schema' argument was not a Hash." if !schema.is_a?(Hash)
+    raise "'schema' argument was not a Hash: '#{schema.class.name}'." if !schema.is_a?(Hash)
     raise "':return_keys' is not 'symbols' - Knjdbrevision will not work without it." if db.opts[:return_keys] != "symbols"
     raise "No tables given." if !schema.has_key?("tables")
     
@@ -137,6 +137,8 @@ class Knj::Db::Revision
                 print "Column not found: #{table_obj.name}.#{col_data["name"]}.\n" if args["debug"]
                 
                 if col_data.has_key?("renames")
+                  raise "'renames' was not an array for column '#{table_obj.name}.#{col_data["name"]}'." if !col_data["renames"].is_a?(Array)
+                  
                   rename_found = false
                   col_data["renames"].each do |col_name|
                     begin
@@ -236,6 +238,11 @@ class Knj::Db::Revision
             end
           end
           
+          if !table_data.key?("columns")
+            print "Notice: Skipping creation of '#{table_name}' because no columns were given in hash.\n"
+            next
+          end
+          
           if table_data["on_create"]
             table_data["on_create"].call("db" => db, "table_name" => table_name, "table_data" => table_data)
           end
@@ -258,7 +265,7 @@ class Knj::Db::Revision
       schema["tables_remove"].each do |table_name, table_data|
         begin
           table_obj = db.tables[table_name.to_sym]
-          table_data["callback"].call if table_data.is_a?(Hash) and table_data["callback"]
+          table_data["callback"].call("db" => db, "table" => table_obj) if table_data.is_a?(Hash) and table_data["callback"]
           table_obj.drop
         rescue Knj::Errors::NotFound => e
           next
