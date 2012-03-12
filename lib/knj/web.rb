@@ -530,6 +530,7 @@ class Knj::Web
     }
     attr.merge!(args[:attr]) if args[:attr]
     attr["disabled"] = "disabled" if args[:disabled]
+    attr["maxlength"] = args[:maxlength] if args.key?(:maxlength)
     
     raise "No name given to the Web::input()-method." if !args[:name] and args[:type] != :info and args[:type] != :textshow and args[:type] != :plain and args[:type] != :spacer and args[:type] != :headline
     
