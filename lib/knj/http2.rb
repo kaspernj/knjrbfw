@@ -33,6 +33,14 @@ class Knj::Http2
     
     raise "No host was given." if !@args[:host]
     self.reconnect
+    
+    if block_given?
+      begin
+        yield(self)
+      ensure
+        self.destroy
+      end
+    end
   end
   
   def socket_working?
@@ -47,6 +55,25 @@ class Knj::Http2
     end
     
     return true
+  end
+  
+  def destroy
+    @args = nil
+    @cookies = nil
+    @debug = nil
+    @mutex = nil
+    @uagent = nil
+    @keepalive_timeout = nil
+    @request_last = nil
+    
+    @sock.close if @sock and !@sock.closed?
+    @sock = nil
+    
+    @sock_plain.close if @sock_plain and !@sock_plain.closed?
+    @sock_plain = nil
+    
+    @sock_ssl.close if @sock_ssl and !@sock_ssl.closed?
+    @sock_ssl = nil
   end
   
   #Reconnects to the host.
@@ -106,19 +133,25 @@ class Knj::Http2
   end
   
   def get(addr, args = {})
-    @mutex.synchronize do
-      header_str = "GET /#{addr} HTTP/1.1#{@nl}"
-      header_str << self.header_str(self.default_headers(args), args)
-      header_str << "#{@nl}"
+    begin
+      @mutex.synchronize do
+        header_str = "GET /#{addr} HTTP/1.1#{@nl}"
+        header_str << self.header_str(self.default_headers(args), args)
+        header_str << "#{@nl}"
+        
+        print "Http2: Writing headers.\n" if @debug
+        self.write(header_str)
+        
+        print "Http2: Reading response.\n" if @debug
+        resp = self.read_response(args)
+        
+        print "Http2: Done with get request.\n" if @debug
+        return resp
+      end
+    rescue Knj::Errors::Retry => e
+      print "Redirecting to: #{e.message}\n"
       
-      print "Http2: Writing headers.\n" if @debug
-      self.write(header_str)
-      
-      print "Http2: Reading response.\n" if @debug
-      resp = self.read_response(args)
-      
-      print "Http2: Done with get request.\n" if @debug
-      return resp
+      return self.get(e.message, args)
     end
   end
   
@@ -159,59 +192,67 @@ class Knj::Http2
   end
   
   def post(addr, pdata = {}, args = {})
-    @mutex.synchronize do
-      praw = ""
-      pdata.each do |key, val|
-        praw << "&" if praw != ""
-        praw << "#{Knj::Web.urlenc(key)}=#{Knj::Web.urlenc(val)}"
+    begin
+      @mutex.synchronize do
+        praw = ""
+        pdata.each do |key, val|
+          praw << "&" if praw != ""
+          praw << "#{Knj::Web.urlenc(key)}=#{Knj::Web.urlenc(val)}"
+        end
+        
+        header_str = "POST /#{addr} HTTP/1.1#{@nl}"
+        header_str << self.header_str(self.default_headers(args).merge("Content-Length" => praw.length), args)
+        header_str << "#{@nl}"
+        header_str << praw
+        
+        self.write(header_str)
+        return self.read_response(args)
       end
-      
-      header_str = "POST /#{addr} HTTP/1.1#{@nl}"
-      header_str << self.header_str(self.default_headers(args).merge("Content-Length" => praw.length), args)
-      header_str << "#{@nl}"
-      header_str << praw
-      
-      self.write(header_str)
-      return self.read_response(args)
+    rescue Knj::Errors::Retry => e
+      return self.get(e.message, args)
     end
   end
   
   def post_multipart(addr, pdata, args = {})
-    @mutex.synchronize do
-      boundary = Digest::MD5.hexdigest(Time.now.to_f.to_s)
-      
-      praw = ""
-      pdata.each do |key, val|
-        praw << "--#{boundary}#{@nl}"
+    begin
+      @mutex.synchronize do
+        boundary = Digest::MD5.hexdigest(Time.now.to_f.to_s)
         
-        if val.class.name == "Tempfile" and val.respond_to?("original_filename")
-          praw << "Content-Disposition: form-data; name=\"#{key}\"; filename=\"#{val.original_filename}\";#{@nl}"
-        else
-          praw << "Content-Disposition: form-data; name=\"#{key}\";#{@nl}"
+        praw = ""
+        pdata.each do |key, val|
+          praw << "--#{boundary}#{@nl}"
+          
+          if val.class.name == "Tempfile" and val.respond_to?("original_filename")
+            praw << "Content-Disposition: form-data; name=\"#{key}\"; filename=\"#{val.original_filename}\";#{@nl}"
+          else
+            praw << "Content-Disposition: form-data; name=\"#{key}\";#{@nl}"
+          end
+          
+          praw << "Content-Type: text/plain#{@nl}"
+          praw << "Content-Length: #{val.length}#{@nl}"
+          praw << @nl
+          
+          if val.is_a?(StringIO)
+            praw << val.read
+          else
+            praw << val.to_s
+          end
+          
+          praw << @nl
         end
         
-        praw << "Content-Type: text/plain#{@nl}"
-        praw << "Content-Length: #{val.length}#{@nl}"
-        praw << @nl
+        header_str = "POST /#{addr} HTTP/1.1#{@nl}"
+        header_str << "Content-Type: multipart/form-data; boundary=#{boundary}#{@nl}"
+        header_str << self.header_str(self.default_headers(args).merge("Content-Length" => praw.length), args)
+        header_str << "#{@nl}"
+        header_str << praw
+        header_str << "--#{boundary}--"
         
-        if val.is_a?(StringIO)
-          praw << val.read
-        else
-          praw << val.to_s
-        end
-        
-        praw << @nl
+        self.write(header_str)
+        return self.read_response(args)
       end
-      
-      header_str = "POST /#{addr} HTTP/1.1#{@nl}"
-      header_str << "Content-Type: multipart/form-data; boundary=#{boundary}#{@nl}"
-      header_str << self.header_str(self.default_headers(args).merge("Content-Length" => praw.length), args)
-      header_str << "#{@nl}"
-      header_str << praw
-      header_str << "--#{boundary}--"
-      
-      self.write(header_str)
-      return self.read_response(args)
+    rescue Knj::Errors::Retry => e
+      return self.get(e.message, args)
     end
   end
   
@@ -313,13 +354,15 @@ class Knj::Http2
       args[:port] = uri.port if uri.port
       
       if !args[:host] or args[:host] == @args[:host]
-        return self.get(resp.header("location"))
+        raise Knj::Errors::Retry, resp.header("location")
       else
         http = Knj::Http2.new(args)
         return http.get(uri.path)
       end
     elsif resp.args[:code].to_s == "500"
       raise "500 - Internal server error."
+    elsif resp.args[:code].to_s == "403"
+      raise Knj::Errors::NoAccess
     else
       return resp
     end
@@ -428,6 +471,7 @@ class Knj::Http2::Response
     return @args[:headers][key].first.to_s
   end
   
+  #Returns true if a header of the given string exists.
   def header?(key)
     return true if @args[:headers].key?(key) and @args[:headers][key].first.to_s.length > 0
     return false

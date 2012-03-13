@@ -74,6 +74,7 @@ class Knj::Objects
     return objs_cloned
   end
   
+  #Returns the database-connection used by this instance of Objects.
   def db
     return @args[:db]
   end
@@ -88,6 +89,7 @@ class Knj::Objects
     return count
   end
   
+  #This connects a block to an event. When the event is called the block will be executed.
   def connect(args, &block)
     raise "No object given." if !args["object"]
     raise "No signals given." if !args.key?("signal") and !args.key?("signals")
@@ -97,8 +99,9 @@ class Knj::Objects
     @callbacks[args["object"]][conn_id] = args
   end
   
+  #This method is used to call the connected callbacks for an event.
   def call(args, &block)
-    classstr = args["object"].class.to_s
+    classstr = args["object"].class.to_s.split("::").last
     
     if @callbacks.key?(classstr)
       @callbacks[classstr].clone.each do |callback_key, callback|
@@ -225,30 +228,34 @@ class Knj::Objects
     
     self.requireclass(classname) if !@objects.key?(classname)
     
-    @locks[classname].synchronize do
-      #Maybe the object got spawned while we waited for the lock? If so we shouldnt spawn another instance.
-      if @objects[classname].key?(id)
-        return self.get(classname, data)
-      end
-      
-      #Spawn object.
-      if @args[:datarow] or @args[:custom]
-        obj = @args[:module].const_get(classname).new(Knj::Hash_methods.new(:ob => self, :data => data))
-      else
-        args = [data]
-        args = args | @args[:extra_args] if @args[:extra_args]
-        obj = @args[:module].const_get(classname).new(*args)
-      end
-      
-      #Save object in cache.
-      case @args[:cache]
-        when :weak
-          @objects[classname][id] = WeakRef.new(obj)
-        when :none
-          return obj
+    begin
+      @locks[classname].synchronize do
+        #Maybe the object got spawned while we waited for the lock? If so we shouldnt spawn another instance.
+        if @objects[classname].key?(id)
+          raise Knj::Errors::Retry
+        end
+        
+        #Spawn object.
+        if @args[:datarow] or @args[:custom]
+          obj = @args[:module].const_get(classname).new(Knj::Hash_methods.new(:ob => self, :data => data))
         else
-          @objects[classname][id] = obj
+          args = [data]
+          args = args | @args[:extra_args] if @args[:extra_args]
+          obj = @args[:module].const_get(classname).new(*args)
+        end
+        
+        #Save object in cache.
+        case @args[:cache]
+          when :weak
+            @objects[classname][id] = WeakRef.new(obj)
+          when :none
+            return obj
+          else
+            @objects[classname][id] = obj
+        end
       end
+    rescue Knj::Errors::Retry
+      return self.get(classname, data)
     end
     
     #Return spawned object.
@@ -460,7 +467,11 @@ class Knj::Objects
       end
     end
     
-    return ret if !block
+    if !block
+      return ret
+    else
+      return nil
+    end
   end
   
   # Add a new object to the database and to the cache.

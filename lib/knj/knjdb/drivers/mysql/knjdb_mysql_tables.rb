@@ -2,7 +2,6 @@ require "#{$knjpath}wref"
 
 class KnjDB_mysql::Tables
   attr_reader :db, :driver, :list
-  attr_accessor :list_should_be_reloaded
   
   def initialize(args)
     @args = args
@@ -83,7 +82,6 @@ class KnjDB_mysql::Tables
     sql << ")"
     
     @db.query(sql)
-    @list_should_be_reloaded = true
     
     if data["indexes"]
       table_obj = self[name]

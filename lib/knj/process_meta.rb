@@ -335,7 +335,12 @@ class Knj::Process_meta
     @process.send("obj" => {"type" => "exit"})
     @err_thread.kill if @err_thread
     @process.destroy
-    Process.kill("TERM", @pid)
+    
+    begin
+      Process.kill("TERM", @pid)
+    rescue Errno::ESRCH
+      #Process is already dead - ignore.
+    end
     
     begin
       sleep 0.1
