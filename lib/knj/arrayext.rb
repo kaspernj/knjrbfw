@@ -79,9 +79,23 @@ module Knj::ArrayExt
       end
     end
     
-    adds.each do |key, value|
-      hash_given[key] = value
+    hash_given.merge!(adds)
+    
+    return hash_given
+  end
+  
+  #Converts all keys in the given hash to strings.
+  def self.hash_str(hash_given)
+    adds = {}
+    
+    hash_given.each do |key, val|
+      if !key.is_a?(String)
+        adds[key.to_s] = val
+        hash_given.delete(key)
+      end
     end
+    
+    hash_given.merge!(adds)
     
     return hash_given
   end
