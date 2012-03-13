@@ -225,30 +225,34 @@ class Knj::Objects
     
     self.requireclass(classname) if !@objects.key?(classname)
     
-    @locks[classname].synchronize do
-      #Maybe the object got spawned while we waited for the lock? If so we shouldnt spawn another instance.
-      if @objects[classname].key?(id)
-        return self.get(classname, data)
-      end
-      
-      #Spawn object.
-      if @args[:datarow] or @args[:custom]
-        obj = @args[:module].const_get(classname).new(Knj::Hash_methods.new(:ob => self, :data => data))
-      else
-        args = [data]
-        args = args | @args[:extra_args] if @args[:extra_args]
-        obj = @args[:module].const_get(classname).new(*args)
-      end
-      
-      #Save object in cache.
-      case @args[:cache]
-        when :weak
-          @objects[classname][id] = WeakRef.new(obj)
-        when :none
-          return obj
+    begin
+      @locks[classname].synchronize do
+        #Maybe the object got spawned while we waited for the lock? If so we shouldnt spawn another instance.
+        if @objects[classname].key?(id)
+          raise Knj::Errors::Retry
+        end
+        
+        #Spawn object.
+        if @args[:datarow] or @args[:custom]
+          obj = @args[:module].const_get(classname).new(Knj::Hash_methods.new(:ob => self, :data => data))
         else
-          @objects[classname][id] = obj
+          args = [data]
+          args = args | @args[:extra_args] if @args[:extra_args]
+          obj = @args[:module].const_get(classname).new(*args)
+        end
+        
+        #Save object in cache.
+        case @args[:cache]
+          when :weak
+            @objects[classname][id] = WeakRef.new(obj)
+          when :none
+            return obj
+          else
+            @objects[classname][id] = obj
+        end
       end
+    rescue Knj::Errors::Retry
+      return self.get(classname, data)
     end
     
     #Return spawned object.
