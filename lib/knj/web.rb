@@ -466,7 +466,7 @@ class Knj::Web
     Knj::ArrayExt.hash_sym(args)
     
     if args.key?(:value)
-      if args[:value].is_a?(Array) and args[:value].first.is_a?(NilClass)
+      if args[:value].is_a?(Array) and (args[:value].first.is_a?(NilClass) or args[:value].first == false)
         value = nil
       elsif args[:value].is_a?(Array)
         if !args[:value][2] or args[:value][2] == :key
