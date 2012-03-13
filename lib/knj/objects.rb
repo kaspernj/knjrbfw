@@ -74,6 +74,7 @@ class Knj::Objects
     return objs_cloned
   end
   
+  #Returns the database-connection used by this instance of Objects.
   def db
     return @args[:db]
   end
@@ -88,6 +89,7 @@ class Knj::Objects
     return count
   end
   
+  #This connects a block to an event. When the event is called the block will be executed.
   def connect(args, &block)
     raise "No object given." if !args["object"]
     raise "No signals given." if !args.key?("signal") and !args.key?("signals")
@@ -97,8 +99,9 @@ class Knj::Objects
     @callbacks[args["object"]][conn_id] = args
   end
   
+  #This method is used to call the connected callbacks for an event.
   def call(args, &block)
-    classstr = args["object"].class.to_s
+    classstr = args["object"].class.to_s.split("::").last
     
     if @callbacks.key?(classstr)
       @callbacks[classstr].clone.each do |callback_key, callback|
@@ -464,7 +467,11 @@ class Knj::Objects
       end
     end
     
-    return ret if !block
+    if !block
+      return ret
+    else
+      return nil
+    end
   end
   
   # Add a new object to the database and to the cache.
