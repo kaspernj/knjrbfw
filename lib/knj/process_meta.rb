@@ -84,18 +84,18 @@ class Knj::Process_meta
     @finalize_mutex.synchronize do
       finalize = @finalize
       @finalize = []
-    end
-    
-    begin
-      @process.send("obj" => {
-        "type" => "unset_multiple",
-        "var_names" => finalize
-      })
-    rescue => e
-      if e.message.to_s.index("Var-name didnt exist when trying to unset:")
-        #ignore.
-      else
-        raise e
+      
+      begin
+        @process.send("obj" => {
+          "type" => "unset_multiple",
+          "var_names" => finalize
+        })
+      rescue => e
+        if e.message.to_s.index("Var-name didnt exist when trying to unset:")
+          #ignore.
+        else
+          raise e
+        end
       end
     end
   end
