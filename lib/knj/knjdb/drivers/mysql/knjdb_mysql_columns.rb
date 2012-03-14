@@ -112,7 +112,7 @@ class KnjDB_mysql::Columns::Column
   end
   
   def drop
-    @args[:db].query("ALTER TABLE `#{@args[:table].name}` DROP COLUMN `#{self.name}`")
+    @args[:db].query("ALTER TABLE `#{@args[:table_name]}` DROP COLUMN `#{self.name}`")
   end
   
   def change(data)

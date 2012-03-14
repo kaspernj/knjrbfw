@@ -466,7 +466,7 @@ class Knj::Web
     Knj::ArrayExt.hash_sym(args)
     
     if args.key?(:value)
-      if args[:value].is_a?(Array) and args[:value].first.is_a?(NilClass)
+      if args[:value].is_a?(Array) and (args[:value].first.is_a?(NilClass) or args[:value].first == false)
         value = nil
       elsif args[:value].is_a?(Array)
         if !args[:value][2] or args[:value][2] == :key
@@ -554,6 +554,12 @@ class Knj::Web
       classes_tr_html = ""
     end
     
+    if args.key?(:title)
+      title_html = args[:title].to_s.html
+    elsif args.key?(:title_html)
+      title_html = args[:title_html]
+    end
+    
     html = ""
     
     classes = ["input_#{args[:type]}"]
@@ -568,17 +574,17 @@ class Knj::Web
       html << "<tr#{classes_tr_html}>"
       html << "<td colspan=\"2\" class=\"tdcheck\">"
       html << "<input#{self.attr_html(attr)} />"
-      html << "<label for=\"#{args[:id].html}\">#{args[:title].html}</label>"
+      html << "<label for=\"#{args[:id].html}\">#{title_html}</label>"
       html << "</td>"
       html << "</tr>"
     elsif args[:type] == :headline
-      html << "<tr#{classes_tr_html}><td colspan=\"2\"><h2 class=\"input_headline\">#{args[:title].html}</h2></td></tr>"
+      html << "<tr#{classes_tr_html}><td colspan=\"2\"><h2 class=\"input_headline\">#{title_html}</h2></td></tr>"
     elsif args[:type] == :spacer
       html << "<tr#{classes_tr_html}><td colspan=\"2\">&nbsp;</td></tr>"
     else
       html << "<tr#{classes_tr_html}>"
       html << "<td class=\"tdt\">"
-      html << args[:title].to_s.html
+      html << title_html
       html << "</td>"
       html << "<td#{self.style_html(css)} class=\"tdc\">"
       
