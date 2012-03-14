@@ -22,7 +22,17 @@ class KnjDB_mysql::Indexes::Index
   
   def drop
     sql = "DROP INDEX `#{self.name}` ON `#{self.table.name}`"
-    @args[:db].query(sql)
+    
+    begin
+      @args[:db].query(sql)
+    rescue => e
+      #The index has already been dropped - ignore.
+      if e.message.index("check that column/key exists") != nil
+        #ignore.
+      else
+        raise e
+      end
+    end
   end
   
   def data
