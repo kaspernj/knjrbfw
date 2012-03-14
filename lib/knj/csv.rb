@@ -1,5 +1,8 @@
 class Knj::Csv
   def self.arr_to_csv(arr, del, encl)
+    raise "No delimiter given." if !del
+    raise "No enclosure given." if !encl
+    
     str = ""
     first = true
     arr.each do |val|

@@ -741,7 +741,7 @@ class Knj::Web
       return "gecko"
     elsif agent.index("msie") != nil
       return "msie"
-    elsif agent.index("w3c") != nil or agent.index("baiduspider") != nil or agent.index("googlebot") != nil
+    elsif agent.index("w3c") != nil or agent.index("baiduspider") != nil or agent.index("googlebot") != nil or agent.index("bot") != nil
       return "bot"
     else
       #print "Unknown agent: #{agent}"
@@ -889,6 +889,10 @@ class Knj::Web
       browser = "bot"
       title = "AhrefsBot"
       version = match[1]
+    elsif agent.index("sosospider") != nil
+      browser = "bot"
+      title = "Bot"
+      version = "Sosospider"
     else
       browser = "unknown"
       title = "(unknown browser)"

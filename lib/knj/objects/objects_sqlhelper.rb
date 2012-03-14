@@ -288,7 +288,7 @@ class Knj::Objects
         if match[2] == "not"
           if val.is_a?(Array)
             if val.empty?
-              sql_where << " AND false"
+              #ignore.
             else
               escape_sql = Knj::ArrayExt.join(
                 :arr => val,
