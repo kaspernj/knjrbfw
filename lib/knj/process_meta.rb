@@ -7,7 +7,10 @@ class Knj::Process_meta
   def initialize(args = {})
     @args = args
     @objects = {}
+    
+    #These variables are used to free memory in the subprocess, by using ObjectSpace#define_finalizer. The Mutex is the avoid problems when writing to the finalize-array multithreadded.
     @finalize = []
+    @finalize_mutex = Mutex.new
     
     if @args["exec_path"]
       exec_path = @args["exec_path"]
@@ -69,22 +72,32 @@ class Knj::Process_meta
   end
   
   def proxy_finalizer(id)
-    @finalize << id
+    @finalize_mutex.synchronize do
+      @finalize << id
+    end
   end
   
   def check_finalizers
     return nil if @finalize.empty?
     
-    remove = []
-    @finalize.each do |id|
-      @process.send("obj" => {
-        "type" => "unset",
-        "var_name" => id
-      })
-      remove << id
+    finalize = nil
+    @finalize_mutex.synchronize do
+      finalize = @finalize
+      @finalize = []
     end
     
-    @finalize -= remove
+    begin
+      @process.send("obj" => {
+        "type" => "unset_multiple",
+        "var_names" => finalize
+      })
+    rescue => e
+      if e.message.to_s.index("Var-name didnt exist when trying to unset:")
+        #ignore.
+      else
+        raise e
+      end
+    end
   end
   
   #Parses the arguments given. Proxy-object-arguments will be their natural objects in the subprocess.
@@ -184,6 +197,10 @@ class Knj::Process_meta
   
   #Spawns a new object in the subprocess by that classname, with those arguments and with that block.
   def new(class_name, *args, &block)
+    #We need to check finalizers first, so we wont accidently reuse an ID, which will then be unset in the process.
+    self.check_finalizers
+    
+    #Spawn and return the object.
     return self.spawn_object(class_name, nil, *args, &block)
   end
   

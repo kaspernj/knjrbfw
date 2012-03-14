@@ -35,7 +35,7 @@ objects = {}
         d.answer("type" => "success")
       elsif obj["type"] == "proxy_from_call"
         raise "No 'var_name' was given in arguments." if !obj["var_name"]
-        raise "No object by that name: '#{obj["proxy_obj"]}' in '#{objects}'." if !objects.key?(obj["proxy_obj"])
+        raise "No object by that name when trying to do 'proxy_from_call': '#{obj["proxy_obj"]}' in '#{objects}'." if !objects.key?(obj["proxy_obj"])
         obj_to_call = objects[obj["proxy_obj"]]
         res = obj_to_call.__send__(obj["method_name"], *obj["args"])
         objects[obj["var_name"]] = res
@@ -99,8 +99,18 @@ objects = {}
         end
       elsif obj["type"] == "unset"
         raise "Invalid var-name: '#{obj["var_name"]}'." if obj["var_name"].to_s.strip.length <= 0
-        raise "Var-name doesnt exist: '#{obj["var_name"]}'." if !objects.key?(obj["var_name"])
+        raise Knj::Errors::NotFound, "Var-name didnt exist when trying to unset: '#{obj["var_name"]}'." if !objects.key?(obj["var_name"])
         objects.delete(obj["var_name"])
+        d.answer("type" => "unset_success")
+      elsif obj["type"] == "unset_multiple"
+        err = nil
+        obj["var_names"].each do |var_name|
+          err = [Knj::Errors::InvalidData, "Invalid var-name: '#{var_name}'."] if var_name.to_s.strip.length <= 0
+          err = [Knj::Errors::NotFound, "Var-name didnt exist when trying to unset: '#{var_name}'."] if !objects.key?(var_name)
+          objects.delete(var_name)
+        end
+        
+        raise err[0], err[1] if err
         d.answer("type" => "unset_success")
       elsif obj["type"] == "static"
         const = Knj::Strings.const_get_full(obj["const"])
