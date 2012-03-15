@@ -60,6 +60,7 @@ class Knj::Objects
   end
   
   def init_class(classname)
+    classname = classname.to_sym
     return false if @objects.key?(classname)
     
     if @args[:cache] == :weak
