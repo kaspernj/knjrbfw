@@ -64,21 +64,35 @@ class Knj::Google_sitemap
     @root._pm_send_noret("<<", el)
   end
   
+  #This will return a non-human-readable XML-string.
   def to_xml
     return @doc.to_s
   end
   
+  #This will return a non-human-readable XML-string.
   def to_s
     return @doc.to_s
   end
   
+  #This will print the result.
   def write
+    #Require and spawn StringIO in the subprocess.
     @subproc.static("Object", "require", "stringio")
     string_io = @subproc.spawn_object("StringIO")
     
+    #We want a human-readable print.
     writer = @subproc.spawn_object("REXML::Formatters::Pretty", 5)
     writer._pm_send_noret("write", @doc, string_io)
     
-    print string_io.string
+    #Prepare printing by rewinding StringIO to read from beginning.
+    string_io._pm_send_noret("rewind")
+    
+    #Buffer results from subprocess in order to speed up printing.
+    string_io._process_meta_block_buffer_use = true
+    
+    #Print out the result in bits to avoid raping the memory (subprocess is already raped - no question there...).
+    string_io._pm_send_noret("each", 4096) do |str|
+      print str
+    end
   end
 end

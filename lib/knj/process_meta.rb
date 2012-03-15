@@ -241,8 +241,6 @@ class Knj::Process_meta
   
   #Calls a method on an object and returns the result.
   def call_object(args, &block)
-    self.check_finalizers
-    
     if args.key?("capture_return")
       capture_return = args["capture_return"]
     else

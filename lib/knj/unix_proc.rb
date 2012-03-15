@@ -1,17 +1,23 @@
+require "#{$knjpath}wref"
+
 class Knj::Unix_proc
   attr_reader :data
-  @procs = {}
+  
+  PROCS = Knj::Wref_map.new
+  MUTEX = Mutex.new
   
   def self.spawn(data)
-    proc_ele = @procs[data["pid"]]
+    pid = data["pid"].to_i
     
-    if proc_ele
+    begin
+      proc_ele = PROCS[pid]
       proc_ele.update_data(data)
-    else
-      @procs[data["pid"]] = Knj::Unix_proc.new(data)
+    rescue WeakRef::RefError
+      proc_ele = Knj::Unix_proc.new(data)
+      PROCS[pid] = proc_ele
     end
     
-    return @procs[data["pid"]]
+    return proc_ele
   end
   
   def self.list(args = {})
@@ -23,40 +29,43 @@ class Knj::Unix_proc
       cmdstr << " | #{grepstr}"
     end
     
-    ret = []
-    res = Knj::Os.shellcmd(cmdstr)
-    
-    res.scan(/^(\S+)\s+([0-9]+)\s+([0-9.]+)\s+([0-9.]+)\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+ (.+)($|\n)/) do |match|
-      pid = match[1]
+    MUTEX.synchronize do
+      ret = []
+      res = Knj::Os.shellcmd(cmdstr)
       
-      data = {
-        "user" => match[0],
-        "pid" => pid,
-        "cpu_last" => match[2],
-        "ram_last" => match[3],
-        "cmd" => match[4],
-        "app" => File.basename(match[4])
-      }
-      
-      next if (!args.key?("ignore_self") or args["ignore_self"]) and match[1].to_i == $$.to_i
-      next if grepstr.length > 0 and match[4].index(grepstr) != nil #dont return current process.
-      
-      if args.key?("pids")
-        found = false
-        args["pids"].each do |pid_given|
-          if pid_given.to_s == pid.to_s
-            found = true
-            break
+      res.scan(/^(\S+)\s+([0-9]+)\s+([0-9.]+)\s+([0-9.]+)\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+ (.+)($|\n)/) do |match|
+        pid = match[1]
+        
+        data = {
+          "user" => match[0],
+          "pid" => pid,
+          "cpu_last" => match[2],
+          "ram_last" => match[3],
+          "cmd" => match[4],
+          "app" => File.basename(match[4])
+        }
+        
+        next if (!args.key?("ignore_self") or args["ignore_self"]) and match[1].to_i == $$.to_i
+        next if grepstr.length > 0 and match[4].index(grepstr) != nil #dont return current process.
+        
+        if args.key?("pids")
+          found = false
+          args["pids"].each do |pid_given|
+            if pid_given.to_s == pid.to_s
+              found = true
+              break
+            end
           end
+          
+          next if !found
         end
         
-        next if !found
+        ret << Knj::Unix_proc.spawn(data)
       end
       
-      ret << Knj::Unix_proc.spawn(data)
+      PROCS.clean
+      return ret
     end
-    
-    return ret
   end
   
   def self.find_self

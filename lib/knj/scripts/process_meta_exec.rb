@@ -22,6 +22,8 @@ objects = {}
     
     if obj.is_a?(Hash)
       if obj["type"] == "spawn_object"
+        raise "An object by that name already exists: '#{obj["var_name"]}'." if objects.key?(obj["var_name"])
+        
         #Fix new integer.
         if obj["class_name"].to_s == "Integer" or obj["class_name"].to_s == "Fixnum"
           objects[obj["var_name"]] = obj["args"].first.to_i

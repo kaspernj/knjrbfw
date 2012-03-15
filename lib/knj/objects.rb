@@ -17,7 +17,9 @@ class Knj::Objects
     @data = {}
     @mutex_require = Mutex.new
     
-    require "weakref" if @args[:cache] == :weak and !Kernel.const_defined?(:WeakRef)
+    if @args[:cache] == :weak
+      require "#{$knjpath}wref"
+    end
     
     @events = Knj::Event_handler.new
     @events.add_event(
@@ -59,7 +61,13 @@ class Knj::Objects
   
   def init_class(classname)
     return false if @objects.key?(classname)
-    @objects[classname] = {}
+    
+    if @args[:cache] == :weak
+      @objects[classname] = Knj::Wref_map.new
+    else
+      @objects[classname] = {}
+    end
+    
     @locks[classname] = Mutex.new
   end
   
@@ -203,59 +211,41 @@ class Knj::Objects
       raise Knj::Errors::InvalidData, "Unknown data: '#{data.class.to_s}'."
     end
     
-    if @objects.key?(classname) and @objects[classname].key?(id)
+    if @objects.key?(classname)
       case @args[:cache]
         when :weak
-          begin
-            obj = @objects[classname][id].__getobj__
-            
-            if obj.is_a?(Knj::Datarow) and obj.respond_to?(:table) and obj.respond_to?(:id) and obj.table.to_sym == classname and obj.id.to_i == id
-              return obj
-            else
-              #This actually happens sometimes... WTF!? - knj
-              raise WeakRef::RefError
-            end
-          rescue WeakRef::RefError
-            @objects[classname].delete(id)
-          rescue NoMethodError => e
-            #NoMethodError because the object might have been deleted from the cache, and __getobj__ then throws it.
-            raise e if e.message != "undefined method `__getobj__' for nil:NilClass"
+          if obj = @objects[classname].get!(id) and obj.id.to_i == id
+            return obj
           end
         else
-          return @objects[classname][id]
+          return @objects[classname][id] if @objects[classname].key?(id)
       end
     end
     
     self.requireclass(classname) if !@objects.key?(classname)
     
-    begin
-      @locks[classname].synchronize do
-        #Maybe the object got spawned while we waited for the lock? If so we shouldnt spawn another instance.
-        if @objects[classname].key?(id)
-          raise Knj::Errors::Retry
-        end
-        
-        #Spawn object.
-        if @args[:datarow] or @args[:custom]
-          obj = @args[:module].const_get(classname).new(Knj::Hash_methods.new(:ob => self, :data => data))
-        else
-          args = [data]
-          args = args | @args[:extra_args] if @args[:extra_args]
-          obj = @args[:module].const_get(classname).new(*args)
-        end
-        
-        #Save object in cache.
-        case @args[:cache]
-          when :weak
-            @objects[classname][id] = WeakRef.new(obj)
-          when :none
-            return obj
-          else
-            @objects[classname][id] = obj
-        end
+    @locks[classname].synchronize do
+      #Maybe the object got spawned while we waited for the lock? If so we shouldnt spawn another instance.
+      if obj = @objects[classname].get!(id) and obj.id.to_i == id
+        return obj
       end
-    rescue Knj::Errors::Retry
-      return self.get(classname, data)
+      
+      #Spawn object.
+      if @args[:datarow] or @args[:custom]
+        obj = @args[:module].const_get(classname).new(Knj::Hash_methods.new(:ob => self, :data => data))
+      else
+        args = [data]
+        args = args | @args[:extra_args] if @args[:extra_args]
+        obj = @args[:module].const_get(classname).new(*args)
+      end
+      
+      #Save object in cache.
+      case @args[:cache]
+        when :none
+          return obj
+        else
+          @objects[classname][id] = obj
+      end
     end
     
     #Return spawned object.
@@ -408,10 +398,8 @@ class Knj::Objects
     end
     
     if RUBY_VERSION[0..2] == 1.8 and Knj::Php.class_exists("Dictionary")
-      print "Spawning dictionary.\n" if args[:debug]
       list = Dictionary.new
     else
-      print "Spawning normal hash.\n" if args[:debug]
       list = {}
     end
     
@@ -425,10 +413,7 @@ class Knj::Objects
       list["0"] = _("None")
     end
     
-    print "Doing loop\n" if args[:debug]
     self.list(classname, args[:list_args]) do |object|
-      print "Object: #{object.id}\n" if args[:debug]
-      
       if object.respond_to?(:name)
         list[object.id] = object.name
       elsif object.respond_to?(:title)
@@ -438,7 +423,6 @@ class Knj::Objects
       end
     end
     
-    print "Returning...\n" if args[:debug]
     return list
   end
   
@@ -474,7 +458,7 @@ class Knj::Objects
     end
   end
   
-  # Add a new object to the database and to the cache.
+  #Add a new object to the database and to the cache.
   def add(classname, data = {})
     classname = classname.to_sym
     self.requireclass(classname)
@@ -716,18 +700,7 @@ class Knj::Objects
   #Runs through all objects-weaklink-references and removes the weaklinks if the object has been recycled.
   def clean_all_weak
     @objects.keys.each do |classn|
-      @objects[classn].keys.each do |object_id|
-        object = @objects[classn][object_id]
-        
-        begin
-          if !object or !object.weakref_alive?
-            @objects[classn].delete(object_id)
-          end
-        rescue WeakRef::RefError
-          #This happens if the object has been collected.
-          @objects[classn].delete(object_id)
-        end
-      end
+      @objects[classn].clean
     end
   end
   

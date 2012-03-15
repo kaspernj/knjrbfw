@@ -60,7 +60,6 @@ end
 
 class Knj::Wref_map
   def initialize(args = {})
-    @args = args
     @map = {}
   end
   
@@ -68,7 +67,6 @@ class Knj::Wref_map
   def destroy
     @map.clear
     @map = nil
-    @args = nil
   end
   
   #Sets a new object in the map with a given ID.
