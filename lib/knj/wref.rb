@@ -61,12 +61,6 @@ end
 class Knj::Wref_map
   def initialize(args = {})
     @map = {}
-    
-    begin
-      _kas.debugs "Wref_map spawned."
-    rescue NameError
-      #ignore
-    end
   end
   
   #Unsets everything to free up memory.
