@@ -29,7 +29,7 @@ class Knj::Gettext_threadded
                 pofn = "#{dir}/#{file}/#{fname}/#{pofile}"
                 
                 cont = nil
-                File.open(pofn, {:encoding => @args[:encoding]}) do |fp|
+                File.open(pofn, "r", {:encoding => @args[:encoding]}) do |fp|
                   cont = fp.read.encode("utf-8")
                 end
                 

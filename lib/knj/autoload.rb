@@ -31,6 +31,7 @@ module Knj
   autoload :Ip2location, $knjpath + "ip2location"
   autoload :Jruby_compiler, $knjpath + "jruby_compiler"
   autoload :Locales, $knjpath + "locales"
+  autoload :Memory_analyzer, $knjpath + "memory_analyzer"
   autoload :Objects, $knjpath + "objects"
   autoload :Opts, $knjpath + "opts"
   autoload :Mail, $knjpath + "mail"

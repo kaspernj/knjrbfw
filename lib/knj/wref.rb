@@ -1,39 +1,40 @@
-require "weakref"
+require "weakref" if RUBY_ENGINE == "jruby"
 
 #A weak-reference that wont bite you in the ass like the one in Ruby 1.9.
 class Knj::Wref
-  attr_reader :class_name, :id, :map, :map_id, :spawned
-  
-  #Yields debug-output for every weak-ref that is alive.
-  def self.debug_wrefs
-    ObjectSpace.each_object(Knj::Wref) do |wref|
-      begin
-        obj = wref.get
-      rescue WeakRef::RefError
-        yield("str" => "Dead wref: #{wref.class_name} (#{wref.id})", "alive" => false, "wref" => wref)
-        next
-      end
-      
-      yield("str" => "Alive wref: #{wref.class_name} (#{wref.id})", "alive" => true, "wref" => wref, "obj" => obj)
-    end
-  end
+  attr_reader :class_name, :id
   
   def initialize(obj)
-    @weakref = WeakRef.new(obj)
-    @class_name = obj.class.name.to_sym
-    @id = obj.__id__
+    if RUBY_ENGINE == "jruby"
+      @weakref = WeakRef.new(obj)
+    else
+      @class_name = obj.class.name.to_sym
+      @id = obj.__id__
+    end
   end
   
-  #Returns the object that this weak reference holds or throws WeakRef::RefError.
+  #Returns the object that this weak reference holds or throws Knj::Wref::Recycled.
   def get
-    obj = @weakref.__getobj__ if @weakref
-    
-    if !@weakref or @class_name != obj.class.name.to_sym or @id != obj.__id__
-      self.destroy
-      raise WeakRef::RefError
+    if RUBY_ENGINE == "jruby"
+      begin
+        return @weakref.__getobj__ if @weakref
+      rescue WeakRef::RefError
+        raise Knj::Wref::Recycled
+      end
+    else
+      begin
+        obj = ObjectSpace._id2ref(@id)
+        
+        if @class_name != obj.class.name.to_sym or @id != obj.__id__
+          self.destroy
+          raise Knj::Wref::Recycled
+        end
+        
+        return obj
+      rescue RangeError
+        raise Knj::Wref::Recycled
+      end
     end
-    
-    return obj
   end
   
   #Returns true if the reference is still alive.
@@ -41,7 +42,7 @@ class Knj::Wref
     begin
       self.get
       return true
-    rescue WeakRef::RefError
+    rescue Knj::Wref::Recycled
       return false
     end
   end
@@ -77,11 +78,11 @@ class Knj::Wref_map
   
   #Returns a object by ID or raises a RefError.
   def get(id)
-    raise WeakRef::RefError if !@map.key?(id)
+    raise Knj::Wref::Recycled if !@map.key?(id)
     
     begin
       return @map[id].get
-    rescue WeakRef::RefError => e
+    rescue Knj::Wref::Recycled => e
       begin
         @map[id].destroy
       rescue NoMethodError
@@ -110,7 +111,7 @@ class Knj::Wref_map
   def get!(id)
     begin
       return self.get(id)
-    rescue WeakRef::RefError
+    rescue Knj::Wref::Recycled
       return nil
     end
   end
@@ -120,7 +121,7 @@ class Knj::Wref_map
     @map.keys.each do |key|
       begin
         self.get(key) #this will remove the key if the object no longer exists.
-      rescue WeakRef::RefError
+      rescue Knj::Wref::Recycled
         #ignore.
       end
     end
@@ -135,8 +136,12 @@ class Knj::Wref_map
     begin
       @map[key].get
       return true
-    rescue WeakRef::RefError
+    rescue Knj::Wref::Recycled
       return false
     end
   end
+end
+
+class Knj::Wref::Recycled < RuntimeError
+  
 end
