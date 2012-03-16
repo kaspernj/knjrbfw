@@ -23,7 +23,7 @@ class KnjDB_mysql::Tables
     
     begin
       return @list[table_name]
-    rescue WeakRef::RefError
+    rescue Knj::Wref::Recycled
       #ignore.
     end
     
@@ -124,7 +124,7 @@ class KnjDB_mysql::Tables::Table
     
     begin
       return @list[name]
-    rescue WeakRef::RefError
+    rescue Knj::Wref::Recycled
       #ignore.
     end
     
@@ -206,7 +206,7 @@ class KnjDB_mysql::Tables::Table
     
     begin
       return @indexes_list[name]
-    rescue WeakRef::RefError
+    rescue Knj::Wref::Recycled
       #ignore.
     end
     

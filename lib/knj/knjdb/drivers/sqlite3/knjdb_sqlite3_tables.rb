@@ -17,7 +17,7 @@ class KnjDB_sqlite3::Tables
     
     begin
       return @list[table_name]
-    rescue WeakRef::RefError
+    rescue Knj::Wref::Recycled
       #ignore.
     end
     
@@ -271,13 +271,13 @@ class KnjDB_sqlite3::Tables::Table
     
     begin
       return @indexes_list[name]
-    rescue WeakRef::RefError
+    rescue Knj::Wref::Recycled
       if @db.opts[:index_append_table_name]
         tryname = "#{self.name}__#{name}"
         
         begin
           return @indexes_list[tryname]
-        rescue WeakRef::RefError
+        rescue Knj::Wref::Recycled
           #ignore.
         end
       else

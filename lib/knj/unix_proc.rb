@@ -12,7 +12,7 @@ class Knj::Unix_proc
     begin
       proc_ele = PROCS[pid]
       proc_ele.update_data(data)
-    rescue WeakRef::RefError
+    rescue Knj::Wref::Recycled
       proc_ele = Knj::Unix_proc.new(data)
       PROCS[pid] = proc_ele
     end
