@@ -574,19 +574,7 @@ class Knj::Objects
     end
     
     classname = classname.to_sym
-    
-    #if !@objects.key?(classname)
-      #raise "Could not find object class in cache: #{classname}."
-    #elsif !@objects[classname].key?(object.id.to_i)
-      #errstr = ""
-      #errstr << "Could not unset object from cache.\n"
-      #errstr << "Class: #{object.class.name}.\n"
-      #errstr << "ID: #{object.id}.\n"
-      #errstr << "Could not find object ID in cache."
-      #raise errstr
-    #else
-      @objects[classname].delete(object.id.to_i)
-    #end
+    @objects[classname].delete(object.id.to_i)
   end
   
   def unset_class(classname)

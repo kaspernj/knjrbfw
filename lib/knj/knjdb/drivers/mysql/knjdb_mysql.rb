@@ -162,7 +162,7 @@ class KnjDB_mysql
         end
       end
       
-      print str
+      #print str
       raise e
     end
   end
