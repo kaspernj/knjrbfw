@@ -28,6 +28,7 @@ class Knj::Wref
   def get
     obj = @weakref.__getobj__ if @weakref
     
+    #The class-check is because ID's can be reused in Ruby 1.9 which breaks the normal WeakRef-implementation.
     if !@weakref or @class_name != obj.class.name.to_sym or @id != obj.__id__
       self.destroy
       raise WeakRef::RefError
@@ -59,7 +60,7 @@ class Knj::Wref
 end
 
 class Knj::Wref_map
-  def initialize(args = {})
+  def initialize(args = nil)
     @map = {}
   end
   
@@ -92,19 +93,6 @@ class Knj::Wref_map
       raise e
     end
   end
-  
-  #Make it hash-compatible.
-  def key?(key)
-    return @map.key?(key)
-  end
-  
-  def length
-    return @map.length
-  end
-  
-  alias has_key? key?
-  alias [] get
-  alias []= set
   
   #The same as 'get' but returns nil instead of WeakRef-error. This can be used to avoid writing lots of code.
   def get!(id)
@@ -139,4 +127,30 @@ class Knj::Wref_map
       return false
     end
   end
+  
+  #Returns true if the given key exists in the hash.
+  def key?(key)
+    return @map.key?(key)
+  end
+  
+  #Returns the length of the hash. This may not be true since invalid objects is also counted.
+  def length
+    return @map.length
+  end
+  
+  #Cleans the hash and returns the length. This is slower but more accurate than the ordinary length that just returns the hash-length.
+  def length_valid
+    self.clean
+    return @map.length
+  end
+  
+  #Deletes a key in the hash.
+  def delete(key)
+    @map.delete(key)
+  end
+  
+  #Make it hash-compatible.
+  alias has_key? key?
+  alias [] get
+  alias []= set
 end
