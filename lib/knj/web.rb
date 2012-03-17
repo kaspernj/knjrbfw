@@ -210,8 +210,8 @@ class Knj::Web
   
   #Parses URI and returns hash with data.
   def self.parse_uri(str)
-    uri_match = str.to_s.match(/\/(.+\..+|)(\?(.+)|)$/)
-    raise "Could not parse the URI: '#{match[2]}'." if !uri_match
+    uri_match = str.to_s.match(/^\/(.+?\..+?|)(\?(.+)|)$/)
+    raise "Could not parse the URI: '#{str}'." if !uri_match
     
     return {
       :path => "/#{uri_match[1]}",
