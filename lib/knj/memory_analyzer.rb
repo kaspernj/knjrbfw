@@ -38,14 +38,23 @@ class Knj::Memory_analyzer
     @printed[submod_s] = true
     
     instances = 0
-    size = 0
+    
+    invalid_submod_size_names = ["BasicObject", "Kernel", "Object", "FALSE"]
+    
+    if invalid_submod_size_names.index(submod_s) != nil
+      size = "-"
+      calc_size = false
+    else
+      size = 0
+      calc_size = true
+    end
+    
     classobj = mod.const_get(submod)
     
     begin
       ObjectSpace.each_object(classobj) do |obj|
         instances += 1
-        
-        size += Knj::Memory_analyzer::Object_size_counter.new(obj).calculate_size
+        size += Knj::Memory_analyzer::Object_size_counter.new(obj).calculate_size if calc_size
       end
     rescue Exception => e
       emsg = e.message.to_s
@@ -63,12 +72,15 @@ class Knj::Memory_analyzer
     end
     
     if instances > 0
-      size_kb = size.to_f / 1024.0
+      if calc_size
+        size = size.to_f / 1024.0
+        size = "#{Knj::Locales.number_out(size, 2)} kb"
+      end
       
       to.print "<tr>"
       to.print "<td>#{mod_title.html}</td>"
       to.print "<td style=\"text-align: right;\">#{Knj::Locales.number_out(instances, 0)}</td>"
-      to.print "<td style=\"text-align: right;\">#{Knj::Locales.number_out(size_kb, 2)} kb</td>"
+      to.print "<td style=\"text-align: right;\">#{size}</td>"
       to.print "</tr>"
     end
     
@@ -126,7 +138,7 @@ class Knj::Memory_analyzer::Object_size_counter
       var.each do |val|
         size += self.object_size(val)
       end
-    elsif var == true or var == false
+    elsif var.is_a?(TrueClass) or var.is_a?(FalseClass)
       size += 1
     else
       size += self.object_size(var)
