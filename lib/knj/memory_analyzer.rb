@@ -87,7 +87,7 @@ class Knj::Memory_analyzer::Object_size_counter
   end
   
   def calculate_size
-    ret = self.object_size(@object)
+    ret = self.var_size(@object)
     @checked = nil
     @object = nil
     return ret
@@ -100,27 +100,36 @@ class Knj::Memory_analyzer::Object_size_counter
       var = obj.instance_variable_get(var_name)
       next if @checked.key?(var.__id__)
       @checked[var.__id__] = true
-      
-      if var.is_a?(String)
-        size += var.length
-      elsif var.is_a?(Integer)
-        size += var.to_s.length
-      elsif var.is_a?(Symbol) or var.is_a?(Fixnum)
-        size += 4
-      elsif var.is_a?(Hash)
-        var.each do |key, val|
-          size += self.object_size(key)
-          size += self.object_size(val)
-        end
-      elsif var.is_a?(Array)
-        var.each do |val|
-          size += self.object_size(val)
-        end
-      elsif var == true or var == false
-        size += 1
-      else
-        size += self.object_size(var)
+      size += self.var_size(var)
+    end
+    
+    return size
+  end
+  
+  def var_size(var)
+    size = 0
+    
+    if var.is_a?(String)
+      size += var.length
+    elsif var.is_a?(Integer)
+      size += var.to_s.length
+    elsif var.is_a?(Symbol) or var.is_a?(Fixnum)
+      size += 4
+    elsif var.is_a?(Time)
+      size += var.to_f.to_s.length
+    elsif var.is_a?(Hash)
+      var.each do |key, val|
+        size += self.object_size(key)
+        size += self.object_size(val)
       end
+    elsif var.is_a?(Array)
+      var.each do |val|
+        size += self.object_size(val)
+      end
+    elsif var == true or var == false
+      size += 1
+    else
+      size += self.object_size(var)
     end
     
     return size

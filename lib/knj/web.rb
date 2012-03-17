@@ -208,6 +208,18 @@ class Knj::Web
     return @session[key.to_sym] = value
   end
   
+  #Parses URI and returns hash with data.
+  def self.parse_uri(str)
+    uri_match = str.to_s.match(/\/(.+\..+|)(\?(.+)|)$/)
+    raise "Could not parse the URI: '#{match[2]}'." if !uri_match
+    
+    return {
+      :path => "/#{uri_match[1]}",
+      :query => uri_match[3]
+    }
+  end
+  
+  #Parses cookies-string and returns hash with parsed cookies.
   def self.parse_cookies(str)
     ret = {}
     
