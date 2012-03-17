@@ -367,7 +367,7 @@ class Knj::Process_meta
       begin
         Process.kill(9, pid) if process_exists
       rescue Errno::ESRCH => e
-        raise e if e.message != "No such process"
+        raise e if e.message.index("No such process") == nil
       end
       
       retry

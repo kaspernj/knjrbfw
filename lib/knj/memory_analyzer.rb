@@ -14,7 +14,12 @@ class Knj::Memory_analyzer
     to.print "</thead>"
     to.print "<tbody>"
     
-    Module.constants.sort.each do |mod|
+    constants_m = Module.constants
+    constants_o = Object.constants
+    constants_k = Kernel.constants
+    constants = constants_m + constants_o + constants_k
+    
+    constants.sort.each do |mod|
       self.write_constant(to, Kernel, mod)
     end
     
@@ -25,7 +30,7 @@ class Knj::Memory_analyzer
   def write_constant(to, mod, submod)
     submod_s = submod.to_s
     
-    return false if mod.name.to_s == "Object" or mod.name.to_s == "Module"
+    #return false if mod.name.to_s == "Object" or mod.name.to_s == "Module"
     return false if @printed.key?(submod_s)
     return false if mod.autoload?(submod)
     return false if !mod.const_defined?(submod)
@@ -40,8 +45,7 @@ class Knj::Memory_analyzer
       ObjectSpace.each_object(classobj) do |obj|
         instances += 1
         
-        size_counter = Knj::Memory_analyzer::Object_size_counter.new(obj)
-        size += size_counter.calculate_size
+        size += Knj::Memory_analyzer::Object_size_counter.new(obj).calculate_size
       end
     rescue Exception => e
       emsg = e.message.to_s
@@ -52,7 +56,7 @@ class Knj::Memory_analyzer
       end
     end
     
-    if mod.to_s == "Kernel" or mod.to_s == "Class"
+    if mod.to_s == "Kernel" or mod.to_s == "Class" or mod.to_s == "Object"
       mod_title = submod_s
     else
       mod_title = "#{mod.to_s}::#{submod_s}"
@@ -74,10 +78,6 @@ class Knj::Memory_analyzer
       end
     end
   end
-  
-  def object_size(obj)
-    
-  end
 end
 
 class Knj::Memory_analyzer::Object_size_counter
@@ -87,7 +87,10 @@ class Knj::Memory_analyzer::Object_size_counter
   end
   
   def calculate_size
-    return self.object_size(@object)
+    ret = self.object_size(@object)
+    @checked = nil
+    @object = nil
+    return ret
   end
   
   def object_size(obj)
@@ -113,6 +116,8 @@ class Knj::Memory_analyzer::Object_size_counter
         var.each do |val|
           size += self.object_size(val)
         end
+      elsif var == true or var == false
+        size += 1
       else
         size += self.object_size(var)
       end
