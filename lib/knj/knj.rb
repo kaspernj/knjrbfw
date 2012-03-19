@@ -5,8 +5,6 @@ else
   autoload_path = "#{File.dirname(__FILE__)}/autoload.rb"
 end
 
-require autoload_path if $knjautoload != false
-
 module Knj
   def self.appserver_cli(filename)
     Knj::Os.chdir_file(filename)

@@ -20,7 +20,8 @@ class Knj::Eruby
       @cache_mode = :code_eval
       #@cache_mode = :compile_knj
     elsif RUBY_VERSION.slice(0..2) == "1.9" and RubyVM::InstructionSequence.respond_to?(:compile_file)
-      @cache_mode = :inseq
+      @cache_mode = :code_eval
+      #@cache_mode = :inseq
       #@cache_mode = :compile_knj
     end
     
@@ -55,8 +56,15 @@ class Knj::Eruby
         when :compile_knj
           @compiler.eval_file(:filepath => cachename, :fileident => filename)
         when :code_eval
+          if @args[:binding_callback]
+            binding_use = @args[:binding_callback].call
+          else
+            eruby_binding = Knj::Eruby::Binding.new
+            binding_use = eruby_binding.get_binding
+          end
+          
           @cache[cachename] = File.read(cachename) if reload_cache
-          eval(@cache[cachename], nil, filename)
+          eval(@cache[cachename], binding_use, filename)
         when :inseq
           if reload_cache or @cache[cachename][:time] < cachetime
             @cache[cachename] = {
@@ -237,4 +245,10 @@ end
 
 class Knj::Eruby::Handler < Erubis::Eruby
   include Erubis::StdoutEnhancer
+end
+
+class Knj::Eruby::Binding
+  def get_binding
+    return binding
+  end
 end

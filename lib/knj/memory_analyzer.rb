@@ -4,6 +4,37 @@ class Knj::Memory_analyzer
   end
   
   def write(to = $stdout)
+    to.print "<table class=\"global_variables list\">"
+    to.print "<thead>"
+    to.print "<tr>"
+    to.print "<th>Name</th>"
+    to.print "<th>Size</th>"
+    to.print "</tr>"
+    to.print "</thead>"
+    to.print "<tbody>"
+    
+    count = 0
+    Kernel.global_variables.each do |name|
+      count += 1
+      global_var_ref = eval(name.to_s)
+      size = Knj::Memory_analyzer::Object_size_counter.new(global_var_ref).calculate_size
+      size = size.to_f / 1024.0
+      
+      to.print "<tr>"
+      to.print "<td>#{Knj::Web.html(name)}</td>"
+      to.print "<td>#{Knj::Locales.number_out(size, 0)} kb</td>"
+      to.print "</tr>"
+    end
+    
+    if count <= 0
+      to.print "<tr>"
+      to.print "<td colspan=\"2\" class=\"error\">No global variables has been defined.</td>"
+      to.print "</tr>"
+    end
+    
+    to.print "</tbody>"
+    to.print "</table>"
+    
     to.print "<table class=\"memory_analyzer list\">"
     to.print "<thead>"
     to.print "<tr>"
@@ -131,8 +162,8 @@ class Knj::Memory_analyzer::Object_size_counter
       size += var.to_f.to_s.length
     elsif var.is_a?(Hash)
       var.each do |key, val|
-        size += self.object_size(key)
-        size += self.object_size(val)
+        size += self.var_size(key)
+        size += self.var_size(val)
       end
     elsif var.is_a?(Array)
       var.each do |val|

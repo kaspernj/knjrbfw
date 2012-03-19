@@ -135,6 +135,7 @@ class Knj::Http2
   def get(addr, args = {})
     begin
       @mutex.synchronize do
+        args[:addr] = addr
         header_str = "GET /#{addr} HTTP/1.1#{@nl}"
         header_str << self.header_str(self.default_headers(args), args)
         header_str << "#{@nl}"
@@ -149,8 +150,7 @@ class Knj::Http2
         return resp
       end
     rescue Knj::Errors::Retry => e
-      print "Redirecting to: #{e.message}\n"
-      
+      print "Redirecting to: #{e.message}\n" if @debug
       return self.get(e.message, args)
     end
   end
@@ -360,7 +360,7 @@ class Knj::Http2
         return http.get(uri.path)
       end
     elsif resp.args[:code].to_s == "500"
-      raise "500 - Internal server error."
+      raise "500 - Internal server error: '#{args[:addr]}'."
     elsif resp.args[:code].to_s == "403"
       raise Knj::Errors::NoAccess
     else

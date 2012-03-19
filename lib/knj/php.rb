@@ -329,29 +329,7 @@ module Knj::Php
       end
     end
     
-    sent = false
-    
-    if Knj::Php.class_exists("Apache")
-      Apache.request.headers_out[key] = value
-      sent = true
-    end
-    
-    begin
-      _kas.header(key, value) #This is for knjAppServer - knj.
-      sent = true
-    rescue NameError => e
-      if $knj_eruby
-        $knj_eruby.header(key, value)
-        sent = true
-      elsif $cgi.class.name == "CGI"
-        sent = true
-        $cgi.header(key => value)
-      elsif $_CGI.class.name == "CGI"
-        sent = true
-        $_CGI.header(key => value)
-      end
-    end
-    
+    _kas.header(key, value) #This is for knjAppServer - knj.
     return sent
   end
   
@@ -631,14 +609,7 @@ module Knj::Php
     args["expires"] = Time.at(expire) if expire
     args["domain"] = domain if domain
     
-    begin
-      _kas.cookie(args)
-    rescue NameError
-      cookie = CGI::Cookie.new(args)
-      status = Knj::Php.header("Set-Cookie: #{cookie.to_s}")
-      $_COOKIE[cname] = cvalue if $_COOKIE
-    end
-    
+    _kas.cookie(args)
     return status
   end
   

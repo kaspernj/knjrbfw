@@ -1,4 +1,4 @@
-$knj_require_info = {}
+Knj::REQUIRE_INFO = {}
 
 class Object
   alias_method :require_knj, :require
@@ -6,8 +6,8 @@ class Object
   def require(path)
     stat = require_knj(path)
     
-    if stat and !$knj_require_info.key?(path)
-      $knj_require_info[path] = {:caller => caller}
+    if stat and !Knj::REQUIRE_INFO.key?(path)
+      Knj::REQUIRE_INFO[path] = {:caller => caller}
     end
     
     return stat
