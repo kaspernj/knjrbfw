@@ -78,13 +78,8 @@ class Knj::Wref_map
     wref = Knj::Wref.new(obj)
     
     @mutex.synchronize do
-      begin
-        @map[id] = wref
-        @ids[obj.__id__] = id
-      rescue RuntimeError
-        #Dunno why the 'cant add key'-error still occurs after implementation of mutex...
-        retry
-      end
+      @map[id] = wref
+      @ids[obj.__id__] = id
     end
     
     #JRuby cant handle this atm... Dunno why...
