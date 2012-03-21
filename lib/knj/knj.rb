@@ -6,6 +6,8 @@ else
 end
 
 module Knj
+  CONFIG = {}
+  
   def self.appserver_cli(filename)
     Knj::Os.chdir_file(filename)
     require "#{$knjpath}/includes/appserver_cli.rb"

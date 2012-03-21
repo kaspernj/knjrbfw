@@ -38,9 +38,9 @@
 	
 	tmp_use = false
 	tmp_write = false
-	if $knj_webscripts_image_config
+	if Knj::CONFIG["webscripts_image"]
 		tmp_use = true
-		tmp_path = "#{$knj_webscripts_image_config["tmp_path"]}/#{idstr}"
+		tmp_path = "#{Knj::CONFIG["webscripts_image"]["tmp_path"]}/#{idstr}"
 		tmp_exists = File.exists?(tmp_path)
 		tmp_write = true if !tmp_exists
 		
