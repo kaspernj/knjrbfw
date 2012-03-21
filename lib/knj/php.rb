@@ -330,7 +330,7 @@ module Knj::Php
     end
     
     _kas.header(key, value) #This is for knjAppServer - knj.
-    return sent
+    return true
   end
   
   def nl2br(string)
