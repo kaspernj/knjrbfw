@@ -376,6 +376,8 @@ class Knj::Process
     $stderr.print "Answer is block for #{id} #{block_res}\n" if @debug and block_res
     
     loop do
+      raise "Process destroyed." if !@out_answers
+      
       if block_res
         self.exec_block_results(id)
         break if block_res and block_res[:finished]
@@ -418,6 +420,7 @@ class Knj::Process
   def destroy
     self.kill_listen
     @err_thread.kill if @err_thread
+    @out_answers = nil
   end
 end
 
