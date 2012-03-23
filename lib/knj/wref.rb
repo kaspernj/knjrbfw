@@ -35,7 +35,10 @@ class Knj::Wref
         obj = ObjectSpace._id2ref(@id)
       end
       
-      if @class_name != obj.class.name.to_sym or @id != obj.__id__
+      #Some times this name will be nil for some reason - knj
+      obj_class_name = obj.class.name
+      
+      if !obj_class_name or @class_name != obj_class_name.to_sym or @id != obj.__id__
         raise Knj::Wref::Recycled
       end
       
