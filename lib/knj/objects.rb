@@ -227,7 +227,7 @@ class Knj::Objects
     
     @locks[classname].synchronize do
       #Maybe the object got spawned while we waited for the lock? If so we shouldnt spawn another instance.
-      if obj = @objects[classname].get!(id) and obj.id.to_i == id
+      if @args[:cache] == :weak and obj = @objects[classname].get!(id) and obj.id.to_i == id
         return obj
       end
       

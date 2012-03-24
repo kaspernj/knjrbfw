@@ -621,4 +621,105 @@ class Knj::Datet
   def localtime_str
     return "#{"%04d" % @time.year}-#{"%02d" % @time.month}-#{"%02d" % @time.day} #{"%02d" % @time.hour}:#{"%02d" % @time.min}:#{"%02d" % @time.sec} #{self.offset_str}"
   end
+  
+  #Returns a human readable string based on the difference from the current time and date.
+  def ago_str(args = {})
+    args = {
+      :year_ago_str => "%s year ago",
+      :years_ago_str => "%s years ago",
+      :month_ago_str => "%s month ago",
+      :months_ago_str => "%s months ago",
+      :day_ago_str => "%s day ago",
+      :days_ago_str => "%s days ago",
+      :hour_ago_str => "%s hour ago",
+      :hours_ago_str => "%s hours ago",
+      :min_ago_str => "%s minute ago",
+      :mins_ago_str => "%s minutes ago",
+      :sec_ago_str => "%s second ago",
+      :secs_ago_str => "%s seconds ago",
+      :right_now_str => "right now"
+    }.merge(args)
+    
+    secs_ago = Time.now.to_i - @time.to_i
+    mins_ago = secs_ago.to_f / 60.0
+    hours_ago = mins_ago / 60.0
+    days_ago = hours_ago / 24.0
+    months_ago = days_ago / 30.0
+    years_ago = months_ago / 12.0
+    
+    if years_ago > 0.9 and years_ago < 1.5
+      return sprintf(args[:year_ago_str], years_ago.to_i)
+    elsif years_ago >= 1.5
+      return sprintf(args[:years_ago_str], years_ago.to_i)
+    elsif months_ago > 0.9 and months_ago < 1.5
+      return sprintf(args[:month_ago_str], months_ago.to_i)
+    elsif months_ago >= 1.5
+      return sprintf(args[:months_ago_str], months_ago.to_i)
+    elsif days_ago > 0.9 and days_ago < 1.5
+      return sprintf(args[:day_ago_str], days_ago.to_i)
+    elsif days_ago >= 1.5
+      return sprintf(args[:days_ago_str], days_ago.to_i)
+    elsif hours_ago > 0.9 and hours_ago < 1.5
+      return sprintf(args[:hour_ago_str], hours_ago.to_i)
+    elsif hours_ago >= 1.5
+      return sprintf(args[:hours_ago_str], hours_ago.to_i)
+    elsif mins_ago > 0.9 and mins_ago < 1.5
+      return sprintf(args[:min_ago_str], mins_ago.to_i)
+    elsif mins_ago >= 1.5
+      return sprintf(args[:mins_ago_str], mins_ago.to_i)
+    elsif secs_ago >= 0.1 and secs_ago < 1.5
+      return sprintf(args[:sec_ago_str], secs_ago.to_i)
+    elsif secs_ago >= 1.5
+      return sprintf(args[:secs_ago_str], secs_ago.to_i)
+    end
+    
+    return args[:right_now_str]
+  end
+  
+  def human_str(args = {})
+    args = {
+      :time => true,
+      :number_endings => {
+        0 => "th",
+        1 => "st",
+        2 => "nd",
+        3 => "rd",
+        4 => "th",
+        5 => "th",
+        6 => "th",
+        7 => "th",
+        8 => "th",
+        9 => "th"
+      }
+    }.merge(args)
+    
+    now = Time.now
+    
+    #Generate normal string.
+    date_str = ""
+    
+    if now.day != @time.day and now.month == @time.month and now.year == @time.year
+      last_digit = @time.day.to_s[-1, 1].to_i
+      
+      if ending = args[:number_endings][last_digit]
+        #ignore.
+      else
+        ending = "."
+      end
+      
+      date_str << "#{@time.day}#{ending} "
+    elsif now.day != @time.day or now.month != @time.month or now.year != @time.year
+      date_str << "#{@time.day}/#{@time.month} "
+    end
+    
+    if now.year != @time.year
+      date_str << "#{@time.year} "
+    end
+    
+    if args[:time]
+      date_str << "#{@time.hour}:#{"%02d" % @time.min}"
+    end
+    
+    return date_str
+  end
 end

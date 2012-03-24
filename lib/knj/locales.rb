@@ -60,8 +60,6 @@ module Knj::Locales
     
     if Thread.current[:locale]
       return Thread.current[:locale]
-    elsif $locale
-      return $locale
     elsif ENV["LANGUAGE"]
       return ENV["LANGUAGE"]
     end
