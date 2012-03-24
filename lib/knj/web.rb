@@ -63,6 +63,7 @@ class Knj::Web
     return cookiestr
   end
   
+  #Parses a query and returns the various _GET-variables.
   def self.parse_urlquery(querystr, args = {})
     get = {}
     querystr.to_s.split("&").each do |value|
@@ -72,32 +73,11 @@ class Knj::Web
         name = value[0..pos-1]
         name = name.to_sym if args[:syms]
         valuestr = value.slice(pos+1..-1)
-        Knj::Web.parse_name(get, self.urldec(name), valuestr, args)
+        Knj::Web.parse_name(get, Knj::Web.urldec(name), valuestr, args)
       end
     end
     
     return get
-  end
-  
-  def self.parse_secname(seton, secname, args)
-    secname_empty = false
-    if secname.length <= 0
-      secname_empty = true
-      try = 0
-      
-      loop do
-        if !seton.key?(try.to_s)
-          break
-        else
-          try += 1
-        end
-      end
-      
-      secname = try.to_s
-    end
-    
-    secname = secname.to_sym if args[:syms] and secname.is_a?(String) and !Knj::Php.is_numeric(secname)
-    return [secname, secname_empty]
   end
   
   def self.parse_name(seton, varname, value, args = {})
@@ -129,6 +109,27 @@ class Knj::Web
     else
       seton[varname] = realvalue
     end
+  end
+  
+  def self.parse_secname(seton, secname, args)
+    secname_empty = false
+    if secname.length <= 0
+      secname_empty = true
+      try = 0
+      
+      loop do
+        if !seton.key?(try.to_s)
+          break
+        else
+          try += 1
+        end
+      end
+      
+      secname = try.to_s
+    end
+    
+    secname = secname.to_sym if args[:syms] and secname.is_a?(String) and !Knj::Php.is_numeric(secname)
+    return [secname, secname_empty]
   end
   
   def self.parse_name_second(seton, varname, value, args = {})
