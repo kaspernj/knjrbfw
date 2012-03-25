@@ -72,10 +72,10 @@ class Knj::Datarow_custom
     if data.is_a?(Hash)
       @data = Knj::ArrayExt.hash_sym(data)
     else
-      data = d.data
       raise "No 'data_from_id'-event connected to class." if !self.class.events.connected?(:data_from_id)
       data = self.class.events.call(:data_from_id, Knj::Hash_methods.new(:id => data))
       raise "No data was received from the event: 'data_from_id'." if !data
+      raise "Data expected to be a hash but wasnt: '#{data.class.name}'." if !data.is_a?(Hash)
       @data = Knj::ArrayExt.hash_sym(data)
     end
   end
@@ -85,7 +85,14 @@ class Knj::Datarow_custom
   end
   
   def [](key)
-    raise "No such key: '#{key}'." if !@data or !@data.key?(key)
+    if !@data
+      raise "No data spawned on object."
+    end
+    
+    if !@data.key?(key)
+      raise "No such key: '#{key}'. Available keys are: '#{@data.keys.sort.split(", ")}'."
+    end
+    
     return @data[key]
   end
   

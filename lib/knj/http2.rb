@@ -1,10 +1,11 @@
+require "#{$knjpath}web"
+
 class Knj::Http2
   attr_reader :cookies
   
   def initialize(args = {})
     args = {:host => args} if args.is_a?(String)
     raise "Arguments wasnt a hash." if !args.is_a?(Hash)
-    require "#{$knjpath}web"
     
     @args = args
     @cookies = {}
@@ -191,14 +192,31 @@ class Knj::Http2
     return headers
   end
   
+  def self.post_convert_data(pdata)
+    praw = ""
+    
+    if pdata.is_a?(Hash)
+      pdata.each do |key, val|
+        praw << "&" if praw != ""
+        praw << "#{Knj::Web.urlenc(Knj::Http2.post_convert_data(key))}=#{Knj::Web.urlenc(Knj::Http2.post_convert_data(val))}"
+      end
+    elsif pdata.is_a?(Array)
+      count = 0
+      pdata.each do |val|
+        count += 1
+        praw << "#{count}=#{Knj::Web.urlenc(Knj::Http2.post_convert_data(val))}"
+      end
+    else
+      return pdata.to_s
+    end
+    
+    return praw
+  end
+  
   def post(addr, pdata = {}, args = {})
     begin
       @mutex.synchronize do
-        praw = ""
-        pdata.each do |key, val|
-          praw << "&" if praw != ""
-          praw << "#{Knj::Web.urlenc(key)}=#{Knj::Web.urlenc(val)}"
-        end
+        praw = Knj::Http2.post_convert_data(pdata)
         
         header_str = "POST /#{addr} HTTP/1.1#{@nl}"
         header_str << self.header_str(self.default_headers(args).merge("Content-Length" => praw.length), args)
