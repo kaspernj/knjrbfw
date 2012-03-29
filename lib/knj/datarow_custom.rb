@@ -84,6 +84,7 @@ class Knj::Datarow_custom
     return self.class.events.call(:update, Knj::Hash_methods.new(:object => self, :data => data))
   end
   
+  #Returns a key from the hash that this object is holding or raises an error if it doesnt exist.
   def [](key)
     if !@data
       raise "No data spawned on object."
@@ -96,10 +97,12 @@ class Knj::Datarow_custom
     return @data[key]
   end
   
+  #Returns the ID of the object.
   def id
     return self[:id]
   end
   
+  #Returns the name of the object, which can be taken from various data or various defined methods.
   def name
     if @data.key?(:title)
       return @data[:title]
