@@ -90,7 +90,7 @@ class Knj::Datarow_custom
     end
     
     if !@data.key?(key)
-      raise "No such key: '#{key}'. Available keys are: '#{@data.keys.sort.split(", ")}'."
+      raise "No such key: '#{key}'. Available keys are: '#{@data.keys.sort.join(", ")}'."
     end
     
     return @data[key]
