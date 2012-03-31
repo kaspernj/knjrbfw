@@ -26,6 +26,12 @@
     end
   end
   
+  #Base64-encoding of path.
+  if _get["path64"]
+    require "base64"
+    _get["path"] = Base64.decode64(_get["path64"])
+  end
+  
   
 	idstr = Digest::MD5.hexdigest("#{_get["path"]}_#{_get["smartsize"].to_i}_#{_get["width"].to_i}_#{_get["height"].to_i}_#{_get["maxwidth"].to_i}_#{_get["maxheight"].to_i}_#{_get["rounded_corners"].to_i}_#{_get["border"].to_i}_#{_get["border_color"]}")
 	
@@ -167,7 +173,7 @@
 	if tmp_use and !force
     _kas.header("Last-Modified", "#{time_orig.httpdate} GMT") if time_orig
 		_kas.header("Content-Type", "image/png")
-		_httpsession.force_content(File.new(tmp_path))
+		_httpsession.force_content(File.read(tmp_path))
 	else
     _kas.header("Last-Modified", "#{time_orig.httpdate} GMT") if time_orig
 		_kas.header("Content-Type", "image/png")
