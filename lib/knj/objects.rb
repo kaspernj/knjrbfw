@@ -183,33 +183,28 @@ class Knj::Objects
         end
       end
       
-      self.init_class(classname)
-      
-      begin
-        if args[:class]
-          classob = args[:class]
-        else
-          begin
+      if args[:class]
+        classob = args[:class]
+      else
+        begin
+          classob = @args[:module].const_get(classname)
+        rescue NameError => e
+          if @events.connected?(:missing_class)
+            @events.call(:missing_class, {
+              :class => classname
+            })
             classob = @args[:module].const_get(classname)
-          rescue NameError => e
-            if @events.connected?(:missing_class)
-              @events.call(:missing_class, {
-                :class => classname
-              })
-              classob = @args[:module].const_get(classname)
-            else
-              raise e
-            end
+          else
+            raise e
           end
         end
-        
-        if (classob.respond_to?(:load_columns) or classob.respond_to?(:datarow_init)) and (!args.key?(:load) or args[:load])
-          self.load_class(classname, args)
-        end
-      rescue Exception => e
-        self.uninit_class(classname)
-        raise e
       end
+      
+      if (classob.respond_to?(:load_columns) or classob.respond_to?(:datarow_init)) and (!args.key?(:load) or args[:load])
+        self.load_class(classname, args)
+      end
+      
+      self.init_class(classname)
     end
   end
   
