@@ -1,12 +1,19 @@
-if $knjpath
-  autoload_path = "#{$knjpath}autoload.rb"
-else
-  $knjpath = "knj/"
-  autoload_path = "#{File.dirname(__FILE__)}/autoload.rb"
-end
+$knjpath = "knj/" if !$knjpath
 
 module Knj
   CONFIG = {}
+  
+  def self.const_missing(name)
+    if name == "db"
+      filepath = "#{$knjpath}/knjdb/libknjdb"
+    else
+      filepath = "#{$knjpath}#{name.to_s.downcase}"
+    end
+    
+    require filepath
+    raise "Constant still not defined: '#{name}'." if !Knj.const_defined?(name)
+    return Knj.const_get(name)
+  end
   
   def self.appserver_cli(filename)
     Knj::Os.chdir_file(filename)
@@ -15,7 +22,7 @@ module Knj
   
   def self.dirname(filepath)
     raise "Filepath does not exist: #{filepath}" if !File.exists?(filepath)
-    return Knj::Php.realpath(File.dirname(filepath))
+    return File.realpath(File.dirname(filepath))
   end
   
   #Returns the path of the knjrbfw-framework.

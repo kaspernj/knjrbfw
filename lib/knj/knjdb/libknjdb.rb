@@ -402,15 +402,7 @@ class Knj::Db
   
   #Clones the connection, executes a unbuffered query and closes the connection again.
   def cloned_conn(args = nil, &block)
-    subtype = @opts[:subtype]
-    
-    #MySQL2-driver doesnt support unbuffered queries yet.
-    if @opts[:type] == "mysql" and @opts[:subtype] == "mysql2"
-      subtype = "mysql"
-    end
-    
     clone_conn_args = {
-      :subtype => subtype,
       :threadsafe => false
     }
     
@@ -559,5 +551,16 @@ class Knj::Db
     end
     
     raise "Method not found: #{method_name}"
+  end
+  
+  #Beings a transaction and commits when the block ends.
+  def transaction
+    self.query("START TRANSACTION")
+    
+    begin
+      yield(self)
+    ensure
+      self.query("COMMIT")
+    end
   end
 end

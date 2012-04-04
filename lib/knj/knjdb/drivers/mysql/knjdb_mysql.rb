@@ -71,6 +71,8 @@ class KnjDB_mysql
           args[key] = @knjdb.opts[key] if @knjdb.opts.key?(key)
         end
         
+        args[:as] = :array if @opts[:result] == "array"
+        
         tries = 0
         begin
           tries += 1
@@ -175,7 +177,7 @@ class KnjDB_mysql
           @conn.query_with_result = false
           return KnjDB_mysql_unbuffered_result.new(@conn, @opts, @conn.query(str))
         when "mysql2"
-          raise "MySQL2 does not support unbuffered queries yet! Waiting for :stream..."
+          return KnjDB_mysql2_result.new(@conn.query(str, @query_args.merge(:stream => true)))
         when "java"
           if str.match(/^\s*(delete|update|create|drop|insert\s+into)\s+/i)
             stmt = @conn.createStatement

@@ -40,8 +40,7 @@ module Knj::Locales
   #Returns a float from the formatted string according to the current locale.
   def self.number_in(num_str)
     lc = Knj::Locales.localeconv
-    num_str = num_str.to_s.gsub(lc["thousands_sep"], "").gsub(lc["decimal_point"], ".").to_f
-    return num_str
+    return num_str.to_s.gsub(lc["thousands_sep"], "").gsub(lc["decimal_point"], ".").to_f
   end
   
   #Returns the given number as a formatted string according to the current locale.

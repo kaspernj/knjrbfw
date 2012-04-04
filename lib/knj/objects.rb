@@ -15,11 +15,9 @@ class Knj::Objects
     @objects = {}
     @locks = {}
     @data = {}
-    @mutex_require = Mutex.new
+    @lock_require = Monitor.new
     
-    if @args[:cache] == :weak
-      require "#{$knjpath}wref"
-    end
+    require "#{$knjpath}wref" if @args[:cache] == :weak
     
     @events = Knj::Event_handler.new
     @events.add_event(
@@ -32,6 +30,10 @@ class Knj::Objects
     )
     @events.add_event(
       :name => :missing_class,
+      :connections_max => 1
+    )
+    @events.add_event(
+      :name => :require_class,
       :connections_max => 1
     )
     
@@ -70,6 +72,11 @@ class Knj::Objects
     end
     
     @locks[classname] = Mutex.new
+  end
+  
+  def uninit_class(classname)
+    @objects.delete(classname)
+    @locks.delete(classname)
   end
   
   #Returns a cloned version of the @objects variable. Cloned because iteration on it may crash some of the other methods in Ruby 1.9+
@@ -149,39 +156,60 @@ class Knj::Objects
     classname = classname.to_sym
     return false if @objects.key?(classname)
     
-    @mutex_require.synchronize do
+    @lock_require.synchronize do
       #Maybe the classname got required meanwhile the synchronized wait - check again.
       return false if @objects.key?(classname)
       
-      if (@args[:require] or !@args.key?(:require)) and (!args.key?(:require) or args[:require])
-        filename = "#{@args[:class_path]}/#{@args[:class_pre]}#{classname.to_s.downcase}.rb"
-        filename_req = "#{@args[:class_path]}/#{@args[:class_pre]}#{classname.to_s.downcase}"
-        raise "Class file could not be found: #{filename}." if !File.exists?(filename)
-        require filename_req
-      end
-      
-      if args[:class]
-        classob = args[:class]
+      if @events.connected?(:require_class)
+        @events.call(:require_class, {
+          :class => classname
+        })
       else
-        begin
-          classob = @args[:module].const_get(classname)
-        rescue NameError => e
-          if @events.connected?(:missing_class)
-            @events.call(:missing_class, {
-              :class => classname
-            })
-            classob = @args[:module].const_get(classname)
-          else
-            raise e
-          end
+        doreq = false
+        
+        if args[:require]
+          doreq = true
+        elsif args.key?(:require) and !args[:require]
+          doreq = false
+        elsif @args[:require] or !@args.key?(:require)
+          doreq = true
+        end
+        
+        if doreq
+          filename = "#{@args[:class_path]}/#{@args[:class_pre]}#{classname.to_s.downcase}.rb"
+          filename_req = "#{@args[:class_path]}/#{@args[:class_pre]}#{classname.to_s.downcase}"
+          raise "Class file could not be found: #{filename}." if !File.exists?(filename)
+          require filename_req
         end
       end
       
-      if (classob.respond_to?(:load_columns) or classob.respond_to?(:datarow_init)) and (!args.key?(:load) or args[:load])
-        self.load_class(classname, args)
-      end
-      
       self.init_class(classname)
+      
+      begin
+        if args[:class]
+          classob = args[:class]
+        else
+          begin
+            classob = @args[:module].const_get(classname)
+          rescue NameError => e
+            if @events.connected?(:missing_class)
+              @events.call(:missing_class, {
+                :class => classname
+              })
+              classob = @args[:module].const_get(classname)
+            else
+              raise e
+            end
+          end
+        end
+        
+        if (classob.respond_to?(:load_columns) or classob.respond_to?(:datarow_init)) and (!args.key?(:load) or args[:load])
+          self.load_class(classname, args)
+        end
+      rescue Exception => e
+        self.uninit_class(classname)
+        raise e
+      end
     end
   end
   
@@ -344,6 +372,10 @@ class Knj::Objects
       html << "<option"
       html << " selected=\"selected\"" if !args[:selected]
       html << " value=\"\">#{_("Add new")}</option>"
+    elsif args[:none]
+      html << "<option"
+      html << " selected=\"selected\"" if !args[:selected]
+      html << " value=\"\">#{_("None")}</option>"
     end
     
     self.list(classname, args[:list_args]) do |object|
