@@ -208,7 +208,6 @@ class KnjDB_mysql
               raise e
             end
           end
-          raise "Not implemented yet."
         else
           raise "Unknown subtype: '#{@subtype}'"
       end
@@ -460,8 +459,13 @@ class KnjDB_mysql2_result
     end
   end
   
-  def each(&block)
-    @result.each(&block)
+  def each
+    @result.each do |res|
+      #This sometimes happens when streaming results...
+      next if !res
+      
+      yield(res)
+    end
   end
 end
 
