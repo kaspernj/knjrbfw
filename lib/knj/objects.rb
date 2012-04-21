@@ -488,6 +488,7 @@ class Knj::Objects
   
   #Add a new object to the database and to the cache.
   def add(classname, data = {})
+    raise "data-variable was not a hash: '#{data.class.name}'." if !data.is_a?(Hash)
     classname = classname.to_sym
     self.requireclass(classname)
     
@@ -621,6 +622,9 @@ class Knj::Objects
   
   #Delete an object. Both from the database and from the cache.
   def delete(object)
+    #Return false if the object has already been deleted.
+    return false if object.deleted?
+    
     self.call("object" => object, "signal" => "delete_before")
     self.unset(object)
     obj_id = object.id
@@ -664,6 +668,7 @@ class Knj::Objects
       arr_ids = []
       ids = []
       objs.each do |obj|
+        next if obj.deleted?
         ids << obj.id
         if ids.length >= 1000
           arr_ids << ids

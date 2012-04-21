@@ -212,15 +212,8 @@ class Knj::Datarow
   def self.load_columns(d)
     @ob = d.ob if !@ob
     
-    if !@classname
-      if match = self.name.match(/($|::)([A-z\d_]+?)$/)
-        @classname = match[2].to_sym 
-      else
-        @classname = self.name.to_sym
-      end
-    end
-    
-    @mutex = Mutex.new if !@mutex
+    @classname = self.name.split("::").last if !@classname
+    @mutex = Monitor.new if !@mutex
     
     @mutex.synchronize do
       inst_methods = self.instance_methods(false)
@@ -532,7 +525,7 @@ class Knj::Datarow
     raise "Key was not a symbol: '#{key.class.name}'." if !key.is_a?(Symbol)
     raise "No data was loaded on the object? Maybe you are trying to call a deleted object?" if !@data
     return @data[key] if @data.key?(key)
-    raise "No such key: '#{key}'."
+    raise "No such key: '#{key}' on '#{self.class.name}'."
   end
   
   #Writes/updates a keys value on the object.
@@ -543,6 +536,7 @@ class Knj::Datarow
   
   #Returns the objects ID.
   def id
+    raise "This object has been deleted." if self.deleted?
     raise "No data on object." if !@data
     return @data[:id]
   end

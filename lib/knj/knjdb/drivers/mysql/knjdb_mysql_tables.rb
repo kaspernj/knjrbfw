@@ -1,12 +1,11 @@
 require "#{$knjpath}wref"
 
 class KnjDB_mysql::Tables
-  attr_reader :db, :driver, :list
+  attr_reader :db, :list
   
   def initialize(args)
     @args = args
     @db = @args[:db]
-    @driver = @args[:driver]
     @subtype = @db.opts[:subtype]
     @list_mutex = Mutex.new
     @list = Knj::Wref_map.new
@@ -44,7 +43,6 @@ class KnjDB_mysql::Tables
         if !obj
           obj = KnjDB_mysql::Tables::Table.new(
             :db => @db,
-            :driver => @driver,
             :data => d_tables,
             :tables => self
           )
@@ -96,13 +94,17 @@ class KnjDB_mysql::Tables::Table
   def initialize(args)
     @args = args
     @db = args[:db]
-    @driver = args[:driver]
     @data = args[:data]
     @subtype = @db.opts[:subtype]
     @list = Knj::Wref_map.new
     @indexes_list = Knj::Wref_map.new
     
     raise "Could not figure out name from: '#{@data}'." if !@data[:Name]
+  end
+  
+  #Used to validate in Knj::Wrap_map.
+  def __object_unique_id__
+    return @data[:Name]
   end
   
   def name
@@ -117,6 +119,10 @@ class KnjDB_mysql::Tables::Table
   def optimize
     @db.query("OPTIMIZE TABLE `#{self.name}`")
     return self
+  end
+  
+  def rows_count
+    return @data[:Rows].to_i
   end
   
   def column(name)
@@ -147,7 +153,6 @@ class KnjDB_mysql::Tables::Table
         obj = KnjDB_mysql::Columns::Column.new(
           :table_name => self.name,
           :db => @db,
-          :driver => @driver,
           :data => d_cols
         )
         @list[d_cols[:Field]] = obj
@@ -180,7 +185,6 @@ class KnjDB_mysql::Tables::Table
         obj = KnjDB_mysql::Indexes::Index.new(
           :table_name => self.name,
           :db => @db,
-          :driver => @driver,
           :data => d_indexes
         )
         obj.columns << d_indexes[:Column_name]

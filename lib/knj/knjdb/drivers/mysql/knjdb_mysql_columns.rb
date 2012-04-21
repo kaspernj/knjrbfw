@@ -1,10 +1,9 @@
 class KnjDB_mysql::Columns
-  attr_reader :db, :driver
+  attr_reader :db
   
   def initialize(args)
     @args = args
     @db = @args[:db]
-    @driver = @args[:driver]
   end
   
   def data_sql(data)
@@ -39,12 +38,17 @@ class KnjDB_mysql::Columns::Column
     @args = args
   end
   
+  #Used to validate in Knj::Wrap_map.
+  def __object_unique_id__
+    return @args[:data][:Field]
+  end
+  
   def name
     return @args[:data][:Field]
   end
   
   def table
-    return @args[:db].tables[@args[:table_name]]
+    return @db.tables[@args[:table_name]]
   end
   
   def data
@@ -112,13 +116,12 @@ class KnjDB_mysql::Columns::Column
   end
   
   def drop
-    @args[:db].query("ALTER TABLE `#{@args[:table_name]}` DROP COLUMN `#{self.name}`")
+    @db.query("ALTER TABLE `#{@args[:table_name]}` DROP COLUMN `#{self.name}`")
   end
   
   def change(data)
-    esc_col = @args[:driver].escape_col
-    col_escaped = "#{esc_col}#{@args[:db].esc_col(self.name)}#{esc_col}"
-    table_escape = "#{@args[:driver].escape_table}#{@args[:driver].esc_table(self.table.name)}#{@args[:driver].escape_table}"
+    col_escaped = "#{@db.enc_col}#{@db.esc_col(self.name)}#{@db.enc_col}"
+    table_escape = "#{@db.enc_table}#{@db.esc_table(self.table.name)}#{@db.enc_table}"
     newdata = data.clone
     
     newdata["name"] = self.name if !newdata.key?("name")
@@ -129,6 +132,6 @@ class KnjDB_mysql::Columns::Column
     newdata.delete("primarykey") if newdata.key?("primarykey")
     
     type_s = newdata["type"].to_s
-    @args[:db].query("ALTER TABLE #{table_escape} CHANGE #{col_escaped} #{@args[:db].cols.data_sql(newdata)}")
+    @db.query("ALTER TABLE #{table_escape} CHANGE #{col_escaped} #{@db.cols.data_sql(newdata)}")
   end
 end

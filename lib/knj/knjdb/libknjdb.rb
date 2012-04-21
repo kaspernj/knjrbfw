@@ -68,7 +68,7 @@ class Knj::Db
     
     fpaths = [
       "drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}.rb",
-      "libknjdb_" + @opts[:type] + ".rb"
+      "libknjdb_#{@opts[:type]}.rb"
     ]
     fpaths.each do |fpath|
       rpath = "#{File.dirname(__FILE__)}/#{fpath}"
@@ -370,13 +370,9 @@ class Knj::Db
   #Executes a query and returns the result.
   def query(string)
     if @debug
-      begin
-        raise "test"
-      rescue => e
-        print "SQL: #{string}\n"
-        print e.backtrace.join("\n")
-        print "\n"
-      end
+      print "SQL: #{string}\n"
+      print caller.join("\n")
+      print "\n"
     end
     
     self.conn_exec do |driver|
@@ -505,15 +501,14 @@ class Knj::Db
   #Returns the table-module and spawns it if it isnt already spawned.
   def tables
     conn_exec do |driver|
-      if !driver.tables
+      if !@tables
         require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_tables" if (!@opts.key?(:require) or @opts[:require])
-        driver.tables = Kernel.const_get("KnjDB_#{@opts[:type]}".to_sym).const_get(:Tables).new(
-          :driver => driver,
+        @tables = Kernel.const_get("KnjDB_#{@opts[:type]}".to_sym).const_get(:Tables).new(
           :db => self
         )
       end
       
-      return driver.tables
+      return @tables
     end
   end
   
@@ -522,7 +517,6 @@ class Knj::Db
     if !@cols
       require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_columns" if (!@opts.key?(:require) or @opts[:require])
       @cols = Kernel.const_get("KnjDB_#{@opts[:type]}".to_sym).const_get(:Columns).new(
-        :driver => @conn,
         :db => self
       )
     end
@@ -535,7 +529,6 @@ class Knj::Db
     if !@indexes
       require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_indexes" if (!@opts.key?(:require) or @opts[:require])
       @indexes = Kernel.const_get("KnjDB_#{@opts[:type]}".to_sym).const_get(:Indexes).new(
-        :driver => @conn,
         :db => self
       )
     end

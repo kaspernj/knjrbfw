@@ -25,17 +25,15 @@ class Knj::Wref
         obj = @weakref.get
         
         if obj == nil
-          STDOUT.print "Java weak recycled!\n"
           raise Knj::Wref::Recycled
         else
-          STDOUT.print "Java weak works!\n"
           return obj
         end
       else
         obj = ObjectSpace._id2ref(@id)
       end
       
-      #Some times this name will be nil for some reason - knj
+      #Some times this class-name will be nil for some reason - knj
       obj_class_name = obj.class.name
       
       if !obj_class_name or @class_name != obj_class_name.to_sym or @id != obj.__id__
