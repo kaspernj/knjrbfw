@@ -49,6 +49,9 @@ describe "Php" do
     
     res = Knj::Php.substr("test_kasper", 1, 3)
     raise "substr should have returned 'est' but didnt: '#{res}'." if res != "est"
+    
+    res = Knj::Php.substr("test_kasper", 0, -3)
+    raise "substr should have returned 'test_kas' but didnt: '#{res}'." if res != "test_kas"
   end
   
   it "parse_str" do

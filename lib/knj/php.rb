@@ -294,16 +294,25 @@ module Knj::Php
   end
   
   def substr(string, from, to = nil)
+    #If 'to' is not given it should be the total length of the string.
     if to == nil
       to = string.length
     end
     
+    #The behaviour with a negative 'to' is not the same as in PHP. Hack it!
+    if to < 0
+      to = string.length + to
+    end
+    
+    #Cut the string.
     string = "#{string[from.to_i, to.to_i]}"
     
+    #Sometimes the encoding will no longer be valid. Fix that if that is the case.
     if !string.valid_encoding? and Knj::Php.class_exists("Iconv")
       string = Iconv.conv("UTF-8//IGNORE", "UTF-8", "#{string}  ")[0..-2]
     end
     
+    #Return the cut string.
     return string
   end
   
