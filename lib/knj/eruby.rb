@@ -4,8 +4,7 @@ class Knj::Eruby
   def initialize(args = {})
     @args = args
     
-    require "tmpdir"
-    @tmpdir = "#{Dir.tmpdir}/knj_erb"
+    @tmpdir = "#{Knj::Os.tmpdir}/knj_erb"
     Dir.mkdir(@tmpdir, 0777) if !File.exists?(@tmpdir)
     
     

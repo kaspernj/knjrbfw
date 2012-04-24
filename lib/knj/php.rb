@@ -728,7 +728,12 @@ module Knj::Php
   end
   
   def base64_encode(str)
-    return Base64.encode64(str.to_s)
+    #The strict-encode wont do corrupt newlines...
+    if Base64.respond_to?("strict_encode64")
+      return Base64.strict_encode64(str.to_s)
+    else
+      return Base64.encode64(str.to_s)
+    end
   end
   
   def base64_decode(str)
