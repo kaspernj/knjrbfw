@@ -3,7 +3,6 @@ class KnjDB_mysql::Columns
   
   def initialize(args)
     @args = args
-    @db = @args[:db]
   end
   
   def data_sql(data)
@@ -20,11 +19,11 @@ class KnjDB_mysql::Columns
     if data.key?("default_func")
       sql << " DEFAULT #{data["default_func"]}"
     elsif data.key?("default") and data["default"] != false
-      sql << " DEFAULT '#{@db.escape(data["default"])}'"
+      sql << " DEFAULT '#{@args[:db].escape(data["default"])}'"
     end
     
-    sql << " COMMENT '#{@db.escape(data["comment"])}'" if data.key?("comment")
-    sql << " AFTER `#{@db.esc_col(data["after"])}`" if data["after"] and !data["first"]
+    sql << " COMMENT '#{@args[:db].escape(data["comment"])}'" if data.key?("comment")
+    sql << " AFTER `#{@args[:db].esc_col(data["after"])}`" if data["after"] and !data["first"]
     sql << " FIRST" if data["first"]
     
     return sql
@@ -48,7 +47,7 @@ class KnjDB_mysql::Columns::Column
   end
   
   def table
-    return @db.tables[@args[:table_name]]
+    return @args[:db].tables[@args[:table_name]]
   end
   
   def data
@@ -116,12 +115,12 @@ class KnjDB_mysql::Columns::Column
   end
   
   def drop
-    @db.query("ALTER TABLE `#{@args[:table_name]}` DROP COLUMN `#{self.name}`")
+    @args[:db].query("ALTER TABLE `#{@args[:table_name]}` DROP COLUMN `#{self.name}`")
   end
   
   def change(data)
-    col_escaped = "#{@db.enc_col}#{@db.esc_col(self.name)}#{@db.enc_col}"
-    table_escape = "#{@db.enc_table}#{@db.esc_table(self.table.name)}#{@db.enc_table}"
+    col_escaped = "#{@args[:db].enc_col}#{@args[:db].esc_col(self.name)}#{@args[:db].enc_col}"
+    table_escape = "#{@args[:db].enc_table}#{@args[:db].esc_table(self.table.name)}#{@args[:db].enc_table}"
     newdata = data.clone
     
     newdata["name"] = self.name if !newdata.key?("name")
@@ -132,6 +131,6 @@ class KnjDB_mysql::Columns::Column
     newdata.delete("primarykey") if newdata.key?("primarykey")
     
     type_s = newdata["type"].to_s
-    @db.query("ALTER TABLE #{table_escape} CHANGE #{col_escaped} #{@db.cols.data_sql(newdata)}")
+    @args[:db].query("ALTER TABLE #{table_escape} CHANGE #{col_escaped} #{@args[:db].cols.data_sql(newdata)}")
   end
 end
