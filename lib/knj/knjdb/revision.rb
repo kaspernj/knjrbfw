@@ -274,5 +274,10 @@ class Knj::Db::Revision
         end
       end
     end
+    
+    
+    #Free cache.
+    tables.clear
+    tables = nil
   end
 end
