@@ -284,6 +284,7 @@ class Knj::Objects
     end
   end
   
+  #Returns the first object found from the given arguments. Also automatically limits the results to 1.
   def get_by(classname, args = {})
     classname = classname.to_sym
     self.requireclass(classname)
