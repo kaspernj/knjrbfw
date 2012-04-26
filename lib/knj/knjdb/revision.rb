@@ -18,12 +18,12 @@ class Knj::Db::Revision
       end
       
       rows_found = 0
-      @db.select(table.name, find_by) do |d_rows|
+      args["db"].select(table.name, find_by) do |d_rows|
         rows_found += 1
         
         if Knj::ArrayExt.hash_diff?(Knj::ArrayExt.hash_sym(row_data["data"]), Knj::ArrayExt.hash_sym(d_rows), {"h2_to_h1" => false})
           print "Data was not right - updating row: #{JSON.generate(row_data["data"])}\n" if args["debug"]
-          @db.update(table.name, row_data["data"], d_rows)
+          args["db"].update(table.name, row_data["data"], d_rows)
         end
       end
       
