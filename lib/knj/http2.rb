@@ -378,7 +378,7 @@ class Knj::Http2
         return http.get(uri.path)
       end
     elsif resp.args[:code].to_s == "500"
-      raise "500 - Internal server error: '#{args[:addr]}'."
+      raise "500 - Internal server error: '#{args[:addr]}':\n\n#{resp.body}"
     elsif resp.args[:code].to_s == "403"
       raise Knj::Errors::NoAccess
     else
