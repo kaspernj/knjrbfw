@@ -4,46 +4,207 @@ class Knj::Memory_analyzer
   end
   
   def write(to = $stdout)
-    to.print "<table class=\"global_variables list\">"
-    to.print "<thead>"
-    to.print "<tr>"
-    to.print "<th>Name</th>"
-    to.print "<th>Size</th>"
-    to.print "</tr>"
-    to.print "</thead>"
-    to.print "<tbody>"
+    to.print "<div style=\"width: 600px;\">\n"
+    
+    self.garbage_collector(to)
+    GC.start
+    
+    self.arrays(to)
+    GC.start
+    
+    self.hashes(to)
+    GC.start
+    
+    self.constants(to)
+    GC.start
+    
+    self.global_vars(to)
+    GC.start
+    
+    to.print "</div>\n"
+  end
+  
+  def garbage_collector(to = $stdout)
+    to.print "<h1>Garbage collector</h1>\n"
+    
+    if GC.enable
+      to.print "<div>Garbage collector was not enabled! But it is again now!</div>\n"
+    else
+      to.print "<div>Garbage collector was already enabled.</div>\n"
+    end
+    
+    GC.start
+  end
+  
+  def hashes(to = $stdout)
+    hashes = {}
+    
+    ObjectSpace.each_object(Hash) do |hash|
+      begin
+        keys_orig = hash.keys.sort
+      rescue ArgumentError
+        #When unable to sort regexps...
+        next
+      end
+      
+      keys = []
+      keys_orig.each do |key|
+        keys << key.to_s
+      end
+      
+      if keys.empty?
+        keystr = :empty
+      else
+        keystr = keys.join(":")
+      end
+      
+      if !hashes.key?(keystr)
+        hashes[keystr] = 1
+      else
+        hashes[keystr] += 1
+      end
+    end
+    
+    hashes.delete_if do |key, val|
+      val < 100
+    end
+    
+    hashes = Knj::ArrayExt.hash_sort(hashes) do |h1, h2|
+      h2[1] <=> h1[1]
+    end
+    
+    to.print "<h1>Hashes</h1>\n"
+    to.write "<table class=\"hashes list\">\n"
+    to.write "\t<thead>\n"
+    to.write "\t\t<tr>\n"
+    to.write "\t\t\t<th>Hash keys</th>\n"
+    to.write "\t\t\t<th>Instances</th>\n"
+    to.write "\t\t</tr>\n"
+    to.write "\t</thead>\n"
+    to.write"\t<tbody>\n"
+    
+    hashes.each do |key, val|
+      to.write "\t\t<tr>\n"
+      to.write "\t\t\t<td>#{Knj::Web.html(key)}</td>\n"
+      to.write "\t\t\t<td>#{Knj::Locales.number_out(val, 0)}</td>\n"
+      to.write "\t\t</tr>\n"
+    end
+    
+    to.write "\t</tbody>\n"
+    to.write "</table>\n"
+  end
+  
+  def arrays(to = $stdout)
+    arrays = {}
+    
+    ObjectSpace.each_object(Array) do |arr|
+      begin
+        arr = arr.sort
+      rescue ArgumentError
+        #When unable to sort regexps...
+        next
+      end
+      
+      keys = []
+      arr.each do |key|
+        keys << key.class.name.to_s
+      end
+      
+      if keys.empty?
+        keystr = :empty
+      else
+        keystr = keys.join(":")
+      end
+      
+      if !arrays.key?(keystr)
+        arrays[keystr] = 1
+      else
+        arrays[keystr] += 1
+      end
+    end
+    
+    arrays.delete_if do |key, val|
+      val < 100
+    end
+    
+    arrays = Knj::ArrayExt.hash_sort(arrays) do |h1, h2|
+      h2[1] <=> h1[1]
+    end
+    
+    to.write "<h1>Arrays</h1>\n"
+    to.write "<table class=\"arrays list\">\n"
+    to.write "\t<thead>\n"
+    to.write "\t\t<tr>\n"
+    to.write "\t\t\t<th>Array classes</th>\n"
+    to.write "\t\t\t<th>Instances</th>\n"
+    to.write "\t\t</tr>\n"
+    to.write "\t</thead>\n"
+    to.write"\t<tbody>\n"
+    
+    arrays.each do |key, val|
+      to.write "\t\t<tr>\n"
+      to.write "\t\t\t<td>#{Knj::Web.html(key)}</td>\n"
+      to.write "\t\t\t<td>#{Knj::Locales.number_out(val, 0)}</td>\n"
+      to.write "\t\t</tr>\n"
+    end
+    
+    to.write "\t</tbody>\n"
+    to.write "</table>\n"
+  end
+  
+  def global_vars(to = $stdout)
+    to.print "<h1>Global variables</h1>\n"
+    to.print "<table class=\"global_variables list\">\n"
+    to.print "\t<thead>\n"
+    to.print "\t\t<tr>\n"
+    to.print "\t\t\t<th>Name</th>\n"
+    to.print "\t\t</tr>\n"
+    to.print "\t</thead>\n"
+    to.print "\t<tbody>\n"
     
     count = 0
     Kernel.global_variables.each do |name|
       count += 1
-      global_var_ref = eval(name.to_s)
-      size = Knj::Memory_analyzer::Object_size_counter.new(global_var_ref).calculate_size
-      size = size.to_f / 1024.0
       
-      to.print "<tr>"
-      to.print "<td>#{Knj::Web.html(name)}</td>"
-      to.print "<td>#{Knj::Locales.number_out(size, 0)} kb</td>"
-      to.print "</tr>"
+      #begin
+      #  global_var_ref = eval(name.to_s)
+      #rescue => e
+      #  to.print "\t\t<tr>\n"
+      #  to.print "\t\t\t<td>Error: #{Knj::Web.html(e.message)}</td>\n"
+      #  to.print "\t\t</tr>\n"
+      #  
+      #  next
+      #end
+      
+      #size = 0
+      #size = Knj::Memory_analyzer::Object_size_counter.new(global_var_ref).calculate_size
+      #size = size.to_f / 1024.0
+      
+      to.print "\t\t<tr>\n"
+      to.print "\t\t\t<td>#{Knj::Web.html(name)}</td>\n"
+      to.print "\t\t</tr>\n"
     end
     
     if count <= 0
-      to.print "<tr>"
-      to.print "<td colspan=\"2\" class=\"error\">No global variables has been defined.</td>"
-      to.print "</tr>"
+      to.print "\t\t<tr>\n"
+      to.print "\t\t\t<td colspan=\"2\" class=\"error\">No global variables has been defined.</td>\n"
+      to.print "\t\t</tr>\n"
     end
     
-    to.print "</tbody>"
-    to.print "</table>"
-    
-    to.print "<table class=\"memory_analyzer list\">"
-    to.print "<thead>"
-    to.print "<tr>"
-    to.print "<th>Class</th>"
-    to.print "<th style=\"text-align: right;\">Instances</th>"
-    to.print "<th style=\"text-align: right;\">Size</th>"
-    to.print "</tr>"
-    to.print "</thead>"
-    to.print "<tbody>"
+    to.print "\t</tbody>\n"
+    to.print "</table>\n"
+  end
+  
+  def constants(to = $stdout)
+    to.print "<h1>Constants</h1>\n"
+    to.print "<table class=\"memory_analyzer list\">\n"
+    to.print "\t<thead>\n"
+    to.print "\t\t<tr>\n"
+    to.print "\t\t\t<th>Class</th>\n"
+    to.print "\t\t\t<th style=\"text-align: right;\">Instances</th>\n"
+    to.print "\t\t</tr>\n"
+    to.print "\t</thead>\n"
+    to.print "\t<tbody>\n"
     
     constants_m = Module.constants
     constants_o = Object.constants
@@ -54,8 +215,8 @@ class Knj::Memory_analyzer
       self.write_constant(to, Kernel, mod)
     end
     
-    to.print "</tbody>"
-    to.print "</table>"
+    to.print "\t</tbody>\n"
+    to.print "</table>\n"
   end
   
   def write_constant(to, mod, submod)
@@ -85,7 +246,6 @@ class Knj::Memory_analyzer
     begin
       ObjectSpace.each_object(classobj) do |obj|
         instances += 1
-        size += Knj::Memory_analyzer::Object_size_counter.new(obj).calculate_size if calc_size
       end
     rescue Exception => e
       emsg = e.message.to_s
@@ -103,16 +263,11 @@ class Knj::Memory_analyzer
     end
     
     if instances > 0
-      if calc_size
-        size = size.to_f / 1024.0
-        size = "#{Knj::Locales.number_out(size, 2)} kb"
-      end
-      
-      to.print "<tr>"
-      to.print "<td>#{mod_title.html}</td>"
-      to.print "<td style=\"text-align: right;\">#{Knj::Locales.number_out(instances, 0)}</td>"
-      to.print "<td style=\"text-align: right;\">#{size}</td>"
-      to.print "</tr>"
+      to.print "\t\t<tr>\n"
+      to.print "\t\t\t<td>#{mod_title.html}</td>\n"
+      to.print "\t\t\t<td style=\"text-align: right;\">#{Knj::Locales.number_out(instances, 0)}</td>\n"
+      to.print "\t\t</tr>\n"
+      GC.start
     end
     
     if classobj.respond_to?("constants")
