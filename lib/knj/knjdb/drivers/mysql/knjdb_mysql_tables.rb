@@ -48,8 +48,7 @@ class KnjDB_mysql::Tables
         if !obj
           obj = KnjDB_mysql::Tables::Table.new(
             :db => @db,
-            :data => d_tables,
-            :tables => self
+            :data => d_tables
           )
           @list[d_tables[:Name]] = obj
         end
@@ -110,6 +109,10 @@ class KnjDB_mysql::Tables::Table
     @indexes_list = Knj::Wref_map.new
     
     raise "Could not figure out name from: '#{@data}'." if !@data[:Name]
+  end
+  
+  def reload
+    @data = @db.q("SHOW TABLE STATUS WHERE `Name` = '#{@db.esc(self.name)}'").fetch
   end
   
   #Used to validate in Knj::Wrap_map.
@@ -308,8 +311,8 @@ class KnjDB_mysql::Tables::Table
   def rename(newname)
     oldname = self.name
     @db.query("ALTER TABLE `#{oldname}` RENAME TO `#{newname}`")
-    @args[:tables].list[newname] = self
-    @args[:tables].list.delete(oldname)
+    @db.tables.list[newname] = self
+    @db.tables.list.delete(oldname)
     @data[:Name] = newname
   end
   
