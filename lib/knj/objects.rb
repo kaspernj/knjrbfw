@@ -2,6 +2,7 @@ class Knj::Objects
   attr_reader :args, :events, :data
   
   def initialize(args)
+    require "monitor"
     require "#{$knjpath}arrayext"
     require "#{$knjpath}event_handler"
     require "#{$knjpath}hash_methods"

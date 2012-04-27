@@ -1,6 +1,7 @@
 require "#{$knjpath}event_handler"
 
 class Knj::Datarow_custom
+  #Used to determine if this is a knj-datarow-object.
   def is_knj?
     return true
   end
@@ -71,17 +72,25 @@ class Knj::Datarow_custom
     
     if data.is_a?(Hash)
       @data = Knj::ArrayExt.hash_sym(data)
+      @id = self.id
     else
-      raise "No 'data_from_id'-event connected to class." if !self.class.events.connected?(:data_from_id)
-      data = self.class.events.call(:data_from_id, Knj::Hash_methods.new(:id => data))
-      raise "No data was received from the event: 'data_from_id'." if !data
-      raise "Data expected to be a hash but wasnt: '#{data.class.name}'." if !data.is_a?(Hash)
-      @data = Knj::ArrayExt.hash_sym(data)
+      @id = data
+      self.reload
     end
   end
   
+  def reload
+    raise "No 'data_from_id'-event connected to class." if !self.class.events.connected?(:data_from_id)
+    data = self.class.events.call(:data_from_id, Knj::Hash_methods.new(:id => @id))
+    raise "No data was received from the event: 'data_from_id'." if !data
+    raise "Data expected to be a hash but wasnt: '#{data.class.name}'." if !data.is_a?(Hash)
+    @data = Knj::ArrayExt.hash_sym(data)
+  end
+  
   def update(data)
-    return self.class.events.call(:update, Knj::Hash_methods.new(:object => self, :data => data))
+    ret = self.class.events.call(:update, Knj::Hash_methods.new(:object => self, :data => data))
+    self.reload
+    return ret
   end
   
   #Returns a key from the hash that this object is holding or raises an error if it doesnt exist.
