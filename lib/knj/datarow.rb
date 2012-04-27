@@ -1,16 +1,19 @@
 class Knj::Datarow
   attr_reader :data, :ob, :db
   
+  #Returns the array that tells about required data.
   def self.required_data
     @required_data = [] if !@required_data
     return @required_data
   end
   
+  #Returns the array that tells about depending data.
   def self.depending_data
     @depending_data = [] if !@depending_data
     return @depending_data
   end
   
+  #Returns the array that tells about autodelete data.
   def self.autodelete_data
     @autodelete_data = [] if !@autodelete_data
     return @autodelete_data
@@ -191,16 +194,19 @@ class Knj::Datarow
     @columns_joined_tables.merge!(hash)
   end
   
+  #Returns the table-name that should be used for this datarow.
   def self.table
     return @table if @table
     return self.name.split("::").last
   end
   
+  #This can be used to manually set the table-name. Useful when meta-programming classes that extends the datarow-class.
   def self.table=(newtable)
     @table = newtable
     @columns_sqlhelper_args[:table] = @table if @columns_sqlhelper_args.is_a?(Hash)
   end
   
+  #Returns the class-name but without having to call the class-table-method. To make code look shorter.
   def table
     return self.class.table
   end
@@ -365,6 +371,7 @@ class Knj::Datarow
     end
   end
   
+  #This method helps returning objects and supports various arguments. It should be called by Object#list.
   def self.list(d, &block)
     ec_col = d.db.enc_col
     ec_table = d.db.enc_table
