@@ -6,7 +6,6 @@ describe "Db" do
   it "should be able to handle various encodings" do
     #I never got this test to actually fail... :-(
     
-    require "sqlite3"
     require "knj/db"
     require "knj/os"
     

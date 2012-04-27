@@ -6,7 +6,6 @@ class KnjDB_sqlite3::Tables
   def initialize(args)
     @args = args
     @db = @args[:db]
-    @driver = @args[:driver]
     
     @list_mutex = Mutex.new
     @list = Knj::Wref_map.new
@@ -38,7 +37,6 @@ class KnjDB_sqlite3::Tables
         if !obj
           obj = KnjDB_sqlite3::Tables::Table.new(
             :db => @db,
-            :driver => @driver,
             :data => d_tables
           )
           @list[d_tables[:name]] = obj
@@ -83,7 +81,6 @@ end
 class KnjDB_sqlite3::Tables::Table
   def initialize(args)
     @db = args[:db]
-    @driver = args[:driver]
     @data = args[:data]
     
     @list = Knj::Wref_map.new
@@ -117,14 +114,13 @@ class KnjDB_sqlite3::Tables::Table
     @db.cols
     ret = {}
     
-    @db.q("PRAGMA table_info(`#{@driver.esc_table(self.name)}`)") do |d_cols|
+    @db.q("PRAGMA table_info(`#{@db.esc_table(self.name)}`)") do |d_cols|
       obj = @list.get!(d_cols[:name])
       
       if !obj
         obj = KnjDB_sqlite3::Columns::Column.new(
           :table_name => self.name,
           :db => @db,
-          :driver => @driver,
           :data => d_cols
         )
         @list[d_cols[:name]] = obj
@@ -317,7 +313,6 @@ class KnjDB_sqlite3::Tables::Table
         obj = KnjDB_sqlite3::Indexes::Index.new(
           :table_name => self.name,
           :db => @db,
-          :driver => @driver,
           :data => d_indexes
         )
         obj.columns << name

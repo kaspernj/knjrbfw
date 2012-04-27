@@ -48,9 +48,7 @@ describe "Knjrbfw" do
       table = db.tables["Project"]
       
       indexes = table.indexes
-      
-      Knj::Php.print_r(indexes)
-      raise "Could not find the sample-index 'category_id' that should have been created." if !indexes["category_id"]
+      raise "Could not find the sample-index 'category_id' that should have been created." if !indexes["Project__category_id"]
       
       
       #If we insert a row the ID should increase and the name should be the same as inserted (or something is very very wrong)...
@@ -298,6 +296,8 @@ describe "Knjrbfw" do
   end
   
   it "should be able to draw rounded transparent corners on images." do
+    require "rmagick"
+    
     pic = Magick::Image.read("#{File.dirname(__FILE__)}/../testfiles/image.jpg").first
     pic.format = "png"
     
