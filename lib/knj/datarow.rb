@@ -1,22 +1,27 @@
 class Knj::Datarow
   attr_reader :data, :ob, :db
   
-  #Returns the array that tells about required data.
+  #This is used by 'Knj::Objects' to find out what data is required for this class. Returns the array that tells about required data.
   def self.required_data
     @required_data = [] if !@required_data
     return @required_data
   end
   
-  #Returns the array that tells about depending data.
+  #This is used by 'Knj::Objects' to find out what other objects this class depends on. Returns the array that tells about depending data.
   def self.depending_data
     @depending_data = [] if !@depending_data
     return @depending_data
   end
   
-  #Returns the array that tells about autodelete data.
+  #This is used by 'Knj::Objects' to find out which other objects should be deleted when an object of this class is deleted automatically. Returns the array that tells about autodelete data.
   def self.autodelete_data
     @autodelete_data = [] if !@autodelete_data
     return @autodelete_data
+  end
+  
+  #Get the 'Knj::Objects'-object that handels this class.
+  def self.ob
+    return @ob
   end
   
   #This helps various parts of the framework determine if this is a datarow class without requiring it.
