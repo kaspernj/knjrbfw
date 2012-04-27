@@ -5,6 +5,7 @@ class Knj::Db::Revision
   
   #This method checks if certain rows are present in a table based on a hash.
   def rows_init(args)
+    db = args["db"]
     table = args["table"]
     
     args["rows"].each do |row_data|
@@ -17,12 +18,12 @@ class Knj::Db::Revision
       end
       
       rows_found = 0
-      @db.select(table.name, find_by) do |d_rows|
+      args["db"].select(table.name, find_by) do |d_rows|
         rows_found += 1
         
         if Knj::ArrayExt.hash_diff?(Knj::ArrayExt.hash_sym(row_data["data"]), Knj::ArrayExt.hash_sym(d_rows), {"h2_to_h1" => false})
           print "Data was not right - updating row: #{JSON.generate(row_data["data"])}\n" if args["debug"]
-          @db.update(table.name, row_data["data"], d_rows)
+          args["db"].update(table.name, row_data["data"], d_rows)
         end
       end
       
@@ -37,7 +38,6 @@ class Knj::Db::Revision
   def init_db(args)
     schema = args["schema"]
     db = args["db"]
-    @db = db
     
     #Check for normal bugs and raise apropiate error.
     raise "'schema' argument was not a Hash: '#{schema.class.name}'." if !schema.is_a?(Hash)
@@ -50,6 +50,7 @@ class Knj::Db::Revision
     schema["tables"].each do |table_name, table_data|
       begin
         begin
+          raise Knj::Errors::NotFound if !tables.key?(table_name)
           table_obj = db.tables[table_name]
           
           #Cache indexes- and column-objects to avoid constant reloading.
@@ -224,11 +225,12 @@ class Knj::Db::Revision
             end
           end
           
-          self.rows_init("table" => table_obj, "rows" => table_data["rows"]) if table_data and table_data["rows"]
+          self.rows_init("db" => db, "table" => table_obj, "rows" => table_data["rows"]) if table_data and table_data["rows"]
         rescue Knj::Errors::NotFound => e
           if table_data["renames"]
             table_data["renames"].each do |table_name_rename|
               begin
+                raise Knj::Errors::NotFound if !tables.key?(table_name)
                 table_rename = db.tables[table_name_rename]
                 table_rename.rename(table_name)
                 raise Knj::Errors::Retry
@@ -272,5 +274,10 @@ class Knj::Db::Revision
         end
       end
     end
+    
+    
+    #Free cache.
+    tables.clear
+    tables = nil
   end
 end

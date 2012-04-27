@@ -26,7 +26,7 @@ class KnjDB_mysql::Tables
       #ignore.
     end
     
-    self.list do |table_obj|
+    self.list(:name => table_name) do |table_obj|
       return table_obj if table_obj.name == table_name
     end
     
@@ -36,15 +36,19 @@ class KnjDB_mysql::Tables
   def list(args = {})
     ret = {} unless block_given?
     
+    sql = "SHOW TABLE STATUS"
+    if args[:name]
+      sql << " WHERE `Name` = '#{@db.esc(args[:name])}'"
+    end
+    
     @list_mutex.synchronize do
-      @db.q("SHOW TABLE STATUS") do |d_tables|
+      @db.q(sql) do |d_tables|
         obj = @list.get!(d_tables[:Name])
         
         if !obj
           obj = KnjDB_mysql::Tables::Table.new(
             :db => @db,
-            :data => d_tables,
-            :tables => self
+            :data => d_tables
           )
           @list[d_tables[:Name]] = obj
         end
@@ -77,14 +81,19 @@ class KnjDB_mysql::Tables
       sql << @db.cols.data_sql(col_data)
     end
     
-    sql << ")"
-    
-    @db.query(sql)
-    
     if data["indexes"]
-      table_obj = self[name]
-      table_obj.create_indexes(data["indexes"])
+      sql << ", "
+      sql << KnjDB_mysql::Tables::Table.create_indexes(data["indexes"], {
+        :db => @db,
+        :return_sql => true,
+        :create => false,
+        :on_table => false,
+        :table_name => name
+      })
     end
+    
+    sql << ")"
+    @db.query(sql)
   end
 end
 
@@ -100,6 +109,10 @@ class KnjDB_mysql::Tables::Table
     @indexes_list = Knj::Wref_map.new
     
     raise "Could not figure out name from: '#{@data}'." if !@data[:Name]
+  end
+  
+  def reload
+    @data = @db.q("SHOW TABLE STATUS WHERE `Name` = '#{@db.esc(self.name)}'").fetch
   end
   
   #Used to validate in Knj::Wrap_map.
@@ -228,8 +241,27 @@ class KnjDB_mysql::Tables::Table
     end
   end
   
-  def create_indexes(index_arr)
+  def create_indexes(index_arr, args = {})
+    return KnjDB_mysql::Tables::Table.create_indexes(index_arr, args.merge(:table_name => self.name, :db => @db))
+  end
+  
+  def self.create_indexes(index_arr, args = {})
+    db = args[:db]
+    
+    if args[:return_sql]
+      sql = ""
+      first = true
+    end
+    
     index_arr.each do |index_data|
+      if !args[:return_sql]
+        sql = ""
+      end
+      
+      if args[:create] or !args.key?(:create)
+        sql << "CREATE"
+      end
+      
       if index_data.is_a?(String)
         index_data = {"name" => index_data, "columns" => [index_data]}
       end
@@ -237,29 +269,50 @@ class KnjDB_mysql::Tables::Table
       raise "No name was given." if !index_data.key?("name") or index_data["name"].strip.length <= 0
       raise "No columns was given on index: '#{index_data["name"]}'." if !index_data["columns"] or index_data["columns"].empty?
       
-      sql = "CREATE"
+      if args[:return_sql]
+        if first
+          first = false
+        else
+          sql << ", "
+        end
+      end
+      
       sql << " UNIQUE" if index_data["unique"]
-      sql << " INDEX #{@db.escape_col}#{@db.esc_col(index_data["name"])}#{@db.escape_col} ON #{@db.escape_table}#{@db.esc_table(self.name)}#{@db.escape_table} ("
+      sql << " INDEX #{db.escape_col}#{db.esc_col(index_data["name"])}#{db.escape_col}"
+      
+      if args[:on_table] or !args.key?(:on_table)
+        sql << " ON #{db.escape_table}#{db.esc_table(args[:table_name])}#{db.escape_table}"
+      end
+      
+      sql << " ("
       
       first = true
       index_data["columns"].each do |col_name|
         sql << ", " if !first
         first = false if first
         
-        sql << "#{@db.escape_col}#{@db.esc_col(col_name)}#{@db.escape_col}"
+        sql << "#{db.escape_col}#{db.esc_col(col_name)}#{db.escape_col}"
       end
       
       sql << ")"
       
-      @db.query(sql)
+      if !args[:return_sql]
+        db.query(sql)
+      end
+    end
+    
+    if args[:return_sql]
+      return sql
+    else
+      return nil
     end
   end
   
   def rename(newname)
     oldname = self.name
     @db.query("ALTER TABLE `#{oldname}` RENAME TO `#{newname}`")
-    @args[:tables].list[newname] = self
-    @args[:tables].list.delete(oldname)
+    @db.tables.list[newname] = self
+    @db.tables.list.delete(oldname)
     @data[:Name] = newname
   end
   

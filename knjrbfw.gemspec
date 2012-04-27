@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{knjrbfw}
-  s.version = "0.0.23"
+  s.version = "0.0.27"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Kasper Johansen"]
-  s.date = %q{2012-03-16}
+  s.date = %q{2012-04-27}
   s.description = %q{Including stuff for HTTP, SSH and much more.}
   s.email = %q{k@spernj.org}
   s.extra_rdoc_files = [
@@ -173,6 +173,7 @@ Gem::Specification.new do |s|
     "lib/knj/knjdb/libknjdb_row.rb",
     "lib/knj/knjdb/libknjdb_sqlite3_ironruby.rb",
     "lib/knj/knjdb/revision.rb",
+    "lib/knj/kvm.rb",
     "lib/knj/libqt.rb",
     "lib/knj/libqt_window.rb",
     "lib/knj/locale_strings.rb",
@@ -180,6 +181,7 @@ Gem::Specification.new do |s|
     "lib/knj/maemo/fremantle-calendar/fremantle-calendar.rb",
     "lib/knj/mail.rb",
     "lib/knj/mailobj.rb",
+    "lib/knj/memory_analyzer.rb",
     "lib/knj/mount.rb",
     "lib/knj/mutexcl.rb",
     "lib/knj/notify.rb",
@@ -200,11 +202,11 @@ Gem::Specification.new do |s|
     "lib/knj/process_meta.rb",
     "lib/knj/rand.rb",
     "lib/knj/retry.rb",
-    "lib/knj/rhodes/delegate.rb",
     "lib/knj/rhodes/mutex.rb",
     "lib/knj/rhodes/rhodes.js",
     "lib/knj/rhodes/rhodes.rb",
-    "lib/knj/rhodes/weakref.rb",
+    "lib/knj/rhodes/youtube_embed.erb",
+    "lib/knj/rhodes/youtube_open.erb",
     "lib/knj/rsvgbin.rb",
     "lib/knj/scripts/degulesider.rb",
     "lib/knj/scripts/filesearch.rb",
@@ -244,6 +246,7 @@ Gem::Specification.new do |s|
     "lib/knjrbfw.rb",
     "spec/amixer_spec.rb",
     "spec/cmd_parser_spec.rb",
+    "spec/datet_spec.rb",
     "spec/db_spec.rb",
     "spec/db_spec_encoding_test_file.txt",
     "spec/http2_spec.rb",

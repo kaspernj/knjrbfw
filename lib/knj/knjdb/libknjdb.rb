@@ -371,8 +371,11 @@ class Knj::Db
   def query(string)
     if @debug
       print "SQL: #{string}\n"
-      print caller.join("\n")
-      print "\n"
+      
+      if @debug.is_a?(Fixnum) and @debug >= 2
+        print caller.join("\n")
+        print "\n"
+      end
     end
     
     self.conn_exec do |driver|

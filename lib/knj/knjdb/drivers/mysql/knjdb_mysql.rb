@@ -95,7 +95,7 @@ class KnjDB_mysql
           @jdbc_loaded = true
         end
         
-        @conn = java.sql::DriverManager.getConnection("jdbc:mysql://#{@knjdb.opts[:host]}:#{@port}/#{@knjdb.opts[:db]}?user=#{@knjdb.opts[:user]}&password=#{@knjdb.opts[:pass]}&populateInsertRowWithDefaultValues=true&zeroDateTimeBehavior=round&characterEncoding=#{@encoding}")
+        @conn = java.sql::DriverManager.getConnection("jdbc:mysql://#{@knjdb.opts[:host]}:#{@port}/#{@knjdb.opts[:db]}?user=#{@knjdb.opts[:user]}&password=#{@knjdb.opts[:pass]}&populateInsertRowWithDefaultValues=true&zeroDateTimeBehavior=round&characterEncoding=#{@encoding}&holdResultsOpenOverStatementClose=true")
         self.query("SET SQL_MODE = ''")
       else
         raise "Unknown subtype: #{@subtype}"
@@ -130,18 +130,25 @@ class KnjDB_mysql
               
               return nil
             else
+              id = nil
+              
               begin
                 res = stmt.execute_query(str)
                 ret = KnjDB_java_mysql_result.new(@knjdb, @opts, res)
+                id = ret.__id__
+                
+                #If ID is being reused we have to free the result.
+                self.java_mysql_resultset_killer(id) if @java_rs_data.key?(id)
                 
                 #Save reference to result and statement, so we can close them when they are garbage collected.
-                @java_rs_data[ret.__id__] = {:res => res, :stmt => stmt}
+                @java_rs_data[id] = {:res => res, :stmt => stmt}
                 ObjectSpace.define_finalizer(ret, self.method("java_mysql_resultset_killer"))
                 
                 return ret
               rescue => e
                 res.close if res
                 stmt.close
+                @java_rs_data.delete(id) if ret and id
                 raise e
               end
             end
@@ -497,11 +504,15 @@ class KnjDB_java_mysql_result
   
   def fetch
     return false if !@result
-    
     self.read_meta if !@keys
     status = @result.next
     
-    return false if !status
+    if !status
+      @result = nil
+      @keys = nil
+      @count = nil
+      return false
+    end
     
     if @as_hash
       ret = {}

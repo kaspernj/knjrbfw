@@ -4,8 +4,7 @@ class Knj::Eruby
   def initialize(args = {})
     @args = args
     
-    require "tmpdir"
-    @tmpdir = "#{Dir.tmpdir}/knj_erb"
+    @tmpdir = "#{Knj::Os.tmpdir}/knj_erb"
     Dir.mkdir(@tmpdir, 0777) if !File.exists?(@tmpdir)
     
     
@@ -221,13 +220,8 @@ class Knj::Eruby
       print "\n\n<pre>\n\n"
       print "<b>#{Knj::Web.html(e.class.name)}: #{Knj::Web.html(e.message)}</b>\n\n"
       
-      #Lets hide all the stuff in what is not the users files to make it easier to debug.
-      bt = e.backtrace
-      #to = bt.length - 9
-      #bt = bt[0..to]
-      
-      bt.each do |line|
-        print Knj::Web.html(line) + "\n"
+      e.backtrace.each do |line|
+        print "#{Knj::Web.html(line)}\n"
       end
       
       print "</pre>"
@@ -237,7 +231,7 @@ class Knj::Eruby
     print "<b>#{Knj::Web.html(e.class.name)}: #{Knj::Web.html(e.message)}</b>\n\n"
     
     e.backtrace.each do |line|
-      print Knj::Web.html(line) + "\n"
+      print "#{Knj::Web.html(line)}\n"
     end
     
     print "</pre>"
