@@ -6,11 +6,11 @@ describe "Db" do
   it "should be able to handle various encodings" do
     #I never got this test to actually fail... :-(
     
-    require "knj/db"
-    require "tmpdir"
     require "sqlite3"
+    require "knj/db"
+    require "knj/os"
     
-    db_path = "#{Dir.tmpdir}/knjrbfw_test_sqlite3.sqlite3"
+    db_path = "#{Knj::Os.tmpdir}/knjrbfw_test_sqlite3.sqlite3"
     
     db = Knj::Db.new(
       :type => "sqlite3",

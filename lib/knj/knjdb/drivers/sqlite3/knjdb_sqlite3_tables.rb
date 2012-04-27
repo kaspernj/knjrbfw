@@ -294,9 +294,9 @@ class KnjDB_sqlite3::Tables::Table
   
   def indexes
     @db.indexes
-    ret = {}
+    ret = {} unless block_given?
     
-    @db.q("PRAGMA index_list(`#{@driver.esc_table(self.name)}`)") do |d_indexes|
+    @db.q("PRAGMA index_list(`#{@db.esc_table(self.name)}`)") do |d_indexes|
       next if d_indexes[:Key_name] == "PRIMARY"
       
       obj = @indexes_list.get!(d_indexes[:name])

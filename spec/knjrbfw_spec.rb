@@ -3,10 +3,9 @@ require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 describe "Knjrbfw" do
   it "should be able to generate a sample SQLite database and add a sample table, with sample columns and with a sample index to it" do
     require "knjrbfw"
-    require "knj/autoload"
-    require "tmpdir"
+    require "sqlite3"
     
-    db_path = "#{Dir.tmpdir}/knjrbfw_test_sqlite3.sqlite3"
+    db_path = "#{Knj::Os.tmpdir}/knjrbfw_test_sqlite3.sqlite3"
     
     begin
       db = Knj::Db.new(
@@ -49,6 +48,8 @@ describe "Knjrbfw" do
       table = db.tables["Project"]
       
       indexes = table.indexes
+      
+      Knj::Php.print_r(indexes)
       raise "Could not find the sample-index 'category_id' that should have been created." if !indexes["category_id"]
       
       
