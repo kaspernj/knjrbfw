@@ -18,7 +18,7 @@ class Knj::Eruby
     if RUBY_PLATFORM == "java" or RUBY_ENGINE == "rbx"
       @cache_mode = :code_eval
       #@cache_mode = :compile_knj
-    elsif RUBY_VERSION.slice(0..2) == "1.9" and RubyVM::InstructionSequence.respond_to?(:compile_file)
+    elsif RUBY_VERSION.slice(0..2) == "1.9" #and RubyVM::InstructionSequence.respond_to?(:compile_file)
       @cache_mode = :code_eval
       #@cache_mode = :inseq
       #@cache_mode = :compile_knj
@@ -37,21 +37,19 @@ class Knj::Eruby
     @error = false
     Dir.mkdir(@tmpdir) if !File.exists?(@tmpdir)
     filename = File.expand_path(filename)
-    raise "File does not exist: #{filename}" if !File.exists?(filename)
-    filetime = File.mtime(filename)
+    raise "File does not exist: #{filename}" unless File.exists?(filename)
     cachename = "#{@tmpdir}/#{filename.gsub("/", "_").gsub(".", "_")}.cache"
+    filetime = File.mtime(filename)
     cachetime = File.mtime(cachename) if File.exists?(cachename)
     
+    if !File.exists?(cachename) or filetime > cachetime
+      Knj::Eruby::Handler.load_file(filename, {:cachename => cachename})
+      File.chmod(0777, cachename)
+      cachetime = File.mtime(cachename)
+      reload_cache = true
+    end
+    
     begin
-      if !File.exists?(cachename) or filetime > cachetime
-        Knj::Eruby::Handler.load_file(filename, {:cachename => cachename})
-        File.chmod(0777, cachename)
-        cachetime = File.mtime(cachename)
-        reload_cache = true
-      elsif !@cache.key?(cachename)
-        reload_cache = true
-      end
-      
       case @cache_mode
         when :compile_knj
           @compiler.eval_file(:filepath => cachename, :fileident => filename)
@@ -63,9 +61,11 @@ class Knj::Eruby
             binding_use = eruby_binding.get_binding
           end
           
-          @cache[cachename] = File.read(cachename) if reload_cache
-          eval(@cache[cachename], binding_use, filename)
+          #No reason to cache contents of files - benchmarking showed little to no differene performance-wise, but caching took up a lot of memory, when a lot of files were cached - knj.
+          eval(File.read(cachename), binding_use, filename)
         when :inseq
+          reload_cache = true if !@cache.key?(cachename)
+          
           if reload_cache or @cache[cachename][:time] < cachetime
             @cache[cachename] = {
               :inseq => RubyVM::InstructionSequence.compile(File.read(cachename), filename, nil, 1),
