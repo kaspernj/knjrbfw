@@ -1,7 +1,7 @@
 require "#{$knjpath}web"
 
 class Knj::Http2
-  attr_reader :cookies
+  attr_reader :cookies, :args
   
   def initialize(args = {})
     args = {:host => args} if args.is_a?(String)
