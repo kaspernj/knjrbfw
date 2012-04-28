@@ -972,10 +972,5 @@ module Knj::Php
     return PHP.unserialize(argument.to_s)
   end
   
-  @methods = instance_methods
-  def self.php_list_defined_methods
-    return @methods
-  end
-  
   module_function(*instance_methods)
 end
