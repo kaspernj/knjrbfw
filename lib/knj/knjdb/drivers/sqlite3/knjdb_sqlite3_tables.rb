@@ -374,4 +374,8 @@ class KnjDB_sqlite3::Tables::Table
     
     return ret
   end
+  
+  def insert(data)
+    @db.insert(self.name, data)
+  end
 end
