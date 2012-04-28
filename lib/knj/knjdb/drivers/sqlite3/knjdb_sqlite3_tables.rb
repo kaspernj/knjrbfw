@@ -45,7 +45,7 @@ class KnjDB_sqlite3::Tables
         if block_given?
           yield(obj)
         else
-          ret[d_tables[:Name]] = obj
+          ret[d_tables[:name]] = obj
         end
       end
     end

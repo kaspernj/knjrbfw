@@ -27,6 +27,15 @@ describe "Db" do
       ]
     })
     
+    
+    
+    #Get a list of tables and check the list for errors.
+    list = db.tables.list
+    raise "Table not found: 'test'." if !list.key?("test")
+    raise "Table-name expected to be 'test' but wasnt: '#{list["test"].name}'." if list["test"].name != "test"
+    
+    
+    #Test revision to create tables.
     schema = {
       "tables" => {
         "test_table" => {
