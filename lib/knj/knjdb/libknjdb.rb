@@ -68,7 +68,7 @@ class Knj::Db
     
     fpaths = [
       "drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}.rb",
-      "libknjdb_" + @opts[:type] + ".rb"
+      "libknjdb_#{@opts[:type]}.rb"
     ]
     fpaths.each do |fpath|
       rpath = "#{File.dirname(__FILE__)}/#{fpath}"
@@ -178,7 +178,7 @@ class Knj::Db
   end
   
   def insert(tablename, arr_insert, args = {})
-    conn_exec do |driver|
+    self.conn_exec do |driver|
       sql = "INSERT INTO #{driver.escape_table}#{tablename.to_s}#{driver.escape_table} ("
       
       first = true
@@ -213,7 +213,7 @@ class Knj::Db
   end
   
   def insert_multi(tablename, arr_hashes)
-    conn_exec do |driver|
+    self.conn_exec do |driver|
       if driver.respond_to?(:insert_multi)
         return false if arr_hashes.empty?
         driver.insert_multi(tablename, arr_hashes)
@@ -228,7 +228,7 @@ class Knj::Db
   def update(tablename, arr_update, arr_terms = {})
     return false if arr_update.empty?
     
-    conn_exec do |driver|
+    self.conn_exec do |driver|
       sql = ""
       sql << "UPDATE #{driver.escape_col}#{tablename.to_s}#{driver.escape_col} SET "
       
@@ -256,7 +256,7 @@ class Knj::Db
   def select(tablename, arr_terms = nil, args = nil, &block)
     sql = ""
     
-    conn_exec do |driver|
+    self.conn_exec do |driver|
       sql = "SELECT * FROM #{driver.escape_table}#{tablename.to_s}#{driver.escape_table}"
       
       if arr_terms != nil and !arr_terms.empty?
@@ -285,18 +285,21 @@ class Knj::Db
     return self.q(sql, &block)
   end
   
-  def selectsingle(tablename, arr_terms = nil, args = {})
-    args["limit"] = 1
-    return self.select(tablename, arr_terms, args).fetch
-  end
-  
   def single(tablename, arr_terms = nil, args = {})
     args["limit"] = 1
-    return self.select(tablename, arr_terms, args).fetch
+    
+    #Experienced very weird memory leak if this was not done by block. Maybe bug in Ruby 1.9.2? - knj
+    self.select(tablename, arr_terms, args) do |data|
+      return data
+    end
+    
+    return false
   end
   
+  alias :selectsingle :single
+  
   def delete(tablename, arr_terms)
-    conn_exec do |driver|
+    self.conn_exec do |driver|
       sql = "DELETE FROM #{driver.escape_table}#{tablename}#{driver.escape_table}"
       
       if arr_terms != nil and !arr_terms.empty?
@@ -305,6 +308,8 @@ class Knj::Db
       
       driver.query(sql)
     end
+    
+    return nil
   end
   
   def makeWhere(arr_terms, driver)
@@ -320,6 +325,8 @@ class Knj::Db
       
       if value.is_a?(Array)
         sql << "#{driver.escape_col}#{key}#{driver.escape_col} IN (#{Knj::ArrayExt.join(:arr => value, :sep => ",", :surr => "'", :callback => proc{|ele| self.esc(ele)})})"
+      elsif value.is_a?(Hash)
+        raise "Dont know how to handle hash."
       else
         sql << "#{driver.escape_col}#{key}#{driver.escape_col} = #{driver.escape_val}#{driver.escape(value)}#{driver.escape_val}"
       end
@@ -370,11 +377,10 @@ class Knj::Db
   #Executes a query and returns the result.
   def query(string)
     if @debug
-      begin
-        raise "test"
-      rescue => e
-        print "SQL: #{string}\n"
-        print e.backtrace.join("\n")
+      print "SQL: #{string}\n"
+      
+      if @debug.is_a?(Fixnum) and @debug >= 2
+        print caller.join("\n")
         print "\n"
       end
     end
@@ -402,15 +408,7 @@ class Knj::Db
   
   #Clones the connection, executes a unbuffered query and closes the connection again.
   def cloned_conn(args = nil, &block)
-    subtype = @opts[:subtype]
-    
-    #MySQL2-driver doesnt support unbuffered queries yet.
-    if @opts[:type] == "mysql" and @opts[:subtype] == "mysql2"
-      subtype = "mysql"
-    end
-    
     clone_conn_args = {
-      :subtype => subtype,
       :threadsafe => false
     }
     
@@ -513,15 +511,14 @@ class Knj::Db
   #Returns the table-module and spawns it if it isnt already spawned.
   def tables
     conn_exec do |driver|
-      if !driver.tables
+      if !@tables
         require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_tables" if (!@opts.key?(:require) or @opts[:require])
-        driver.tables = Kernel.const_get("KnjDB_#{@opts[:type]}".to_sym).const_get(:Tables).new(
-          :driver => driver,
+        @tables = Kernel.const_get("KnjDB_#{@opts[:type]}".to_sym).const_get(:Tables).new(
           :db => self
         )
       end
       
-      return driver.tables
+      return @tables
     end
   end
   
@@ -530,7 +527,6 @@ class Knj::Db
     if !@cols
       require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_columns" if (!@opts.key?(:require) or @opts[:require])
       @cols = Kernel.const_get("KnjDB_#{@opts[:type]}".to_sym).const_get(:Columns).new(
-        :driver => @conn,
         :db => self
       )
     end
@@ -543,7 +539,6 @@ class Knj::Db
     if !@indexes
       require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_indexes" if (!@opts.key?(:require) or @opts[:require])
       @indexes = Kernel.const_get("KnjDB_#{@opts[:type]}".to_sym).const_get(:Indexes).new(
-        :driver => @conn,
         :db => self
       )
     end
@@ -552,12 +547,23 @@ class Knj::Db
   end
   
   def method_missing(method_name, *args)
-    conn_exec do |driver|
+    self.conn_exec do |driver|
       if driver.respond_to?(method_name.to_sym)
         return driver.send(method_name, *args)
       end
     end
     
     raise "Method not found: #{method_name}"
+  end
+  
+  #Beings a transaction and commits when the block ends.
+  def transaction
+    self.query("START TRANSACTION")
+    
+    begin
+      yield(self)
+    ensure
+      self.query("COMMIT")
+    end
   end
 end

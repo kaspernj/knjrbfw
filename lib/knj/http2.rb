@@ -1,7 +1,7 @@
 require "#{$knjpath}web"
 
 class Knj::Http2
-  attr_reader :cookies
+  attr_reader :cookies, :args
   
   def initialize(args = {})
     args = {:host => args} if args.is_a?(String)
@@ -378,7 +378,7 @@ class Knj::Http2
         return http.get(uri.path)
       end
     elsif resp.args[:code].to_s == "500"
-      raise "500 - Internal server error: '#{args[:addr]}'."
+      raise "500 - Internal server error: '#{args[:addr]}':\n\n#{resp.body}"
     elsif resp.args[:code].to_s == "403"
       raise Knj::Errors::NoAccess
     else

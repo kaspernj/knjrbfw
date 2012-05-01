@@ -30,7 +30,7 @@ class Knj::Unix_proc
     end
     
     MUTEX.synchronize do
-      ret = []
+      ret = [] unless block_given?
       res = Knj::Os.shellcmd(cmdstr)
       
       res.scan(/^(\S+)\s+([0-9]+)\s+([0-9.]+)\s+([0-9.]+)\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+ (.+)($|\n)/) do |match|
@@ -60,11 +60,22 @@ class Knj::Unix_proc
           next if !found
         end
         
-        ret << Knj::Unix_proc.spawn(data)
+        proc_obj = Knj::Unix_proc.spawn(data)
+        
+        if block_given?
+          yield(proc_obj)
+        else
+          ret << proc_obj
+        end
       end
       
       PROCS.clean
-      return ret
+      
+      if block_given?
+        return nil
+      else
+        return ret
+      end
     end
   end
   

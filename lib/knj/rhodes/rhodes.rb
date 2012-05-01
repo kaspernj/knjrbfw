@@ -39,7 +39,7 @@ class Knj::Rhodes
     @db = Knj::Db.new(
       :type => "sqlite3",
       :subtype => "rhodes",
-      :path => "#{Rho::RhoApplication.get_base_app_path}app/rhodes_default.sqlite3",
+      :path => "#{Rho::RhoApplication.get_user_path}rhodes_default.sqlite3",
       :return_keys => "symbols",
       :require => false
     )

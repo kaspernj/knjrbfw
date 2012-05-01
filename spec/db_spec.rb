@@ -7,10 +7,11 @@ describe "Db" do
     #I never got this test to actually fail... :-(
     
     require "knj/db"
-    require "tmpdir"
-    require "sqlite3"
+    require "knj/os"
+    require "sqlite3" if !Kernel.const_defined?("SQLite3")
     
-    db_path = "#{Dir.tmpdir}/knjrbfw_test_sqlite3.sqlite3"
+    db_path = "#{Knj::Os.tmpdir}/knjrbfw_test_sqlite3.sqlite3"
+    File.unlink(db_path) if File.exists?(db_path)
     
     db = Knj::Db.new(
       :type => "sqlite3",
@@ -25,6 +26,35 @@ describe "Db" do
         {"name" => "text", "type" => "varchar"}
       ]
     })
+    
+    
+    
+    #Get a list of tables and check the list for errors.
+    list = db.tables.list
+    raise "Table not found: 'test'." if !list.key?("test")
+    raise "Table-name expected to be 'test' but wasnt: '#{list["test"].name}'." if list["test"].name != "test"
+    
+    
+    #Test revision to create tables.
+    schema = {
+      "tables" => {
+        "test_table" => {
+          "columns" => [
+            {"name" => "id", "type" => "int", "autoincr" => true, "primarykey" => true},
+            {"name" => "name", "type" => "varchar"}
+          ],
+          "rows" => [
+            {
+              "find_by" => {"id" => 1},
+              "data" => {"id" => 1, "name" => "trala"}
+            }
+          ]
+        }
+      }
+    }
+    
+    rev = Knj::Db::Revision.new
+    rev.init_db("schema" => schema, "db" => db)
     
     begin
       cont = File.read("#{File.dirname(__FILE__)}/db_spec_encoding_test_file.txt")

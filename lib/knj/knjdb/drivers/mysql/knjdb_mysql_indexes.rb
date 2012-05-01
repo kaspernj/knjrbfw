@@ -12,6 +12,11 @@ class KnjDB_mysql::Indexes::Index
     @columns = []
   end
   
+  #Used to validate in Knj::Wrap_map.
+  def __object_unique_id__
+    return @args[:data][:Key_name]
+  end
+  
   def name
     return @args[:data][:Key_name]
   end

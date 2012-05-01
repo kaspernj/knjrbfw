@@ -272,6 +272,7 @@ class Knj::Datet
   
   def add_something(val)
     val = -val if @addmode == "-"
+    return self.add_years(val) if @mode == :years
     return self.add_hours(val) if @mode == :hours
     return self.add_days(val) if @mode == :days
     return self.add_months(val) if @mode == :months
@@ -306,6 +307,11 @@ class Knj::Datet
   
   def months
     @mode = :months
+    return self
+  end
+  
+  def years
+    @mode = :years
     return self
   end
   
