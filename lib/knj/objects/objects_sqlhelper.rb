@@ -64,7 +64,7 @@ class Knj::Objects
             if val[1] == "asc"
               ordermode = " ASC"
             elsif val[1] == "desc"
-              ordermode = "DESC"
+              ordermode = " DESC"
             end
             
             if val[0].is_a?(Array)
