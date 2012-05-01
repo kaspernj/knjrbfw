@@ -113,11 +113,11 @@ class Knj::Translations
       "object_class" => obj.class.name
     })
     trans.each do |tran|
-      #Delete the translation object.
-      @ob.delete(tran)
-      
       #Delete the cache if defined on the object.
       cache.delete(tran[:key].to_sym) if cache and cache.key?(tran[:key].to_sym)
+      
+      #Delete the translation object.
+      @ob.delete(tran)
     end
   end
 end

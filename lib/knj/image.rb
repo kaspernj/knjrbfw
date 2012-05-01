@@ -152,4 +152,14 @@ class Knj::Image
     
     pic.matte = true
   end
+  
+  #Returns the width relative to the height.
+  def self.width_for_height(orig_width, orig_height, new_height)
+    return (orig_width.to_f / (orig_height.to_f / new_height.to_f)).to_i
+  end
+  
+  #Returns the height relative to the width.
+  def self.height_for_width(orig_width, orig_height, new_width)
+    return (orig_height.to_f / (orig_width.to_f / new_width.to_f)).to_i
+  end
 end

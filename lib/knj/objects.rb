@@ -2,6 +2,7 @@ class Knj::Objects
   attr_reader :args, :events, :data
   
   def initialize(args)
+    require "monitor"
     require "#{$knjpath}arrayext"
     require "#{$knjpath}event_handler"
     require "#{$knjpath}hash_methods"
@@ -15,11 +16,9 @@ class Knj::Objects
     @objects = {}
     @locks = {}
     @data = {}
-    @mutex_require = Mutex.new
+    @lock_require = Monitor.new
     
-    if @args[:cache] == :weak
-      require "#{$knjpath}wref"
-    end
+    require "#{$knjpath}wref" if @args[:cache] == :weak
     
     @events = Knj::Event_handler.new
     @events.add_event(
@@ -32,6 +31,10 @@ class Knj::Objects
     )
     @events.add_event(
       :name => :missing_class,
+      :connections_max => 1
+    )
+    @events.add_event(
+      :name => :require_class,
       :connections_max => 1
     )
     
@@ -70,6 +73,11 @@ class Knj::Objects
     end
     
     @locks[classname] = Mutex.new
+  end
+  
+  def uninit_class(classname)
+    @objects.delete(classname)
+    @locks.delete(classname)
   end
   
   #Returns a cloned version of the @objects variable. Cloned because iteration on it may crash some of the other methods in Ruby 1.9+
@@ -149,15 +157,31 @@ class Knj::Objects
     classname = classname.to_sym
     return false if @objects.key?(classname)
     
-    @mutex_require.synchronize do
+    @lock_require.synchronize do
       #Maybe the classname got required meanwhile the synchronized wait - check again.
       return false if @objects.key?(classname)
       
-      if (@args[:require] or !@args.key?(:require)) and (!args.key?(:require) or args[:require])
-        filename = "#{@args[:class_path]}/#{@args[:class_pre]}#{classname.to_s.downcase}.rb"
-        filename_req = "#{@args[:class_path]}/#{@args[:class_pre]}#{classname.to_s.downcase}"
-        raise "Class file could not be found: #{filename}." if !File.exists?(filename)
-        require filename_req
+      if @events.connected?(:require_class)
+        @events.call(:require_class, {
+          :class => classname
+        })
+      else
+        doreq = false
+        
+        if args[:require]
+          doreq = true
+        elsif args.key?(:require) and !args[:require]
+          doreq = false
+        elsif @args[:require] or !@args.key?(:require)
+          doreq = true
+        end
+        
+        if doreq
+          filename = "#{@args[:class_path]}/#{@args[:class_pre]}#{classname.to_s.downcase}.rb"
+          filename_req = "#{@args[:class_path]}/#{@args[:class_pre]}#{classname.to_s.downcase}"
+          raise "Class file could not be found: #{filename}." if !File.exists?(filename)
+          require filename_req
+        end
       end
       
       if args[:class]
@@ -261,6 +285,7 @@ class Knj::Objects
     end
   end
   
+  #Returns the first object found from the given arguments. Also automatically limits the results to 1.
   def get_by(classname, args = {})
     classname = classname.to_sym
     self.requireclass(classname)
@@ -344,6 +369,10 @@ class Knj::Objects
       html << "<option"
       html << " selected=\"selected\"" if !args[:selected]
       html << " value=\"\">#{_("Add new")}</option>"
+    elsif args[:none]
+      html << "<option"
+      html << " selected=\"selected\"" if !args[:selected]
+      html << " value=\"\">#{_("None")}</option>"
     end
     
     self.list(classname, args[:list_args]) do |object|
@@ -461,6 +490,7 @@ class Knj::Objects
   
   #Add a new object to the database and to the cache.
   def add(classname, data = {})
+    raise "data-variable was not a hash: '#{data.class.name}'." if !data.is_a?(Hash)
     classname = classname.to_sym
     self.requireclass(classname)
     
@@ -594,6 +624,9 @@ class Knj::Objects
   
   #Delete an object. Both from the database and from the cache.
   def delete(object)
+    #Return false if the object has already been deleted.
+    return false if object.deleted?
+    
     self.call("object" => object, "signal" => "delete_before")
     self.unset(object)
     obj_id = object.id
@@ -637,6 +670,7 @@ class Knj::Objects
       arr_ids = []
       ids = []
       objs.each do |obj|
+        next if obj.deleted?
         ids << obj.id
         if ids.length >= 1000
           arr_ids << ids

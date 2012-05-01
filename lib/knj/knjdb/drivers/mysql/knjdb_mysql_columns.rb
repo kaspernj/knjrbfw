@@ -1,10 +1,8 @@
 class KnjDB_mysql::Columns
-  attr_reader :db, :driver
+  attr_reader :db
   
   def initialize(args)
     @args = args
-    @db = @args[:db]
-    @driver = @args[:driver]
   end
   
   def data_sql(data)
@@ -21,11 +19,11 @@ class KnjDB_mysql::Columns
     if data.key?("default_func")
       sql << " DEFAULT #{data["default_func"]}"
     elsif data.key?("default") and data["default"] != false
-      sql << " DEFAULT '#{@db.escape(data["default"])}'"
+      sql << " DEFAULT '#{@args[:db].escape(data["default"])}'"
     end
     
-    sql << " COMMENT '#{@db.escape(data["comment"])}'" if data.key?("comment")
-    sql << " AFTER `#{@db.esc_col(data["after"])}`" if data["after"] and !data["first"]
+    sql << " COMMENT '#{@args[:db].escape(data["comment"])}'" if data.key?("comment")
+    sql << " AFTER `#{@args[:db].esc_col(data["after"])}`" if data["after"] and !data["first"]
     sql << " FIRST" if data["first"]
     
     return sql
@@ -37,6 +35,11 @@ class KnjDB_mysql::Columns::Column
   
   def initialize(args)
     @args = args
+  end
+  
+  #Used to validate in Knj::Wrap_map.
+  def __object_unique_id__
+    return @args[:data][:Field]
   end
   
   def name
@@ -116,9 +119,8 @@ class KnjDB_mysql::Columns::Column
   end
   
   def change(data)
-    esc_col = @args[:driver].escape_col
-    col_escaped = "#{esc_col}#{@args[:db].esc_col(self.name)}#{esc_col}"
-    table_escape = "#{@args[:driver].escape_table}#{@args[:driver].esc_table(self.table.name)}#{@args[:driver].escape_table}"
+    col_escaped = "#{@args[:db].enc_col}#{@args[:db].esc_col(self.name)}#{@args[:db].enc_col}"
+    table_escape = "#{@args[:db].enc_table}#{@args[:db].esc_table(self.table.name)}#{@args[:db].enc_table}"
     newdata = data.clone
     
     newdata["name"] = self.name if !newdata.key?("name")

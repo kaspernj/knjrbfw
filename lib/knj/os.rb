@@ -13,6 +13,19 @@ module Knj::Os
     return homedir
   end
   
+  #This method was created to make up for the fact that Dir.tmpdir sometimes returns empty strings??
+  def self.tmpdir
+    require "tmpdir"
+    tmpdir = Dir.tmpdir.to_s.strip
+    
+    return tmpdir if tmpdir.length >= 3 and File.exists?(tmpdir)
+    return ENV["TEMP"] if ENV["TEMP"].to_s.strip.length > 0 and File.exists?(ENV["TMP"])
+    return ENV["TMP"] if ENV["TMP"].to_s.strip.length > 0 and File.exists?(ENV["TMP"])
+    return "/tmp" if File.exists?("/tmp")
+    
+    raise "Could not figure out temp-dir."
+  end
+  
   def self.whoami
     if ENV["USERNAME"]
       whoami = ENV["USERNAME"]

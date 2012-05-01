@@ -25,6 +25,6 @@ describe "Datet" do
     time = Time.at(Time.now.to_i - 48 * 3600)
     datet = Knj::Datet.in(time)
     res = datet.ago_str
-    raise "Expected '48 hours ago' but got: '#{res}'." if res != "48 hours ago"
+    raise "Expected '2 days ago' but got: '#{res}'." if res != "2 days ago"
   end
 end

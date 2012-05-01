@@ -110,6 +110,7 @@ module Knj::Strings
   #Returns 'Yes' or 'No' based on a value. The value can be 0, 1, yes, no, true or false.
   def self.yn_str(value, str_yes = "Yes", str_no = "No")
     value = value.to_i if Knj::Php.is_numeric(value)
+    value_s = value.to_s
     
     if value.is_a?(Integer)
       if value == 0
@@ -119,7 +120,7 @@ module Knj::Strings
       end
     end
     
-    return str_no if !value or value == "no"
+    return str_no if !value or value_s == "no" or value_s == "false" or value_s == ""
     return str_yes
   end
   

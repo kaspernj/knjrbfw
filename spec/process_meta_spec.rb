@@ -121,7 +121,7 @@ describe "Process_meta" do
   it "should be able to do slow block-results in JRuby." do
     $process_meta.str_eval("
       class Kaspertest
-        def kaspertest
+        def self.kaspertest
           8.upto(12) do |i|
             yield(i)
             sleep 0.5
