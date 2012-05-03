@@ -182,21 +182,15 @@ class Knj::Process
           self.answer(id, "ok")
         when "send_block_buffer"
           Knj::Thread.new do
-            mutex = Mutex.new #Protecting 'buffer_answers'-variable. Crashing JRuby...
             result_obj = Knj::Process::Resultobject.new(:process => self, :id => id, :obj => obj)
             block_res = nil
             buffer_done = false
             
             begin
-              buffer_answers = []
-              
+              buffer_answers = Knj::Threadsafe.std_array #JRuby needs the threadsafety.
               buffer_thread = Knj::Thread.new do
-                dobreak = false
                 loop do
-                  arr = nil
-                  mutex.synchronize do
-                    arr = buffer_answers.shift(200)
-                  end
+                  arr = buffer_answers.shift(200)
                   
                   if !arr.empty?
                     $stderr.print "Sending: #{arr.length} results.\n" if @debug
@@ -206,14 +200,7 @@ class Knj::Process
                     sleep 0.05
                   end
                   
-                  if buffer_done
-                    mutex.synchronize do
-                      $stderr.print "Buffer-answers: #{buffer_answers.length}, #{buffer_answers.empty?}\n" if @debug
-                      dobreak = true if buffer_answers.empty? #since a break will not affect the real loop in Mutex#synchronize set this variable.
-                    end
-                    
-                    break if dobreak
-                  end
+                  break if buffer_done and buffer_answers.empty?
                 end
               end
               
@@ -222,12 +209,7 @@ class Knj::Process
                   count = 0
                   block_res = @on_rec.call(result_obj) do |answer_block|
                     loop do
-                      len = nil
-                      mutex.synchronize do
-                        len = buffer_answers.length
-                      end
-                      
-                      if len > 1000
+                      if buffer_answers.length > 1000
                         $stderr.print "Buffer is more than 1000 - sleeping and tries again in 0.05 sec.\n" if @debug
                         sleep 0.05
                       else
@@ -236,9 +218,7 @@ class Knj::Process
                     end
                     
                     count += 1
-                    mutex.synchronize do
-                      buffer_answers << answer_block
-                    end
+                    buffer_answers << answer_block
                     
                     if count >= 100
                       count = 0
