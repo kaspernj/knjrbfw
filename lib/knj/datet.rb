@@ -2,8 +2,10 @@ require "time"
 
 #This class handels various time- and date-specific behaviour in a friendly way.
 #===Examples
-# datet = Knj::Datet.new
-# datet = Knj::Datet.new(Time.now)
+# datet = Knj::Datet.new #=> 2012-05-03 20:35:16 +0200
+# datet = Knj::Datet.new(Time.now) #=> 2012-05-03 20:35:16 +0200
+# datet.months + 5 #=> 2012-10-03 20:35:16 +0200
+# datet.days + 64 #=> 2012-12-06 20:35:16 +010
 class Knj::Datet
   attr_accessor :time
   
@@ -11,6 +13,16 @@ class Knj::Datet
     @time = time
   end
   
+  #Goes forward day-by-day and stops at a date matching the criteria given.
+  #
+  #===Examples
+  # datet.time #=> 2012-05-03 19:36:08 +0200
+  #
+  #Try to find next saturday.
+  # datet.find(:day, :day_in_week => 5) #=> 2012-05-05 19:36:08 +0200
+  #
+  #Try to find next wednesday by Time's wday-method.
+  # datet.find(:day, :wday => 3) #=> 2012-05-09 19:36:08 +0200
   def find(incr, args)
     count = 0
     while true
@@ -266,6 +278,11 @@ class Knj::Datet
     return self
   end
   
+  #Changes the hour to a given new hour.
+  #===Examples
+  # datet.time #=> 2012-05-09 19:36:08 +0200
+  # datet.hour = 5
+  # datet.time #=> 2012-05-09 05:36:08 +0200
   def hour=(newhour)
     newhour = newhour.to_i
     day = @time.day
@@ -288,21 +305,40 @@ class Knj::Datet
     return self
   end
   
+  #Changes the minute to a given new minute.
+  #===Examples
+  # datet.time #=> 2012-05-09 05:36:08 +0200
+  # datet.min = 35
+  # datet.time #=> 2012-05-09 05:35:08 +0200
   def min=(newmin)
     @time = self.stamp(:datet => false, :min => newmin.to_i)
   end
   
+  #Changes the second to a given new second.
+  #===Examples
+  # datet.time #=> 2012-05-09 05:35:08 +0200
+  # datet.sec = 20
+  # datet.time #=> 2012-05-09 05:35:20 +0200
   def sec=(newsec)
     @time = self.stamp(:datet => false, :sec => newsec.to_i)
   end
   
   alias :day :date
   
+  #Changes the month to a given new month.
+  #===Examples
+  # datet.time #=> 2012-05-09 05:35:20 +0200
+  # datet.month = 7
+  # datet.time #=> 2012-07-09 05:35:20 +0200
   def month=(newmonth)
     @time = self.stamp(:datet => false, :month => newmonth)
   end
   
-  def arg_to_time(datet)
+  #Turns the given argument into a new Time-object.
+  #===Examples
+  # time = Knj::Datet.arg_to_time(datet) #=> <Time>-object
+  # time = Knj::Datet.arg_to_time(Time.now) #=> <Time>-object
+  def self.arg_to_time(datet)
     if datet.is_a?(Knj::Datet)
       return datet.time
     elsif datet.is_a?(Time)
@@ -314,7 +350,7 @@ class Knj::Datet
   
   include Comparable
   def <=>(timeobj)
-    secs = arg_to_time(timeobj).to_i
+    secs = Knj::Datet.arg_to_time(timeobj).to_i
     
     if secs > @time.to_i
       return -1
@@ -325,6 +361,11 @@ class Knj::Datet
     end
   end
   
+  #This method is used for adding values to the object based on the current set mode.
+  #===Examples
+  #Add two months to the datet.
+  # datet.months
+  # datet.add_something(2)
   def add_something(val)
     val = -val if @addmode == "-"
     return self.add_years(val) if @mode == :years
@@ -335,11 +376,19 @@ class Knj::Datet
     raise "No such mode: #{@mode}"
   end
   
+  #Minus something.
+  #===Examples
+  # datet.months - 5
+  # datet.years - 2
   def -(val)
     @addmode = "-"
     self.add_something(val)
   end
   
+  #Add something.
+  #===Examples
+  # datet.months + 5
+  # datet.months + 2
   def +(val)
     @addmode = "+"
     self.add_something(val)
@@ -395,6 +444,9 @@ class Knj::Datet
     return self
   end
   
+  #Returns a new Knj::Datet- or Time-object based on the arguments.
+  #===Examples
+  # time = datet.stamp(:datet => false, :min => 15, :day => 5) #=> 2012-07-05 05:15:20 +0200
   def stamp(args)
     vars = {:year => @time.year, :month => @time.month, :day => @time.day, :hour => @time.hour, :min => @time.min, :sec => @time.sec}
     
@@ -528,6 +580,11 @@ class Knj::Datet
     return str
   end
   
+  #Parses various objects into Knj::Datet-objects.
+  #===Examples
+  # datet = Knj::Datet.in("1985-06-17") #=> 1985-06-17 00:00:00 +0200
+  # datet = Knj::Datet.in("1985-06-17 10:00:00") #=> 1985-06-17 10:00:00 +0200
+  # datet = Knj::Datet.in("17/06 1985 10:00") #=> 1985-06-17 10:00:00 +0200
   def self.in(timestr)
     if timestr.is_a?(Time)
       return Knj::Datet.new(timestr)
@@ -586,7 +643,7 @@ class Knj::Datet
     raise Knj::Errors::InvalidData.new("Wrong format: '#{timestr}', class: '#{timestr.class.name}'")
   end
   
-  #Returns a hash with the month-no as key and month-name as value.
+  #Returns a hash with the month-no as key and month-name as value. It uses the method "_" to translate the months names. So GetText or another method has to be defined.
   def self.months_arr(args = {})
     ret = {
       1 => _("January"),
@@ -615,6 +672,7 @@ class Knj::Datet
     return ret
   end
   
+  #Returns a hash with the day-number as value (starting with 1 for monday). It uses the method "_" to translate the months names.
   def self.days_arr(args = {})
     ret = {
       1 => _("Monday"),
@@ -638,6 +696,11 @@ class Knj::Datet
     return ret
   end
   
+  #Returns the month-number for a given string (starting with 1 for january).
+  #===Examples
+  # Knj::Datet.month_str_to_no("JaNuArY") #=> 1
+  # Knj::Datet.month_str_to_no("DECEMBER") #=> 12
+  # Knj::Datet.month_str_to_no("kasper") #=> <Error>-raised
   def self.month_str_to_no(str)
     ret = {
       "jan" => 1,
@@ -686,21 +749,36 @@ class Knj::Datet
     return @time.to_s
   end
   
+  #This returns a code-string that can be used to recreate the Knj::Datet-object.
+  #===Examples
+  # code = datet.code #=> "1985061710000000000"
+  # newdatet = Knj::Datet.in(code) #=> 1985-06-17 10:00:00 +0200
   def code
     return "#{"%04d" % @time.year}#{"%02d" % @time.month}#{"%02d" % @time.day}#{"%02d" % @time.hour}#{"%02d" % @time.min}#{"%02d" % @time.sec}#{"%05d" % @time.usec}"
   end
   
+  #Returns the unix timestamp for this object.
+  #===Examples
+  # datet.unixt #=> 487843200
+  # datet.to_i #=> 487843200
   def unixt
     return @time.to_i
   end
   
   alias :to_i :unixt
   
+  #Returns the HTTP-date that can be used in headers and such.
+  #===Examples
+  # datet.httpdate #=> "Mon, 17 Jun 1985 08:00:00 GMT"
   def httpdate
     require "time"
     return @time.httpdate
   end
   
+  #Returns various information about the offset as a hash.
+  #===Examples
+  # datet.time #=> 1985-06-17 10:00:00 +0200
+  # datet.offset_info #=> {:sign=>"+", :hours=>2, :mins=>0, :secs=>0}
   def offset_info
     offset_secs = @time.gmt_offset
     
@@ -724,17 +802,27 @@ class Knj::Datet
     }
   end
   
+  #Returns the offset as a string.
+  #===Examples
+  # datet.offset_str #=> "+0200"
   def offset_str
     offset_info_data = self.offset_info
     return "#{offset_info_data[:sign]}#{"%02d" % offset_info_data[:hours]}#{"%02d" % offset_info_data[:mins]}"
   end
   
   #Returns 'localtime' as of 1.9 - even in 1.8 which does it different.
+  #===Examples
+  # datet.localtime_str #=> "1985-06-17 10:00:00 +0200"
   def localtime_str
     return "#{"%04d" % @time.year}-#{"%02d" % @time.month}-#{"%02d" % @time.day} #{"%02d" % @time.hour}:#{"%02d" % @time.min}:#{"%02d" % @time.sec} #{self.offset_str}"
   end
   
   #Returns a human readable string based on the difference from the current time and date.
+  #===Examples
+  # datet.time #=> 1985-06-17 10:00:00 +0200
+  # datet.ago_str #=> "27 years ago"
+  # datet = Knj::Datet.new #=> 2012-05-03 20:31:58 +0200
+  # datet.ago_str #=> "18 seconds ago"
   def ago_str(args = {})
     args = {
       :year_ago_str => "%s year ago",
@@ -788,6 +876,9 @@ class Knj::Datet
     return args[:right_now_str]
   end
   
+  #Returns the object as a human understandable string.
+  #datet.time #=> 2012-05-03 20:31:58 +0200
+  #datet.human_str #=> "20:31"
   def human_str(args = {})
     args = {
       :time => true,
