@@ -1,7 +1,8 @@
 class Knj::Db
-  unless Kernel.const_defined?("Rho")
-    autoload :Dbtime, "#{$knjpath}knjdb/dbtime.rb"
-    autoload :Revision, "#{$knjpath}knjdb/revision.rb"
+  #Autoloader.
+  def self.const_missing(name)
+    require "#{$knjpath}knjdb/#{name.to_s.downcase}"
+    return Knj::Db.const_get(name)
   end
   
   attr_reader :opts, :conn, :conns, :int_types

@@ -1,8 +1,9 @@
 module Knj::Gtk2
-  autoload :Cb, "knj/gtk2_cb"
-  autoload :Menu, "knj/gtk2_menu"
-  autoload :StatusWindow, "knj/gtk2_statuswindow"
-  autoload :Tv, "knj/gtk2_tv"
+  #Autoloader.
+  def self.const_missing(name)
+    require "#{$knjpath}knj/gtk2_#{name.to_s.downcase}"
+    return Knj::Gtk2.const_get(name)
+  end
   
   def msgbox(p1, p2 = "warning", p3 = "Warning")
     return Knj::Gtk2.msgbox(p1, p2, p3)

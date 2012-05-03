@@ -2,7 +2,7 @@ require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
 describe "Process" do
   it "should be able to start a server and a client" do
-    require "knj/autoload"
+    require "timeout"
     
     tcp_server = TCPServer.new("0.0.0.0", 15678)
     conn_client = TCPSocket.new("localhost", 15678)

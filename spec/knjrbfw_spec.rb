@@ -3,7 +3,7 @@ require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 describe "Knjrbfw" do
   it "should be able to generate a sample SQLite database and add a sample table, with sample columns and with a sample index to it" do
     require "knjrbfw"
-    require "sqlite3"
+    require "sqlite3" if RUBY_ENGINE != "jruby"
     
     db_path = "#{Knj::Os.tmpdir}/knjrbfw_test_sqlite3.sqlite3"
     
@@ -193,7 +193,7 @@ describe "Knjrbfw" do
   end
   
   it "should delete the temp database again." do
-    db_path = "#{Dir.tmpdir}/knjrbfw_test_sqlite3.sqlite3"
+    db_path = "#{Knj::Os.tmpdir}/knjrbfw_test_sqlite3.sqlite3"
     File.unlink(db_path) if File.exists?(db_path)
   end
   
@@ -296,7 +296,8 @@ describe "Knjrbfw" do
   end
   
   it "should be able to draw rounded transparent corners on images." do
-    require "rmagick"
+    require "rubygems"
+    require "RMagick"
     
     pic = Magick::Image.read("#{File.dirname(__FILE__)}/../testfiles/image.jpg").first
     pic.format = "png"

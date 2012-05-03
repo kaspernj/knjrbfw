@@ -49,7 +49,7 @@ describe "Http2" do
     ]
     urls = ["robots.txt"]
     
-    http = Knj::Http2.new(:host => "www.partyworm.dk", :debug => true)
+    http = Knj::Http2.new(:host => "www.partyworm.dk", :debug => false)
     0.upto(105) do |count|
       url = urls[rand(urls.size)]
       #print "Doing request #{count} of 200 (#{url}).\n"

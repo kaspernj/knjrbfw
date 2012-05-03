@@ -6,6 +6,7 @@ class Knj::Wref
     @id = obj.__id__
     
     if RUBY_ENGINE == "jruby"
+      require "java"
       @weakref = java.lang.ref.WeakReference.new(obj)
     else
       @class_name = obj.class.name.to_sym

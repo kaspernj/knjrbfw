@@ -394,7 +394,7 @@ class Knj::Process_meta::Proxy_obj
   
   def initialize(args)
     @args = args
-    @_process_meta_buffer_use = false
+    @_process_meta_block_buffer_use = false
     ObjectSpace.define_finalizer(self, @args[:process_meta].method(:proxy_finalizer))
   end
   
@@ -538,9 +538,13 @@ class Knj::Process_meta::Proxy_obj::Buffered_caller
     self._pm_flush
     
     if @args[:async]
+      threads_remove = []
       @threads.each do |thread|
         thread.join
+        threads_remove << thread
       end
+      
+      @threads -= threads_remove
     end
     
     raise @raise_error if @raise_error

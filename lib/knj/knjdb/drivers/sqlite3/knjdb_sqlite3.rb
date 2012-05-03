@@ -21,7 +21,7 @@ class KnjDB_sqlite3
       if @knjdb.opts[:sqlite_driver]
         require @knjdb.opts[:sqlite_driver]
       else
-        require "#{File.dirname(__FILE__)}/../../sqlitejdbc-v056.jar"
+        require "#{File.dirname(__FILE__)}/../../../jruby/sqlitejdbc-v056.jar"
       end
       
       require "java"
@@ -45,7 +45,7 @@ class KnjDB_sqlite3
         begin
           return KnjDB_sqlite3_result_java.new(self, @stat.executeQuery(string))
         rescue java.sql.SQLException => e
-          if e.message == "java.sql.SQLException: query does not return ResultSet"
+          if e.message.to_s.index("query does not return ResultSet") != nil
             return KnjDB_sqlite3_result_java.new(self, nil)
           else
             raise e
