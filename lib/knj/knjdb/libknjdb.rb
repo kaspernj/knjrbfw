@@ -178,7 +178,7 @@ class Knj::Db
   end
   
   def insert(tablename, arr_insert, args = {})
-    conn_exec do |driver|
+    self.conn_exec do |driver|
       sql = "INSERT INTO #{driver.escape_table}#{tablename.to_s}#{driver.escape_table} ("
       
       first = true
@@ -213,7 +213,7 @@ class Knj::Db
   end
   
   def insert_multi(tablename, arr_hashes)
-    conn_exec do |driver|
+    self.conn_exec do |driver|
       if driver.respond_to?(:insert_multi)
         return false if arr_hashes.empty?
         driver.insert_multi(tablename, arr_hashes)
@@ -228,7 +228,7 @@ class Knj::Db
   def update(tablename, arr_update, arr_terms = {})
     return false if arr_update.empty?
     
-    conn_exec do |driver|
+    self.conn_exec do |driver|
       sql = ""
       sql << "UPDATE #{driver.escape_col}#{tablename.to_s}#{driver.escape_col} SET "
       
@@ -256,7 +256,7 @@ class Knj::Db
   def select(tablename, arr_terms = nil, args = nil, &block)
     sql = ""
     
-    conn_exec do |driver|
+    self.conn_exec do |driver|
       sql = "SELECT * FROM #{driver.escape_table}#{tablename.to_s}#{driver.escape_table}"
       
       if arr_terms != nil and !arr_terms.empty?
@@ -285,18 +285,21 @@ class Knj::Db
     return self.q(sql, &block)
   end
   
-  def selectsingle(tablename, arr_terms = nil, args = {})
-    args["limit"] = 1
-    return self.select(tablename, arr_terms, args).fetch
-  end
-  
   def single(tablename, arr_terms = nil, args = {})
     args["limit"] = 1
-    return self.select(tablename, arr_terms, args).fetch
+    
+    #Experienced very weird memory leak if this was not done by block. Maybe bug in Ruby 1.9.2? - knj
+    self.select(tablename, arr_terms, args) do |data|
+      return data
+    end
+    
+    return false
   end
   
+  alias :selectsingle :single
+  
   def delete(tablename, arr_terms)
-    conn_exec do |driver|
+    self.conn_exec do |driver|
       sql = "DELETE FROM #{driver.escape_table}#{tablename}#{driver.escape_table}"
       
       if arr_terms != nil and !arr_terms.empty?
@@ -305,6 +308,8 @@ class Knj::Db
       
       driver.query(sql)
     end
+    
+    return nil
   end
   
   def makeWhere(arr_terms, driver)
@@ -320,6 +325,8 @@ class Knj::Db
       
       if value.is_a?(Array)
         sql << "#{driver.escape_col}#{key}#{driver.escape_col} IN (#{Knj::ArrayExt.join(:arr => value, :sep => ",", :surr => "'", :callback => proc{|ele| self.esc(ele)})})"
+      elsif value.is_a?(Hash)
+        raise "Dont know how to handle hash."
       else
         sql << "#{driver.escape_col}#{key}#{driver.escape_col} = #{driver.escape_val}#{driver.escape(value)}#{driver.escape_val}"
       end
@@ -540,7 +547,7 @@ class Knj::Db
   end
   
   def method_missing(method_name, *args)
-    conn_exec do |driver|
+    self.conn_exec do |driver|
       if driver.respond_to?(method_name.to_sym)
         return driver.send(method_name, *args)
       end
