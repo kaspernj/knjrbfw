@@ -1,5 +1,16 @@
 require "#{$knjpath}web"
 
+#This class tries to emulate a browser in Ruby without any visual stuff. Remember cookies, keep sessions alive, reset connections according to keep-alive rules and more.
+#===Examples
+# Knj::Http2.new(:host => "www.somedomain.com", :port => 80, :ssl => false, :debug => false) do |http|
+#  res = http.get("index.rhtml?show=some_page")
+#  html = res.body
+#  print html
+#  
+#  res = res.post("index.rhtml?choice=login", {"username" => "John Doe", "password" => 123})
+#  print res.body
+#  print "#{res.headers}"
+# end
 class Knj::Http2
   attr_reader :cookies, :args
   
@@ -44,6 +55,9 @@ class Knj::Http2
     end
   end
   
+  #Returns boolean based on the if the object is connected and the socket is working.
+  #===Examples
+  # print "Socket is working." if http.socket_working?
   def socket_working?
     return false if !@sock or @sock.closed?
     
@@ -58,6 +72,9 @@ class Knj::Http2
     return true
   end
   
+  #Destroys the object unsetting all variables and closing all sockets.
+  #===Examples
+  # http.destroy
   def destroy
     @args = nil
     @cookies = nil
@@ -133,6 +150,10 @@ class Knj::Http2
     end
   end
   
+  #Returns a result-object based on the arguments.
+  #===Examples
+  # res = http.get("somepage.html")
+  # print res.body #=> <String>-object containing the HTML gotten.
   def get(addr, args = {})
     begin
       @mutex.synchronize do
@@ -174,6 +195,10 @@ class Knj::Http2
     @request_last = Time.now
   end
   
+  #Returns the default headers for a request.
+  #===Examples
+  # headers_hash = http.default_headers
+  # print "#{headers_hash}"
   def default_headers(args = {})
     return args[:default_headers] if args[:default_headers]
     
@@ -213,6 +238,9 @@ class Knj::Http2
     return praw
   end
   
+  #Posts to a certain page.
+  #===Examples
+  # res = http.post("login.php", {"username" => "John Doe", "password" => 123)
   def post(addr, pdata = {}, args = {})
     begin
       @mutex.synchronize do
@@ -231,6 +259,9 @@ class Knj::Http2
     end
   end
   
+  #Posts to a certain page using the multipart-method.
+  #===Examples
+  # res = http.post_multipart("upload.php", {"normal_value" => 123, "file" => Tempfile.new(?)})
   def post_multipart(addr, pdata, args = {})
     begin
       @mutex.synchronize do
@@ -274,6 +305,7 @@ class Knj::Http2
     end
   end
   
+  #Returns a header-string which normally would be used for a request in the given state.
   def header_str(headers_hash, args = {})
     if @cookies.length > 0 and (!args.key?(:cookies) or args[:cookies])
       cstr = ""
@@ -301,6 +333,9 @@ class Knj::Http2
     args[:on_content].call(line) if args.key?(:on_content)
   end
   
+  #Reads the response after posting headers and data.
+  #===Examples
+  # res = http.read_response
   def read_response(args = {})
     @mode = "headers"
     @resp = Knj::Http2::Response.new
@@ -386,7 +421,10 @@ class Knj::Http2
     end
   end
   
-  def parse_header(line, args)
+  #Parse a header-line and saves it on the object.
+  #===Examples
+  # http.parse_header("Content-Type: text/html\r\n")
+  def parse_header(line, args = {})
     if match = line.match(/^(.+?):\s*(.+)#{@nl}$/)
       key = match[1].to_s.downcase
       
@@ -436,6 +474,8 @@ class Knj::Http2
     end
   end
   
+  #Parses the body based on given headers and saves it to the result-object.
+  # http.parse_body(str)
   def parse_body(line, args)
     if @resp.args[:http_version] = "1.1"
       return "break" if @length == 0
@@ -480,37 +520,58 @@ class Knj::Http2::Response
     @args[:body] = "" if !@args.key?(:body)
   end
   
+  #Returns headers given from the host for the result.
+  #===Examples
+  # headers_hash = res.headers
   def headers
     return @args[:headers]
   end
   
+  #Returns a certain header by name or false if not found.
+  #===Examples
+  # val = res.header("content-type")
   def header(key)
     return false if !@args[:headers].key?(key)
     return @args[:headers][key].first.to_s
   end
   
   #Returns true if a header of the given string exists.
+  #===Examples
+  # print "No content-type was given." if !http.header?("content-type")
   def header?(key)
     return true if @args[:headers].key?(key) and @args[:headers][key].first.to_s.length > 0
     return false
   end
   
+  #Returns the code of the result (200, 404, 500 etc).
+  #===Examples
+  # print "An internal error occurred." if res.code.to_i == 500
   def code
     return @args[:code]
   end
   
+  #Returns the HTTP-version of the result.
+  #===Examples
+  # print "We are using HTTP 1.1 and should support keep-alive." if res.http_version.to_s == "1.1"
   def http_version
     return @args[:http_version]
   end
   
+  #Returns the complete body of the result as a string.
+  #===Examples
+  # print "Looks like we caught the end of it as well?" if res.body.to_s.downcase.index("</html>") != nil
   def body
     return @args[:body]
   end
   
+  #Returns the charset of the result.
   def charset
     return @args[:charset]
   end
   
+  #Returns the content-type of the result as a string.
+  #===Examples
+  # print "This body can be printed - its just plain text!" if http.contenttype == "text/plain"
   def contenttype
     return @args[:contenttype]
   end
