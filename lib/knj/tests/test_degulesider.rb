@@ -1,11 +1,10 @@
 #!/usr/bin/env ruby
 
 require "knj/autoload"
-include Knj
 
-dgs = Degulesider.new
+dgs = Knj::Degulesider.new
 results = dgs.search(
   :where => "Engvej 3, 4970 Rødby"
 )
 
-Php.print_r(results)
+Knj::Php.print_r(results)

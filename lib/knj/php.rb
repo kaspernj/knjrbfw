@@ -60,7 +60,7 @@ module Knj::Php
         end
         
         retstr << "[#{keystr}] => "
-        retstr << print_r(pair[1], true, count + 1).to_s
+        retstr << Knj::Php.print_r(pair[1], true, count + 1).to_s
       end
       
       i = 0
@@ -107,8 +107,8 @@ module Knj::Php
           i_spaces += 1
         end
         
-        retstr << "[" + arr_count.to_s + "] => "
-        retstr << print_r(i, true, count + 1).to_s
+        retstr << "[#{arr_count}] => "
+        retstr << Knj::Php.print_r(i, true, count + 1).to_s
         arr_count += 1
       end
       
@@ -128,21 +128,21 @@ module Knj::Php
     elsif argument.is_a?(Exception)
       retstr << "#\{#{argument.class.to_s}: #{argument.message}}\n"
     elsif cstr == "Knj::Unix_proc"
-      retstr << "#{argument.class.to_s}::data - "
-      retstr << print_r(argument.data, true, count).to_s
+      retstr << "#{argument.class.name}::data - "
+      retstr << Knj::Php.print_r(argument.data, true, count).to_s
     elsif cstr == "Thread"
-      retstr << "#{argument.class.to_s} - "
+      retstr << "#{argument.class.name} - "
       
       hash = {}
       argument.keys.each do |key|
         hash[key] = argument[key]
       end
       
-      retstr << print_r(hash, true, count).to_s
+      retstr << Knj::Php.print_r(hash, true, count).to_s
     elsif cstr == "Class"
       retstr << "#{argument.class.to_s} - "
       hash = {"name" => argument.name}
-      retstr << print_r(hash, true, count).to_s
+      retstr << Knj::Php.print_r(hash, true, count).to_s
     elsif cstr == "URI::Generic"
       retstr << "#{argument.class.to_s}{\n"
       methods = [:host, :port, :scheme, :path]

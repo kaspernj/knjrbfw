@@ -362,7 +362,7 @@ class Knj::Http2
     @resp = nil
     @mode = nil
     
-    raise "No status-code was received from the server.\n\nHeaders:\n#{Knj::Php.print_r(resp.headers)}\n\nBody:\n#{resp.args[:body]}" if !resp.args[:code]
+    raise "No status-code was received from the server.\n\nHeaders:\n#{Knj::Php.print_r(resp.headers, true)}\n\nBody:\n#{resp.args[:body]}" if !resp.args[:code]
     
     if resp.args[:code].to_s == "302" and resp.header?("location") and (!@args.key?(:follow_redirects) or @args[:follow_redirects])
       uri = URI.parse(resp.header("location"))
