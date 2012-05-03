@@ -877,8 +877,9 @@ class Knj::Datet
   end
   
   #Returns the object as a human understandable string.
-  #datet.time #=> 2012-05-03 20:31:58 +0200
-  #datet.human_str #=> "20:31"
+  #===Examples
+  # datet.time #=> 2012-05-03 20:31:58 +0200
+  # datet.human_str #=> "20:31"
   def human_str(args = {})
     args = {
       :time => true,
