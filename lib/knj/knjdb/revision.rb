@@ -1,43 +1,32 @@
+#This class takes a database-schema from a hash and runs it against the database. It then checks that the database matches the given schema.
+#
+#===Examples
+# db = Knj::Db.new(:type => "sqlite3", :path => "test_db.sqlite3")
+# schema = {
+#   "tables" => {
+#     "columns" => [
+#       {"name" => "id", "type" => "int", "autoincr" => true, "primarykey" => true},
+#       {"name" => "name", "type" => "varchar"},
+#       {"name" => "lastname", "type" => "varchar"}
+#     ],
+#     "indexes" => [
+#       "name",
+#       {"name" => "lastname", "columns" => ["lastname"]}
+#     ]
+#   }
+# }
+# 
+# rev = Knj::Db::Revision.new
+# rev.init_db("db" => db, "schema" => schema)
 class Knj::Db::Revision
   def initialize(args = {})
     @args = args
   end
   
-  #This method checks if certain rows are present in a table based on a hash.
-  def rows_init(args)
-    db = args["db"]
-    table = args["table"]
-    
-    raise "No db given." if !db
-    raise "No table given." if !table
-    
-    args["rows"].each do |row_data|
-      if row_data["find_by"]
-        find_by = row_data["find_by"]
-      elsif row_data["data"]
-        find_by = row_data["data"]
-      else
-        raise "Could not figure out the find-by."
-      end
-      
-      rows_found = 0
-      args["db"].select(table.name, find_by) do |d_rows|
-        rows_found += 1
-        
-        if Knj::ArrayExt.hash_diff?(Knj::ArrayExt.hash_sym(row_data["data"]), Knj::ArrayExt.hash_sym(d_rows), {"h2_to_h1" => false})
-          print "Data was not right - updating row: #{JSON.generate(row_data["data"])}\n" if args["debug"]
-          args["db"].update(table.name, row_data["data"], d_rows)
-        end
-      end
-      
-      if rows_found == 0
-        print "Inserting row: #{JSON.generate(row_data["data"])}\n" if args["debug"]
-        table.insert(row_data["data"])
-      end
-    end
-  end
-  
   #This initializes a database-structure and content based on a schema-hash.
+  #===Examples
+  # dbrev = Knj::Db::Revision.new
+  # dbrev.init_db("db" => db_obj, "schema" => schema_hash)
   def init_db(args)
     schema = args["schema"]
     db = args["db"]
@@ -282,5 +271,41 @@ class Knj::Db::Revision
     #Free cache.
     tables.clear
     tables = nil
+  end
+  
+  private
+  
+  #This method checks if certain rows are present in a table based on a hash.
+  def rows_init(args)
+    db = args["db"]
+    table = args["table"]
+    
+    raise "No db given." if !db
+    raise "No table given." if !table
+    
+    args["rows"].each do |row_data|
+      if row_data["find_by"]
+        find_by = row_data["find_by"]
+      elsif row_data["data"]
+        find_by = row_data["data"]
+      else
+        raise "Could not figure out the find-by."
+      end
+      
+      rows_found = 0
+      args["db"].select(table.name, find_by) do |d_rows|
+        rows_found += 1
+        
+        if Knj::ArrayExt.hash_diff?(Knj::ArrayExt.hash_sym(row_data["data"]), Knj::ArrayExt.hash_sym(d_rows), {"h2_to_h1" => false})
+          print "Data was not right - updating row: #{JSON.generate(row_data["data"])}\n" if args["debug"]
+          args["db"].update(table.name, row_data["data"], d_rows)
+        end
+      end
+      
+      if rows_found == 0
+        print "Inserting row: #{JSON.generate(row_data["data"])}\n" if args["debug"]
+        table.insert(row_data["data"])
+      end
+    end
   end
 end

@@ -39,7 +39,12 @@ module Knj::Threadsafe
   end
   
   #This module can be included on a class to make all method-calls synchronized (by using monitor). Examples with array and hash are below.
-  module Monitored_module
+  #
+  #===Examples
+  # class MySyncedClass < SomeOtherClassThatNeedsToBeSynchronized
+  #   include Knj::Threadsafe::Monitored
+  # end
+  module Monitored
     def self.included(base)
       Knj::Strings.const_get_full(base.to_s).class_eval do
         self.instance_methods.each do |method_name|
@@ -64,7 +69,12 @@ module Knj::Threadsafe
   end
   
   #This module can be included on a class to make all method-calls synchronized (by using mutex). Examples with array and hash are below.
-  module Mutexed_module
+  #
+  #===Examples
+  # class MySyncedClass < SomeOtherClassThatNeedsToBeSynchronized
+  #   include Knj::Threadsafe::Mutexed
+  # end
+  module Mutexed
     def self.included(base)
       Knj::Strings.const_get_full(base.to_s).class_eval do
         self.instance_methods.each do |method_name|
@@ -89,12 +99,22 @@ module Knj::Threadsafe
   end
   
   #Predefined synchronized array.
+  #
+  #===Examples
+  # arr = Knj::Threadsafe::Synced_array.new
+  # arr << 5
+  # ret = arr[0]
   class Synced_array < ::Array
-    include Mutexed_module
+    include Mutexed
   end
   
   #Predefined synchronized hash.
+  #
+  #===Examples
+  # h = Knj::Threadsafe::Synced_hash.new
+  # h['test'] = 'trala'
+  # ret = h['test']
   class Synced_hash < ::Hash
-    include Mutexed_module
+    include Mutexed
   end
 end

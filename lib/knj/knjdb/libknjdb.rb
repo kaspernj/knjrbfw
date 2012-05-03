@@ -1,3 +1,16 @@
+#A wrapper of several possible database-types.
+#
+#===Examples
+# db = Knj::Db.new(:type => "mysql", :subtype => "mysql2", :db => "mysql", :user => "user", :pass => "password")
+# mysql_table = db.tables['mysql']
+# name = mysql_table.name
+# cols = mysql_table.columns
+#
+# db = Knj::Db.new(:type => "sqlite3", :path => "some_db.sqlite3")
+#
+# db.q("SELECT * FROM users") do |data|
+#   print data[:name]
+# end
 class Knj::Db
   #Autoloader.
   def self.const_missing(name)
@@ -44,6 +57,7 @@ class Knj::Db
     self.connect
   end
   
+  #Actually connects to the database. This is useually done automatically.
   def connect
     if @opts[:threadsafe]
       @conns = Knj::Threadhandler.new
@@ -64,6 +78,9 @@ class Knj::Db
     end
   end
   
+  #Spawns a new driver (useally done automatically).
+  #===Examples
+  # driver_instance = db.spawn
   def spawn
     raise "No type given." if !@opts[:type]
     
@@ -83,6 +100,7 @@ class Knj::Db
     return Kernel.const_get("KnjDB_#{@opts[:type]}").new(self)
   end
   
+  #Registers a driver to the current thread.
   def get_and_register_thread
     raise "KnjDB-object is not in threadding mode." if !@conns
     
@@ -98,6 +116,7 @@ class Knj::Db
     thread_cur[:knjdb][tid] = @conns.get_and_lock if !thread_cur[:knjdb][tid]
   end
   
+  #Frees the current driver from the current thread.
   def free_thread
     thread_cur = Thread.current
     tid = self.__id__
@@ -120,6 +139,7 @@ class Knj::Db
     end
   end
   
+  #The all driver-database-connections.
   def close
     @conn.close if @conn
     @conns.destroy if @conns
@@ -128,10 +148,12 @@ class Knj::Db
     @conns = nil
   end
   
+  #Clones the current database-connection with possible extra arguments.
   def clone_conn(args = {})
     return Knj::Db.new(@opts.clone.merge(args))
   end
   
+  #Copies the content of the current database to another instance of Knj::Db.
   def copy_to(db, args = {})
     data["tables"].each do |table|
       table_args = nil
@@ -167,6 +189,10 @@ class Knj::Db
     end
   end
   
+  #Returns the data of this database in a hash.
+  #===Examples
+  # data = db.data
+  # tables_hash = data['tables']
   def data
     tables_ret = []
     tables.list.each do |name, table|
@@ -178,6 +204,11 @@ class Knj::Db
     }
   end
   
+  #Simply inserts data into a table.
+  #
+  #===Examples
+  # db.insert(:users, {:name => "John", :lastname => "Doe"})
+  # id = db.insert(:users, {:name => "John", :lastname => "Doe"}, :return_id => true)
   def insert(tablename, arr_insert, args = {})
     self.conn_exec do |driver|
       sql = "INSERT INTO #{driver.escape_table}#{tablename.to_s}#{driver.escape_table} ("
@@ -213,6 +244,13 @@ class Knj::Db
     end
   end
   
+  #Simply and optimal insert multiple rows into a table in a single query.
+  #
+  #===Examples
+  # db.insert_multi(:users, [
+  #   {:name => "John", :lastname => "Doe"},
+  #   {:name => "Kasper", :lastname => "Johansen"}
+  # ])
   def insert_multi(tablename, arr_hashes)
     self.conn_exec do |driver|
       if driver.respond_to?(:insert_multi)
@@ -226,6 +264,10 @@ class Knj::Db
     end
   end
   
+  #Simple updates rows.
+  #
+  #===Examples
+  # db.update(:users, {:name => "John"}, {:lastname => "Doe"})
   def update(tablename, arr_update, arr_terms = {})
     return false if arr_update.empty?
     
@@ -286,6 +328,10 @@ class Knj::Db
     return self.q(sql, &block)
   end
   
+  #Returns a single row from a database.
+  #
+  #===Examples
+  # row = db.single(:users, {:lastname => "Doe"})
   def single(tablename, arr_terms = nil, args = {})
     args["limit"] = 1
     
@@ -299,6 +345,10 @@ class Knj::Db
   
   alias :selectsingle :single
   
+  #Deletes rows from the database.
+  #
+  #===Examples
+  # db.delete(:users, {:lastname => "Doe"})
   def delete(tablename, arr_terms)
     self.conn_exec do |driver|
       sql = "DELETE FROM #{driver.escape_table}#{tablename}#{driver.escape_table}"
@@ -313,6 +363,10 @@ class Knj::Db
     return nil
   end
   
+  #Internally used to generate SQL.
+  #
+  #===Examples
+  # sql = db.makeWhere({:lastname => "Doe"}, driver_obj)
   def makeWhere(arr_terms, driver)
     sql = ""
     
@@ -337,6 +391,11 @@ class Knj::Db
   end
   
   #Returns a driver-object based on the current thread and free driver-objects.
+  #
+  #===Examples
+  # db.conn_exec do |driver|
+  #   str = driver.escape('something̈́')
+  # end
   def conn_exec
     if Thread.current[:knjdb]
       tid = self.__id__
@@ -376,6 +435,12 @@ class Knj::Db
   end
   
   #Executes a query and returns the result.
+  #
+  #===Examples
+  # res = db.query('SELECT * FROM users')
+  # while data = res.fetch
+  #   print data[:name]
+  # end
   def query(string)
     if @debug
       print "SQL: #{string}\n"
@@ -392,6 +457,11 @@ class Knj::Db
   end
   
   #Execute an ubuffered query and returns the result.
+  #
+  #===Examples
+  # db.query_ubuf('SELECT * FROM users') do |data|
+  #   print data[:name]
+  # end
   def query_ubuf(string, &block)
     ret = nil
     
@@ -407,7 +477,14 @@ class Knj::Db
     return ret
   end
   
-  #Clones the connection, executes a unbuffered query and closes the connection again.
+  #Clones the connection, executes the given block and closes the connection again.
+  #
+  #===Examples
+  # db.cloned_conn do |conn|
+  #   conn.q('SELCET * FROM users') do |data|
+  #     print data[:name]
+  #   end
+  # end
   def cloned_conn(args = nil, &block)
     clone_conn_args = {
       :threadsafe => false
@@ -424,6 +501,11 @@ class Knj::Db
   end
   
   #Executes a query and returns the result. If a block is given the result is iterated over that block instead and it returns nil.
+  #
+  #===Examples
+  # db.q('SELECT * FROM users') do |data|
+  #   print data[:name]
+  # end
   def q(str, args = nil, &block)
     #If the query should be executed in a new connection unbuffered.
     if args
@@ -452,6 +534,9 @@ class Knj::Db
   end
   
   #Returns the last inserted ID.
+  #
+  #===Examples
+  # id = db.last_id
   def lastID
     self.conn_exec do |driver|
       return driver.lastID
@@ -461,6 +546,9 @@ class Knj::Db
   alias :last_id :lastID
   
   #Escapes a string to be safe-to-use in a query-string.
+  #
+  #===Examples
+  # db.q("INSERT INTO users (name) VALUES ('#{db.esc('John')}')")
   def escape(string)
     self.conn_exec do |driver|
       return driver.escape(string)
@@ -547,6 +635,10 @@ class Knj::Db
     return @indexes
   end
   
+  #Proxies the method to the driver.
+  #
+  #===Examples
+  # db.method_on_driver
   def method_missing(method_name, *args)
     self.conn_exec do |driver|
       if driver.respond_to?(method_name.to_sym)
@@ -558,6 +650,12 @@ class Knj::Db
   end
   
   #Beings a transaction and commits when the block ends.
+  #
+  #===Examples
+  # db.transaction do |db|
+  #   db.insert(:users, {:name => "John"})
+  #   db.insert(:users, {:name => "Kasper"})
+  # end
   def transaction
     self.query("START TRANSACTION")
     
