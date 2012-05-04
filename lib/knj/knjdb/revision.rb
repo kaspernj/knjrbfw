@@ -248,7 +248,7 @@ class Knj::Db::Revision
             table_data["on_create_after"].call("db" => db, "table_name" => table_name, "table_data" => table_data)
           end
           
-          self.rows_init("db" => db, "table" => table_obj, "rows" => table_data["rows"]) if table_data["rows"]
+          rows_init("db" => db, "table" => table_obj, "rows" => table_data["rows"]) if table_data["rows"]
         end
       rescue Knj::Errors::Retry
         retry

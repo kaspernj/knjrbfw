@@ -1,6 +1,8 @@
+#Uses Rubinius, Knj::Compiler, RubyVM::InstructionSequence and eval to convert and execute .rhtml-files.
 class Knj::Eruby
   attr_reader :connects, :error, :headers, :cookies, :fcgi
   
+  #Sets various arguments and prepares for parsing.
   def initialize(args = {})
     @args = args
     
@@ -33,6 +35,9 @@ class Knj::Eruby
     self.reset_connects
   end
   
+  #Imports and evaluates a new .rhtml-file.
+  #===Examples
+  # erb.import("/path/to/some_file.rhtml")
   def import(filename)
     @error = false
     Dir.mkdir(@tmpdir) if !File.exists?(@tmpdir)
@@ -86,6 +91,7 @@ class Knj::Eruby
     end
   end
   
+  #Destroyes this object unsetting all variables and clearing all cache.
   def destroy
     @connects.clear if @connects.is_a?(Hash)
     @headers.clear if @headers.is_a?(Array)
@@ -100,6 +106,7 @@ class Knj::Eruby
     @cookies = nil
   end
   
+  #Returns various headers as one complete string ready to be used in a HTTP-request.
   def print_headers(args = {})
     header_str = ""
     
@@ -116,6 +123,7 @@ class Knj::Eruby
     return header_str
   end
   
+  #Returns true if containing a status-header.
   def has_status_header?
     @headers.each do |header|
       return true if header[0] == "Status"
@@ -124,23 +132,28 @@ class Knj::Eruby
     return false
   end
   
+  #Resets all connections.
   def reset_connects
     @connects = {}
   end
   
+  #Resets all headers.
   def reset_headers
     @headers = []
     @cookies = []
   end
   
+  #Adds a new header to the list.
   def header(key, value)
     @headers << [key, value]
   end
   
+  #Adds a new cookie to the list.
   def cookie(cookie_data)
     @cookies << cookie_data
   end
   
+  #Connects a block to a certain event.
   def connect(signal, &block)
     @connects[signal] = [] if !@connects.key?(signal)
     @connects[signal] << block
@@ -238,11 +251,14 @@ class Knj::Eruby
   end
 end
 
+#Erubis-handler used to print to $stdout.
 class Knj::Eruby::Handler < Erubis::Eruby
   include Erubis::StdoutEnhancer
 end
 
+#Default binding-object which makes sure the .rhtml-file is running on an empty object.
 class Knj::Eruby::Binding
+  #Returns the binding to the empty object.
   def get_binding
     return binding
   end
