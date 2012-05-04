@@ -1,7 +1,25 @@
 #A simple weak-reference framework with mapping. Only handles the referencing of objects.
+#===Examples
+# user_obj = ob.get(:User, 1)
+# weak_ref = Knj::Wref(user_obj)
+# user_obj = nil
+# sleep 0.5
+# GC.start
+#
+# begin
+#   user_obj = weak_ref.get
+#   print "The user still exists in memory and has ID #{user.id}."
+# rescue Knj::Wref::Recycled
+#   print "The user has been removed from memory."
+# end
 class Knj::Wref
-  attr_reader :class_name, :id
+  #Returns the classname of the object.
+  attr_reader :class_name
   
+  #Returns the object-ID which is used to look up the ObjectSpace (if not running JRuby).
+  attr_reader :id
+  
+  #Initializes various variables.
   def initialize(obj)
     @id = obj.__id__
     
@@ -17,7 +35,13 @@ class Knj::Wref
     end
   end
   
-  #Returns the object that this weak reference holds or throws Knj::Wref::Recycled.
+  #Returns the object that this weak reference holds or raises Knj::Wref::Recycled.
+  # begin
+  #   obj = wref.get
+  #   print "Object still exists in memory."
+  # rescue Knj::Wref::Recycled
+  #   print "Object has been garbage-collected."
+  # end
   def get
     begin
       raise Knj::Wref::Recycled if !@class_name or !@id
@@ -54,6 +78,7 @@ class Knj::Wref
   end
   
   #Returns true if the reference is still alive.
+  # print "The object still exists in memory." if wref.alive?
   def alive?
     begin
       self.get
@@ -63,11 +88,28 @@ class Knj::Wref
     end
   end
   
-  #Make Wref compatible with the normal WeakRef.
+  #Makes Wref compatible with the normal WeakRef.
   alias weakref_alive? alive?
   alias __getobj__ get
 end
 
+#A weak hash-map.
+#===Examples
+# map = Knj::Wref_map.new
+# map[1] = obj
+# obj = nil
+# 
+# sleep 0.5
+# 
+# begin
+#   obj = map[1]
+#   print "Object still exists in memory."
+# rescue Knj::Wref::Recycled
+#   print "Object has been garbage-collected."
+# end
+#
+# obj = map.get!(1)
+# print "Object still exists in memory." if obj
 class Knj::Wref_map
   def initialize(args = nil)
     @map = {}
@@ -93,6 +135,13 @@ class Knj::Wref_map
   end
   
   #Returns a object by ID or raises a RefError.
+  #===Examples
+  # begin
+  #   obj = map[1]
+  #   print "Object still exists in memory."
+  # rescue Knj::Wref::Recycled
+  #   print "Object has been garbage-collected."
+  # end
   def get(id)
     begin
       @mutex.synchronize do
@@ -106,6 +155,9 @@ class Knj::Wref_map
   end
   
   #The same as 'get' but returns nil instead of WeakRef-error. This can be used to avoid writing lots of code.
+  #===Examples
+  # obj = map.get!(1)
+  # print "Object still exists in memory." if obj
   def get!(id)
     begin
       return self.get(id)
@@ -147,6 +199,8 @@ class Knj::Wref_map
   end
   
   #Returns true if the given key exists in the hash.
+  #===Examples
+  # print "Key exists but we dont know if the value has been garbage-collected." if map.key?(1)
   def key?(key)
     @mutex.synchronize do
       return @map.key?(key)
@@ -193,4 +247,5 @@ class Knj::Wref_map
   alias []= set
 end
 
+#This error is raised when an object in a wref has been garbage-collected.
 class Knj::Wref::Recycled < RuntimeError; end

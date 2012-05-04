@@ -1,19 +1,52 @@
+#This class helps create models in a framework with Knj::Db and Knj::Objects.
+#===Examples
+# db = Knj::Db.new(:type => "sqlite3", :path => "somepath.sqlite3")
+# ob = Knj::Objects.new(:db => db, :datarow => true, :path => "path_of_model_class_files")
+# user = ob.get(:User, 1) #=> <Models::User> that extends <Knj::Datarow>
 class Knj::Datarow
-  attr_reader :data, :ob, :db
+  #Returns the data-hash that contains all the data from the database.
+  attr_reader :data
+  
+  #Returns the Knj::Objects which handels this model.
+  attr_reader :ob
+  
+  #Returns the Knj::Db which handels this model.
+  attr_reader :db
   
   #This is used by 'Knj::Objects' to find out what data is required for this class. Returns the array that tells about required data.
+  #===Examples
+  #When adding a new user, this can fail if the ':group_id' is not given, or the ':group_id' doesnt refer to a valid group-row in the db.
+  # class Models::User < Knj::Datarow
+  #   has_one [
+  #     {:class => :Group, :col => :group_id, :method => :group, :required => true}
+  #   ]
+  # end
   def self.required_data
     @required_data = [] if !@required_data
     return @required_data
   end
   
   #This is used by 'Knj::Objects' to find out what other objects this class depends on. Returns the array that tells about depending data.
+  #===Examples
+  #This will tell Knj::Objects that files depends on users. It can prevent the user from being deleted, if any files depend on it.
+  # class Models::User < Knj::Datarow
+  #   has_many [
+  #     {:class => :File, :col => :user_id, :method => :files, :depends => true}
+  #   ]
+  # end
   def self.depending_data
     @depending_data = [] if !@depending_data
     return @depending_data
   end
   
   #This is used by 'Knj::Objects' to find out which other objects should be deleted when an object of this class is deleted automatically. Returns the array that tells about autodelete data.
+  #===Examples
+  #This will trigger Knj::Objects to automatically delete all the users pictures, when deleting the current user.
+  # class Models::User < Knj::Datarow
+  #   has_many [
+  #     {:class => :Picture, :col => :user_id, :method => :pictures, :autodelete => true}
+  #   ]
+  # end
   def self.autodelete_data
     @autodelete_data = [] if !@autodelete_data
     return @autodelete_data
@@ -25,17 +58,30 @@ class Knj::Datarow
   end
   
   #This helps various parts of the framework determine if this is a datarow class without requiring it.
+  #===Examples
+  # print "This is a knj-object." if obj.respond_to?("is_knj?")
   def is_knj?
     return true
   end
   
   #This tests if a certain string is a date-null-stamp.
+  #===Examples
+  # time_str = dbrow[:date]
+  # print "No valid date on the row." if Knj::Datarow.is_nullstamp?(time_str)
   def self.is_nullstamp?(stamp)
     return true if !stamp or stamp == "0000-00-00 00:00:00" or stamp == "0000-00-00"
     return false
   end
   
   #This is used to define datarows that this object can have a lot of.
+  #===Examples
+  #This will define the method "pictures" on 'Models::User' that will return all pictures for the users and take possible Objects-sql-arguments. It will also enabling joining pictures when doing Objects-sql-lookups.
+  # class Models::User < Knj::Datarow
+  #   has_many [
+  #     [:Picture, :user_id, :pictures],
+  #     {:class => :File, :col => :user_id, :method => :files}
+  #   ]
+  # end
   def self.has_many(arr)
     arr.each do |val|
       if val.is_a?(Array)
@@ -109,6 +155,16 @@ class Knj::Datarow
   end
   
   #This define is this object has one element of another datarow-class. It define various methods and joins based on that.
+  #===Examples
+  # class Models::User < Knj::Datarow
+  #   has_one [
+  #     #Defines the method 'group', which returns a 'Group'-object by the column 'group_id'.
+  #     :Group,
+  #     
+  #     #Defines the method 'type', which returns a 'Type'-object by the column 'type_id'.
+  #     {:class => :Type, :col => :type_id, :method => :type}
+  #   ]
+  # end
   def self.has_one(arr)
     arr.each do |val|
       methodname = nil
@@ -162,6 +218,16 @@ class Knj::Datarow
   end
   
   #This method initializes joins, sets methods to update translations and makes the translations automatically be deleted when the object is deleted.
+  #===Examples
+  # class Models::Article < Knj::Datarow
+  #   #Defines methods such as: 'title', 'title=', 'content', 'content='. When used with Knjappserver these methods will change what they return and set based on the current language of the session.
+  #   has_translation [:title, :content]
+  # end
+  #
+  # article = ob.get(:Article, 1)
+  # print "The title in the current language is: '#{article.title}'."
+  #
+  # article.title = 'Title in english if the language is english'
   def self.has_translation(arr)
     @translations = [] if !@translations
     
@@ -194,32 +260,46 @@ class Knj::Datarow
     return @translations
   end
   
+  #Returns data about joined tables for this class.
   def self.joined_tables(hash)
     @columns_joined_tables = {} if !@columns_joined_tables
     @columns_joined_tables.merge!(hash)
   end
   
   #Returns the table-name that should be used for this datarow.
+  #===Examples
+  # db.query("SELECT * FROM `#{Models::User.table}` WHERE username = 'John Doe'") do |data|
+  #   print data[:id]
+  # end
   def self.table
     return @table if @table
     return self.name.split("::").last
   end
   
   #This can be used to manually set the table-name. Useful when meta-programming classes that extends the datarow-class.
+  #===Examples
+  # Models::User.table = "prefix_User"
   def self.table=(newtable)
     @table = newtable
     @columns_sqlhelper_args[:table] = @table if @columns_sqlhelper_args.is_a?(Hash)
   end
   
   #Returns the class-name but without having to call the class-table-method. To make code look shorter.
+  #===Examples
+  # user = ob.get_by(:User, {:username => 'John Doe'})
+  # db.query("SELECT * FROM `#{user.table}` WHERE username = 'John Doe'") do |data|
+  #   print data[:id]
+  # end
   def table
     return self.class.table
   end
   
+  #Returns various data for the objects-sql-helper. This can be used to view various informations about the columns and more.
   def self.columns_sqlhelper_args
     return @columns_sqlhelper_args
   end
   
+  #Called by Knj::Objects to initialize the model and load column-data on-the-fly.
   def self.load_columns(d)
     @ob = d.ob if !@ob
     
@@ -294,89 +374,14 @@ class Knj::Datarow
     self.init_class(d) if self.respond_to?(:init_class)
   end
   
-  #Various methods to define methods based on the columns for the datarow.
-  def self.define_translation_methods(args)
-    define_method("#{args[:val_dc]}=") do |newtransval|
-      _kas.trans_set(self, {
-        args[:val] => newtransval
-      })
-    end
-    
-    define_method("#{args[:val_dc]}") do
-      return _kas.trans(self, args[:val])
-    end
-    
-    define_method("#{args[:val_dc]}_html") do
-      str = _kas.trans(self, args[:val])
-      if str.to_s.strip.length <= 0
-        return "[no translation for #{args[:val]}]"
-      end
-      
-      return str
-    end
-  end
-  
-  def self.define_bool_methods(args)
-    #Spawns a method on the class which returns true if the data is 1.
-    method_name = "#{args[:col_name]}?".to_sym
-    
-    if args[:inst_methods].index(method_name) == nil
-      define_method(method_name) do
-        return true if self[args[:col_name].to_sym].to_s == "1"
-        return false
-      end
-    end
-  end
-  
-  def self.define_date_methods(args)
-    method_name = "#{args[:col_name]}_str".to_sym
-    if args[:inst_methods].index(method_name) == nil
-      define_method(method_name) do |*method_args|
-        if Knj::Datet.is_nullstamp?(self[args[:col_name].to_sym])
-          return @ob.events.call(:no_date, self.class.name)
-        end
-        
-        return Knj::Datet.in(self[args[:col_name].to_sym]).out(*method_args)
-      end
-    end
-    
-    method_name = "#{args[:col_name]}".to_sym
-    if args[:inst_methods].index(method_name) == nil
-      define_method(method_name) do |*method_args|
-        return false if Knj::Datet.is_nullstamp?(self[args[:col_name].to_sym])
-        return Knj::Datet.in(self[args[:col_name].to_sym])
-      end
-    end
-  end
-  
-  def self.define_numeric_methods(args)
-    method_name = "#{args[:col_name]}_format"
-    if args[:inst_methods].index(method_name) == nil
-      define_method(method_name) do |*method_args|
-        return Knj::Locales.number_out(self[args[:col_name].to_sym], *method_args)
-      end
-    end
-  end
-  
-  def self.define_text_methods(args)
-    method_name = "by_#{args[:col_name]}".to_sym
-    if args[:inst_methods].index(method_name) == nil and RUBY_VERSION.to_s.slice(0, 3) != "1.8"
-      define_singleton_method(method_name) do |arg|
-        return d.ob.get_by(self.table, {args[:col_name].to_s => arg})
-      end
-    end
-  end
-  
-  def self.define_time_methods(args)
-    method_name = "#{args[:col_name]}_dbt"
-    if args[:inst_methods].index(method_name) == nil
-      define_method(method_name) do
-        return Knj::Db::Dbtime.new(self[args[:col_name].to_sym])
-      end
-    end
-  end
-  
   #This method helps returning objects and supports various arguments. It should be called by Object#list.
+  #===Examples
+  # ob.list(:User, {"username_lower" => "john doe"}) do |user|
+  #   print user.id
+  # end
+  #
+  # array = ob.list(:User, {"id" => 1})
+  # print array.length
   def self.list(d, &block)
     ec_col = d.db.enc_col
     ec_table = d.db.enc_table
@@ -460,20 +465,24 @@ class Knj::Datarow
     return d.ob.list_bysql(self.classname, sql, qargs, &block)
   end
   
+  #Helps call 'sqlhelper' on Knj::Objects to generate SQL-strings.
   def self.list_helper(d)
     self.load_columns(d) if !@columns_sqlhelper_args
     @columns_sqlhelper_args[:table] = @table if @table
     return d.ob.sqlhelper(d.args, @columns_sqlhelper_args)
   end
   
+  #Returns the classname of the object without any subclasses.
   def self.classname
     return @classname
   end
   
+  #Sets the classname to something specific in order to hack the behaviour.
   def self.classname=(newclassname)
     @classname = newclassname
   end
   
+  #Initializes the object. This should be called from Knj::Objects.
   def initialize(d)
     @ob = d.ob
     @db = d.ob.db
@@ -490,6 +499,9 @@ class Knj::Datarow
   end
   
   #Reloads the data from the database.
+  # old_username = user[:username]
+  # user.reload
+  # print "The username changed in the database!" if user[:username] != old_username
   def reload
     data = @db.single(self.table, {:id => @data[:id]})
     if !data
@@ -500,6 +512,8 @@ class Knj::Datarow
   end
   
   #Writes/updates new data for the object.
+  #===Examples
+  # user.update(:username => 'New username', :date_changed => Time.now)
   def update(newdata)
     @db.update(self.table, newdata, {:id => @data[:id]})
     self.reload
@@ -516,15 +530,11 @@ class Knj::Datarow
     @data = nil
   end
   
-  #Alias for key?
-  def has_key?(key)
-    return @data.key?(key.to_sym)
-  end
-  
   #Returns true if that key exists on the object.
   def key?(key)
     return @data.key?(key.to_sym)
   end
+  alias has_key? key?
   
   #Returns true if the object has been deleted.
   def deleted?
@@ -533,6 +543,9 @@ class Knj::Datarow
   end
   
   #Returns a specific data from the object by key.
+  # print "Username: #{user[:username]}\n"
+  # print "ID: #{user[:id]}\n"
+  # print "ID again: #{user.id}\n"
   def [](key)
     raise "Key was not a symbol: '#{key.class.name}'." if !key.is_a?(Symbol)
     raise "No data was loaded on the object? Maybe you are trying to call a deleted object?" if !@data
@@ -541,6 +554,8 @@ class Knj::Datarow
   end
   
   #Writes/updates a keys value on the object.
+  # user = ob.get_by(:User, {"username" => "John Doe"})
+  # user[:username] = 'New username'
   def []=(key, value)
     self.update(key.to_sym => value)
     self.reload
@@ -582,10 +597,107 @@ class Knj::Datarow
     return name_str
   end
   
-  alias :title :name
+  alias title name
   
   #Loops through the data on the object.
+  #===Examples
+  # user = ob.get(:User, 1)
+  # user.each do |key, val|
+  #   print "#{key}: #{val}\n" #=> username: John Doe
+  # end
   def each(&args)
     return @data.each(&args)
+  end
+  
+  private
+  
+  #Various methods to define methods based on the columns for the datarow.
+  def self.define_translation_methods(args)
+    define_method("#{args[:val_dc]}=") do |newtransval|
+      _kas.trans_set(self, {
+        args[:val] => newtransval
+      })
+    end
+    
+    define_method("#{args[:val_dc]}") do
+      return _kas.trans(self, args[:val])
+    end
+    
+    define_method("#{args[:val_dc]}_html") do
+      str = _kas.trans(self, args[:val])
+      if str.to_s.strip.length <= 0
+        return "[no translation for #{args[:val]}]"
+      end
+      
+      return str
+    end
+  end
+  
+  #Defines the boolean-methods based on enum-columns.
+  def self.define_bool_methods(args)
+    #Spawns a method on the class which returns true if the data is 1.
+    method_name = "#{args[:col_name]}?".to_sym
+    
+    if args[:inst_methods].index(method_name) == nil
+      define_method(method_name) do
+        return true if self[args[:col_name].to_sym].to_s == "1"
+        return false
+      end
+    end
+  end
+  
+  #Defines date- and time-columns based on datetime- and date-columns.
+  def self.define_date_methods(args)
+    method_name = "#{args[:col_name]}_str".to_sym
+    if args[:inst_methods].index(method_name) == nil
+      define_method(method_name) do |*method_args|
+        if Knj::Datet.is_nullstamp?(self[args[:col_name].to_sym])
+          return @ob.events.call(:no_date, self.class.name)
+        end
+        
+        return Knj::Datet.in(self[args[:col_name].to_sym]).out(*method_args)
+      end
+    end
+    
+    method_name = "#{args[:col_name]}".to_sym
+    if args[:inst_methods].index(method_name) == nil
+      define_method(method_name) do |*method_args|
+        return false if Knj::Datet.is_nullstamp?(self[args[:col_name].to_sym])
+        return Knj::Datet.in(self[args[:col_name].to_sym])
+      end
+    end
+  end
+  
+  #Define various methods based on integer-columns.
+  def self.define_numeric_methods(args)
+    method_name = "#{args[:col_name]}_format"
+    if args[:inst_methods].index(method_name) == nil
+      define_method(method_name) do |*method_args|
+        return Knj::Locales.number_out(self[args[:col_name].to_sym], *method_args)
+      end
+    end
+  end
+  
+  #Define methods to look up objects directly.
+  #===Examples
+  # user = Models::User.by_username('John Doe')
+  # print user.id
+  def self.define_text_methods(args)
+    method_name = "by_#{args[:col_name]}".to_sym
+    if args[:inst_methods].index(method_name) == nil and RUBY_VERSION.to_s.slice(0, 3) != "1.8"
+      define_singleton_method(method_name) do |arg|
+        return d.ob.get_by(self.table, {args[:col_name].to_s => arg})
+      end
+    end
+  end
+  
+  #Defines dbtime-methods based on time-columns.
+  def self.define_time_methods(args)
+    method_name = "#{args[:col_name]}_dbt"
+    if args[:inst_methods].index(method_name) == nil
+      define_method(method_name) do
+        return Knj::Db::Dbtime.new(self[args[:col_name].to_sym])
+      end
+    end
   end
 end
