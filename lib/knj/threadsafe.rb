@@ -105,7 +105,7 @@ module Knj::Threadsafe
   # arr << 5
   # ret = arr[0]
   class Synced_array < ::Array
-    include Mutexed
+    include Monitored
   end
   
   #Predefined synchronized hash.
@@ -115,6 +115,6 @@ module Knj::Threadsafe
   # h['test'] = 'trala'
   # ret = h['test']
   class Synced_hash < ::Hash
-    include Mutexed
+    include Monitored
   end
 end
