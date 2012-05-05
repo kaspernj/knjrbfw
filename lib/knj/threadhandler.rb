@@ -114,10 +114,10 @@ class Knj::Threadhandler
         else
           #No free objects, but we can spawn a new one and use that...
           newobj = @spawn_new_block.call
-          @objects << {
+          @objects << Knj::Threadsafe::Synced_hash.new.merge(
             :free => false,
             :object => newobj
-          }
+          )
           STDOUT.print "Spawned db and locked new.\n" if @args[:debug]
         end
       end
