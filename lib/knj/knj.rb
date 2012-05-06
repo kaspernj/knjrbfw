@@ -4,8 +4,10 @@ module Knj
   CONFIG = {}
   
   def self.const_missing(name)
-    if name == "db"
+    if name == :Db
       filepath = "#{$knjpath}/knjdb/libknjdb"
+    elsif name == :Wref_map
+      filepath = "#{$knjpath}/wref"
     else
       filepath = "#{$knjpath}#{name.to_s.downcase}"
     end
