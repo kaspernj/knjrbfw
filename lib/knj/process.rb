@@ -36,6 +36,9 @@ class Knj::Process
           else
             $stderr.print "Process error: #{str}"
           end
+          
+          #Try to break out of loop - the process has been destroyed.
+          break if (!@out_mutex and str.to_s.strip.length <= 0) or (@args and @args[:err] and @args[:err].closed?)
         end
       end
     end
@@ -67,10 +70,15 @@ class Knj::Process
   def listen
     loop do
       self.listen_loop
+      
+      #Break out if something is wrong.
+      break if !@out_mutex or (@in and @in.closed?) or (@out and @out.closed?)
     end
   end
   
   def listen_loop
+    $stderr.print "listen-loop called.\n" if @debug
+    
     str = @in.gets("\n")
     if str == nil
       raise "Socket closed." if @in.closed?
@@ -425,6 +433,7 @@ class Knj::Process
     self.kill_listen
     @err_thread.kill if @err_thread
     @out_answers = nil
+    @out_mutex = nil
   end
 end
 

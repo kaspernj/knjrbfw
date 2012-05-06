@@ -383,6 +383,7 @@ class Knj::Process_meta
         raise e if e.message.index("No such process") == nil
       end
       
+      $stderr.print "Try to kill again...\n"
       retry
     end
     
