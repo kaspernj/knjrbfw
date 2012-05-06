@@ -1,5 +1,6 @@
 require "#{$knjpath}wref"
 
+#This class handels various stuff regarding Unix-processes.
 class Knj::Unix_proc
   attr_reader :data
   
