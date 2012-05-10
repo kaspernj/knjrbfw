@@ -273,16 +273,22 @@ class Knj::Http2
           
           if val.class.name == "Tempfile" and val.respond_to?("original_filename")
             praw << "Content-Disposition: form-data; name=\"#{key}\"; filename=\"#{val.original_filename}\";#{@nl}"
+            praw << "Content-Length: #{val.bytesize}#{@nl}"
+          elsif val.is_a?(Hash) and val[:filename]
+            praw << "Content-Disposition: form-data; name=\"#{key}\"; filename=\"#{val[:filename]}\";#{@nl}"
+            praw << "Content-Length: #{val[:content].bytesize}#{@nl}"
           else
             praw << "Content-Disposition: form-data; name=\"#{key}\";#{@nl}"
+            praw << "Content-Length: #{val.bytesize}#{@nl}"
           end
           
           praw << "Content-Type: text/plain#{@nl}"
-          praw << "Content-Length: #{val.length}#{@nl}"
           praw << @nl
           
           if val.is_a?(StringIO)
             praw << val.read
+          elsif val.is_a?(Hash) and val[:content]
+            praw << val[:content].to_s
           else
             praw << val.to_s
           end
@@ -292,7 +298,7 @@ class Knj::Http2
         
         header_str = "POST /#{addr} HTTP/1.1#{@nl}"
         header_str << "Content-Type: multipart/form-data; boundary=#{boundary}#{@nl}"
-        header_str << self.header_str(self.default_headers(args).merge("Content-Length" => praw.length), args)
+        header_str << self.header_str(self.default_headers(args).merge("Content-Length" => praw.bytesize), args)
         header_str << "#{@nl}"
         header_str << praw
         header_str << "--#{boundary}--"
