@@ -1,5 +1,3 @@
-require "wref"
-
 class KnjDB_mysql::Tables
   attr_reader :db, :list
   

@@ -669,21 +669,24 @@ class Knj::Objects
     else
       tables = {}
       
-      objs.each do |obj|
-        next if obj.deleted?
-        tablen = obj.table
-        
-        if !tables.key?(tablen)
-          tables[tablen] = []
+      begin
+        objs.each do |obj|
+          next if obj.deleted?
+          tablen = obj.table
+          
+          if !tables.key?(tablen)
+            tables[tablen] = []
+          end
+          
+          tables[tablen] << obj.id
+          obj.delete if obj.respond_to?(:delete)
         end
-        
-        tables[tablen] << obj.id
-        obj.delete if obj.respond_to?(:delete)
-      end
-      
-      tables.each do |table, ids|
-        ids.each_slice(1000) do |ids_slice|
-          @args[:db].delete(table, {:id => ids_slice})
+      ensure
+        #An exception may occur, and we should make sure, that objects that has gotten 'delete' called also are deleted from their tables.
+        tables.each do |table, ids|
+          ids.each_slice(1000) do |ids_slice|
+            @args[:db].delete(table, {:id => ids_slice})
+          end
         end
       end
     end

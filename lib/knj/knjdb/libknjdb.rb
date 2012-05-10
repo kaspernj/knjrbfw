@@ -1,3 +1,6 @@
+require "rubygems"
+require "wref"
+
 #A wrapper of several possible database-types.
 #
 #===Examples

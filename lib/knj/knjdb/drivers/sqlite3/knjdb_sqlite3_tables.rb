@@ -1,5 +1,3 @@
-require "#{$knjpath}wref"
-
 class KnjDB_sqlite3::Tables
   attr_reader :db, :driver
   
