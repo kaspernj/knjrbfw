@@ -67,7 +67,7 @@ class Knj::Objects
     return false if @objects.key?(classname)
     
     if @args[:cache] == :weak
-      @objects[classname] = Knj::Wref_map.new
+      @objects[classname] = Wref_map.new
     else
       @objects[classname] = {}
     end

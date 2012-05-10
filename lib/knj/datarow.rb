@@ -568,7 +568,7 @@ class Knj::Datarow
     return @data[:id]
   end
   
-  #This enable Knj::Wref to not return the wrong object.
+  #This enable Wref to not return the wrong object.
   alias __object_unique_id__ id
   
   #Tries to figure out, and returns, the possible name or title for the object.
