@@ -1,4 +1,4 @@
-require "#{$knjpath}wref"
+require "wref"
 
 #This class handels various stuff regarding Unix-processes.
 class Knj::Unix_proc

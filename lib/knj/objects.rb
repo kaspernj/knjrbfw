@@ -18,7 +18,7 @@ class Knj::Objects
     @data = {}
     @lock_require = Monitor.new
     
-    require "#{$knjpath}wref" if @args[:cache] == :weak
+    require "wref" if @args[:cache] == :weak
     
     @events = Knj::Event_handler.new
     @events.add_event(
