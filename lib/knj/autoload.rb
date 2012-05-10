@@ -6,7 +6,6 @@ module Knj
   autoload :Fs, $knjpath + "fs/fs"
   autoload :Php_parser, $knjpath + "php_parser/php_parser"
   autoload :SSHRobot, $knjpath + "sshrobot/sshrobot"
-  autoload :Wref_map, $knjpath + "wref"
 end
 
 #ruby objects.
@@ -85,6 +84,9 @@ end
 autoload :Dictionary, $knjpath + "autoload/facets_dictionary"
 
 #gems
-autoload :Facebooker, $knjpath + "autoload/facebooker"
-autoload :Cinch, $knjpath + "autoload/cinch"
 autoload :ActiveSupport, $knjpath + "autoload/activesupport"
+autoload :Cinch, $knjpath + "autoload/cinch"
+autoload :Facebooker, $knjpath + "autoload/facebooker"
+autoload :Tsafe, "tsafe"
+autoload :Wref, "wref"
+autoload :Wref_map, "wref"
