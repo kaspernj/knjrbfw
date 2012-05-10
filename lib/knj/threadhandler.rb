@@ -3,6 +3,7 @@ class Knj::Threadhandler
   
   def initialize(args = {})
     require "#{$knjpath}errors"
+    require "tsafe"
     
     @args = args
     @objects = []
@@ -114,7 +115,7 @@ class Knj::Threadhandler
         else
           #No free objects, but we can spawn a new one and use that...
           newobj = @spawn_new_block.call
-          @objects << Knj::Threadsafe::Synced_hash.new.merge(
+          @objects << Tsafe::MonHash.new.merge(
             :free => false,
             :object => newobj
           )
