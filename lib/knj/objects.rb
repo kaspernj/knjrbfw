@@ -667,22 +667,24 @@ class Knj::Objects
         self.delete(obj)
       end
     else
-      arr_ids = []
-      ids = []
+      tables = {}
+      
       objs.each do |obj|
         next if obj.deleted?
-        ids << obj.id
-        if ids.length >= 1000
-          arr_ids << ids
-          ids = []
+        tablen = obj.table
+        
+        if !tables.key?(tablen)
+          tables[tablen] = []
         end
         
+        tables[tablen] << obj.id
         obj.delete if obj.respond_to?(:delete)
       end
       
-      arr_ids << ids if ids.length > 0
-      arr_ids.each do |ids|
-        @args[:db].delete(objs[0].table, {:id => ids})
+      tables.each do |table, ids|
+        ids.each_slice(1000) do |ids_slice|
+          @args[:db].delete(table, {:id => ids_slice})
+        end
       end
     end
   end
