@@ -488,15 +488,24 @@ class Knj::Datarow
   #Initializes the object. This should be called from Knj::Objects.
   def initialize(d)
     @ob = d.ob
-    @db = d.ob.db
-    
     raise "No ob given." if !@ob
+    @db = d.ob.db
     
     if d.data.is_a?(Hash)
       @data = d.data
     elsif d.data
+      id = d.data.to_i
       @data = {:id => d.data}
-      self.reload
+      
+      classname = self.class.classname.to_sym
+      if @ob.ids_cache_should.key?(classname)
+        #ID caching is enabled for this model - dont reload until first use.
+        raise Knj::Errors::NotFound, "ID was not found in cache: '#{id}'." if !@ob.ids_cache_should.key?(classname)
+        @should_reload = true
+      else
+        #ID caching is not enabled - reload now to check if row exists.
+        self.reload
+      end
     else
       raise Knj::Errors::InvalidData, "Could not figure out the data from '#{d.data.class.name}'."
     end
