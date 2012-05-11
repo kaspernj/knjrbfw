@@ -222,7 +222,21 @@ class Knj::Objects
     classob.datarow_init(pass_arg) if classob.respond_to?(:datarow_init)
   end
   
+  #Returns the instance of classname, but only if it already exists.
+  def get_if_cached(classname, id)
+    classname = classname.to_sym
+    id = id.to_i
+    
+    if wref_map = @objects[classname] and obj = wref_map.get!(id)
+      return obj
+    end
+    
+    return nil
+  end
+  
   #Gets an object from the ID or the full data-hash in the database.
+  #===Examples
+  # inst = ob.get(:User, 5)
   def get(classname, data)
     classname = classname.to_sym
     
