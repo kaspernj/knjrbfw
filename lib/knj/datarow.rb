@@ -5,7 +5,10 @@
 # user = ob.get(:User, 1) #=> <Models::User> that extends <Knj::Datarow>
 class Knj::Datarow
   #Returns the data-hash that contains all the data from the database.
-  attr_reader :data
+  def data
+    self.reload if @should_reload
+    return @data
+  end
   
   #Returns the Knj::Objects which handels this model.
   attr_reader :ob
@@ -486,6 +489,7 @@ class Knj::Datarow
   def initialize(d)
     @ob = d.ob
     @db = d.ob.db
+    
     raise "No ob given." if !@ob
     
     if d.data.is_a?(Hash)
@@ -509,6 +513,15 @@ class Knj::Datarow
     end
     
     @data = data
+    @should_reload = false
+  end
+  
+  #Tells the object that it should reloads its data because it has changed. It wont reload before it is required though, which may save you a couple of SQL-calls.
+  #===Examples
+  # obj = _ob.get(:User, 5)
+  # obj.should_reload
+  def should_reload
+    @should_reload = true
   end
   
   #Writes/updates new data for the object.
@@ -516,7 +529,7 @@ class Knj::Datarow
   # user.update(:username => 'New username', :date_changed => Time.now)
   def update(newdata)
     @db.update(self.table, newdata, {:id => @data[:id]})
-    self.reload
+    self.should_reload
     
     if @ob
       @ob.call("object" => self, "signal" => "update")
@@ -528,10 +541,12 @@ class Knj::Datarow
     @ob = nil
     @db = nil
     @data = nil
+    @should_reload = nil
   end
   
   #Returns true if that key exists on the object.
   def key?(key)
+    self.reload if @should_reload
     return @data.key?(key.to_sym)
   end
   alias has_key? key?
@@ -549,8 +564,9 @@ class Knj::Datarow
   def [](key)
     raise "Key was not a symbol: '#{key.class.name}'." if !key.is_a?(Symbol)
     raise "No data was loaded on the object? Maybe you are trying to call a deleted object?" if !@data
+    self.reload if @should_reload
     return @data[key] if @data.key?(key)
-    raise "No such key: '#{key}' on '#{self.class.name}'."
+    raise "No such key: '#{key}' on '#{self.class.name}' (#{@data.keys.join(", ")}) (#{@should_reload})."
   end
   
   #Writes/updates a keys value on the object.
@@ -558,7 +574,7 @@ class Knj::Datarow
   # user[:username] = 'New username'
   def []=(key, value)
     self.update(key.to_sym => value)
-    self.reload
+    self.should_reload
   end
   
   #Returns the objects ID.
@@ -573,6 +589,8 @@ class Knj::Datarow
   
   #Tries to figure out, and returns, the possible name or title for the object.
   def name
+    self.reload if @should_reload
+    
     if @data.key?(:title)
       return @data[:title]
     elsif @data.key?(:name)
@@ -606,6 +624,7 @@ class Knj::Datarow
   #   print "#{key}: #{val}\n" #=> username: John Doe
   # end
   def each(&args)
+    self.reload if @should_reload
     return @data.each(&args)
   end
   
