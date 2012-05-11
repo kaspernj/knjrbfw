@@ -594,7 +594,10 @@ class Knj::Datarow
   end
   
   #This enable Wref to not return the wrong object.
-  alias __object_unique_id__ id
+  def __object_unique_id__
+    return 0 if self.deleted?
+    return self.id
+  end
   
   #Tries to figure out, and returns, the possible name or title for the object.
   def name

@@ -5,6 +5,7 @@ describe "Objects" do
     require "sqlite3"
     
     $db_path = "#{Knj::Os.tmpdir}/knjrbfw_objects_cache_test.sqlite3"
+    File.unlink($db_path) if File.exists?($db_path)
     $db = Knj::Db.new(:type => :sqlite3, :path => $db_path, :return_keys => "symbols")
     
     schema = {
@@ -48,6 +49,27 @@ describe "Objects" do
     
     $ob.deletes([$ob.get(:User, 1), $ob.get(:User, 2)])
     raise "Expected user-ID-cache to be 2 but it wasnt: #{$ob.ids_cache[:User].length} #{$ob.ids_cache}" if $ob.ids_cache[:User].length != 2
+    
+    
+    #Stress it...
+    threads = []
+    0.upto(10) do |tc|
+      threads << Knj::Thread.new do
+        0.upto(15) do |ic|
+          user = $ob.add(:User, {:username => "User #{tc}-#{ic}"})
+          $ob.delete(user)
+          
+          user1 = $ob.add(:User, {:username => "User #{tc}-#{ic}-1"})
+          user2 = $ob.add(:User, {:username => "User #{tc}-#{ic}-2"})
+          user3 = $ob.add(:User, {:username => "User #{tc}-#{ic}-3"})
+          $ob.deletes([user1, user2, user3])
+        end
+      end
+    end
+    
+    threads.each do |thread|
+      thread.join
+    end
   end
   
   it "should delete the temporary database." do
