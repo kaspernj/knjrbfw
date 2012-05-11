@@ -34,7 +34,7 @@ module Knj::Errors
     str = ""
     
     if args[:html]
-      str << "<b>#{err.class.name}</b>: #{err.message}<br />\n<br />\n"
+      str << "<b>#{Knj::Web.html(err.class.name)}</b>: #{Knj::Web.html(err.message)}<br />\n<br />\n"
       
       err.backtrace.each do |bt|
         str << "#{Knj::Web.html(bt)}<br />\n"
