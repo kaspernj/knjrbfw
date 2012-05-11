@@ -31,7 +31,8 @@ class Knj::Db
     @int_types = ["int", "bigint", "tinyint", "smallint", "mediumint"]
     
     if !@opts[:threadsafe]
-      @mutex = Mutex.new
+      require "monitor"
+      @mutex = Monitor.new
     end
     
     @debug = @opts[:debug]
@@ -419,18 +420,9 @@ class Knj::Db
         @conns.free(conn)
       end
     elsif @conn
-      begin
-        @mutex.synchronize do
-          yield(@conn)
-          return nil
-        end
-      rescue ThreadError => e
-        if e.message != "deadlock; recursive locking"
-          yield(@conn)
-          return nil
-        else
-          raise e
-        end
+      @mutex.synchronize do
+        yield(@conn)
+        return nil
       end
     end
     
