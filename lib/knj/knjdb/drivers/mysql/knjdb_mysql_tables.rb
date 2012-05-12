@@ -1,5 +1,3 @@
-require "#{$knjpath}wref"
-
 class KnjDB_mysql::Tables
   attr_reader :db, :list
   
@@ -8,7 +6,7 @@ class KnjDB_mysql::Tables
     @db = @args[:db]
     @subtype = @db.opts[:subtype]
     @list_mutex = Mutex.new
-    @list = Knj::Wref_map.new
+    @list = Wref_map.new
     @list_should_be_reloaded = true
   end
   
@@ -22,7 +20,7 @@ class KnjDB_mysql::Tables
     
     begin
       return @list[table_name]
-    rescue Knj::Wref::Recycled
+    rescue Wref::Recycled
       #ignore.
     end
     
@@ -105,8 +103,8 @@ class KnjDB_mysql::Tables::Table
     @db = args[:db]
     @data = args[:data]
     @subtype = @db.opts[:subtype]
-    @list = Knj::Wref_map.new
-    @indexes_list = Knj::Wref_map.new
+    @list = Wref_map.new
+    @indexes_list = Wref_map.new
     
     raise "Could not figure out name from: '#{@data}'." if !@data[:Name]
   end
@@ -143,7 +141,7 @@ class KnjDB_mysql::Tables::Table
     
     begin
       return @list[name]
-    rescue Knj::Wref::Recycled
+    rescue Wref::Recycled
       #ignore.
     end
     
@@ -223,7 +221,7 @@ class KnjDB_mysql::Tables::Table
     
     begin
       return @indexes_list[name]
-    rescue Knj::Wref::Recycled
+    rescue Wref::Recycled
       #ignore.
     end
     

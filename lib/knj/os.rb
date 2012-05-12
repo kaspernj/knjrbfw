@@ -1,4 +1,7 @@
 module Knj::Os
+  #Returns the path of the home-dir as a string.
+  #===Examples
+  # print "Looks like the current user uses Mozilla software?" if File.exists?("#{Knj::Os.homedir}/.mozilla")
   def self.homedir
     if ENV["USERPROFILE"]
       homedir = ENV["USERPROFILE"]
@@ -14,6 +17,8 @@ module Knj::Os
   end
   
   #This method was created to make up for the fact that Dir.tmpdir sometimes returns empty strings??
+  #===Examples
+  # tmp_db_path = "#{Knj::Os.tmpdir}/temp_db.sqlite3"
   def self.tmpdir
     require "tmpdir"
     tmpdir = Dir.tmpdir.to_s.strip
@@ -26,6 +31,9 @@ module Knj::Os
     raise "Could not figure out temp-dir."
   end
   
+  #This method returns the username of the current user.
+  #===Examples
+  # print "I can do what I want, I am root!" if Knj::Os.whoami == "root"
   def self.whoami
     if ENV["USERNAME"]
       whoami = ENV["USERNAME"]
@@ -40,6 +48,10 @@ module Knj::Os
     return whoami
   end
   
+  #Returns the operating system a string.
+  #===Examples
+  # print "Can I please move to another machine?" if Knj::Os.os == "windows"
+  # print "I like it better now." if Knj::Os.os == "linux"
   def self.os
     if ENV["OS"]
       teststring = ENV["OS"].to_s

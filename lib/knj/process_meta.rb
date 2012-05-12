@@ -1,9 +1,22 @@
 require "#{$knjpath}process"
 require "#{$knjpath}os"
 
+#This class can spawn another Ruby-process and manipulate it to create objects, evaluate code, create proxy-objects and other stuff in that process.
+#===Examples
+# This will create another Ruby-process, spawn an integer with the value of 5, run upto(10) and return each block to the current block. In the end the subprocess is terminated.
+# Knj::Process_meta.new do |subproc|
+#   proxy_int = subproc.new(:Integer, 5)
+#   proxy_int.upto(10) do |i|
+#     print "Number: #{i}\n"
+#   end
+# end
 class Knj::Process_meta
   attr_reader :process, :pid
   
+  #===Examples
+  #Knj::Process_meta.new("id" => "my_subproc") #Will make this ID be shown in the command, so you can recocknize it from "ps aux".
+  #Knj::Process_meta.new("exec_path" => "ruby1.9.1") #If you want a certain Ruby-command to be used when starting the subprocess, instead of detecting the current one.
+  #Knj::Process_meta.new("debug" => true, "debug_err" => true) #Enables various debug-messages to be printed.
   def initialize(args = {})
     @args = args
     @objects = {}
@@ -370,6 +383,7 @@ class Knj::Process_meta
         raise e if e.message.index("No such process") == nil
       end
       
+      $stderr.print "Try to kill again...\n"
       retry
     end
     
@@ -394,7 +408,7 @@ class Knj::Process_meta::Proxy_obj
   
   def initialize(args)
     @args = args
-    @_process_meta_buffer_use = false
+    @_process_meta_block_buffer_use = false
     ObjectSpace.define_finalizer(self, @args[:process_meta].method(:proxy_finalizer))
   end
   
@@ -538,9 +552,13 @@ class Knj::Process_meta::Proxy_obj::Buffered_caller
     self._pm_flush
     
     if @args[:async]
+      threads_remove = []
       @threads.each do |thread|
         thread.join
+        threads_remove << thread
       end
+      
+      @threads -= threads_remove
     end
     
     raise @raise_error if @raise_error

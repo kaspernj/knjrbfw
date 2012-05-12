@@ -1,10 +1,13 @@
 #encoding: utf-8
 
+#This module contains various methods to escape, change or treat strings.
 module Knj::Strings
+  #Returns a string that is safe to use on the command line.
   def self.UnixSafe(tha_string)
     return tha_string.to_s.gsub(" ", "\\ ").gsub("&", "\&").gsub("(", "\\(").gsub(")", "\\)").gsub('"', '\"').gsub("\n", "\"\n\"").gsub(":", "\\:").gsub('\'', "\\\\'").gsub("`", "\\\\`")
   end
   
+  #Alias for UnixSafe.
   def self.unixsafe(string)
     return Knj::Strings.UnixSafe(string)
   end
@@ -125,14 +128,21 @@ module Knj::Strings
   end
   
   #Shortens a string to maxlength and adds "..." if it was shortened.
+  #===Examples
+  # Knj::Strings.shorten("Kasper Johansen", 6) #=> "Kasper..."
   def self.shorten(str, maxlength)
     str = str.to_s
     str = str.slice(0..(maxlength - 1)).strip + "..." if str.length > maxlength
     return str
   end
   
+  #Search for what looks like links in a string and does something with it based on block given or arguments given.
+  #===Examples
+  # str = "asd asd asd asdjklqwejqwer http://www.google.com asdfas df asf"
+  # Knj::Strings.html_links(str) #=> "asd asd asd asdjklqwejqwer <a href=\"http://www.google.com\">http://www.google.com</a> asdfas df asf"
+  # Knj::Strings.html_links(str){ |data| str.gsub(data[:match][0], "!!!#{data[:match][1]}!!!")} #=> "asd asd asd asdjklqwejqwer !!!www!!! asdfas df asf"
   def self.html_links(str, args = {})
-    str.to_s.html.scan(/(http:\/\/([A-z]+)\S*\.([A-z]{2,4})(\S+))/) do |match|
+    Knj::Web.html(str).scan(/(http:\/\/([A-z]+)\S*\.([A-z]{2,4})(\S+))/) do |match|
       if block_given?
         str = yield(:str => str, :args => args, :match => match)
       else
@@ -150,8 +160,11 @@ module Knj::Strings
     return str
   end
   
+  #Strips various given characters from a given string.
+  #===Examples
+  # Knj::Strings.strip("...kasper...", {:right => false, :left => true, :strips => [".", ","]}) #=> "kasper..."
   def self.strip(origstr, args)
-    newstr = "#{origstr}<br>"
+    newstr = "#{origstr}"
     
     if !args.key?(:right) or args[:right]
       loop do

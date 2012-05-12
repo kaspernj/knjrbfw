@@ -1,4 +1,9 @@
+#This class can help you parse results from command-line commands.
 class Knj::Cmd_parser
+  #Parses the results of "ls -l".
+  #===Examples
+  # str = %x[ls -l]
+  # Knj::Cmd_parser.lsl(str) #=> <Array> holding a lot of info about the various listed files.
   def self.lsl(str, args = {})
     ret = []
     

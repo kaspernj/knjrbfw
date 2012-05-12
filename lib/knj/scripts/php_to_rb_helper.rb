@@ -354,7 +354,7 @@ end
 
 funcs_skip = [:foreach]
 funcs_remove = [:session_start]
-funcs_all = funcs_skip | Knj::Php.php_list_defined_methods
+funcs_all = funcs_skip | Knj::Php.instance_methods
 
 funcs_all.each do |method_name|
   next if funcs_skip.index(method_name) != nil

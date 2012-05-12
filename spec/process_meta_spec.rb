@@ -2,10 +2,11 @@ require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
 describe "Process_meta" do
   it "should be able to start a server and a client" do
-    require "knj/autoload"
+    require "knj/process_meta"
+    require "timeout"
     
     #Start the activity.
-    $process_meta = Knj::Process_meta.new("debug" => false, "debug_err" => true)
+    $process_meta = Knj::Process_meta.new("debug" => false, "debug_err" => true, "id" => "process_meta_spec")
   end
   
   it "should be able to do various operations" do
@@ -37,15 +38,13 @@ describe "Process_meta" do
     $ids << proxy_obj3.__id__
     
     proxy_obj.test_block do |i|
-      if i == 5
-        break
-      end
+      break if i == 5
     end
     
     last_num = proxy_obj.last_num
     raise "Expected last num to be 5 but it wasnt: '#{last_num}'." if last_num != 5
     
-    #Somehow define_finalizer is always one behind, so we have to do funny one here.
+    #Somehow define_finalizer is always one behind, so we have to do another funny one here.
     ObjectSpace.define_finalizer(self, $process_meta.method(:proxy_finalizer))
   end
   
@@ -74,14 +73,16 @@ describe "Process_meta" do
     
     #Do a lot of calls at the same time to test thread-safety.
     threads = []
-    0.upto(10) do |i|
-      should_return = "Kasper".slice(0, i)
-      threads << Knj::Thread.new do
-        0.upto(500) do
-          res = proxy_obj.slice(0, i)
+    0.upto(10) do |thread_i|
+      should_return = "Kasper".slice(0, thread_i)
+      thread = Knj::Thread.new do
+        0.upto(500) do |num_i|
+          res = proxy_obj.slice(0, thread_i)
           raise "Should return: '#{should_return}' but didnt: '#{res}'." if res != should_return
         end
       end
+      
+      threads << thread
     end
     
     threads.each do |thread|
@@ -99,19 +100,24 @@ describe "Process_meta" do
     end
     
     #Ensure the expected has actually been increased by running the block.
-    raise "Expected end-result of 11 but got: '#{expect}'." if expect != 1001
+    raise "Expected end-result of 1001 but got: '#{expect}'." if expect != 1001
     
     
+    proxy_int = $process_meta.spawn_object(:Integer, nil, 5)
     proxy_int._process_meta_block_buffer_use = true
     expect = 5
-    proxy_int.upto(10000) do |i|
-      raise "Expected '#{expect}' but got: '#{i}'." if i != expect
-      expect += 1
+    
+    #If this takes more than 10 secs - something is wrong (JRuby can take a long time)...
+    Timeout.timeout(10) do
+      proxy_int.upto(10000) do |i|
+        raise "Expected '#{expect}' but got: '#{i}'." if i != expect
+        expect += 1
+      end
     end
     
     
     #Ensure the expected has actually been increased by running the block.
-    raise "Expected end-result of 11 but got: '#{expect}'." if expect != 10001
+    raise "Expected end-result of 10001 but got: '#{expect}'." if expect != 10001
     
     #Try to unset an object.
     proxy_obj._process_meta_unset
@@ -132,14 +138,14 @@ describe "Process_meta" do
       nil
     ")
     
-    Timeout.timeout(5) do
+    Timeout.timeout(10) do
       expect = 8
       $process_meta.static("Kaspertest", "kaspertest") do |count|
-        raise "Expected '#{expect}' but got: '#{count}'."
+        raise "Expected '#{expect}' but got: '#{count}'." if expect != count
         expect += 1
       end
       
-      raise "Expected '13' but got: '#{expect}'."
+      raise "Expected '13' but got: '#{expect}'." if expect != 13
     end
   end
   

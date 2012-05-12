@@ -36,6 +36,9 @@ class Knj::Process
           else
             $stderr.print "Process error: #{str}"
           end
+          
+          #Try to break out of loop - the process has been destroyed.
+          break if (!@out_mutex and str.to_s.strip.length <= 0) or (@args and @args[:err] and @args[:err].closed?)
         end
       end
     end
@@ -67,10 +70,15 @@ class Knj::Process
   def listen
     loop do
       self.listen_loop
+      
+      #Break out if something is wrong.
+      break if !@out_mutex or (@in and @in.closed?) or (@out and @out.closed?)
     end
   end
   
   def listen_loop
+    $stderr.print "listen-loop called.\n" if @debug
+    
     str = @in.gets("\n")
     if str == nil
       raise "Socket closed." if @in.closed?
@@ -128,25 +136,39 @@ class Knj::Process
             @on_rec.call(result_obj) do |answer_block|
               $stderr.print "Running enum-block for #{answer_block}\n" if @debug
               
+              #Block has ended on hosts side - break out of block-loop.
               break if !@blocks_send.key?(id)
+              
+              #Throw the result at the block running.
               y << answer_block
+              
+              #This is to prevent the block-loop from running again, until host has confirmed it wants another result.
               dobreak = false
               
               loop do
+                #Block has ended on hosts-side - break of out block-loop.
                 if !@blocks_send.key?(id)
                   dobreak = true
                   break
                 end
                 
-                break if @blocks_send[id][:waiting_for_result]
+                #If waiting for result then release the loop and return another result.
+                if @blocks_send[id][:waiting_for_result]
+                  @blocks_send[id][:waiting_for_result] = false
+                  break
+                end
+                
+                #Wait a little with checking for another result to not use 100% CPU.
                 sleep 0.01
               end
               
+              #The block-loop should not run again - it has been prematurely interrupted on the host-side.
               break if dobreak
             end
           end
         when "send_block_res"
           begin
+            #The host wants another result. Set the 'waiting-for-result' and wait for the enumerator to run. Then return result from enumerator (code is right above here).
             @blocks_send[obj][:waiting_for_result] = true
             res = @blocks_send[obj][:enum].next
             self.answer(id, {"result" => res})
@@ -167,30 +189,26 @@ class Knj::Process
           
           self.answer(id, "ok")
         when "send_block_buffer"
-          buffer_use = true
-          
           Knj::Thread.new do
             result_obj = Knj::Process::Resultobject.new(:process => self, :id => id, :obj => obj)
             block_res = nil
+            buffer_done = false
             
             begin
-              if buffer_use
-                buffer_answers = []
-                buffer_done = false
-                
-                buffer_thread = Knj::Thread.new do
-                  loop do
-                    arr = buffer_answers.shift(200)
-                    
-                    if !arr.empty?
-                      $stderr.print "Sending: #{arr.length} results.\n" if @debug
-                      self.answer(id, arr, "answer_block")
-                    else
-                      sleep 0.05
-                    end
-                    
-                    break if buffer_done and buffer_answers.empty?
+              buffer_answers = Knj::Threadsafe.std_array #JRuby needs the threadsafety.
+              buffer_thread = Knj::Thread.new do
+                loop do
+                  arr = buffer_answers.shift(200)
+                  
+                  if !arr.empty?
+                    $stderr.print "Sending: #{arr.length} results.\n" if @debug
+                    self.answer(id, arr, "answer_block")
+                  else
+                    $stderr.print "Waiting for buffer-stuff (#{arr.length}, #{buffer_done}).\n" if @debug
+                    sleep 0.05
                   end
+                  
+                  break if buffer_done and buffer_answers.empty?
                 end
               end
               
@@ -198,23 +216,17 @@ class Knj::Process
                 begin
                   count = 0
                   block_res = @on_rec.call(result_obj) do |answer_block|
-                    if buffer_use
-                      loop do
-                        if buffer_answers.length > 1000
-                          $stderr.print "Buffer is more than 1000 - sleeping and tries again in 0.05 sec.\n" if @debug
-                          sleep 0.05
-                        else
-                          break
-                        end
+                    loop do
+                      if buffer_answers.length > 1000
+                        $stderr.print "Buffer is more than 1000 - sleeping and tries again in 0.05 sec.\n" if @debug
+                        sleep 0.05
+                      else
+                        break
                       end
                     end
                     
                     count += 1
-                    if buffer_use
-                      buffer_answers << answer_block
-                    else
-                      self.answer(id, [answer_block], "answer_block")
-                    end
+                    buffer_answers << answer_block
                     
                     if count >= 100
                       count = 0
@@ -234,10 +246,10 @@ class Knj::Process
                     end
                   end
                 ensure
-                  buffer_done = true if buffer_use
+                  buffer_done = true
                 end
               ensure
-                buffer_thread.join if buffer_use
+                buffer_thread.join
               end
             rescue Exception => e
               $stderr.print Knj::Errors.error_str(e) if @debug
@@ -421,6 +433,7 @@ class Knj::Process
     self.kill_listen
     @err_thread.kill if @err_thread
     @out_answers = nil
+    @out_mutex = nil
   end
 end
 

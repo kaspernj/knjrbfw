@@ -1,13 +1,20 @@
+#Contains various methods for doing stuff quick using the Gtk2-extension.
 module Knj::Gtk2
-  autoload :Cb, "knj/gtk2_cb"
-  autoload :Menu, "knj/gtk2_menu"
-  autoload :StatusWindow, "knj/gtk2_statuswindow"
-  autoload :Tv, "knj/gtk2_tv"
-  
-  def msgbox(p1, p2 = "warning", p3 = "Warning")
-    return Knj::Gtk2.msgbox(p1, p2, p3)
+  #Autoloader.
+  def self.const_missing(name)
+    require "#{$knjpath}knj/gtk2_#{name.to_s.downcase}"
+    return Knj::Gtk2.const_get(name)
   end
   
+  #Alias for self.msgbox.
+  def msgbox(*args, &block)
+    return Knj::Gtk2.msgbox(*args, &block)
+  end
+  
+  #Shows a dialog on the screen based on various arguments.
+  #===Examples
+  # Knj::Gtk2.msgbox("Message", "Title", "info")
+  # Knj::Gtk2.msgbox("Question", "Title", "yesno") #=> "yes"|"no"|"cancel"|"close"
   def self.msgbox(paras, type = "warning", title = nil)
     if paras.is_a?(Array)
       msg = paras[0]
@@ -150,6 +157,9 @@ module Knj::Gtk2
     end
   end
   
+  #Takes a Gtk::Builder-object and runs labels and titles through GetText.gettext in order to translate them.
+  #===Examples
+  # Knj::Gtk2.translate(builder_obj)
   def self.translate(builderob)
     builderob.objects.each do |object|
       class_str = object.class.to_s
@@ -162,6 +172,9 @@ module Knj::Gtk2
     end
   end
   
+  #Makes a Gtk::Table based on the given arguments.
+  #===Examples
+  # Knj::Gtk2.form([{"type" => "text", "name" => "txtname", "title" => _("Name")}]) #=> {"table" => <Gtk::Table>, "objects" => <Array>}
   def self.form(paras)
     table = Gtk::Table.new(paras.length, 2)
     table.row_spacings = 4
@@ -238,11 +251,15 @@ module Knj::Gtk2
     }
   end
   
+  #Takes a given object and sets its value.
+  #===Examples
+  # Knj::Gtk2.form_setval(text_obj, "Hejsa")
+  # Knj::Gtk2.form_setval(checkbox_obj, 1)
   def self.form_setval(object, val)
     if object.is_a?(Gtk::Entry)
       object.text = val.to_s
     elsif object.is_a?(Gtk::CheckButton)
-      if (val.to_s == "1")
+      if val.to_s == "1"
         object.active = true
       else
         object.active = false
@@ -252,11 +269,15 @@ module Knj::Gtk2
     end
   end
   
+  #Returns the value of an object regardless of that type the object is.
+  #===Examples
+  # Knj::Gtk2.form_getval(text_obj) #=> "Hejsa"
+  # Knj::Gtk2.form_getval(checkbox_obj) #=> "1"
   def self.form_getval(object)
     if object.is_a?(Gtk::Entry)
       return object.text
     elsif object.is_a?(Gtk::CheckButton)
-      if (object.active?)
+      if object.active?
         return "1"
       else
         return "0"
@@ -270,7 +291,9 @@ module Knj::Gtk2
   end
 end
 
+#Defines a shortcut-method on Gtk::Builder
 class Gtk::Builder
+  #Proxies to Knj::Gtk2.translate
   def translate
     return Knj::Gtk2.translate(self)
   end

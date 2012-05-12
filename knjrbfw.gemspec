@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{knjrbfw}
-  s.version = "0.0.28"
+  s.version = "0.0.32"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Kasper Johansen"]
-  s.date = %q{2012-04-27}
+  s.date = %q{2012-05-06}
   s.description = %q{Including stuff for HTTP, SSH and much more.}
   s.email = %q{k@spernj.org}
   s.extra_rdoc_files = [
@@ -156,6 +156,7 @@ Gem::Specification.new do |s|
     "lib/knj/jruby-gtk2/treeview.rb",
     "lib/knj/jruby-gtk2/vbox.rb",
     "lib/knj/jruby-gtk2/window.rb",
+    "lib/knj/jruby/sqlitejdbc-v056.jar",
     "lib/knj/jruby_compiler.rb",
     "lib/knj/knj.rb",
     "lib/knj/knj_controller.rb",
@@ -233,6 +234,7 @@ Gem::Specification.new do |s|
     "lib/knj/thread2.rb",
     "lib/knj/threadhandler.rb",
     "lib/knj/threadpool.rb",
+    "lib/knj/threadsafe.rb",
     "lib/knj/translations.rb",
     "lib/knj/unix_proc.rb",
     "lib/knj/web.rb",
@@ -256,7 +258,9 @@ Gem::Specification.new do |s|
     "spec/process_spec.rb",
     "spec/spec_helper.rb",
     "spec/strings_spec.rb",
+    "spec/threadsafe_spec.rb",
     "spec/web_spec.rb",
+    "spec/wref_spec.rb",
     "testfiles/image.jpg"
   ]
   s.homepage = %q{http://github.com/kaspernj/knjrbfw}
@@ -270,14 +274,14 @@ Gem::Specification.new do |s|
 
     if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
       s.add_development_dependency(%q<rspec>, ["~> 2.3.0"])
-      s.add_development_dependency(%q<bundler>, ["~> 1.0.0"])
+      s.add_development_dependency(%q<bundler>, [">= 1.0.0"])
       s.add_development_dependency(%q<jeweler>, ["~> 1.6.3"])
       s.add_development_dependency(%q<rcov>, [">= 0"])
       s.add_development_dependency(%q<sqlite3>, [">= 0"])
       s.add_development_dependency(%q<rmagick>, [">= 0"])
     else
       s.add_dependency(%q<rspec>, ["~> 2.3.0"])
-      s.add_dependency(%q<bundler>, ["~> 1.0.0"])
+      s.add_dependency(%q<bundler>, [">= 1.0.0"])
       s.add_dependency(%q<jeweler>, ["~> 1.6.3"])
       s.add_dependency(%q<rcov>, [">= 0"])
       s.add_dependency(%q<sqlite3>, [">= 0"])
@@ -285,7 +289,7 @@ Gem::Specification.new do |s|
     end
   else
     s.add_dependency(%q<rspec>, ["~> 2.3.0"])
-    s.add_dependency(%q<bundler>, ["~> 1.0.0"])
+    s.add_dependency(%q<bundler>, [">= 1.0.0"])
     s.add_dependency(%q<jeweler>, ["~> 1.6.3"])
     s.add_dependency(%q<rcov>, [">= 0"])
     s.add_dependency(%q<sqlite3>, [">= 0"])

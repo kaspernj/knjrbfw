@@ -1,8 +1,14 @@
+#This class contains methods to debug memory-leaks. It prints its collected information as HTML.
+#===Examples
+# ma = Knj::Memory_analyzer.new
+# ma.write
 class Knj::Memory_analyzer
+  #Initialized various objects.
   def initialize
     @printed = {}
   end
   
+  #Writes all available memory-analyzer-information to the given IO.
   def write(to = $stdout)
     to.print "<div style=\"width: 600px;\">\n"
     
@@ -24,6 +30,7 @@ class Knj::Memory_analyzer
     to.print "</div>\n"
   end
   
+  #Writes information about the garbage-collector to the given IO as HTML.
   def garbage_collector(to = $stdout)
     to.print "<h1>Garbage collector</h1>\n"
     
@@ -36,6 +43,7 @@ class Knj::Memory_analyzer
     GC.start
   end
   
+  #Collects and writes out a lot of information about the spawned hashes as HTML to the given IO.
   def hashes(to = $stdout)
     hashes = {}
     
@@ -94,6 +102,7 @@ class Knj::Memory_analyzer
     to.write "</table>\n"
   end
   
+  #Collects and writes a lot of information about the spawned arrays as HTML to the given IO.
   def arrays(to = $stdout)
     arrays = {}
     
@@ -152,6 +161,7 @@ class Knj::Memory_analyzer
     to.write "</table>\n"
   end
   
+  #Collects a lot of information and writes a lot of info about the spawned global variables as HTML to the given IO.
   def global_vars(to = $stdout)
     to.print "<h1>Global variables</h1>\n"
     to.print "<table class=\"global_variables list\">\n"
@@ -195,6 +205,7 @@ class Knj::Memory_analyzer
     to.print "</table>\n"
   end
   
+  #Collects information about the spawned classes and writes it as HTML to the given IO.
   def constants(to = $stdout)
     to.print "<h1>Constants</h1>\n"
     to.print "<table class=\"memory_analyzer list\">\n"
@@ -219,6 +230,7 @@ class Knj::Memory_analyzer
     to.print "</table>\n"
   end
   
+  #Writes information about the given mod and submod to the given IO as HTML.
   def write_constant(to, mod, submod)
     submod_s = submod.to_s
     
@@ -278,6 +290,7 @@ class Knj::Memory_analyzer
   end
 end
 
+#This class is used to calculate a guessed amount of memory the given object requires.
 class Knj::Memory_analyzer::Object_size_counter
   def initialize(obj)
     @checked = {}

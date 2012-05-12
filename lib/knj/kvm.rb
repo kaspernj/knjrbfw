@@ -1,4 +1,10 @@
+#This class and subclasses holds various functionality to view status for Kvm-instances.
 class Knj::Kvm
+  #Lists all running Kvm-instances on this machine.
+  #===Examples
+  # Knj::Kvm.list do |kvm|
+  #   print kvm.pid
+  # end
   def self.list
     list = []
     
@@ -35,24 +41,32 @@ class Knj::Kvm
   end
 end
 
+#Describes each Kvm-instance.
 class Knj::Kvm::Machine
+  #Sets the data called from Knj::Kvm.list.
   def initialize(args)
     @args = args
   end
   
+  #Returns the PID of the Kvm-instance.
   def pid
     return @args[:pid]
   end
   
+  #Returns the name from the Kvm-instance.
   def name
     return @args[:name]
   end
   
+  #Returns the MAC from a network interfaces on the Kvm-instance.
   def mac
     raise "No MAC-address has been registered for this machine." if !@args.key?(:mac)
     return @args[:mac]
   end
   
+  #Returns what virtual interface the Kvm is using.
+  #===Examples
+  # kvm.iface #=> "vnet12"
   def iface
     if !@iface
       res = Knj::Os.shellcmd("ifconfig | grep \"#{self.mac[3, self.mac.length]}\"")
@@ -67,6 +81,9 @@ class Knj::Kvm::Machine
     return @iface
   end
   
+  #Returns various data about the networking (how much have been sent and recieved).
+  #===Examples
+  # kvm.net_status #=> {:tx => 1024, :rx => 2048}
   def net_status
     res = Knj::Os.shellcmd("ifconfig \"#{self.iface}\"")
     
@@ -83,6 +100,9 @@ class Knj::Kvm::Machine
     return ret
   end
   
+  #Returns various data about how much disk IO the Kvm-instance have been using.
+  #===Examples
+  # kvm.io_status #=> {:read_bytes => 1024, :write_bytes => 2048}
   def io_status
     io_status = File.read("/proc/#{self.pid}/io")
     

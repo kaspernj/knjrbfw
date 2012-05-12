@@ -8,7 +8,8 @@ describe "Db" do
     
     require "knj/db"
     require "knj/os"
-    require "sqlite3" if !Kernel.const_defined?("SQLite3")
+    require "rubygems"
+    require "sqlite3" if !Kernel.const_defined?("SQLite3") and RUBY_ENGINE != "jruby"
     
     db_path = "#{Knj::Os.tmpdir}/knjrbfw_test_sqlite3.sqlite3"
     File.unlink(db_path) if File.exists?(db_path)

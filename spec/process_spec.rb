@@ -2,7 +2,7 @@ require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
 describe "Process" do
   it "should be able to start a server and a client" do
-    require "knj/autoload"
+    require "timeout"
     
     tcp_server = TCPServer.new("0.0.0.0", 15678)
     conn_client = TCPSocket.new("localhost", 15678)
@@ -59,7 +59,13 @@ describe "Process" do
     end
     
     #Stress it by doing 1000 requests.
-    Timeout.timeout(2) do
+    if RUBY_ENGINE == "jruby"
+      tout = 7
+    else
+      tout = 2
+    end
+    
+    Timeout.timeout(tout) do
       0.upto(1000) do |count|
         #$stderr.print "Testing #{count}\n"
         answer = $process_client.send("test #{count}")

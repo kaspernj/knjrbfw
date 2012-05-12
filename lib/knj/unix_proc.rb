@@ -1,9 +1,10 @@
-require "#{$knjpath}wref"
+require "wref"
 
+#This class handels various stuff regarding Unix-processes.
 class Knj::Unix_proc
   attr_reader :data
   
-  PROCS = Knj::Wref_map.new
+  PROCS = Wref_map.new
   MUTEX = Mutex.new
   
   def self.spawn(data)
@@ -12,7 +13,7 @@ class Knj::Unix_proc
     begin
       proc_ele = PROCS[pid]
       proc_ele.update_data(data)
-    rescue Knj::Wref::Recycled
+    rescue Wref::Recycled
       proc_ele = Knj::Unix_proc.new(data)
       PROCS[pid] = proc_ele
     end

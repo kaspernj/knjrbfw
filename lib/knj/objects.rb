@@ -1,5 +1,5 @@
 class Knj::Objects
-  attr_reader :args, :events, :data
+  attr_reader :args, :events, :data, :ids_cache, :ids_cache_should
   
   def initialize(args)
     require "monitor"
@@ -8,7 +8,7 @@ class Knj::Objects
     require "#{$knjpath}hash_methods"
     
     @callbacks = {}
-    @args = Knj::ArrayExt.hash_sym(args)
+    @args = args
     @args[:col_id] = :id if !@args[:col_id]
     @args[:class_pre] = "class_" if !@args[:class_pre]
     @args[:module] = Kernel if !@args[:module]
@@ -18,25 +18,14 @@ class Knj::Objects
     @data = {}
     @lock_require = Monitor.new
     
-    require "#{$knjpath}wref" if @args[:cache] == :weak
+    require "wref" if @args[:cache] == :weak
     
+    #Set up various events.
     @events = Knj::Event_handler.new
-    @events.add_event(
-      :name => :no_html,
-      :connections_max => 1
-    )
-    @events.add_event(
-      :name => :no_date,
-      :connections_max => 1
-    )
-    @events.add_event(
-      :name => :missing_class,
-      :connections_max => 1
-    )
-    @events.add_event(
-      :name => :require_class,
-      :connections_max => 1
-    )
+    @events.add_event(:name => :no_html, :connections_max => 1)
+    @events.add_event(:name => :no_date, :connections_max => 1)
+    @events.add_event(:name => :missing_class, :connections_max => 1)
+    @events.add_event(:name => :require_class, :connections_max => 1)
     
     raise "No DB given." if !@args[:db] and !@args[:custom]
     raise "No class path given." if !@args[:class_path] and (@args[:require] or !@args.key?(:require))
@@ -60,6 +49,31 @@ class Knj::Objects
         self.load_class(load_class)
       end
     end
+    
+    #Set up ID-caching.
+    @ids_cache_should = {}
+    
+    if @args[:models]
+      @ids_cache = {}
+      
+      @args[:models].each do |classname, classargs|
+        @ids_cache_should[classname] = true if classargs[:cache_ids]
+        self.cache_ids(classname)
+      end
+    end
+  end
+  
+  #Caches all IDs for a specific classname.
+  def cache_ids(classname)
+    classname = classname.to_sym
+    return nil if !@ids_cache_should or !@ids_cache_should[classname]
+    
+    newcache = {}
+    @args[:db].q("SELECT `#{@args[:col_id]}` FROM `#{classname}` ORDER BY `#{@args[:col_id]}`") do |data|
+      newcache[data[@args[:col_id]].to_i] = true
+    end
+    
+    @ids_cache[classname] = newcache
   end
   
   def init_class(classname)
@@ -67,7 +81,7 @@ class Knj::Objects
     return false if @objects.key?(classname)
     
     if @args[:cache] == :weak
-      @objects[classname] = Knj::Wref_map.new
+      @objects[classname] = Wref_map.new
     else
       @objects[classname] = {}
     end
@@ -114,6 +128,21 @@ class Knj::Objects
     @callbacks[args["object"]] = {} if !@callbacks[args["object"]]
     conn_id = @callbacks[args["object"]].length.to_s
     @callbacks[args["object"]][conn_id] = args
+  end
+  
+  #Returns true if the given signal is connected to the given object.
+  def connected?(args)
+    raise "No object given." if !args["object"]
+    raise "No signal given." if !args.key?("signal")
+    
+    if @callbacks.key?(args["object"])
+      @callbacks[args["object"]].clone.each do |ckey, callback|
+        return true if callback.key?("signal") and callback["signal"] == args["signal"]
+        return true if callback.key?("signals") and callback["signals"].index(args["signal"]) != nil
+      end
+    end
+    
+    return false
   end
   
   #This method is used to call the connected callbacks for an event.
@@ -222,8 +251,57 @@ class Knj::Objects
     classob.datarow_init(pass_arg) if classob.respond_to?(:datarow_init)
   end
   
+  #Returns the instance of classname, but only if it already exists.
+  def get_if_cached(classname, id)
+    classname = classname.to_sym
+    id = id.to_i
+    
+    if wref_map = @objects[classname] and obj = wref_map.get!(id)
+      return obj
+    end
+    
+    return nil
+  end
+  
+  #Returns true if a row of the given classname and the ID exists. Will use ID-cache if set in arguments and spawned otherwise it will do an actual lookup.
+  #===Examples
+  # print "User 5 exists." if ob.exists?(:User, 5)
+  def exists?(classname, id)
+    #Make sure the given data are in the correct types.
+    classname = classname.to_sym
+    id = id.to_i
+    
+    #Check if ID-cache is enabled for that classname. Avoid SQL-lookup by using that.
+    if @ids_cache_should.key?(classname)
+      if @ids_cache[classname].key?(id)
+        return true
+      else
+        return false
+      end
+    end
+    
+    #If the object currently exists in cache, we dont have to do a lookup either.
+    return true if @objects.key?(classname) and obj = @objects[classname].get!(id) and !obj.deleted?
+    
+    #Okay - no other options than to actually do a real lookup.
+    begin
+      table = @args[:module].const_get(classname).table
+      row = @args[:db].single(table, {@args[:col_id] => id})
+      
+      if row
+        return true
+      else
+        return false
+      end
+    rescue Knj::Errors::NotFound
+      return false
+    end
+  end
+  
   #Gets an object from the ID or the full data-hash in the database.
-  def get(classname, data)
+  #===Examples
+  # inst = ob.get(:User, 5)
+  def get(classname, data, args = nil)
     classname = classname.to_sym
     
     if data.is_a?(Integer) or data.is_a?(String) or data.is_a?(Fixnum)
@@ -257,11 +335,11 @@ class Knj::Objects
       
       #Spawn object.
       if @args[:datarow] or @args[:custom]
-        obj = @args[:module].const_get(classname).new(Knj::Hash_methods.new(:ob => self, :data => data))
+        obj = @args[:module].const_get(classname).new(data, args)
       else
-        args = [data]
-        args = args | @args[:extra_args] if @args[:extra_args]
-        obj = @args[:module].const_get(classname).new(*args)
+        pass_args = [data]
+        pass_args = pass_args | @args[:extra_args] if @args[:extra_args]
+        obj = @args[:module].const_get(classname).new(*pass_args)
       end
       
       #Save object in cache.
@@ -489,36 +567,44 @@ class Knj::Objects
   end
   
   #Add a new object to the database and to the cache.
-  def add(classname, data = {})
+  #===Examples
+  # obj = ob.add(:User, {:username => "User 1"})
+  def add(classname, data = {}, args = nil)
     raise "data-variable was not a hash: '#{data.class.name}'." if !data.is_a?(Hash)
     classname = classname.to_sym
     self.requireclass(classname)
     
     if @args[:datarow]
       classobj = @args[:module].const_get(classname)
-      if classobj.respond_to?(:add)
-        classobj.add(Knj::Hash_methods.new(
-          :ob => self,
-          :db => self.db,
-          :data => data
-        ))
-      end
       
+      #Run the class 'add'-method to check various data.
+      classobj.add(Knj::Hash_methods.new(:ob => self, :db => @args[:db], :data => data)) if classobj.respond_to?(:add)
+      
+      #Check if various required data is given. If not then raise an error telling about it.
       required_data = classobj.required_data
       required_data.each do |req_data|
-        if !data.key?(req_data[:col])
-          raise "No '#{req_data[:class]}' given by the data '#{req_data[:col]}'."
-        end
-        
-        begin
-          obj = self.get(req_data[:class], data[req_data[:col]])
-        rescue Knj::Errors::NotFound
-          raise "The '#{req_data[:class]}' by ID '#{data[req_data[:col]]}' could not be found with the data '#{req_data[:col]}'."
-        end
+        raise "No '#{req_data[:class]}' given by the data '#{req_data[:col]}'." if !data.key?(req_data[:col])
+        raise "The '#{req_data[:class]}' by ID '#{data[req_data[:col]]}' could not be found with the data '#{req_data[:col]}'." if !self.exists?(req_data[:class], data[req_data[:col]])
       end
       
-      ins_id = @args[:db].insert(classobj.table, data, {:return_id => true})
-      retob = self.get(classname, ins_id)
+      #If 'skip_ret' is given, then the ID wont be looked up and the object wont be spawned. Be aware the connected events wont be executed either. In return it will go a lot faster.
+      if args and args[:skip_ret] and !@ids_cache_should.key?(classname)
+        ins_args = nil
+      else
+        ins_args = {:return_id => true}
+      end
+      
+      #Insert and (maybe?) get ID.
+      ins_id = @args[:db].insert(classobj.table, data, ins_args).to_i
+      
+      #Add ID to ID-cache if ID-cache is active for that classname.
+      @ids_cache[classname][ins_id] = true if ins_id != 0 and @ids_cache_should.key?(classname)
+      
+      #Skip the rest if we are told not to return result.
+      return nil if args and args[:skip_ret]
+      
+      #Spawn the object.
+      retob = self.get(classname, ins_id, {:skip_reload => true})
     elsif @args[:custom]
       classobj = @args[:module].const_get(classname)
       retob = classobj.add(Knj::Hash_methods.new(
@@ -532,14 +618,14 @@ class Knj::Objects
     end
     
     self.call("object" => retob, "signal" => "add")
-    if retob.respond_to?(:add_after)
-      retob.send(:add_after, {})
-    end
+    retob.send(:add_after, {}) if retob.respond_to?(:add_after)
     
     return retob
   end
   
   #Adds several objects to the database at once. This is faster than adding every single object by itself, since this will do multi-inserts if supported by the database.
+  #===Examples
+  # ob.adds(:User, [{:username => "User 1"}, {:username => "User 2"})
   def adds(classname, datas)
     if !@args[:datarow]
       datas.each do |data|
@@ -559,6 +645,8 @@ class Knj::Objects
       
       db.insert_multi(classname, datas)
     end
+    
+    self.cache_ids(classname)
   end
   
   #Calls a static method on a class. Passes the d-variable which contains the Objects-object, database-reference and more...
@@ -623,9 +711,13 @@ class Knj::Objects
   end
   
   #Delete an object. Both from the database and from the cache.
+  #===Examples
+  # user = ob.get(:User, 1)
+  # ob.delete(user)
   def delete(object)
     #Return false if the object has already been deleted.
     return false if object.deleted?
+    classname = object.class.classname.to_sym
     
     self.call("object" => object, "signal" => "delete_before")
     self.unset(object)
@@ -656,6 +748,7 @@ class Knj::Objects
       @args[:db].delete(object.table, {:id => obj_id})
     end
     
+    @ids_cache[classname].delete(obj_id.to_i) if @ids_cache_should.key?(classname)
     self.call("object" => object, "signal" => "delete")
     object.destroy
   end
@@ -667,87 +760,79 @@ class Knj::Objects
         self.delete(obj)
       end
     else
-      arr_ids = []
-      ids = []
-      objs.each do |obj|
-        next if obj.deleted?
-        ids << obj.id
-        if ids.length >= 1000
-          arr_ids << ids
-          ids = []
-        end
-        
-        obj.delete if obj.respond_to?(:delete)
-      end
+      tables = {}
       
-      arr_ids << ids if ids.length > 0
-      arr_ids.each do |ids|
-        @args[:db].delete(objs[0].table, {:id => ids})
+      begin
+        objs.each do |obj|
+          next if obj.deleted?
+          tablen = obj.table
+          
+          if !tables.key?(tablen)
+            tables[tablen] = []
+          end
+          
+          tables[tablen] << obj.id
+          obj.delete if obj.respond_to?(:delete)
+          
+          #Remove from ID-cache.
+          classname = obj.class.classname.to_sym
+          @ids_cache[classname].delete(obj.id.to_i) if @ids_cache_should.key?(classname)
+          
+          #Unset any data on the object, so it seems deleted.
+          obj.destroy
+        end
+      ensure
+        #An exception may occur, and we should make sure, that objects that has gotten 'delete' called also are deleted from their tables.
+        tables.each do |table, ids|
+          ids.each_slice(1000) do |ids_slice|
+            @args[:db].delete(table, {:id => ids_slice})
+          end
+        end
       end
     end
   end
   
-  # Try to clean up objects by unsetting everything, start the garbagecollector, get all the remaining objects via ObjectSpace and set them again. Some (if not all) should be cleaned up and our cache should still be safe... dirty but works.
+  #Try to clean up objects by unsetting everything, start the garbagecollector, get all the remaining objects via ObjectSpace and set them again. Some (if not all) should be cleaned up and our cache should still be safe... dirty but works.
   def clean(classn)
-    return false if @args[:cache] == :weak or @args[:cache] == :none
-    
     if classn.is_a?(Array)
       classn.each do |realclassn|
         self.clean(realclassn)
       end
+      
+      return nil
+    end
+    
+    if @args[:cache] == :weak
+      @objects[classn].clean
+    elsif @args[:cache] == :none
+      return false
     else
       return false if !@objects.key?(classn)
       @objects[classn] = {}
       GC.start
+      
+      @objects.keys.each do |classn|
+        data = @objects[classn]
+        classobj = @args[:module].const_get(classn)
+        ObjectSpace.each_object(classobj) do |obj|
+          begin
+            data[obj.id.to_i] = obj
+          rescue => e
+            if e.message == "No data on object."
+              #Object has been unset - skip it.
+              next
+            end
+            
+            raise e
+          end
+        end
+      end
     end
   end
   
   #Erases the whole cache and regenerates is from ObjectSpace if not running weak-link-caching. If running weaklink-caching then only removes the dead links.
   def clean_all
-    return self.clean_all_weak if @args[:cache] == :weak
-    return false if @args[:cache] == :none
-    
-    classnames = []
-    @objects.keys.each do |classn|
-      classnames << classn
-    end
-    
-    classnames.each do |classn|
-      @objects[classn] = {}
-    end
-    
-    GC.start
-    self.clean_recover
-  end
-  
-  #Runs through all objects-weaklink-references and removes the weaklinks if the object has been recycled.
-  def clean_all_weak
-    @objects.keys.each do |classn|
-      @objects[classn].clean
-    end
-  end
-  
-  #Regenerates cache from ObjectSpace. Its pretty dangerous but can be used in envs where WeakRef is not supported (did someone say Rhodes?).
-  def clean_recover
-    return false if @args[:cache] == :weak or @args[:cache] == :none
-    return false if RUBY_ENGINE == "jruby" and !JRuby.objectspace
-    
-    @objects.keys.each do |classn|
-      data = @objects[classn]
-      classobj = @args[:module].const_get(classn)
-      ObjectSpace.each_object(classobj) do |obj|
-        begin
-          data[obj.id.to_i] = obj
-        rescue => e
-          if e.message == "No data on object."
-            #Object has been unset - skip it.
-            next
-          end
-          
-          raise e
-        end
-      end
-    end
+    self.clean(@objects.keys)
   end
 end
 

@@ -1,5 +1,3 @@
-require "#{$knjpath}wref"
-
 class KnjDB_sqlite3::Tables
   attr_reader :db, :driver
   
@@ -8,7 +6,7 @@ class KnjDB_sqlite3::Tables
     @db = @args[:db]
     
     @list_mutex = Mutex.new
-    @list = Knj::Wref_map.new
+    @list = Wref_map.new
   end
   
   def [](table_name)
@@ -16,7 +14,7 @@ class KnjDB_sqlite3::Tables
     
     begin
       return @list[table_name]
-    rescue Knj::Wref::Recycled
+    rescue Wref::Recycled
       #ignore.
     end
     
@@ -83,8 +81,8 @@ class KnjDB_sqlite3::Tables::Table
     @db = args[:db]
     @data = args[:data]
     
-    @list = Knj::Wref_map.new
-    @indexes_list = Knj::Wref_map.new
+    @list = Wref_map.new
+    @indexes_list = Wref_map.new
   end
   
   def name
@@ -267,13 +265,13 @@ class KnjDB_sqlite3::Tables::Table
     
     begin
       return @indexes_list[name]
-    rescue Knj::Wref::Recycled
+    rescue Wref::Recycled
       if @db.opts[:index_append_table_name]
         tryname = "#{self.name}__#{name}"
         
         begin
           return @indexes_list[tryname]
-        rescue Knj::Wref::Recycled
+        rescue Wref::Recycled
           #ignore.
         end
       else

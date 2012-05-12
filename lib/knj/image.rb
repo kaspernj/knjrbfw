@@ -1,5 +1,14 @@
+#This class holds methods to manipulate images.
 class Knj::Image
   #This function can make rounded transparent corners on an image with a given radius. Further more it can also draw borders around the entire image in a given color and take the border into account.
+  #===Examples
+  # img = Magick::Image.read(path_str)
+  # Knj::Image.rounded_corners(
+  #   :img => img,
+  #   :radius => 25,
+  #   :border => 1,
+  #   :border_color => "#000000"
+  # )
   def self.rounded_corners(args)
     raise "No or invalid ':img' given: '#{args}'." if !args[:img]
     raise "No or invalid ':radius' given: '#{args}'." if !args[:radius].respond_to?("to_i") or args[:radius].to_i <= 0
@@ -154,11 +163,15 @@ class Knj::Image
   end
   
   #Returns the width relative to the height.
+  #===Examples
+  # Knj::Image.width_for_height(640, 480, 400) #=> 533
   def self.width_for_height(orig_width, orig_height, new_height)
     return (orig_width.to_f / (orig_height.to_f / new_height.to_f)).to_i
   end
   
   #Returns the height relative to the width.
+  #===Examples
+  # Knj::Image.height_for_width(640, 480, 533) #=> 399
   def self.height_for_width(orig_width, orig_height, new_width)
     return (orig_height.to_f / (orig_width.to_f / new_width.to_f)).to_i
   end

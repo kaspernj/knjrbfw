@@ -3,7 +3,6 @@ require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 describe "Amixer" do
   it "should load by using autoload" do
     require "knjrbfw"
-    require "knj/autoload"
     
     $amixer = Knj::Amixer.new
   end
@@ -20,6 +19,7 @@ describe "Amixer" do
         mixers.each do |name, mixer|
           next if !mixer.volume?
           mixer.vol_add -5
+          mixer.vol_add 3
         end
       end
     end
