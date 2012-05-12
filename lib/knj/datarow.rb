@@ -485,8 +485,10 @@ class Knj::Datarow
     @classname = newclassname
   end
   
-  #Initializes the object. This should be called from Knj::Objects.
-  def initialize(data)
+  #Initializes the object. This should be called from 'Knj::Objects' and not manually.
+  #===Examples
+  # user = ob.get(:User, 3)
+  def initialize(data, args = nil)
     @ob = self.class.ob
     raise "No ob given." if !@ob
     @db = ob.db
@@ -503,25 +505,28 @@ class Knj::Datarow
         raise Knj::Errors::NotFound, "ID was not found in cache: '#{id}'." if !@ob.ids_cache_should.key?(classname)
         @should_reload = true
       else
-        #ID caching is not enabled - reload now to check if row exists.
-        self.reload
+        #ID caching is not enabled - reload now to check if row exists. Else set 'should_reload'-variable if 'skip_reload' is set.
+        if !args or !args[:skip_reload]
+          self.reload
+        else
+          @should_reload = true
+        end
       end
     else
       raise Knj::Errors::InvalidData, "Could not figure out the data from '#{data.class.name}'."
     end
+    
+    raise "Invalid ID: '#{@id}'." if @id.to_i <= 0
   end
   
   #Reloads the data from the database.
+  #===Examples
   # old_username = user[:username]
   # user.reload
   # print "The username changed in the database!" if user[:username] != old_username
   def reload
-    data = @db.single(self.table, {:id => @id})
-    if !data
-      raise Knj::Errors::NotFound, "Could not find any data for the object with ID: '#{@id}' in the table '#{self.table}'."
-    end
-    
-    @data = data
+    @data = @db.single(self.table, {:id => @id})
+    raise Knj::Errors::NotFound, "Could not find any data for the object with ID: '#{@id}' in the table '#{self.table}'." if !@data
     @should_reload = false
   end
   
@@ -539,10 +544,7 @@ class Knj::Datarow
   def update(newdata)
     @db.update(self.table, newdata, {:id => @id})
     self.should_reload
-    
-    if @ob
-      @ob.call("object" => self, "signal" => "update")
-    end
+    @ob.call("object" => self, "signal" => "update") if @ob
   end
   
   #Forcefully destroys the object. This is done after deleting it and should not be called manually.
@@ -579,7 +581,7 @@ class Knj::Datarow
     raise "Key was not a symbol: '#{key.class.name}'." if !key.is_a?(Symbol)
     return @id if !@data and key == :id and @id
     self.reload if @should_reload
-    raise "No data was loaded on the object? Maybe you are trying to call a deleted object?" if !@data
+    raise "No data was loaded on the object? Maybe you are trying to call a deleted object? (#{self.class.classname}(#{@id}), #{@should_reload})" if !@data
     return @data[key] if @data.key?(key)
     raise "No such key: '#{key}' on '#{self.class.name}' (#{@data.keys.join(", ")}) (#{@should_reload})."
   end
@@ -626,10 +628,7 @@ class Knj::Datarow
   #Calls the name-method and returns a HTML-escaped value. Also "[no name]" if the name is empty.
   def name_html
     name_str = self.name.to_s
-    if name_str.length <= 0
-      name_str = "[no name]"
-    end
-    
+    name_str = "[no name]" if name_str.length <= 0
     return name_str
   end
   

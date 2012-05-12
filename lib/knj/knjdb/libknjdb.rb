@@ -213,7 +213,7 @@ class Knj::Db
   #===Examples
   # db.insert(:users, {:name => "John", :lastname => "Doe"})
   # id = db.insert(:users, {:name => "John", :lastname => "Doe"}, :return_id => true)
-  def insert(tablename, arr_insert, args = {})
+  def insert(tablename, arr_insert, args = nil)
     self.conn_exec do |driver|
       sql = "INSERT INTO #{driver.escape_table}#{tablename.to_s}#{driver.escape_table} ("
       
@@ -244,7 +244,7 @@ class Knj::Db
       sql << ")"
       
       driver.query(sql)
-      return driver.lastID if args[:return_id]
+      return driver.lastID if args and args[:return_id]
     end
   end
   

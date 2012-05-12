@@ -130,6 +130,21 @@ class Knj::Objects
     @callbacks[args["object"]][conn_id] = args
   end
   
+  #Returns true if the given signal is connected to the given object.
+  def connected?(args)
+    raise "No object given." if !args["object"]
+    raise "No signal given." if !args.key?("signal")
+    
+    if @callbacks.key?(args["object"])
+      @callbacks[args["object"]].clone.each do |ckey, callback|
+        return true if callback.key?("signal") and callback["signal"] == args["signal"]
+        return true if callback.key?("signals") and callback["signals"].index(args["signal"]) != nil
+      end
+    end
+    
+    return false
+  end
+  
   #This method is used to call the connected callbacks for an event.
   def call(args, &block)
     classstr = args["object"].class.to_s.split("::").last
@@ -248,10 +263,45 @@ class Knj::Objects
     return nil
   end
   
+  #Returns true if a row of the given classname and the ID exists. Will use ID-cache if set in arguments and spawned otherwise it will do an actual lookup.
+  #===Examples
+  # print "User 5 exists." if ob.exists?(:User, 5)
+  def exists?(classname, id)
+    #Make sure the given data are in the correct types.
+    classname = classname.to_sym
+    id = id.to_i
+    
+    #Check if ID-cache is enabled for that classname. Avoid SQL-lookup by using that.
+    if @ids_cache_should.key?(classname)
+      if @ids_cache[classname].key?(id)
+        return true
+      else
+        return false
+      end
+    end
+    
+    #If the object currently exists in cache, we dont have to do a lookup either.
+    return true if @objects.key?(classname) and obj = @objects[classname].get!(id) and !obj.deleted?
+    
+    #Okay - no other options than to actually do a real lookup.
+    begin
+      table = @args[:module].const_get(classname).table
+      row = @args[:db].single(table, {@args[:col_id] => id})
+      
+      if row
+        return true
+      else
+        return false
+      end
+    rescue Knj::Errors::NotFound
+      return false
+    end
+  end
+  
   #Gets an object from the ID or the full data-hash in the database.
   #===Examples
   # inst = ob.get(:User, 5)
-  def get(classname, data)
+  def get(classname, data, args = nil)
     classname = classname.to_sym
     
     if data.is_a?(Integer) or data.is_a?(String) or data.is_a?(Fixnum)
@@ -285,11 +335,11 @@ class Knj::Objects
       
       #Spawn object.
       if @args[:datarow] or @args[:custom]
-        obj = @args[:module].const_get(classname).new(data)
+        obj = @args[:module].const_get(classname).new(data, args)
       else
-        args = [data]
-        args = args | @args[:extra_args] if @args[:extra_args]
-        obj = @args[:module].const_get(classname).new(*args)
+        pass_args = [data]
+        pass_args = pass_args | @args[:extra_args] if @args[:extra_args]
+        obj = @args[:module].const_get(classname).new(*pass_args)
       end
       
       #Save object in cache.
@@ -519,37 +569,42 @@ class Knj::Objects
   #Add a new object to the database and to the cache.
   #===Examples
   # obj = ob.add(:User, {:username => "User 1"})
-  def add(classname, data = {})
+  def add(classname, data = {}, args = nil)
     raise "data-variable was not a hash: '#{data.class.name}'." if !data.is_a?(Hash)
     classname = classname.to_sym
     self.requireclass(classname)
     
     if @args[:datarow]
       classobj = @args[:module].const_get(classname)
-      if classobj.respond_to?(:add)
-        classobj.add(Knj::Hash_methods.new(
-          :ob => self,
-          :db => self.db,
-          :data => data
-        ))
-      end
       
+      #Run the class 'add'-method to check various data.
+      classobj.add(Knj::Hash_methods.new(:ob => self, :db => @args[:db], :data => data)) if classobj.respond_to?(:add)
+      
+      #Check if various required data is given. If not then raise an error telling about it.
       required_data = classobj.required_data
       required_data.each do |req_data|
-        if !data.key?(req_data[:col])
-          raise "No '#{req_data[:class]}' given by the data '#{req_data[:col]}'."
-        end
-        
-        begin
-          obj = self.get(req_data[:class], data[req_data[:col]])
-        rescue Knj::Errors::NotFound
-          raise "The '#{req_data[:class]}' by ID '#{data[req_data[:col]]}' could not be found with the data '#{req_data[:col]}'."
-        end
+        raise "No '#{req_data[:class]}' given by the data '#{req_data[:col]}'." if !data.key?(req_data[:col])
+        raise "The '#{req_data[:class]}' by ID '#{data[req_data[:col]]}' could not be found with the data '#{req_data[:col]}'." if !self.exists?(req_data[:class], data[req_data[:col]])
       end
       
-      ins_id = @args[:db].insert(classobj.table, data, {:return_id => true}).to_i
-      @ids_cache[classname][ins_id] = true if @ids_cache_should.key?(classname)
-      retob = self.get(classname, ins_id)
+      #If 'skip_ret' is given, then the ID wont be looked up and the object wont be spawned. Be aware the connected events wont be executed either. In return it will go a lot faster.
+      if args and args[:skip_ret] and !@ids_cache_should.key?(classname)
+        ins_args = nil
+      else
+        ins_args = {:return_id => true}
+      end
+      
+      #Insert and (maybe?) get ID.
+      ins_id = @args[:db].insert(classobj.table, data, ins_args).to_i
+      
+      #Add ID to ID-cache if ID-cache is active for that classname.
+      @ids_cache[classname][ins_id] = true if ins_id != 0 and @ids_cache_should.key?(classname)
+      
+      #Skip the rest if we are told not to return result.
+      return nil if args and args[:skip_ret]
+      
+      #Spawn the object.
+      retob = self.get(classname, ins_id, {:skip_reload => true})
     elsif @args[:custom]
       classobj = @args[:module].const_get(classname)
       retob = classobj.add(Knj::Hash_methods.new(
@@ -563,9 +618,7 @@ class Knj::Objects
     end
     
     self.call("object" => retob, "signal" => "add")
-    if retob.respond_to?(:add_after)
-      retob.send(:add_after, {})
-    end
+    retob.send(:add_after, {}) if retob.respond_to?(:add_after)
     
     return retob
   end
