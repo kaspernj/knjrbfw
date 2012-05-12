@@ -486,16 +486,16 @@ class Knj::Datarow
   end
   
   #Initializes the object. This should be called from Knj::Objects.
-  def initialize(d)
-    @ob = d.ob
+  def initialize(data)
+    @ob = self.class.ob
     raise "No ob given." if !@ob
-    @db = d.ob.db
+    @db = ob.db
     
-    if d.data.is_a?(Hash)
-      @data = d.data
-    elsif d.data
-      id = d.data.to_i
-      @data = {:id => d.data}
+    if data.is_a?(Hash) and data.key?(:id)
+      @data = data
+      @id = @data[:id].to_i
+    elsif data
+      @id = data.to_i
       
       classname = self.class.classname.to_sym
       if @ob.ids_cache_should.key?(classname)
@@ -507,7 +507,7 @@ class Knj::Datarow
         self.reload
       end
     else
-      raise Knj::Errors::InvalidData, "Could not figure out the data from '#{d.data.class.name}'."
+      raise Knj::Errors::InvalidData, "Could not figure out the data from '#{data.class.name}'."
     end
   end
   
@@ -516,9 +516,9 @@ class Knj::Datarow
   # user.reload
   # print "The username changed in the database!" if user[:username] != old_username
   def reload
-    data = @db.single(self.table, {:id => @data[:id]})
+    data = @db.single(self.table, {:id => @id})
     if !data
-      raise Knj::Errors::NotFound, "Could not find any data for the object with ID: '#{@data[:id]}' in the table '#{self.table}'."
+      raise Knj::Errors::NotFound, "Could not find any data for the object with ID: '#{@id}' in the table '#{self.table}'."
     end
     
     @data = data
@@ -537,7 +537,7 @@ class Knj::Datarow
   #===Examples
   # user.update(:username => 'New username', :date_changed => Time.now)
   def update(newdata)
-    @db.update(self.table, newdata, {:id => @data[:id]})
+    @db.update(self.table, newdata, {:id => @id})
     self.should_reload
     
     if @ob
@@ -547,6 +547,7 @@ class Knj::Datarow
   
   #Forcefully destroys the object. This is done after deleting it and should not be called manually.
   def destroy
+    @id = nil
     @ob = nil
     @db = nil
     @data = nil
@@ -554,6 +555,8 @@ class Knj::Datarow
   end
   
   #Returns true if that key exists on the object.
+  #===Examples
+  # print "Looks like the user has a name." if user.key?(:name)
   def key?(key)
     self.reload if @should_reload
     return @data.key?(key.to_sym)
@@ -561,8 +564,10 @@ class Knj::Datarow
   alias has_key? key?
   
   #Returns true if the object has been deleted.
+  #===Examples
+  # print "That user is deleted." if user.deleted?
   def deleted?
-    return true if !@ob and !@data
+    return true if !@ob and !@data and !@id
     return false
   end
   
@@ -572,8 +577,9 @@ class Knj::Datarow
   # print "ID again: #{user.id}\n"
   def [](key)
     raise "Key was not a symbol: '#{key.class.name}'." if !key.is_a?(Symbol)
-    raise "No data was loaded on the object? Maybe you are trying to call a deleted object?" if !@data
+    return @id if !@data and key == :id and @id
     self.reload if @should_reload
+    raise "No data was loaded on the object? Maybe you are trying to call a deleted object?" if !@data
     return @data[key] if @data.key?(key)
     raise "No such key: '#{key}' on '#{self.class.name}' (#{@data.keys.join(", ")}) (#{@should_reload})."
   end
@@ -589,8 +595,8 @@ class Knj::Datarow
   #Returns the objects ID.
   def id
     raise "This object has been deleted." if self.deleted?
-    raise "No data on object." if !@data
-    return @data[:id]
+    raise "No ID on object." if !@id
+    return @id
   end
   
   #This enable Wref to not return the wrong object.
@@ -632,9 +638,9 @@ class Knj::Datarow
   # user.each do |key, val|
   #   print "#{key}: #{val}\n" #=> username: John Doe
   # end
-  def each(&args)
+  def each(*args, &block)
     self.reload if @should_reload
-    return @data.each(&args)
+    return @data.each(*args, &block)
   end
   
   private

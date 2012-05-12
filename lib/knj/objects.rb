@@ -285,7 +285,7 @@ class Knj::Objects
       
       #Spawn object.
       if @args[:datarow] or @args[:custom]
-        obj = @args[:module].const_get(classname).new(Knj::Hash_methods.new(:ob => self, :data => data))
+        obj = @args[:module].const_get(classname).new(data)
       else
         args = [data]
         args = args | @args[:extra_args] if @args[:extra_args]
