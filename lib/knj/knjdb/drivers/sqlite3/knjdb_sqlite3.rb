@@ -56,7 +56,7 @@ class KnjDB_sqlite3
       end
     rescue => e
       #Add SQL to the error message.
-      raise e.class, "#{e.message}\n\nSQL: #{string}"
+      raise e.class, "#{e.message} (SQL: #{string})"
     end
   end
   
