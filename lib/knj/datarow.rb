@@ -502,7 +502,7 @@ class Knj::Datarow
       classname = self.class.classname.to_sym
       if @ob.ids_cache_should.key?(classname)
         #ID caching is enabled for this model - dont reload until first use.
-        raise Knj::Errors::NotFound, "ID was not found in cache: '#{id}'." if !@ob.ids_cache_should.key?(classname)
+        raise Knj::Errors::NotFound, "ID was not found in cache: '#{id}'." if !@ob.ids_cache[classname].key?(@id)
         @should_reload = true
       else
         #ID caching is not enabled - reload now to check if row exists. Else set 'should_reload'-variable if 'skip_reload' is set.
