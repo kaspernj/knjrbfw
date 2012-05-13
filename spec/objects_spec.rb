@@ -55,13 +55,22 @@ describe "Objects" do
     
     $ob.deletes([$ob.get(:User, 1), $ob.get(:User, 2)])
     raise "Expected user-ID-cache to be 2 but it wasnt: #{$ob.ids_cache[:User].length} #{$ob.ids_cache}" if $ob.ids_cache[:User].length != 2
+  end
+  
+  it "should work even though stressed by threads (thread-safe)." do
+    userd = []
+    10.upto(25) do |i|
+      userd << {:username => "User #{i}"}
+    end
     
+    $ob.adds(:User, userd)
+    users = $ob.list(:User)
     
     #Stress it to test threadsafety...
     threads = []
     0.upto(10) do |tc|
       threads << Knj::Thread.new do
-        0.upto(15) do |ic|
+        0.upto(10) do |ic|
           user = $ob.add(:User, {:username => "User #{tc}-#{ic}"})
           $ob.delete(user)
           
@@ -69,6 +78,10 @@ describe "Objects" do
           user2 = $ob.add(:User, {:username => "User #{tc}-#{ic}-2"})
           user3 = $ob.add(:User, {:username => "User #{tc}-#{ic}-3"})
           $ob.deletes([user1, user2, user3])
+          
+          users.each do |user|
+            user[:username] = "#{user[:username]}." if !user.deleted?
+          end
         end
       end
     end

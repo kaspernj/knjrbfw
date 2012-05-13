@@ -536,6 +536,7 @@ class Knj::Datarow
   # obj.should_reload
   def should_reload
     @should_reload = true
+    @data = nil
   end
   
   #Writes/updates new data for the object.
