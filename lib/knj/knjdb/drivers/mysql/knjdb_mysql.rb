@@ -263,15 +263,15 @@ class KnjDB_mysql
     case @subtype
       when "mysql"
         @mutex.synchronize do
-          return @conn.insert_id
+          return @conn.insert_id.to_i
         end
       when "mysql2"
         @mutex.synchronize do
-          return @conn.last_id
+          return @conn.last_id.to_i
         end
       when "java"
         data = self.query("SELECT LAST_INSERT_ID() AS id").fetch
-        return data[:id] if data.key?(:id)
+        return data[:id].to_i if data.key?(:id)
         raise "Could not figure out last inserted ID."
     end
   end
@@ -294,7 +294,8 @@ class KnjDB_mysql
     @port = nil
   end
   
-  def insert_multi(tablename, arr_hashes)
+  #Inserts multiple rows in a table. Can return the inserted IDs if asked to in arguments.
+  def insert_multi(tablename, arr_hashes, args = nil)
     sql = "INSERT INTO `#{self.esc_table(tablename)}` ("
     
     first = true
@@ -329,6 +330,23 @@ class KnjDB_mysql
     sql << ")"
     
     self.query(sql)
+    
+    if args and args[:return_id]
+      first_id = self.lastID
+      raise "Invalid ID: #{first_id}" if first_id.to_i <= 0
+      ids = [first_id]
+      1.upto(arr_hashes.length - 1) do |count|
+        ids << first_id + count
+      end
+      
+      ids_length = ids.length
+      arr_hashes_length = arr_hashes.length
+      raise "Invalid length (#{ids_length}, #{arr_hashes_length})." if ids_length != arr_hashes_length
+      
+      return ids
+    else
+      return nil
+    end
   end
 end
 

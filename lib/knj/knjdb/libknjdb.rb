@@ -248,21 +248,33 @@ class Knj::Db
     end
   end
   
-  #Simply and optimal insert multiple rows into a table in a single query.
+  #Simply and optimal insert multiple rows into a table in a single query. Uses the drivers functionality if supported or inserts each row manually.
   #
   #===Examples
   # db.insert_multi(:users, [
   #   {:name => "John", :lastname => "Doe"},
   #   {:name => "Kasper", :lastname => "Johansen"}
   # ])
-  def insert_multi(tablename, arr_hashes)
+  def insert_multi(tablename, arr_hashes, args = nil)
+    return false if arr_hashes.empty?
+    
     self.conn_exec do |driver|
       if driver.respond_to?(:insert_multi)
-        return false if arr_hashes.empty?
-        driver.insert_multi(tablename, arr_hashes)
+        return driver.insert_multi(tablename, arr_hashes, args)
       else
+        ids = [] if args and args[:return_id]
         arr_hashes.each do |hash|
-          self.insert(tablename, hash)
+          if ids
+            ids << self.insert(tablename, hash, args)
+          else
+            self.insert(tablename, hash)
+          end
+        end
+        
+        if ids
+          return ids
+        else
+          return nil
         end
       end
     end
