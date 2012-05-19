@@ -2,7 +2,7 @@
 module Knj::Gtk2
   #Autoloader.
   def self.const_missing(name)
-    require "#{$knjpath}knj/gtk2_#{name.to_s.downcase}"
+    require "#{$knjpath}gtk2_#{name.to_s.downcase}"
     return Knj::Gtk2.const_get(name)
   end
   

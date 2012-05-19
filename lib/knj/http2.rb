@@ -1,4 +1,5 @@
 require "#{$knjpath}web"
+require "socket"
 
 #This class tries to emulate a browser in Ruby without any visual stuff. Remember cookies, keep sessions alive, reset connections according to keep-alive rules and more.
 #===Examples
@@ -21,7 +22,9 @@ class Knj::Http2
     @args = args
     @cookies = {}
     @debug = @args[:debug]
-    @mutex = Mutex.new
+    
+    require "monitor"
+    @mutex = Monitor.new
     
     if !@args[:port]
       if @args[:ssl]
@@ -155,25 +158,20 @@ class Knj::Http2
   # res = http.get("somepage.html")
   # print res.body #=> <String>-object containing the HTML gotten.
   def get(addr, args = {})
-    begin
-      @mutex.synchronize do
-        args[:addr] = addr
-        header_str = "GET /#{addr} HTTP/1.1#{@nl}"
-        header_str << self.header_str(self.default_headers(args), args)
-        header_str << "#{@nl}"
-        
-        print "Http2: Writing headers.\n" if @debug
-        self.write(header_str)
-        
-        print "Http2: Reading response.\n" if @debug
-        resp = self.read_response(args)
-        
-        print "Http2: Done with get request.\n" if @debug
-        return resp
-      end
-    rescue Knj::Errors::Retry => e
-      print "Redirecting to: #{e.message}\n" if @debug
-      return self.get(e.message, args)
+    @mutex.synchronize do
+      args[:addr] = addr
+      header_str = "GET /#{addr} HTTP/1.1#{@nl}"
+      header_str << self.header_str(self.default_headers(args), args)
+      header_str << "#{@nl}"
+      
+      print "Http2: Writing headers.\n" if @debug
+      self.write(header_str)
+      
+      print "Http2: Reading response.\n" if @debug
+      resp = self.read_response(args)
+      
+      print "Http2: Done with get request.\n" if @debug
+      return resp
     end
   end
   
@@ -242,20 +240,20 @@ class Knj::Http2
   #===Examples
   # res = http.post("login.php", {"username" => "John Doe", "password" => 123)
   def post(addr, pdata = {}, args = {})
-    begin
-      @mutex.synchronize do
-        praw = Knj::Http2.post_convert_data(pdata)
-        
-        header_str = "POST /#{addr} HTTP/1.1#{@nl}"
-        header_str << self.header_str(self.default_headers(args).merge("Content-Length" => praw.length), args)
-        header_str << "#{@nl}"
-        header_str << praw
-        
-        self.write(header_str)
-        return self.read_response(args)
-      end
-    rescue Knj::Errors::Retry => e
-      return self.get(e.message, args)
+    @mutex.synchronize do
+      print "Doing post.\n" if @debug
+      
+      praw = Knj::Http2.post_convert_data(pdata)
+      
+      header_str = "POST /#{addr} HTTP/1.1#{@nl}"
+      header_str << self.header_str(self.default_headers(args).merge("Content-Length" => praw.length), args)
+      header_str << "#{@nl}"
+      header_str << praw
+      
+      print "Header str: #{header_str}\n" if @debug
+      
+      self.write(header_str)
+      return self.read_response(args)
     end
   end
   
@@ -263,51 +261,50 @@ class Knj::Http2
   #===Examples
   # res = http.post_multipart("upload.php", {"normal_value" => 123, "file" => Tempfile.new(?)})
   def post_multipart(addr, pdata, args = {})
-    begin
-      @mutex.synchronize do
-        boundary = Digest::MD5.hexdigest(Time.now.to_f.to_s)
+    require "digest"
+    
+    @mutex.synchronize do
+      boundary = Digest::MD5.hexdigest(Time.now.to_f.to_s)
+      
+      praw = ""
+      pdata.each do |key, val|
+        praw << "--#{boundary}#{@nl}"
         
-        praw = ""
-        pdata.each do |key, val|
-          praw << "--#{boundary}#{@nl}"
-          
-          if val.class.name == "Tempfile" and val.respond_to?("original_filename")
-            praw << "Content-Disposition: form-data; name=\"#{key}\"; filename=\"#{val.original_filename}\";#{@nl}"
-            praw << "Content-Length: #{val.bytesize}#{@nl}"
-          elsif val.is_a?(Hash) and val[:filename]
-            praw << "Content-Disposition: form-data; name=\"#{key}\"; filename=\"#{val[:filename]}\";#{@nl}"
-            praw << "Content-Length: #{val[:content].bytesize}#{@nl}"
-          else
-            praw << "Content-Disposition: form-data; name=\"#{key}\";#{@nl}"
-            praw << "Content-Length: #{val.bytesize}#{@nl}"
-          end
-          
-          praw << "Content-Type: text/plain#{@nl}"
-          praw << @nl
-          
-          if val.is_a?(StringIO)
-            praw << val.read
-          elsif val.is_a?(Hash) and val[:content]
-            praw << val[:content].to_s
-          else
-            praw << val.to_s
-          end
-          
-          praw << @nl
+        if val.class.name == "Tempfile" and val.respond_to?("original_filename")
+          praw << "Content-Disposition: form-data; name=\"#{key}\"; filename=\"#{val.original_filename}\";#{@nl}"
+          praw << "Content-Length: #{val.bytesize}#{@nl}"
+        elsif val.is_a?(Hash) and val[:filename]
+          praw << "Content-Disposition: form-data; name=\"#{key}\"; filename=\"#{val[:filename]}\";#{@nl}"
+          praw << "Content-Length: #{val[:content].bytesize}#{@nl}"
+        else
+          praw << "Content-Disposition: form-data; name=\"#{key}\";#{@nl}"
+          praw << "Content-Length: #{val.bytesize}#{@nl}"
         end
         
-        header_str = "POST /#{addr} HTTP/1.1#{@nl}"
-        header_str << "Content-Type: multipart/form-data; boundary=#{boundary}#{@nl}"
-        header_str << self.header_str(self.default_headers(args).merge("Content-Length" => praw.bytesize), args)
-        header_str << "#{@nl}"
-        header_str << praw
-        header_str << "--#{boundary}--"
+        praw << "Content-Type: text/plain#{@nl}"
+        praw << @nl
         
-        self.write(header_str)
-        return self.read_response(args)
+        if val.is_a?(StringIO)
+          praw << val.read
+        elsif val.is_a?(Hash) and val[:content]
+          praw << val[:content].to_s
+        else
+          praw << val.to_s
+        end
+        
+        praw << @nl
       end
-    rescue Knj::Errors::Retry => e
-      return self.get(e.message, args)
+      
+      header_str = "POST /#{addr} HTTP/1.1#{@nl}"
+      header_str << self.header_str(self.default_headers(args).merge("Content-Type" => "multipart/form-data; boundary=#{boundary}", "Content-Length" => praw.bytesize), args)
+      header_str << "#{@nl}"
+      header_str << praw
+      header_str << "--#{boundary}--"
+      
+      print "Headerstr: #{header_str}\n" if @debug
+      
+      self.write(header_str)
+      return self.read_response(args)
     end
   end
   
@@ -353,15 +350,18 @@ class Knj::Http2
         else
           line = @sock.gets
         end
+        
+        print "<#{@mode}>: '#{line}'\n" if @debug
       rescue Errno::ECONNRESET
         print "Http2: The connection was reset while reading - breaking gently...\n" if @debug
-        line = ""
         @sock = nil
+        break
       end
       
       break if line.to_s == ""
       
       if @mode == "headers" and line == @nl
+        print "Changing mode to body!\n" if @debug
         break if @length == 0
         @mode = "body"
         next
@@ -406,17 +406,22 @@ class Knj::Http2
     raise "No status-code was received from the server.\n\nHeaders:\n#{Knj::Php.print_r(resp.headers, true)}\n\nBody:\n#{resp.args[:body]}" if !resp.args[:code]
     
     if resp.args[:code].to_s == "302" and resp.header?("location") and (!@args.key?(:follow_redirects) or @args[:follow_redirects])
+      require "uri"
       uri = URI.parse(resp.header("location"))
+      url = uri.path
+      url << "?#{uri.query}" if uri.query.to_s.length > 0
       
       args = {:host => uri.host}
       args[:ssl] = true if uri.scheme == "https"
       args[:port] = uri.port if uri.port
       
+      print "Redirecting from location-header to '#{url}'.\n" if @debug
+      
       if !args[:host] or args[:host] == @args[:host]
-        raise Knj::Errors::Retry, resp.header("location")
+        return self.get(url)
       else
         http = Knj::Http2.new(args)
-        return http.get(uri.path)
+        return http.get(url)
       end
     elsif resp.args[:code].to_s == "500"
       raise "500 - Internal server error: '#{args[:addr]}':\n\n#{resp.body}"
@@ -476,7 +481,7 @@ class Knj::Http2
       @resp.args[:code] = match[2]
       @resp.args[:http_version] = match[1]
     else
-      raise "Could not understand header string: '#{line}'."
+      raise "Could not understand header string: '#{line}'.\n\n#{@sock.read(409600)}"
     end
   end
   
