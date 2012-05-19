@@ -333,6 +333,10 @@ class KnjDB_sqlite3::Tables::Table
   
   def create_indexes(index_arr)
     index_arr.each do |index_data|
+      if index_data.is_a?(String)
+        index_data = {"name" => index_data, "columns" => [index_data]}
+      end
+      
       raise "No name was given." if !index_data.key?("name") or index_data["name"].strip.length <= 0
       raise "No columns was given on index #{index_data["name"]}." if index_data["columns"].empty?
       
