@@ -260,4 +260,29 @@ module Knj::Strings
       return parts[0].to_s
     end
   end
+  
+  #Returns a human readable time-string from a given number of seconds.
+  def self.secs_to_human_time_str(secs)
+    secs = secs.to_i
+    hours = (secs.to_f / 3600.0).floor.to_i
+    secs = secs - (hours * 3600)
+    
+    mins = (secs.to_f / 60).floor.to_i
+    secs = secs - (mins * 60)
+    
+    return "#{"%02d" % hours}:#{"%02d" % mins}:#{"%02d" % secs}"
+  end
+  
+  #Turns a human readable time-string into a number of seconds.
+  def self.human_time_str_to_secs(str)
+    match = str.match(/^\s*(\d+)\s*:\s*(\d+)\s*:\s*(\d+)\s*/)
+    raise "Could not match string: '#{str}'." if !match
+    
+    hours = match[1].to_i
+    minutes = match[2].to_i
+    secs = match[3].to_i
+    
+    total = (hours * 3600) + (minutes * 60) + secs
+    return total
+  end
 end
