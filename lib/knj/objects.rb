@@ -23,6 +23,7 @@ class Knj::Objects
     #Set up various events.
     @events = Knj::Event_handler.new
     @events.add_event(:name => :no_html, :connections_max => 1)
+    @events.add_event(:name => :no_name, :connections_max => 1)
     @events.add_event(:name => :no_date, :connections_max => 1)
     @events.add_event(:name => :missing_class, :connections_max => 1)
     @events.add_event(:name => :require_class, :connections_max => 1)
