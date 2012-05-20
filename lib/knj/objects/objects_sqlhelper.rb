@@ -333,7 +333,7 @@ class Knj::Objects
             sql_where << " AND DATE_FORMAT(#{table}`#{db.esc_col(match[1])}`, '%d %m %Y') = DATE_FORMAT('#{db.esc(val.dbstr)}', '%d %m %Y')"
           end
         elsif match[2] == "month"
-          sql_where << " AND DATE_FORMAT(#{table}`#{db.esc_col(match[1])}`, '%m %Y') = DATE_FORMAT('#{db.esc(val.dbstr)}', '%m %Y')"
+          sql_where << " AND #{db.sqlspecs.strftime("%m %Y", "#{table}`#{db.esc_col(match[1])}`")} = #{db.sqlspecs.strftime("%m %Y", "'#{db.esc(val.dbstr)}'")}"
         elsif match[2] == "year"
           sql_where << " AND DATE_FORMAT(#{table}`#{db.esc_col(match[1])}`, '%Y') = DATE_FORMAT('#{db.esc(val.dbstr)}', '%Y')"
         elsif match[2] == "from" or match[2] == "above"

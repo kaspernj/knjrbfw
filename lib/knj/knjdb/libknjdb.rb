@@ -299,6 +299,9 @@ class Knj::Db
           sql << ", "
         end
         
+        #Convert dates to valid dbstr.
+        value = self.date_out(value) if value.is_a?(Knj::Datet) or value.is_a?(Time)
+        
         sql << "#{driver.escape_col}#{key.to_s}#{driver.escape_col} = "
         sql << "#{driver.escape_val}#{driver.escape(value.to_s)}#{driver.escape_val}"
       end
@@ -596,11 +599,29 @@ class Knj::Db
     return @enc_col
   end
   
+  #Returns a string which can be used in SQL with the current driver.
+  #===Examples
+  # str = db.date_out(Time.now) #=> "2012-05-20 22:06:09"
   def date_out(date_obj = Knj::Datet.new, args = {})
+    conn_exec do |driver|
+      if driver.respond_to?(:date_out)
+        return driver.date_out(date_obj, args)
+      end
+    end
+    
     return Knj::Datet.in(date_obj).dbstr(args)
   end
   
+  #Takes a valid date-db-string and converts it into a Knj::Datet.
+  #===Examples
+  # db.date_in('2012-05-20 22:06:09') #=> 2012-05-20 22:06:09 +0200
   def date_in(date_obj)
+    conn_exec do |driver|
+      if driver.respond_to?(:date_in)
+        return driver.date_in(date_obj)
+      end
+    end
+    
     return Knj::Datet.in(date_obj)
   end
   
@@ -640,6 +661,17 @@ class Knj::Db
     end
     
     return @indexes
+  end
+  
+  def sqlspecs
+    if !@sqlspecs
+      require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_sqlspecs" if (!@opts.key?(:require) or @opts[:require])
+      @sqlspecs = Kernel.const_get("KnjDB_#{@opts[:type]}".to_sym).const_get(:Sqlspecs).new(
+        :db => self
+      )
+    end
+    
+    return @sqlspecs
   end
   
   #Proxies the method to the driver.
