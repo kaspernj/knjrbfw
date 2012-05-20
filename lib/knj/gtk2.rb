@@ -27,7 +27,7 @@ module Knj::Gtk2
     elsif paras.is_a?(String) or paras.is_a?(Integer)
       msg = paras
     else
-      raise "Cant handle the parameters: " + paras.class.to_s
+      raise "Cant handle the parameters: '#{paras.class.name}'."
     end
     
     type = "info" if !type
@@ -81,13 +81,13 @@ module Knj::Gtk2
           if element.respond_to?("id") and element.respond_to?("title")
             tv.append([count.to_s, element.title])
           else
-            raise "Could not handle object in array: " + element.class.to_s
+            raise "Could not handle object in array: '#{element.class.name}'."
           end
           
           count += 1
         end
       else
-        raise "Unhandeled class: " + items.class.to_s
+        raise "Unhandeled class: '#{items.class.name}'."
       end
       
       sw = Gtk::ScrolledWindow.new
@@ -95,7 +95,7 @@ module Knj::Gtk2
       
       box.pack_start(sw)
     else
-      raise "No such mode: " + type
+      raise "No such mode: '#{type}'."
     end
     
     if button1 and button2
@@ -104,12 +104,12 @@ module Knj::Gtk2
       dialog = Gtk::Dialog.new(title, nil, Gtk::Dialog::MODAL, button1)
     end
     
-    if image
-      box.pack_start(image)
-    end
+    box.pack_start(image) if image
     
     if msg
-      box.pack_start(Gtk::Label.new(msg))
+      label = Gtk::Label.new(msg)
+      label.selectable = true
+      box.pack_start(label)
     end
     
     box.spacing = 15
@@ -123,7 +123,23 @@ module Knj::Gtk2
       tv.grab_focus
     end
     
-    response = dialog.run
+    if paras.is_a?(Hash) and paras["transient_for"]
+      dialog.transient_for = paras["transient_for"]
+    end
+    
+    do_run = true
+    do_run = false if paras.is_a?(Hash) and paras.key?("run") and !paras["run"]
+    
+    if do_run
+      response = dialog.run
+    else
+      #Connect the one button to close the window.
+      dialog.children[0].children[1].children[0].signal_connect("clicked") do
+        dialog.destroy
+      end
+      
+      return false
+    end
     
     if type == "list"
       sel = tv.sel
@@ -153,7 +169,7 @@ module Knj::Gtk2
     elsif response == Gtk::Dialog::RESPONSE_CLOSE or response == Gtk::Dialog::RESPONSE_DELETE_EVENT
       return close_sig
     else
-      raise "Unknown response: " + response.to_s
+      raise "Unknown response: '#{response}'."
     end
   end
   
@@ -191,7 +207,7 @@ module Knj::Gtk2
         elsif item["name"][0..2] == "che"
           item["type"] = "check"
         else
-          raise "Could not figure out type for: " + item["name"]
+          raise "Could not figure out type for: '#{item["name"]}'."
         end
       end
       
@@ -238,7 +254,7 @@ module Knj::Gtk2
           "object" => cb
         }
       else
-        raise "Unknown type: " + item["type"]
+        raise "Unknown type: '#{item["type"]}'."
       end
       
       
@@ -286,7 +302,7 @@ module Knj::Gtk2
       sel = object.sel
       return sel["text"]
     else
-      raise "Unknown object: #{object.class.name}"
+      raise "Unknown object: '#{object.class.name}'."
     end
   end
 end
