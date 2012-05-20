@@ -201,13 +201,20 @@ class Knj::Datarow
         return @ob.get_try(self, colname, classname)
       end
       
-      methodname_html = "#{methodname.to_s}_html".to_sym
+      methodname_html = "#{methodname}_html".to_sym
       define_method(methodname_html) do |*args|
-        obj = self.send(methodname)
+        obj = self.__send__(methodname)
         return @ob.events.call(:no_html, classname) if !obj
         
         raise "Class '#{classname}' does not have a 'html'-method." if !obj.respond_to?(:html)
         return obj.html(*args)
+      end
+      
+      methodname_name = "#{methodname}_name".to_sym
+      define_method(methodname_name) do |*args|
+        obj = self.__send__(methodname)
+        return @ob.events.call(:no_name, classname) if !obj
+        return obj.name(*args)
       end
       
       self.joined_tables(
