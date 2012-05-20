@@ -1,6 +1,3 @@
-require "#{$knjpath}web"
-require "socket"
-
 #This class tries to emulate a browser in Ruby without any visual stuff. Remember cookies, keep sessions alive, reset connections according to keep-alive rules and more.
 #===Examples
 # Knj::Http2.new(:host => "www.somedomain.com", :port => 80, :ssl => false, :debug => false) do |http|
@@ -16,6 +13,8 @@ class Knj::Http2
   attr_reader :cookies, :args
   
   def initialize(args = {})
+    require "#{$knjpath}web"
+    
     args = {:host => args} if args.is_a?(String)
     raise "Arguments wasnt a hash." if !args.is_a?(Hash)
     
@@ -99,6 +98,7 @@ class Knj::Http2
   
   #Reconnects to the host.
   def reconnect
+    require "socket"
     print "Http2: Reconnect.\n" if @debug
     
     #Reset variables.
@@ -272,13 +272,13 @@ class Knj::Http2
         
         if val.class.name == "Tempfile" and val.respond_to?("original_filename")
           praw << "Content-Disposition: form-data; name=\"#{key}\"; filename=\"#{val.original_filename}\";#{@nl}"
-          praw << "Content-Length: #{val.bytesize}#{@nl}"
+          praw << "Content-Length: #{val.to_s.bytesize}#{@nl}"
         elsif val.is_a?(Hash) and val[:filename]
           praw << "Content-Disposition: form-data; name=\"#{key}\"; filename=\"#{val[:filename]}\";#{@nl}"
-          praw << "Content-Length: #{val[:content].bytesize}#{@nl}"
+          praw << "Content-Length: #{val[:content].to_s.bytesize}#{@nl}"
         else
           praw << "Content-Disposition: form-data; name=\"#{key}\";#{@nl}"
-          praw << "Content-Length: #{val.bytesize}#{@nl}"
+          praw << "Content-Length: #{val.to_s.bytesize}#{@nl}"
         end
         
         praw << "Content-Type: text/plain#{@nl}"
