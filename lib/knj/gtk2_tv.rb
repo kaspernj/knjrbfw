@@ -12,6 +12,7 @@ module Knj::Gtk2::Tv
     columns.each do |col_title|
       renderer = Gtk::CellRendererText.new
       col = Gtk::TreeViewColumn.new(col_title, renderer, :text => count)
+      col.resizable = true
       tv.append_column(col)
       count += 1
     end
