@@ -512,8 +512,23 @@ class Knj::Datet
   end
   
   #Returns the day of the year (0-365) as an integer.
+  #===Examples
+  # Knj::Datet.new.day_of_year #=> 123
   def day_of_year
     return @time.strftime("%j").to_i
+  end
+  
+  #Returns the day as a localized string.
+  #===Examples
+  # Knj::Datet.new.day_str #=> "Monday"
+  # Knj::Datet.new.day_str(:short => true) #=> "Mon"
+  def day_str(args = nil)
+    ret = Knj::Datet.days_arr[@time.strftime("%w").to_i]
+    if args.is_a?(Hash) and args[:short]
+      ret = ret.slice(0, 3)
+    end
+    
+    return ret
   end
   
   #Returns how many days there is between the two timestamps given as an integer.
