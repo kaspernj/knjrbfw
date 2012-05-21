@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{knjrbfw}
-  s.version = "0.0.35"
+  s.version = "0.0.36"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Kasper Johansen"]
-  s.date = %q{2012-05-19}
+  s.date = %q{2012-05-21}
   s.description = %q{Including stuff for HTTP, SSH and much more.}
   s.email = %q{k@spernj.org}
   s.extra_rdoc_files = [
@@ -166,16 +166,19 @@ Gem::Specification.new do |s|
     "lib/knj/knjdb/drivers/mysql/knjdb_mysql.rb",
     "lib/knj/knjdb/drivers/mysql/knjdb_mysql_columns.rb",
     "lib/knj/knjdb/drivers/mysql/knjdb_mysql_indexes.rb",
+    "lib/knj/knjdb/drivers/mysql/knjdb_mysql_sqlspecs.rb",
     "lib/knj/knjdb/drivers/mysql/knjdb_mysql_tables.rb",
     "lib/knj/knjdb/drivers/sqlite3/knjdb_sqlite3.rb",
     "lib/knj/knjdb/drivers/sqlite3/knjdb_sqlite3_columns.rb",
     "lib/knj/knjdb/drivers/sqlite3/knjdb_sqlite3_indexes.rb",
+    "lib/knj/knjdb/drivers/sqlite3/knjdb_sqlite3_sqlspecs.rb",
     "lib/knj/knjdb/drivers/sqlite3/knjdb_sqlite3_tables.rb",
     "lib/knj/knjdb/libknjdb.rb",
     "lib/knj/knjdb/libknjdb_java_sqlite3.rb",
     "lib/knj/knjdb/libknjdb_row.rb",
     "lib/knj/knjdb/libknjdb_sqlite3_ironruby.rb",
     "lib/knj/knjdb/revision.rb",
+    "lib/knj/knjdb/sqlspecs.rb",
     "lib/knj/kvm.rb",
     "lib/knj/libqt.rb",
     "lib/knj/libqt_window.rb",
