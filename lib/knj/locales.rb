@@ -73,6 +73,8 @@ module Knj::Locales
       return Thread.current[:locale]
     elsif ENV["LANGUAGE"]
       return ENV["LANGUAGE"]
+    elsif ENV["LANG"]
+      return ENV["LANG"]
     end
     
     raise "Could not figure out locale."
