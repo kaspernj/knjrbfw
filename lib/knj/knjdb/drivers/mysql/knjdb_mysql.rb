@@ -329,6 +329,8 @@ class KnjDB_mysql
     
     sql << ")"
     
+    return sql if args and args[:return_sql]
+    
     self.query(sql)
     
     if args and args[:return_id]

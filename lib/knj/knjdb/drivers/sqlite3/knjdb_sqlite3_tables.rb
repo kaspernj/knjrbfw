@@ -55,7 +55,7 @@ class KnjDB_sqlite3::Tables
     end
   end
   
-  def create(name, data)
+  def create(name, data, args = nil)
     sql = "CREATE TABLE `#{name}` ("
     
     first = true
@@ -69,9 +69,24 @@ class KnjDB_sqlite3::Tables
     
     @db.query(sql)
     
+    if args and args[:return_sql]
+      ret = [sql]
+    end
+    
     if data.key?("indexes") and data["indexes"]
       table_obj = self[name]
-      table_obj.create_indexes(data["indexes"])
+      
+      if args and args[:return_sql]
+        ret += table_obj.create_indexes(data["indexes"], :return_sql => true)
+      else
+        table_obj.create_indexes(data["indexes"])
+      end
+    end
+    
+    if args and args[:return_sql]
+      return ret
+    else
+      return nil
     end
   end
 end
@@ -331,7 +346,11 @@ class KnjDB_sqlite3::Tables::Table
     end
   end
   
-  def create_indexes(index_arr)
+  def create_indexes(index_arr, args = nil)
+    if args and args[:return_sql]
+      ret = []
+    end
+    
     index_arr.each do |index_data|
       if index_data.is_a?(String)
         index_data = {"name" => index_data, "columns" => [index_data]}
@@ -355,7 +374,17 @@ class KnjDB_sqlite3::Tables::Table
       
       sql << ")"
       
-      @db.query(sql)
+      if args and args[:return_sql]
+        ret << sql
+      else
+        @db.query(sql)
+      end
+    end
+    
+    if args and args[:return_sql]
+      return ret
+    else
+      return nil
     end
   end
   

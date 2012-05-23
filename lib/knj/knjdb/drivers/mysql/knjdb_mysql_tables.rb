@@ -66,7 +66,7 @@ class KnjDB_mysql::Tables
     end
   end
   
-  def create(name, data)
+  def create(name, data, args = nil)
     raise "No columns was given for '#{name}'." if !data["columns"] or data["columns"].empty?
     
     sql = "CREATE TABLE `#{name}` ("
@@ -91,6 +91,8 @@ class KnjDB_mysql::Tables
     end
     
     sql << ")"
+    
+    return [sql] if args and args[:return_sql]
     @db.query(sql)
   end
 end
