@@ -215,37 +215,37 @@ class Knj::Db
   # id = db.insert(:users, {:name => "John", :lastname => "Doe"}, :return_id => true)
   # sql = db.insert(:users, {:name => "John", :lastname => "Doe"}, :return_sql => true) #=> "INSERT INTO `users` (`name`, `lastname`) VALUES ('John', 'Doe')"
   def insert(tablename, arr_insert, args = nil)
-    sql = "INSERT INTO #{driver.escape_table}#{tablename.to_s}#{driver.escape_table} ("
-    
-    first = true
-    arr_insert.each do |key, value|
-      if first
-        first = false
-      else
-        sql << ", "
-      end
-      
-      sql << "#{driver.escape_col}#{key.to_s}#{driver.escape_col}"
-    end
-    
-    sql << ") VALUES ("
-    
-    first = true
-    arr_insert.each do |key, value|
-      if first
-        first = false
-      else
-        sql << ", "
-      end
-      
-      sql << "#{driver.escape_val}#{driver.escape(value.to_s)}#{driver.escape_val}"
-    end
-    
-    sql << ")"
-    
-    return sql if args and args[:return_sql]
-    
     self.conn_exec do |driver|
+      sql = "INSERT INTO #{driver.escape_table}#{tablename.to_s}#{driver.escape_table} ("
+      
+      first = true
+      arr_insert.each do |key, value|
+        if first
+          first = false
+        else
+          sql << ", "
+        end
+        
+        sql << "#{driver.escape_col}#{key.to_s}#{driver.escape_col}"
+      end
+      
+      sql << ") VALUES ("
+      
+      first = true
+      arr_insert.each do |key, value|
+        if first
+          first = false
+        else
+          sql << ", "
+        end
+        
+        sql << "#{driver.escape_val}#{driver.escape(value.to_s)}#{driver.escape_val}"
+      end
+      
+      sql << ")"
+      
+      return sql if args and args[:return_sql]
+      
       driver.query(sql)
       return driver.lastID if args and args[:return_id]
     end
