@@ -245,9 +245,9 @@ class Knj::Db
       sql << ")"
       
       return sql if args and args[:return_sql]
-      
       driver.query(sql)
       return driver.lastID if args and args[:return_id]
+      return nil
     end
   end
   
@@ -263,19 +263,19 @@ class Knj::Db
     
     self.conn_exec do |driver|
       if driver.respond_to?(:insert_multi)
-        return driver.insert_multi(tablename, arr_hashes, args)
+        return [driver.insert_multi(tablename, arr_hashes, args)]
       else
-        ids = [] if args and args[:return_id]
+        ret = [] if args and (args[:return_id] or args[:return_sql])
         arr_hashes.each do |hash|
-          if ids
-            ids << self.insert(tablename, hash, args)
+          if ret
+            ret << self.insert(tablename, hash, args)
           else
-            self.insert(tablename, hash)
+            self.insert(tablename, hash, args)
           end
         end
         
-        if ids
-          return ids
+        if ret
+          return ret
         else
           return nil
         end

@@ -36,13 +36,16 @@ describe "Db" do
     raise "Table-name expected to be 'test' but wasnt: '#{list["test"].name}'." if list["test"].name != "test"
     
     
-    #Test revision to create tables.
+    #Test revision to create tables, indexes and insert rows.
     schema = {
       "tables" => {
         "test_table" => {
           "columns" => [
             {"name" => "id", "type" => "int", "autoincr" => true, "primarykey" => true},
             {"name" => "name", "type" => "varchar"}
+          ],
+          "indexes" => [
+            "name"
           ],
           "rows" => [
             {
@@ -57,15 +60,48 @@ describe "Db" do
     rev = Knj::Db::Revision.new
     rev.init_db("schema" => schema, "db" => db)
     
-    begin
-      cont = File.read("#{File.dirname(__FILE__)}/db_spec_encoding_test_file.txt")
-      cont.force_encoding("ASCII-8BIT")
-      
-      db.insert("test", {
-        "text" => cont
-      })
-    ensure
-      File.unlink(db_path) if File.exists?(db_path)
+    
+    #Test wrong encoding.
+    cont = File.read("#{File.dirname(__FILE__)}/db_spec_encoding_test_file.txt")
+    cont.force_encoding("ASCII-8BIT")
+    
+    db.insert("test", {
+      "text" => cont
+    })
+    
+    
+    #Throw out invalid encoding because it will make dumping fail.
+    db.tables[:test].truncate
+    
+    
+    #Test dumping.
+    dump = Knj::Db::Dump.new(:db => db, :debug => false)
+    str_io = StringIO.new
+    dump.dump(str_io)
+    str_io.rewind
+    
+    
+    #Remember some numbers for validation.
+    tables_count = db.tables.list.length
+    
+    
+    #Remove everything in the db.
+    db.tables.list do |table|
+      table.drop
     end
+    
+    
+    #Run the exported SQL.
+    str_io.each_line do |sql|
+      db.q(sql)
+    end
+    
+    
+    #Vaildate import.
+    raise "Not same amount of tables: #{tables_count}, #{db.tables.list.length}" if tables_count != db.tables.list.length
+    
+    
+    #Delete test-database if everything went well.
+    File.unlink(db_path) if File.exists?(db_path)
   end
 end

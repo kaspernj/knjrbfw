@@ -67,10 +67,10 @@ class KnjDB_sqlite3::Tables
     
     sql << ")"
     
-    @db.query(sql)
-    
     if args and args[:return_sql]
       ret = [sql]
+    else
+      @db.query(sql)
     end
     
     if data.key?("indexes") and data["indexes"]
@@ -111,6 +111,11 @@ class KnjDB_sqlite3::Tables::Table
   
   def optimize
     raise "stub!"
+  end
+  
+  def truncate
+    @db.query("DELETE FROM `#{self.name}` WHERE 1=1")
+    return nil
   end
   
   def table
