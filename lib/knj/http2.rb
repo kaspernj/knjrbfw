@@ -165,6 +165,7 @@ class Knj::Http2
       header_str << "#{@nl}"
       
       print "Http2: Writing headers.\n" if @debug
+      print "Header str: #{header_str}\n" if @debug
       self.write(header_str)
       
       print "Http2: Reading response.\n" if @debug
@@ -209,25 +210,46 @@ class Knj::Http2
     if !@args.key?(:encoding_gzip) or @args[:encoding_gzip]
       headers["Accept-Encoding"] = "gzip"
     else
-      headers["Accept-Encoding"] = "none"
+      #headers["Accept-Encoding"] = "none"
     end
     
     return headers
   end
   
-  def self.post_convert_data(pdata)
+  #This is used to convert a hash to valid post-data recursivly.
+  def self.post_convert_data(pdata, args = nil)
     praw = ""
     
     if pdata.is_a?(Hash)
       pdata.each do |key, val|
         praw << "&" if praw != ""
-        praw << "#{Knj::Web.urlenc(Knj::Http2.post_convert_data(key))}=#{Knj::Web.urlenc(Knj::Http2.post_convert_data(val))}"
+        
+        if args and args[:orig_key]
+          key = "#{args[:orig_key]}[#{key}]"
+        end
+        
+        if val.is_a?(Hash) or val.is_a?(Array)
+          praw << self.post_convert_data(val, {:orig_key => key})
+        else
+          praw << "#{Knj::Web.urlenc(key)}=#{Knj::Web.urlenc(Knj::Http2.post_convert_data(val))}"
+        end
       end
     elsif pdata.is_a?(Array)
       count = 0
       pdata.each do |val|
+        if args and args[:orig_key]
+          key = "#{args[:orig_key]}[#{count}]"
+        else
+          key = count
+        end
+        
+        if val.is_a?(Hash) or val.is_a?(Array)
+          praw << self.post_convert_data(val, {:orig_key => key})
+        else
+          praw << "#{Knj::Web.urlenc(key)}=#{Knj::Web.urlenc(Knj::Http2.post_convert_data(val))}"
+        end
+        
         count += 1
-        praw << "#{count}=#{Knj::Web.urlenc(Knj::Http2.post_convert_data(val))}"
       end
     else
       return pdata.to_s
@@ -246,7 +268,7 @@ class Knj::Http2
       praw = Knj::Http2.post_convert_data(pdata)
       
       header_str = "POST /#{addr} HTTP/1.1#{@nl}"
-      header_str << self.header_str(self.default_headers(args).merge("Content-Length" => praw.length), args)
+      header_str << self.header_str(self.default_headers(args).merge("Content-Type" => "application/x-www-form-urlencoded", "Content-Length" => praw.length), args)
       header_str << "#{@nl}"
       header_str << praw
       
@@ -266,6 +288,7 @@ class Knj::Http2
     @mutex.synchronize do
       boundary = Digest::MD5.hexdigest(Time.now.to_f.to_s)
       
+      #Generate 'praw'-variable with post-content.
       praw = ""
       pdata.each do |key, val|
         praw << "--#{boundary}#{@nl}"
@@ -295,14 +318,25 @@ class Knj::Http2
         praw << @nl
       end
       
-      header_str = "POST /#{addr} HTTP/1.1#{@nl}"
-      header_str << self.header_str(self.default_headers(args).merge("Content-Type" => "multipart/form-data; boundary=#{boundary}", "Content-Length" => praw.bytesize), args)
-      header_str << "#{@nl}"
-      header_str << praw
-      header_str << "--#{boundary}--"
+      praw << "--#{boundary}--"
+      #End of generation of 'praw'-variable with post-content.
       
+      
+      #Generate header-string containing 'praw'-variable.
+      header_str = "POST /#{addr} HTTP/1.1#{@nl}"
+      header_str << self.header_str(self.default_headers(args).merge(
+        "Content-Type" => "multipart/form-data; boundary=#{boundary}",
+        "Content-Length" => praw.bytesize
+      ), args)
+      header_str << @nl
+      header_str << praw
+      
+      
+      #Debug.
       print "Headerstr: #{header_str}\n" if @debug
       
+      
+      #Write and return.
       self.write(header_str)
       return self.read_response(args)
     end
