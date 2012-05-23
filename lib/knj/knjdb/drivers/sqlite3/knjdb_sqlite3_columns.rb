@@ -70,17 +70,17 @@ class KnjDB_sqlite3::Columns::Column
         type = match[0]
       elsif match = @args[:data][:type].match(/^decimal\((\d+),(\d+)\)$/)
         @maxlength = "#{match[1]},#{match[2]}"
-        type = "decimal"
+        type = :decimal
       elsif match = @args[:data][:type].match(/^enum\((.+)\)$/)
         @maxlength = match[1]
-        type = "enum"
+        type = :enum
       elsif match = @args[:data][:type].match(/^(.+)\((\d+)\)$/)
         @maxlength = match[2]
-        type = match[1]
+        type = match[1].to_sym
       end
       
-      if type == "integer"
-        @type = "int"
+      if type == :integer
+        @type = :int
       else
         @type = type
       end
@@ -129,7 +129,7 @@ class KnjDB_sqlite3::Columns::Column
   end
   
   def drop
-    @args[:table].copy(
+    self.table.copy(
       "drops" => self.name
     )
   end

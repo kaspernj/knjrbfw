@@ -425,7 +425,7 @@ class Knj::Datarow
         when :cloned_ubuf
           qargs = {:cloned_ubuf => true}
         else
-          raise "Invalid key: '#{key}' for '#{self.name}'. Valid keys are: '#{@columns_sqlhelper_args[:cols].keys.sort}'."
+          raise "Invalid key: '#{key}' for '#{self.name}'. Valid keys are: '#{@columns_sqlhelper_args[:cols].keys.sort}'. Date-keys: '#{@columns_sqlhelper_args[:cols_date]}'."
       end
     end
     
@@ -523,7 +523,10 @@ class Knj::Datarow
       raise Knj::Errors::InvalidData, "Could not figure out the data from '#{data.class.name}'."
     end
     
-    raise "Invalid ID: '#{@id}'." if @id.to_i <= 0
+    if @id.to_i <= 0
+      raise "Invalid ID: '#{@id}' from '#{@data}'."if @data
+      raise "Invalid ID: '#{@id}'."
+    end
   end
   
   #Reloads the data from the database.
