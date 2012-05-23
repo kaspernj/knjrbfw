@@ -220,8 +220,8 @@ class Knj::Objects
             )
             sql_where << " AND #{table}`#{db.esc_col(key)}` IN (#{escape_sql})"
           end
-        elsif val.is_a?(Hash) and val[:type] == "col"
-          raise "No table was given for join." if !val.key?(:table)
+        elsif val.is_a?(Hash) and val[:type] == :col
+          raise "No table was given for join: '#{val}', key: '#{key}' on table #{table}." if !val.key?(:table)
           
           do_joins[val[:table].to_sym] = true
           sql_where << " AND #{table}`#{db.esc_col(key)}` = `#{db.esc_table(val[:table])}`.`#{db.esc_col(val[:name])}`"

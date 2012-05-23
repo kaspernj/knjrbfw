@@ -84,6 +84,8 @@ class KnjDB_sqlite3::Columns::Column
       else
         @type = type
       end
+      
+      raise "Still not type?" if @type.to_s.strip.length <= 0
     end
     
     return @type

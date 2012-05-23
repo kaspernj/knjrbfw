@@ -8,14 +8,41 @@ class Knj::Db::Dump
     @debug = @args[:debug]
   end
   
+  #Method used to update the status.
+  def update_status
+    return nil if !@on_status
+    rows_count = Knj::Locales.number_out(@rows_count, 0)
+    rows_count_total = Knj::Locales.number_out(@rows_count_total, 0)
+    percent = (@rows_count.to_f / @rows_count_total.to_f) * 100
+    percent_text = Knj::Locales.number_out(percent, 1)
+    @on_status.call(:text => "Dumping table: '#{@table_obj.name}' (#{rows_count}/#{rows_count_total} - #{percent_text}%).")
+  end
+  
   #Dumps all tables into the given IO.
   def dump(io)
     print "Going through tables.\n" if @debug
+    @rows_count = 0
     
-    @args[:db].tables.list do |table|
-      print "Dumping table: '#{table.name}'.\n" if @debug
-      self.dump_table(io, table)
+    if @on_status
+      @on_status.call(:text => "Preparing.")
+      
+      @rows_count_total = 0
+      @args[:db].tables.list do |table_obj|
+        @rows_count_total += table_obj.rows_count
+      end
     end
+    
+    @args[:db].tables.list do |table_obj|
+      @table_obj = table_obj
+      self.update_status
+      print "Dumping table: '#{table_obj.name}'.\n" if @debug
+      self.dump_table(io, table_obj)
+    end
+  end
+  
+  #A block can be executed when a new status occurs.
+  def on_status(&block)
+    @on_status = block
   end
   
   #Dumps the given table into the given IO.
@@ -26,9 +53,14 @@ class Knj::Db::Dump
     end
     
     rows = []
-    @args[:db].select(table_obj.name) do |row|
+    @args[:db].q("SELECT * FROM `#{table_obj.name}`", {:cloned_ubuf => true}) do |row|
       rows << row
-      self.dump_insert_multi(io, table_obj, rows) if rows.length >= 1000
+      @rows_count += 1
+      
+      if rows.length >= 1000
+        self.update_status
+        self.dump_insert_multi(io, table_obj, rows)
+      end
     end
     
     self.dump_insert_multi(io, table_obj, rows) if !rows.empty?

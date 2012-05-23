@@ -150,7 +150,7 @@ class Knj::Datarow
       self.joined_tables(
         classname => {
           :where => {
-            colname.to_s => {:type => "col", :name => :id}
+            colname.to_s => {:type => :col, :name => :id}
           }
         }
       )
@@ -220,7 +220,7 @@ class Knj::Datarow
       self.joined_tables(
         classname => {
           :where => {
-            "id" => {:type => "col", :name => colname}
+            "id" => {:type => :col, :name => colname}
           }
         }
       )
@@ -251,7 +251,7 @@ class Knj::Datarow
         table_name => {
           :where => {
             "object_class" => self.name,
-            "object_id" => {:type => "col", :name => "id"},
+            "object_id" => {:type => :col, :name => "id"},
             "key" => val.to_s,
             "locale" => proc{|d| _session[:locale]}
           },
@@ -335,33 +335,33 @@ class Knj::Datarow
       d.db.tables[table].columns do |col_obj|
         col_name = col_obj.name
         col_type = col_obj.type
-        col_type = "int" if col_type == "bigint" or col_type == "tinyint" or col_type == "mediumint" or col_type == "smallint"
+        col_type = :int if col_type == :bigint or col_type == :tinyint or col_type == :mediumint or col_type == :smallint
         sqlhelper_args[:cols][col_name] = true
         
         self.define_bool_methods(:inst_methods => inst_methods, :col_name => col_name)
         
-        if col_type == "enum" and col_obj.maxlength == "'0','1'"
+        if col_type == :enum and col_obj.maxlength == "'0','1'"
           sqlhelper_args[:cols_bools] << col_name
-        elsif col_type == "int" and col_name.slice(-3, 3) == "_id"
+        elsif col_type == :int and col_name.slice(-3, 3) == "_id"
           sqlhelper_args[:cols_dbrows] << col_name
-        elsif col_type == "int" or col_type == "bigint" or col_type == "decimal"
+        elsif col_type == :int or col_type == :decimal
           sqlhelper_args[:cols_num] << col_name
-        elsif col_type == "varchar" or col_type == "text" or col_type == "enum"
+        elsif col_type == :varchar or col_type == :text or col_type == :enum
           sqlhelper_args[:cols_str] << col_name
-        elsif col_type == "date" or col_type == "datetime"
+        elsif col_type == :date or col_type == :datetime
           sqlhelper_args[:cols_date] << col_name
           self.define_date_methods(:inst_methods => inst_methods, :col_name => col_name)
         end
         
-        if col_type == "int" or col_type == "decimal"
+        if col_type == :int or col_type == :decimal
           self.define_numeric_methods(:inst_methods => inst_methods, :col_name => col_name)
         end
         
-        if col_type == "int" or col_type == "varchar"
+        if col_type == :int or col_type == :varchar
           self.define_text_methods(:inst_methods => inst_methods, :col_name => col_name)
         end
         
-        if col_type == "time"
+        if col_type == :time
           self.define_time_methods(:inst_methods => inst_methods, :col_name => col_name)
         end
       end
@@ -369,7 +369,7 @@ class Knj::Datarow
       if @columns_joined_tables
         @columns_joined_tables.each do |table_name, table_data|
           table_data[:where].each do |key, val|
-            val[:table] = self.table.to_sym if val.is_a?(Hash) and !val.key?(:table) and val[:type] == "col"
+            val[:table] = self.table.to_sym if val.is_a?(Hash) and !val.key?(:table) and val[:type].to_sym == :col
           end
           
           table_data[:datarow] = @ob.args[:module].const_get(table_name.to_sym) if !table_data.key?(:datarow)

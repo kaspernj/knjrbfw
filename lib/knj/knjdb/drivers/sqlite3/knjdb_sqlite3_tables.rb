@@ -104,6 +104,14 @@ class KnjDB_sqlite3::Tables::Table
     return @data[:name]
   end
   
+  def type
+    return @data[:type]
+  end
+  
+  def maxlength
+    return @data[:maxlength]
+  end
+  
   def drop
     sql = "DROP TABLE `#{self.name}`"
     @db.query(sql)
