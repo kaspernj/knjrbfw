@@ -235,7 +235,7 @@ class Knj::Threadpool::Asynced
   
   #Returns true if the asynced job is done running.
   def done?
-    return true if @args[:runned] or @args.empty?
+    return true if @args[:runned] or @args.empty? or @args[:error]
     return false
   end
   
