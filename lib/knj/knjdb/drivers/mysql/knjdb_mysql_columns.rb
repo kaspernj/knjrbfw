@@ -114,8 +114,8 @@ class KnjDB_mysql::Columns::Column
   
   #Returns true if the column is the primary key. Otherwise false.
   def primarykey?
-    return false if @args[:data][:pk].to_i == 0
-    return true
+    return true if @args[:data][:Key] == "PRI"
+    return false
   end
   
   #Returns true if the column is auto-increasing. Otherwise false.

@@ -18,7 +18,12 @@ class Knj::Db::Idquery
     if @args[:query]
       @args[:db].q(@args[:query]) do |data|
         @args[:col] = data.keys.first if !@args[:col]
-        @ids << data[@args[:col]]
+        
+        if data.is_a?(Array)
+          @ids << data.first
+        else
+          @ids << data[@args[:col]]
+        end
       end
     end
     

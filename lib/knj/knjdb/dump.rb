@@ -23,16 +23,30 @@ class Knj::Db::Dump
     print "Going through tables.\n" if @debug
     @rows_count = 0
     
+    if @args[:tables]
+      tables = @args[:tables]
+    else
+      tables = @args[:db].tables.list
+    end
+    
     if @on_status
       @on_status.call(:text => "Preparing.")
       
       @rows_count_total = 0
-      @args[:db].tables.list do |table_obj|
+      tables.each do |table_obj|
         @rows_count_total += table_obj.rows_count
       end
     end
     
-    @args[:db].tables.list do |table_obj|
+    tables.each do |table_obj|
+      table_obj = @args[:db].tables[table_obj] if table_obj.is_a?(String) or table_obj.is_a?(Symbol)
+      
+      #Figure out keys.
+      @keys = []
+      table_obj.columns do |col|
+        @keys << col.name
+      end
+      
       @table_obj = table_obj
       self.update_status
       print "Dumping table: '#{table_obj.name}'.\n" if @debug
@@ -54,6 +68,16 @@ class Knj::Db::Dump
     end
     
     
+    #Try to find a primary column in the table.
+    prim_col = nil
+    table_obj.columns do |col|
+      if col.primarykey?
+        prim_col = col
+        break
+      end
+    end
+    
+    
     #Set up rows and way to fill rows.
     rows = []
     block_data = proc do |row|
@@ -67,23 +91,14 @@ class Knj::Db::Dump
     end
     
     
-    #Try to find a primary column in the table.
-    prim_col = nil
-    table_obj.columns do |col|
-      if col.primarykey?
-        prim_col = col
-        break
-      end
-    end
-    
-    
     #If a primary column is found then use IDQuery. Otherwise use cloned unbuffered query.
-    args = nil
-    if prim_col
-      args = {:idquery => prim_col.name.to_sym}
-    end
+    args = {:idquery => prim_col.name.to_sym} if prim_col
     
-    @args[:db].select(table_obj.name, nil, args, &block_data)
+    
+    #Clone the connecting with array-results and execute query.
+    @args[:db].clone_conn(:result => "array") do |db|
+      db.select(table_obj.name, nil, args, &block_data)
+    end
     
     
     #Dump the last rows if any.
@@ -93,11 +108,14 @@ class Knj::Db::Dump
   #Dumps the given rows from the given table into the given IO.
   def dump_insert_multi(io, table_obj, rows)
     print "Inserting #{rows.length} into #{table_obj.name}.\n" if @debug
-    sqls = @args[:db].insert_multi(table_obj.name, rows, :return_sql => true)
+    sqls = @args[:db].insert_multi(table_obj.name, rows, :return_sql => true, :keys => @keys)
     sqls.each do |sql|
       io.write("#{sql};\n")
     end
     
     rows.clear
+    
+    #Ensure garbage collection or we might start using A LOT of memory.
+    GC.start
   end
 end

@@ -40,10 +40,12 @@ class KnjDB_mysql
     @java_rs_data.delete(id)
   end
   
+  #Cleans the wref-map holding the tables.
   def clean
     self.tables.clean if self.tables
   end
   
+  #Respawns the connection to the MySQL-database.
   def reconnect
     case @subtype
       when "mysql"
@@ -243,7 +245,7 @@ class KnjDB_mysql
         when "\n" then "\\n"
         when "\r" then "\\r"
         when "\032" then "\\Z"
-        else "\\" + $1
+        else "\\#{$1}"
       end
     end
   end
@@ -296,10 +298,18 @@ class KnjDB_mysql
   
   #Inserts multiple rows in a table. Can return the inserted IDs if asked to in arguments.
   def insert_multi(tablename, arr_hashes, args = nil)
-    sql = "INSERT INTO `#{self.esc_table(tablename)}` ("
+    sql = "INSERT INTO `#{tablename}` ("
     
     first = true
-    arr_hashes.first.keys.each do |col_name|
+    if args and args[:keys]
+      keys = args[:keys]
+    elsif arr_hashes.first.is_a?(Hash)
+      keys = arr_hashes.first.keys
+    else
+      raise "Could not figure out keys."
+    end
+    
+    keys.each do |col_name|
       sql << "," if !first
       first = false if first
       sql << "`#{self.esc_col(col_name)}`"
@@ -316,14 +326,26 @@ class KnjDB_mysql
       end
       
       first_key = true
-      hash.each do |key, val|
-        if first_key
-          first_key = false
-        else
-          sql << ","
+      if hash.is_a?(Array)
+        hash.each do |val|
+          if first_key
+            first_key = false
+          else
+            sql << ","
+          end
+          
+          sql << "'#{self.escape(val)}'"
         end
-        
-        sql << "'#{self.escape(val)}'"
+      else
+        hash.each do |key, val|
+          if first_key
+            first_key = false
+          else
+            sql << ","
+          end
+          
+          sql << "'#{self.escape(val)}'"
+        end
       end
     end
     
@@ -351,18 +373,21 @@ class KnjDB_mysql
     end
   end
   
+  #Starts a transaction, yields the database and commits at the end.
   def transaction
-    self.query("START TRANSACTION")
+    @knjdb.q("START TRANSACTION")
     
     begin
       yield(@knjdb)
     ensure
-      self.query("COMMIT")
+      @knjdb.q("COMMIT")
     end
   end
 end
 
+#This class controls the results for the normal MySQL-driver.
 class KnjDB_mysql_result
+  #Constructor. This should not be called manually.
   def initialize(driver, result)
     @driver = driver
     @result = result
@@ -377,17 +402,20 @@ class KnjDB_mysql_result
     end
   end
   
+  #Returns a single result.
   def fetch
     return self.fetch_hash_symbols if @driver.knjdb.opts[:return_keys] == "symbols"
     return self.fetch_hash_strings
   end
   
+  #Returns a single result as a hash with strings as keys.
   def fetch_hash_strings
     @mutex.synchronize do
       return @result.fetch_hash
     end
   end
   
+  #Returns a single result as a hash with symbols as keys.
   def fetch_hash_symbols
     fetched = nil
     @mutex.synchronize do
@@ -406,6 +434,7 @@ class KnjDB_mysql_result
     return ret
   end
   
+  #Loops over every result yielding it.
   def each
     while data = self.fetch_hash_symbols
       yield(data)
@@ -413,7 +442,9 @@ class KnjDB_mysql_result
   end
 end
 
+#This class controls the unbuffered result for the normal MySQL-driver.
 class KnjDB_mysql_unbuffered_result
+  #Constructor. This should not be called manually.
   def initialize(conn, opts, result)
     @conn = conn
     @result = result
@@ -427,6 +458,7 @@ class KnjDB_mysql_unbuffered_result
     end
   end
   
+  #Lods the keys for the object.
   def load_keys
     @keys = []
     keys = @res.fetch_fields
@@ -435,6 +467,7 @@ class KnjDB_mysql_unbuffered_result
     end
   end
   
+  #Returns a single result.
   def fetch
     if @enum
       begin
@@ -474,6 +507,7 @@ class KnjDB_mysql_unbuffered_result
     end
   end
   
+  #Loops over every single result yielding it.
   def each
     while data = self.fetch
       yield(data)
@@ -481,11 +515,14 @@ class KnjDB_mysql_unbuffered_result
   end
 end
 
+#This class controls the result for the MySQL2 driver.
 class KnjDB_mysql2_result
+  #Constructor. This should not be called manually.
   def initialize(result)
     @result = result
   end
   
+  #Returns a single result.
   def fetch
     @enum = @result.to_enum if !@enum
     
@@ -496,17 +533,19 @@ class KnjDB_mysql2_result
     end
   end
   
+  #Loops over every single result yielding it.
   def each
     @result.each do |res|
       #This sometimes happens when streaming results...
       next if !res
-      
       yield(res)
     end
   end
 end
 
+#This class controls the result for the Java-MySQL-driver.
 class KnjDB_java_mysql_result
+  #Constructor. This should not be called manually.
   def initialize(knjdb, opts, result)
     @knjdb = knjdb
     @result = result

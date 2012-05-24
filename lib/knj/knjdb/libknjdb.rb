@@ -38,10 +38,6 @@ class Knj::Db
     @debug = @opts[:debug]
   end
   
-  def col_table
-    return "`"
-  end
-  
   def args
     return @opts
   end
@@ -118,6 +114,15 @@ class Knj::Db
     end
     
     thread_cur[:knjdb][tid] = @conns.get_and_lock if !thread_cur[:knjdb][tid]
+    
+    #If block given then be ensure to free thread after yielding.
+    if block_given?
+      begin
+        yield
+      ensure
+        self.free_thread
+      end
+    end
   end
   
   #Frees the current driver from the current thread.
@@ -154,7 +159,19 @@ class Knj::Db
   
   #Clones the current database-connection with possible extra arguments.
   def clone_conn(args = {})
-    return Knj::Db.new(@opts.clone.merge(args))
+    conn = Knj::Db.new(@opts.clone.merge(args))
+    
+    if block_given?
+      begin
+        yield(conn)
+      ensure
+        conn.close
+      end
+      
+      return nil
+    else
+      return conn
+    end
   end
   
   #Copies the content of the current database to another instance of Knj::Db.
@@ -401,7 +418,7 @@ class Knj::Db
   #
   #===Examples
   # db.delete(:users, {:lastname => "Doe"})
-  def delete(tablename, arr_terms)
+  def delete(tablename, arr_terms, args = nil)
     self.conn_exec do |driver|
       sql = "DELETE FROM #{driver.escape_table}#{tablename}#{driver.escape_table}"
       
@@ -409,6 +426,7 @@ class Knj::Db
         sql << " WHERE #{self.makeWhere(arr_terms, driver)}"
       end
       
+      return sql if args and args[:return_sql]
       driver.query(sql)
     end
     
@@ -576,6 +594,11 @@ class Knj::Db
     return ret
   end
   
+  #Yields a query-buffer and flushes at the end of the block given.
+  def q_buffer(&block)
+    Knj::Db::Query_buffer.new(:db => self, &block)
+  end
+  
   #Returns the last inserted ID.
   #
   #===Examples
@@ -600,18 +623,21 @@ class Knj::Db
   
   alias :esc :escape
   
+  #Escapes the given string to be used as a column.
   def esc_col(str)
     self.conn_exec do |driver|
       return driver.esc_col(str)
     end
   end
   
+  #Escapes the given string to be used as a table.
   def esc_table(str)
     self.conn_exec do |driver|
       return driver.esc_table(str)
     end
   end
   
+  #Returns the sign for surrounding the string that should be used as a table.
   def enc_table
     if !@enc_table
       self.conn_exec do |driver|
@@ -622,6 +648,7 @@ class Knj::Db
     return @enc_table
   end
   
+  #Returns the sign for surrounding the string that should be used as a column.
   def enc_col
     if !@enc_col
       self.conn_exec do |driver|
@@ -696,6 +723,7 @@ class Knj::Db
     return @indexes
   end
   
+  #Returns the SQLSpec-module and spawns it if it isnt already spawned.
   def sqlspecs
     if !@sqlspecs
       require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_sqlspecs" if (!@opts.key?(:require) or @opts[:require])
@@ -705,6 +733,23 @@ class Knj::Db
     end
     
     return @sqlspecs
+  end
+  
+  #Beings a transaction and commits when the block ends.
+  #
+  #===Examples
+  # db.transaction do |db|
+  #   db.insert(:users, {:name => "John"})
+  #   db.insert(:users, {:name => "Kasper"})
+  # end
+  def transaction(&block)
+    self.conn_exec do |driver|
+      driver.transaction(&block)
+    end
+  end
+  
+  def col_table
+    return "`"
   end
   
   #Proxies the method to the driver.
@@ -719,18 +764,5 @@ class Knj::Db
     end
     
     raise "Method not found: #{method_name}"
-  end
-  
-  #Beings a transaction and commits when the block ends.
-  #
-  #===Examples
-  # db.transaction do |db|
-  #   db.insert(:users, {:name => "John"})
-  #   db.insert(:users, {:name => "Kasper"})
-  # end
-  def transaction(&block)
-    self.conn_exec do |driver|
-      driver.transaction(&block)
-    end
   end
 end

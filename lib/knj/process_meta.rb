@@ -84,12 +84,14 @@ class Knj::Process_meta
     end
   end
   
+  #Finalizer for proxy-objects. Used for unsetting objects on the process-side.
   def proxy_finalizer(id)
     @finalize_mutex.synchronize do
       @finalize << id
     end
   end
   
+  #Flushes all finalized objects on the process-side.
   def check_finalizers
     return nil if @finalize.empty?
     
@@ -383,8 +385,8 @@ class Knj::Process_meta
         raise e if e.message.index("No such process") == nil
       end
       
-      $stderr.print "Try to kill again...\n"
-      retry
+      #$stderr.print "Try to kill again...\n"
+      #retry
     end
     
     @process = nil
