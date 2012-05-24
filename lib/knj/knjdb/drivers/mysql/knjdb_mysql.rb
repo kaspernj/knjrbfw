@@ -350,6 +350,16 @@ class KnjDB_mysql
       return nil
     end
   end
+  
+  def transaction
+    self.query("START TRANSACTION")
+    
+    begin
+      yield(@knjdb)
+    ensure
+      self.query("COMMIT")
+    end
+  end
 end
 
 class KnjDB_mysql_result

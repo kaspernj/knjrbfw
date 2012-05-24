@@ -47,13 +47,16 @@ class Knj::Db::Dump
   
   #Dumps the given table into the given IO.
   def dump_table(io, table_obj)
+    #Get SQL for creating table and add it to IO.
     sqls = @args[:db].tables.create(table_obj.name, table_obj.data, :return_sql => true)
     sqls.each do |sql|
       io.write("#{sql};\n")
     end
     
+    
+    #Set up rows and way to fill rows.
     rows = []
-    @args[:db].q("SELECT * FROM `#{table_obj.name}`", {:cloned_ubuf => true}) do |row|
+    block_data = proc do |row|
       rows << row
       @rows_count += 1
       
@@ -63,6 +66,27 @@ class Knj::Db::Dump
       end
     end
     
+    
+    #Try to find a primary column in the table.
+    prim_col = nil
+    table_obj.columns do |col|
+      if col.primarykey?
+        prim_col = col
+        break
+      end
+    end
+    
+    
+    #If a primary column is found then use IDQuery. Otherwise use cloned unbuffered query.
+    args = nil
+    if prim_col
+      args = {:idquery => prim_col.name.to_sym}
+    end
+    
+    @args[:db].select(table_obj.name, nil, args, &block_data)
+    
+    
+    #Dump the last rows if any.
     self.dump_insert_multi(io, table_obj, rows) if !rows.empty?
   end
   

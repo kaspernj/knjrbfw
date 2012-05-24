@@ -319,10 +319,30 @@ class Knj::Db
   
   #Makes a select from the given arguments: table-name, where-terms and other arguments as limits and orders. Also takes a block to avoid raping of memory.
   def select(tablename, arr_terms = nil, args = nil, &block)
+    #Set up vars.
     sql = ""
+    args_q = nil
+    select_sql = "*"
     
+    #Give 'cloned_ubuf' argument to 'q'-method.
+    if args and args[:cloned_ubuf]
+      args_q = {:cloned_ubuf => true}
+    end
+    
+    #Set up IDQuery-stuff if that is given in arguments.
+    if args and args[:idquery]
+      if args[:idquery] == true
+        select_sql = "`id`"
+        col = :id
+      else
+        select_sql = "`#{self.esc_col(args[:idquery])}`"
+        col = args[:idquery]
+      end
+    end
+    
+    #Get the driver and generate SQL.
     self.conn_exec do |driver|
-      sql = "SELECT * FROM #{driver.escape_table}#{tablename.to_s}#{driver.escape_table}"
+      sql = "SELECT #{select_sql} FROM #{driver.escape_table}#{tablename.to_s}#{driver.escape_table}"
       
       if arr_terms != nil and !arr_terms.empty?
         sql << " WHERE #{self.makeWhere(arr_terms, driver)}"
@@ -330,24 +350,34 @@ class Knj::Db
       
       if args != nil
         if args["orderby"]
-          sql << " ORDER BY "
-          sql << args["orderby"]
+          sql << " ORDER BY #{args["orderby"]}"
         end
         
         if args["limit"]
-          sql << " LIMIT " + args["limit"].to_s
+          sql << " LIMIT #{args["limit"]}"
         end
         
         if args["limit_from"] and args["limit_to"]
           raise "'limit_from' was not numeric: '#{args["limit_from"]}'." if !Knj::Php.is_numeric(args["limit_from"])
           raise "'limit_to' was not numeric: '#{args["limit_to"]}'." if !Knj::Php.is_numeric(args["limit_to"])
-          
           sql << " LIMIT #{args["limit_from"]}, #{args["limit_to"]}"
         end
       end
     end
     
-    return self.q(sql, &block)
+    #Do IDQuery if given in arguments.
+    if args and args[:idquery]
+      res = Knj::Db::Idquery.new(:db => self, :table => tablename, :query => sql, :col => col, &block)
+    else
+      res = self.q(sql, args_q, &block)
+    end
+    
+    #Return result if a block wasnt given.
+    if block
+      return nil
+    else
+      return res
+    end
   end
   
   #Returns a single row from a database.
@@ -698,13 +728,9 @@ class Knj::Db
   #   db.insert(:users, {:name => "John"})
   #   db.insert(:users, {:name => "Kasper"})
   # end
-  def transaction
-    self.query("START TRANSACTION")
-    
-    begin
-      yield(self)
-    ensure
-      self.query("COMMIT")
+  def transaction(&block)
+    self.conn_exec do |driver|
+      driver.transaction(&block)
     end
   end
 end

@@ -74,6 +74,30 @@ describe "Db" do
     db.tables[:test].truncate
     
     
+    
+    #Test IDQueries.
+    rows_count = 1250
+    db.transaction do
+      0.upto(rows_count) do |count|
+        db.insert(:test_table, {:name => "User #{count}"})
+      end
+    end
+    
+    block_ran = 0
+    idq = Knj::Db::Idquery.new(:db => db, :debug => false, :table => :test_table, :query => "SELECT id FROM test_table") do |data|
+      block_ran += 1
+    end
+    
+    raise "Block with should have ran too little: #{block_ran}." if block_ran < rows_count
+    
+    block_ran = 0
+    db.select(:test_table, {}, {:idquery => true}) do |data|
+      block_ran += 1
+    end
+    
+    raise "Block with should have ran too little: #{block_ran}." if block_ran < rows_count
+    
+    
     #Test dumping.
     dump = Knj::Db::Dump.new(:db => db, :debug => false)
     str_io = StringIO.new
@@ -92,8 +116,10 @@ describe "Db" do
     
     
     #Run the exported SQL.
-    str_io.each_line do |sql|
-      db.q(sql)
+    db.transaction do
+      str_io.each_line do |sql|
+        db.q(sql)
+      end
     end
     
     

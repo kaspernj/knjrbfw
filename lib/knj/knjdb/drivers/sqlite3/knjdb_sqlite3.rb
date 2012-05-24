@@ -60,6 +60,9 @@ class KnjDB_sqlite3
     end
   end
   
+  #SQLite3 driver doesnt support unbuffered queries??
+  alias query_ubuf query
+  
   def escape(string)
     #This code is taken directly from the documentation so we dont have to rely on the SQLite3::Database class. This way it can also be used with JRuby and IronRuby...
     #http://sqlite-ruby.rubyforge.org/classes/SQLite/Database.html
@@ -82,6 +85,12 @@ class KnjDB_sqlite3
   
   def close
     @conn.close
+  end
+  
+  def transaction
+    @conn.transaction do
+      yield(@knjdb)
+    end
   end
 end
 
