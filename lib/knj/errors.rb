@@ -39,9 +39,12 @@ module Knj::Errors
       err.backtrace.each do |bt|
         str << "#{Knj::Web.html(bt)}<br />\n"
       end
+      
+      str << "<br />\n<br />\n"
     else
       str << "#{err.class.name}: #{err.message}\n\n"
       str << err.backtrace.join("\n")
+      str << "\n\n"
     end
     
     return str

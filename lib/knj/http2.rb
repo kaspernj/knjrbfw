@@ -289,56 +289,88 @@ class Knj::Http2
       boundary = Digest::MD5.hexdigest(Time.now.to_f.to_s)
       
       #Generate 'praw'-variable with post-content.
-      praw = ""
-      pdata.each do |key, val|
-        praw << "--#{boundary}#{@nl}"
-        
-        if val.class.name == "Tempfile" and val.respond_to?("original_filename")
-          praw << "Content-Disposition: form-data; name=\"#{key}\"; filename=\"#{val.original_filename}\";#{@nl}"
-          praw << "Content-Length: #{val.to_s.bytesize}#{@nl}"
-        elsif val.is_a?(Hash) and val[:filename]
-          praw << "Content-Disposition: form-data; name=\"#{key}\"; filename=\"#{val[:filename]}\";#{@nl}"
-          praw << "Content-Length: #{val[:content].to_s.bytesize}#{@nl}"
-        else
-          praw << "Content-Disposition: form-data; name=\"#{key}\";#{@nl}"
-          praw << "Content-Length: #{val.to_s.bytesize}#{@nl}"
+      tmp_path = "#{Knj::Os.tmpdir}/knj_http2_post_multiepart_tmp_#{boundary}"
+      
+      begin
+        File.open(tmp_path, "w") do |praw|
+          pdata.each do |key, val|
+            praw << "--#{boundary}#{@nl}"
+            
+            if val.class.name == "Tempfile" and val.respond_to?("original_filename")
+              praw << "Content-Disposition: form-data; name=\"#{key}\"; filename=\"#{val.original_filename}\";#{@nl}"
+              praw << "Content-Length: #{val.to_s.bytesize}#{@nl}"
+            elsif val.is_a?(Hash) and val[:filename]
+              praw << "Content-Disposition: form-data; name=\"#{key}\"; filename=\"#{val[:filename]}\";#{@nl}"
+              
+              if val[:content]
+                praw << "Content-Length: #{val[:content].to_s.bytesize}#{@nl}"
+              elsif val[:fpath]
+                praw << "Content-Length: #{File.size(val[:fpath])}#{@nl}"
+              else
+                raise "Could not figure out where to get content from."
+              end
+            else
+              praw << "Content-Disposition: form-data; name=\"#{key}\";#{@nl}"
+              praw << "Content-Length: #{val.to_s.bytesize}#{@nl}"
+            end
+            
+            praw << "Content-Type: text/plain#{@nl}"
+            praw << @nl
+            
+            if val.is_a?(StringIO)
+              praw << val.read
+            elsif val.is_a?(Hash) and val[:content]
+              praw << val[:content].to_s
+            elsif val.is_a?(Hash) and val[:fpath]
+              File.open(val[:fpath], "r") do |fp|
+                begin
+                  while data = fp.sysread(4096)
+                    praw << data
+                  end
+                rescue EOFError
+                  #ignore.
+                end
+              end
+            else
+              praw << val.to_s
+            end
+            
+            praw << @nl
+          end
+          
+          praw << "--#{boundary}--"
         end
         
-        praw << "Content-Type: text/plain#{@nl}"
-        praw << @nl
         
-        if val.is_a?(StringIO)
-          praw << val.read
-        elsif val.is_a?(Hash) and val[:content]
-          praw << val[:content].to_s
-        else
-          praw << val.to_s
+        #Generate header-string containing 'praw'-variable.
+        header_str = "POST /#{addr} HTTP/1.1#{@nl}"
+        header_str << self.header_str(self.default_headers(args).merge(
+          "Content-Type" => "multipart/form-data; boundary=#{boundary}",
+          "Content-Length" => File.size(tmp_path)
+        ), args)
+        header_str << @nl
+        
+        
+        #Debug.
+        print "Headerstr: #{header_str}\n" if @debug
+        
+        
+        #Write and return.
+        self.write(header_str)
+        File.open(tmp_path, "r") do |fp|
+          begin
+            while data = fp.sysread(4096)
+              @sock.write(data)
+            end
+          rescue EOFError
+            #ignore.
+          end
         end
         
-        praw << @nl
+        return self.read_response(args)
+      ensure
+        File.unlink(tmp_path) if File.exists?(tmp_path)
       end
-      
-      praw << "--#{boundary}--"
-      #End of generation of 'praw'-variable with post-content.
-      
-      
-      #Generate header-string containing 'praw'-variable.
-      header_str = "POST /#{addr} HTTP/1.1#{@nl}"
-      header_str << self.header_str(self.default_headers(args).merge(
-        "Content-Type" => "multipart/form-data; boundary=#{boundary}",
-        "Content-Length" => praw.bytesize
-      ), args)
-      header_str << @nl
-      header_str << praw
-      
-      
-      #Debug.
-      print "Headerstr: #{header_str}\n" if @debug
-      
-      
-      #Write and return.
-      self.write(header_str)
-      return self.read_response(args)
     end
   end
   

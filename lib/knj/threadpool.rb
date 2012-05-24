@@ -253,6 +253,7 @@ class Knj::Threadpool::Asynced
   #Sleeps until the asynced job is done. If an error occurred in the job, that error will be raised when calling the method.
   def join
     loop do
+      self.error!
       break if self.done?
       sleep 0.1
     end
