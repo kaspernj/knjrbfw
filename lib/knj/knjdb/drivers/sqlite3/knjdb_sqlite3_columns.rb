@@ -74,7 +74,7 @@ class KnjDB_sqlite3::Columns::Column
     if !@type
       if match = @args[:data][:type].match(/^([A-z]+)$/)
         @maxlength = false
-        type = match[0]
+        type = match[0].to_sym
       elsif match = @args[:data][:type].match(/^decimal\((\d+),(\d+)\)$/)
         @maxlength = "#{match[1]},#{match[2]}"
         type = :decimal
@@ -128,7 +128,6 @@ class KnjDB_sqlite3::Columns::Column
   
   #Returns true if the column is the primary key.
   def primarykey?
-    return true if self.name.to_s == "id"
     return false if @args[:data][:pk].to_i == 0
     return true
   end
@@ -154,7 +153,7 @@ class KnjDB_sqlite3::Columns::Column
     newdata["maxlength"] = self.maxlength if !newdata.key?("maxlength") and self.maxlength
     newdata["null"] = self.null? if !newdata.key?("null")
     newdata["default"] = self.default if !newdata.key?("default")
-    newdata.delete("primarykey") if newdata.key?("primarykey")
+    newdata["primarykey"] = self.primarykey? if !newdata.key?("primarykey")
     
     @type = nil
     @maxlength = nil

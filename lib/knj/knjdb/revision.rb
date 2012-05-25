@@ -95,6 +95,11 @@ class Knj::Db::Revision
                   dochange = true
                 end
                 
+                if col_data.has_key?("primarykey") and col_obj.primarykey? != col_data["primarykey"]
+                  print "Primary-key mismatch for #{col_str}: #{col_data["primarykey"]}, #{col_obj.primarykey?}\n" if args["debug"]
+                  dochange = true
+                end
+                
                 if col_data.has_key?("maxlength") and col_obj.maxlength.to_s != col_data["maxlength"].to_s
                   print "Maxlength mismatch on #{col_str}: #{col_data["maxlength"]}, #{col_obj.maxlength}\n" if args["debug"]
                   dochange = true
