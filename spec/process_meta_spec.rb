@@ -6,7 +6,23 @@ describe "Process_meta" do
     require "timeout"
     
     #Start the activity.
-    $process_meta = Knj::Process_meta.new("debug" => false, "debug_err" => true, "id" => "process_meta_spec")
+    $process_meta = Knj::Process_meta.new("debug" => true, "debug_err" => true, "id" => "process_meta_spec")
+  end
+  
+  it "should be able to do simple blocks" do
+    block_ran = false
+    fpath = "#{Knj::Os.tmpdir}/process_meta_file_open"
+    
+    Timeout.timeout(4) do
+      $process_meta.static(:File, :open, fpath, "w") do |fp|
+        block_ran = true
+        fp.write("Test!")
+      end
+    end
+    
+    raise "Block didnt run!" if !block_ran
+    raise "Unexpected file-content." if File.read(fpath) != "Test!"
+    File.unlink(fpath) if File.exists?(fpath)
   end
   
   it "should be able to do various operations" do

@@ -1,6 +1,7 @@
 require "#{$knjpath}errors"
 require "#{$knjpath}thread"
 
+#This class is able to control communicate with another Ruby-process also running Knj::Process.
 class Knj::Process
   attr_reader :blocks, :blocks_send
   
@@ -56,10 +57,12 @@ class Knj::Process
     end
   end
   
+  #Kills the listen-thread.
   def kill_listen
     @listen_thread.kill if @listen_thread
   end
   
+  #Joins the listen-thread and the error-thread.
   def join
     @listen_thread.join if @listen_thread
     sleep 0.5
@@ -76,6 +79,7 @@ class Knj::Process
     end
   end
   
+  #This method is called by listen on every loop.
   def listen_loop
     $stderr.print "listen-loop called.\n" if @debug
     
@@ -421,6 +425,8 @@ class Knj::Process
       end
       
       err.set_backtrace(bt)
+      
+      $stderr.print Knj::Errors.error_str(err) if @debug
       raise err
     end
     

@@ -13,16 +13,17 @@ class KnjDB_sqlite3::Tables
     table_name = table_name.to_s
     
     begin
-      return @list[table_name]
+      ret = @list[table_name]
+      return ret
     rescue Wref::Recycled
       #ignore.
     end
     
     self.list do |table_obj|
-      return table_obj if table_obj.name.to_s == table_name
+      return table_obj if table_obj.name.to_s == table_name.to_s
     end
     
-    raise Knj::Errors::NotFound.new("Table was not found: #{table_name}.")
+    raise Knj::Errors::NotFound, "Table was not found: #{table_name}."
   end
   
   def list

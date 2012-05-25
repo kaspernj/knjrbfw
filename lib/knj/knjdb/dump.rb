@@ -38,7 +38,7 @@ class Knj::Db::Dump
       end
     end
     
-    tables.each do |table_obj|
+    tables.each do |table_name, table_obj|
       table_obj = @args[:db].tables[table_obj] if table_obj.is_a?(String) or table_obj.is_a?(Symbol)
       
       #Figure out keys.
