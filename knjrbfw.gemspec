@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{knjrbfw}
-  s.version = "0.0.39"
+  s.version = "0.0.40"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Kasper Johansen"]
-  s.date = %q{2012-05-23}
+  s.date = %q{2012-05-25}
   s.description = %q{Including stuff for HTTP, SSH and much more.}
   s.email = %q{k@spernj.org}
   s.extra_rdoc_files = [
@@ -174,10 +174,12 @@ Gem::Specification.new do |s|
     "lib/knj/knjdb/drivers/sqlite3/knjdb_sqlite3_sqlspecs.rb",
     "lib/knj/knjdb/drivers/sqlite3/knjdb_sqlite3_tables.rb",
     "lib/knj/knjdb/dump.rb",
+    "lib/knj/knjdb/idquery.rb",
     "lib/knj/knjdb/libknjdb.rb",
     "lib/knj/knjdb/libknjdb_java_sqlite3.rb",
     "lib/knj/knjdb/libknjdb_row.rb",
     "lib/knj/knjdb/libknjdb_sqlite3_ironruby.rb",
+    "lib/knj/knjdb/query_buffer.rb",
     "lib/knj/knjdb/revision.rb",
     "lib/knj/knjdb/sqlspecs.rb",
     "lib/knj/kvm.rb",
