@@ -819,6 +819,7 @@ module Knj::Php
         terr.join
       end
     else
+      require "open3"
       Open3.popen3(cmd) do |stdin, stdout, stderr|
         tout = Thread.new do
           begin
