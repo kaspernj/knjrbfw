@@ -285,4 +285,23 @@ module Knj::Strings
     total = (hours * 3600) + (minutes * 60) + secs
     return total
   end
+  
+  #Same as 'Class#is_a?' but takes a string instead of the actual class. Then it doesnt get autoloaded or anything like that. It can also test against an array containing string-class-names.
+  def self.is_a?(obj, str)
+    obj_class = obj.class
+    str = str.to_s if !str.is_a?(Array)
+    
+    loop do
+      if str.is_a?(Array)
+        return true if str.index(obj_class.name.to_s) != nil
+      else
+        return true if obj_class.name.to_s == str
+      end
+      
+      obj_class = obj_class.superclass
+      break if !obj_class
+    end
+    
+    return false
+  end
 end

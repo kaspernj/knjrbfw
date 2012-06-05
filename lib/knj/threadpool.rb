@@ -43,10 +43,8 @@ class Knj::Threadpool
     if @running
       @workers.each do |worker|
         if !worker.running
-          STDOUT.print "Killing worker...\n"
           worker.kill
           @workers.delete(worker)
-          STDOUT.print "Done killing.\n"
         end
       end
       
