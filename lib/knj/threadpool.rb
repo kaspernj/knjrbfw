@@ -43,8 +43,10 @@ class Knj::Threadpool
     if @running
       @workers.each do |worker|
         if !worker.running
+          STDOUT.print "Killing worker...\n"
           worker.kill
           @workers.delete(worker)
+          STDOUT.print "Done killing.\n"
         end
       end
       
@@ -202,13 +204,6 @@ class Knj::Threadpool::Worker
       
       #Spawn a new thread - we killed the previous.
       self.spawn_thread
-    end
-  end
-  
-  #Sleeps the thread.
-  def stop
-    @mutex_tp.synchronize do
-      @thread.stop
     end
   end
   
