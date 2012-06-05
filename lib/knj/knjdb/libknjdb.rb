@@ -82,7 +82,7 @@ class Knj::Db
   #===Examples
   # driver_instance = db.spawn
   def spawn
-    raise "No type given." if !@opts[:type]
+    raise "No type given (#{@opts.keys.join(",")})." if !@opts[:type]
     
     fpaths = [
       "drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}.rb",

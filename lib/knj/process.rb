@@ -49,7 +49,7 @@ class Knj::Process
       @listen_thread = Knj::Thread.new do
         begin
           self.listen
-        rescue Exception => e
+        rescue => e
           $stderr.print "#{Knj::Errors.error_str(e)}\n\n" if @debug
           @thread_error = e
         end
@@ -125,9 +125,9 @@ class Knj::Process
             
             begin
               @on_rec.call(result_obj)
-            rescue SystemExit => e
+            rescue SystemExit, Interrupt => e
               raise e
-            rescue Exception => e
+            rescue => e
               #Error was raised - try to forward it to the server.
               result_obj.answer("type" => "process_error", "class" => e.class.name, "msg" => e.message, "backtrace" => e.backtrace)
             end
@@ -255,7 +255,7 @@ class Knj::Process
               ensure
                 buffer_thread.join
               end
-            rescue Exception => e
+            rescue => e
               $stderr.print Knj::Errors.error_str(e) if @debug
               #Error was raised - try to forward it to the server.
               result_obj.answer("type" => "process_error", "class" => e.class.name, "msg" => e.message, "backtrace" => e.backtrace)
@@ -276,7 +276,7 @@ class Knj::Process
           $stderr.print "Unknown command: '#{data[0]}'."
           raise "Unknown command: '#{data[0]}'."
       end
-    rescue Exception => e
+    rescue => e
       $stderr.print Knj::Errors.error_str(e) if @debug
       #Error was raised - try to forward it to the server.
       result_obj = Knj::Process::Resultobject.new(:process => self, :id => id, :obj => obj)

@@ -11,7 +11,7 @@ class Knj::Thread < Thread
         yield(*args)
       rescue SystemExit
         exit
-      rescue Exception => e
+      rescue => e
         print "#{Knj::Errors.error_str(e)}\n\n"
       end
     end

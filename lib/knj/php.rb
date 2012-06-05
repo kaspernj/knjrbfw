@@ -403,7 +403,7 @@ module Knj::Php
       if File.file?(filepath)
         return true
       end
-    rescue Exception
+    rescue
       return false
     end
     
@@ -412,10 +412,8 @@ module Knj::Php
   
   def is_dir(filepath)
     begin
-      if File.directory?(filepath)
-        return true
-      end
-    rescue Exception
+      return true if File.directory?(filepath)
+    rescue
       return false
     end
     
@@ -484,7 +482,7 @@ module Knj::Php
     begin
       Kernel.const_get(classname)
       return true
-    rescue Exception
+    rescue
       return false
     end
   end
@@ -527,7 +525,7 @@ module Knj::Php
   def fopen(filename, mode)
     begin
       return File.open(filename, mode)
-    rescue Exception
+    rescue
       return false
     end
   end
@@ -535,7 +533,7 @@ module Knj::Php
   def fwrite(fp, str)
     begin
       fp.print str
-    rescue Exception
+    rescue
       return false
     end
     
@@ -545,7 +543,7 @@ module Knj::Php
   def fputs(fp, str)
     begin
       fp.print str
-    rescue Exception
+    rescue
       return false
     end
     
@@ -799,7 +797,7 @@ module Knj::Php
             stdout.each do |str|
               $stdout.print str
             end
-          rescue Exception => e
+          rescue => e
             $stdout.print Knj::Errors.error_str(e)
           end
         end
@@ -810,7 +808,7 @@ module Knj::Php
             stderr.each do |str|
               $stderr.print str
             end
-          rescue Exception => e
+          rescue => e
             $stderr.print Knj::Errors.error_str(e)
           end
         end
@@ -827,7 +825,7 @@ module Knj::Php
             stdout.each do |str|
               $stdout.print str
             end
-          rescue Exception => e
+          rescue => e
             $stdout.print Knj::Errors.error_str(e)
           end
         end
@@ -838,7 +836,7 @@ module Knj::Php
             stderr.each do |str|
               $stderr.print str
             end
-          rescue Exception => e
+          rescue => e
             $stderr.print Knj::Errors.error_str(e)
           end
         end
