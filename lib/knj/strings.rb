@@ -12,6 +12,15 @@ module Knj::Strings
     return Knj::Strings.UnixSafe(string)
   end
   
+  #Returns true if given string is regex-compatible.
+  def self.is_regex?(str)
+    if str.to_s.match(/^\/(.+)\/(i|m|x|)$/)
+      return true
+    else
+      return false
+    end
+  end
+  
   #Returns a Regexp-object from the string formatted as what you would give to Php's preg_match.
   def self.regex(str)
     first_char = str[0, 1]
