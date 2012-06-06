@@ -497,7 +497,7 @@ class Knj::Objects
         
         raise "Could not figure out which name-method to call?" if !objhtml
         html << ">#{objhtml}</option>"
-      rescue Exception => e
+      rescue => e
         html << ">[#{object.class.name}: #{e.message}]</option>"
       end
     end

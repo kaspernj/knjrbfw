@@ -126,14 +126,13 @@ class Knj::Http2
       @sock.write(@nl)
       
       res = @sock.gets
-      if res.to_s.downcase != "http/1.0 200 connection established#{@nl}"
-        raise res
-      end
+      raise res if res.to_s.downcase != "http/1.0 200 connection established#{@nl}"
       
       res_empty = @sock.gets
       raise "Empty res wasnt empty." if res_empty != @nl
     else
-      @sock_plain = TCPSocket.new(@args[:host], @args[:port])
+      print "Http2: Opening socket connection to '#{@args[:host]}:#{@args[:port]}'.\n" if @debug
+      @sock_plain = TCPSocket.new(@args[:host], @args[:port].to_i)
     end
     
     if @args[:ssl]

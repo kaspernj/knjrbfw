@@ -205,13 +205,6 @@ class Knj::Threadpool::Worker
     end
   end
   
-  #Sleeps the thread.
-  def stop
-    @mutex_tp.synchronize do
-      @thread.stop
-    end
-  end
-  
   #Kills the thread.
   def kill
     @mutex_tp.synchronize do

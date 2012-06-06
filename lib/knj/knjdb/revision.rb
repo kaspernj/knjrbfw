@@ -100,6 +100,11 @@ class Knj::Db::Revision
                   dochange = true
                 end
                 
+                if col_data.has_key?("autoincr") and col_obj.autoincr? != col_data["autoincr"]
+                  print "Auto-increment mismatch for #{col_str}: #{col_data["autoincr"]}, #{col_obj.autoincr?}\n" if args["debug"]
+                  dochange = true
+                end
+                
                 if col_data.has_key?("maxlength") and col_obj.maxlength.to_s != col_data["maxlength"].to_s
                   print "Maxlength mismatch on #{col_str}: #{col_data["maxlength"]}, #{col_obj.maxlength}\n" if args["debug"]
                   dochange = true

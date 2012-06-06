@@ -38,14 +38,16 @@ module Knj::Php
     supercl = argument.class.superclass
     superstr = supercl.to_s if supercl
     
-    if (Knj.const_defined?(:Datarow_custom) and argument.is_a?(Knj::Datarow_custom)) or argument.is_a?(Hash) or supercl.is_a?(Hash) or cstr == "Knj::Hash_methods" or cstr == "Knjappserver::Session_accessor" or cstr == "SQLite3::ResultSet::HashWithTypes" or cstr == "CGI" or cstr == "Knj::Db_row" or cstr == "Knj::Datarow" or cstr == "Apache::Table" or superstr == "Knj::Db_row" or superstr == "Knj::Datarow" or superstr == "Knj::Datarow_custom" or argument.respond_to?(:to_hash)
+    valids = ["Apache::Table", "CGI", "Hash", "Knj::Datarow", "Knj::Datarow_custom", "Knj::Db_row", "Knj::Hash_methods", "Knjappserver::Session_accessor", "SQLite3::ResultSet::HashWithTypes"]
+    
+    if Knj::Strings.is_a?(argument, valids) or argument.respond_to?(:to_hash)
       if argument.respond_to?(:to_hash)
         argument_use = argument.to_hash
       else
         argument_use = argument
       end
       
-      retstr << argument.class.to_s + "{\n"
+      retstr << "#{argument.class.name}{\n"
       argument_use.each do |pair|
         i = 0
         while(i < count)
@@ -71,7 +73,7 @@ module Knj::Php
       
       retstr << "}\n"
     elsif cstr == "Dictionary"
-      retstr << argument.class.to_s + "{\n"
+      retstr << "#{argument.class.name}{\n"
       argument.each do |key, val|
         i = 0
         while(i < count)
@@ -97,7 +99,7 @@ module Knj::Php
       
       retstr << "}\n"
     elsif argument.is_a?(MatchData) or argument.is_a?(Array) or cstr == "Array" or supercl.is_a?(Array)
-      retstr << argument.class.to_s + "{\n"
+      retstr << "#{argument.class.name}{\n"
       
       arr_count = 0
       argument.to_a.each do |i|
@@ -403,7 +405,7 @@ module Knj::Php
       if File.file?(filepath)
         return true
       end
-    rescue Exception
+    rescue
       return false
     end
     
@@ -412,10 +414,8 @@ module Knj::Php
   
   def is_dir(filepath)
     begin
-      if File.directory?(filepath)
-        return true
-      end
-    rescue Exception
+      return true if File.directory?(filepath)
+    rescue
       return false
     end
     
@@ -484,7 +484,7 @@ module Knj::Php
     begin
       Kernel.const_get(classname)
       return true
-    rescue Exception
+    rescue
       return false
     end
   end
@@ -527,7 +527,7 @@ module Knj::Php
   def fopen(filename, mode)
     begin
       return File.open(filename, mode)
-    rescue Exception
+    rescue
       return false
     end
   end
@@ -535,7 +535,7 @@ module Knj::Php
   def fwrite(fp, str)
     begin
       fp.print str
-    rescue Exception
+    rescue
       return false
     end
     
@@ -545,7 +545,7 @@ module Knj::Php
   def fputs(fp, str)
     begin
       fp.print str
-    rescue Exception
+    rescue
       return false
     end
     
@@ -799,7 +799,7 @@ module Knj::Php
             stdout.each do |str|
               $stdout.print str
             end
-          rescue Exception => e
+          rescue => e
             $stdout.print Knj::Errors.error_str(e)
           end
         end
@@ -810,7 +810,7 @@ module Knj::Php
             stderr.each do |str|
               $stderr.print str
             end
-          rescue Exception => e
+          rescue => e
             $stderr.print Knj::Errors.error_str(e)
           end
         end
@@ -827,7 +827,7 @@ module Knj::Php
             stdout.each do |str|
               $stdout.print str
             end
-          rescue Exception => e
+          rescue => e
             $stdout.print Knj::Errors.error_str(e)
           end
         end
@@ -838,7 +838,7 @@ module Knj::Php
             stderr.each do |str|
               $stderr.print str
             end
-          rescue Exception => e
+          rescue => e
             $stderr.print Knj::Errors.error_str(e)
           end
         end

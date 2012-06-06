@@ -259,7 +259,7 @@ class Knj::Memory_analyzer
       ObjectSpace.each_object(classobj) do |obj|
         instances += 1
       end
-    rescue Exception => e
+    rescue => e
       emsg = e.message.to_s
       if emsg.index("no such file to load") != nil or emsg.index("class or module required") != nil or emsg.index("uninitialized constant") != nil
         #return false
