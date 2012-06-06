@@ -20,5 +20,8 @@ describe "Strings" do
     
     res = Knj::Strings.is_regex?("Kasper")
     raise "Expected res to be false but it wasnt." if res
+    
+    res = Knj::Strings.is_regex?("/^Kasper$/")
+    raise "Expected res to be true but it wasnt." if !res
   end
 end
