@@ -164,10 +164,7 @@ class KnjDB_mysql
           sleep 0.5
           self.reconnect
           retry
-        elsif e.message == "This connection is still waiting for a result, try again once you have the result"
-          sleep 0.1
-          retry
-        elsif e.to_s.index("No operations allowed after connection closed") != nil
+        elsif e.to_s.index("No operations allowed after connection closed") != nil or e.message == "This connection is still waiting for a result, try again once you have the result"
           self.reconnect
           retry
         end

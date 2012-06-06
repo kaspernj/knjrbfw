@@ -17,5 +17,8 @@ describe "Strings" do
     rescue Knj::Errors::InvalidData
       #this should happen - Ruby doesnt support U-modifier...
     end
+    
+    res = Knj::Strings.is_regex?("Kasper")
+    raise "Expected res to be false but it wasnt." if res
   end
 end
