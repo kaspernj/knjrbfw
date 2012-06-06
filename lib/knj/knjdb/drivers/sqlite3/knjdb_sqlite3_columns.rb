@@ -10,7 +10,7 @@ class KnjDB_sqlite3::Columns
   #Returns SQL for a knjdb-compatible hash.
   def data_sql(data)
     raise "No type given." if !data["type"]
-    type = data["type"]
+    type = data["type"].to_s
     
     if type == "enum"
       type = "varchar"
@@ -18,12 +18,13 @@ class KnjDB_sqlite3::Columns
     end
     
     data["maxlength"] = 255 if type == "varchar" and !data.key?("maxlength")
+    data["maxlength"] = 11 if type == "int" and !data.key?("maxlength") and !data["autoincr"] and !data["primarykey"]
     type = "integer" if @args[:db].int_types.index(type) and (data["autoincr"] or data["primarykey"])
     
     sql = "`#{data["name"]}` #{type}"
     sql << "(#{data["maxlength"]})" if data["maxlength"] and !data["autoincr"]
-    sql << "(11)" if !data.key?("maxlength") and !data["autoincr"]
     sql << " PRIMARY KEY" if data["primarykey"]
+    sql << " AUTOINCREMENT" if data["autoincr"]
     sql << " NOT NULL" if !data["null"] and data.key?("null")
     
     if data.key?("default_func")
@@ -134,8 +135,7 @@ class KnjDB_sqlite3::Columns::Column
   
   #Returns true if the column is auto-increasing.
   def autoincr?
-    return true if self.name.to_s == "id"
-    return true if @args[:data][:pk].to_i >= 1
+    return true if @args[:data][:pk].to_i == 1 and @args[:data][:type].to_s == "integer"
     return false
   end
   
