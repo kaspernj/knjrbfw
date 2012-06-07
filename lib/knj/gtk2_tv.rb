@@ -26,6 +26,8 @@ module Knj::Gtk2::Tv
       iter[count] = value.to_s
       count += 1
     end
+    
+    return {:iter => iter}
   end
   
   def self.sel(tv)
