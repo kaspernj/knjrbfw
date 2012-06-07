@@ -18,7 +18,7 @@ class Knj::Objects
     @data = {}
     @lock_require = Monitor.new
     
-    require "wref" if @args[:cache] == :weak
+    require "wref" if @args[:cache] == :weak and !Kernel.const_defined?(:Wref)
     
     #Set up various events.
     @events = Knj::Event_handler.new

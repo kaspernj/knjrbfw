@@ -41,7 +41,8 @@ class Knj::Rhodes
       :subtype => "rhodes",
       :path => "#{Rho::RhoApplication.get_user_path}rhodes_default.sqlite3",
       :return_keys => "symbols",
-      :require => false
+      :require => false,
+      :index_append_table_name => true
     )
     
     if @args[:schema]

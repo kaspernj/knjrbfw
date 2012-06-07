@@ -1,5 +1,7 @@
-require "rubygems"
-require "wref"
+if !Kernel.const_defined?(:Wref)
+  require "rubygems"
+  require "wref"
+end
 
 #A wrapper of several possible database-types.
 #
