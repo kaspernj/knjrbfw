@@ -33,6 +33,18 @@ class Gtk::ComboBox
           }
         end
       end
+    elsif items.is_a?(Hash)
+      @knj[:type] = :hash
+      
+      items.each do |key, val|
+        iter = ls.append
+        iter[0] = val
+        
+        @knj[:items] << {
+          :iter => iter,
+          :object => key
+        }
+      end
     else
       raise "Unsupported type: '#{items.class.name}'."
     end
@@ -64,6 +76,13 @@ class Gtk::ComboBox
     if actob.respond_to?(:is_knj?)
       @knj[:items].each do |item|
         if item[:object].id == actob.id
+          self.active_iter = item[:iter]
+          return nil
+        end
+      end
+    elsif @knj[:type] == :hash
+      @knj[:items].each do |item|
+        if item[:object] == actob
           self.active_iter = item[:iter]
           return nil
         end
