@@ -4,30 +4,59 @@ class KnjDB_sqlite3::Tables
   def initialize(args)
     @args = args
     @db = @args[:db]
-    @driver = @args[:driver]
+    
+    @list_mutex = Mutex.new
+    @list = Wref_map.new
   end
   
   def [](table_name)
-    list = self.list
-    return list[table_name.to_s] if list[table_name.to_s]
-    raise Knj::Errors::NotFound.new("Table was not found: #{table_name}.")
+    table_name = table_name.to_s
+    
+    begin
+      ret = @list[table_name]
+      return ret
+    rescue Wref::Recycled
+      #ignore.
+    end
+    
+    self.list do |table_obj|
+      return table_obj if table_obj.name.to_s == table_name.to_s
+    end
+    
+    raise Knj::Errors::NotFound, "Table was not found: #{table_name}."
   end
   
   def list
-    list = {}
-    q_tables = @db.select("sqlite_master", {"type" => "table"}, {"orderby" => "name"})
-    while d_tables = q_tables.fetch
-      list[d_tables[:name]] = KnjDB_sqlite3::Tables::Table.new(
-        :db => @db,
-        :driver => @driver,
-        :data => d_tables
-      )
+    ret = {} unless block_given?
+    
+    @list_mutex.synchronize do
+      q_tables = @db.select("sqlite_master", {"type" => "table"}, {"orderby" => "name"}) do |d_tables|
+        obj = @list.get!(d_tables[:name])
+        
+        if !obj
+          obj = KnjDB_sqlite3::Tables::Table.new(
+            :db => @db,
+            :data => d_tables
+          )
+          @list[d_tables[:name]] = obj
+        end
+        
+        if block_given?
+          yield(obj)
+        else
+          ret[d_tables[:name]] = obj
+        end
+      end
     end
     
-    return list
+    if block_given?
+      return nil
+    else
+      return ret
+    end
   end
   
-  def create(name, data)
+  def create(name, data, args = nil)
     sql = "CREATE TABLE `#{name}` ("
     
     first = true
@@ -39,12 +68,26 @@ class KnjDB_sqlite3::Tables
     
     sql << ")"
     
-    @db.query(sql)
-    @list = nil
+    if args and args[:return_sql]
+      ret = [sql]
+    else
+      @db.query(sql)
+    end
     
-    if data["indexes"]
+    if data.key?("indexes") and data["indexes"]
       table_obj = self[name]
-      table_obj.create_indexes(data["indexes"])
+      
+      if args and args[:return_sql]
+        ret += table_obj.create_indexes(data["indexes"], :return_sql => true)
+      else
+        table_obj.create_indexes(data["indexes"])
+      end
+    end
+    
+    if args and args[:return_sql]
+      return ret
+    else
+      return nil
     end
   end
 end
@@ -52,12 +95,22 @@ end
 class KnjDB_sqlite3::Tables::Table
   def initialize(args)
     @db = args[:db]
-    @driver = args[:driver]
     @data = args[:data]
+    
+    @list = Wref_map.new
+    @indexes_list = Wref_map.new
   end
   
   def name
     return @data[:name]
+  end
+  
+  def type
+    return @data[:type]
+  end
+  
+  def maxlength
+    return @data[:maxlength]
   end
   
   def drop
@@ -69,6 +122,15 @@ class KnjDB_sqlite3::Tables::Table
     raise "stub!"
   end
   
+  def truncate
+    @db.query("DELETE FROM `#{self.name}` WHERE 1=1")
+    return nil
+  end
+  
+  def table
+    return @db.tables[@table_name]
+  end
+  
   def column(name)
     list = self.columns
     return list[name] if list[name]
@@ -76,22 +138,33 @@ class KnjDB_sqlite3::Tables::Table
   end
   
   def columns
-    if !@list
-      @db.cols
-      @list = {}
+    @db.cols
+    ret = {}
+    
+    @db.q("PRAGMA table_info(`#{@db.esc_table(self.name)}`)") do |d_cols|
+      obj = @list.get!(d_cols[:name])
       
-      q_cols = @db.query("PRAGMA table_info(`#{@driver.esc_table(self.name)}`)")
-      while d_cols = q_cols.fetch
-        @list[d_cols[:name]] = KnjDB_sqlite3::Columns::Column.new(
-          :table => self,
+      if !obj
+        obj = KnjDB_sqlite3::Columns::Column.new(
+          :table_name => self.name,
           :db => @db,
-          :driver => @driver,
           :data => d_cols
         )
+        @list[d_cols[:name]] = obj
+      end
+      
+      if block_given?
+        yield(obj)
+      else
+        ret[d_cols[:name]] = obj
       end
     end
     
-    return @list
+    if block_given?
+      return nil
+    else
+      return ret
+    end
   end
   
   def create_columns(col_arr)
@@ -105,7 +178,7 @@ class KnjDB_sqlite3::Tables::Table
   end
   
   def create_column_programmatic(col_data)
-    temp_name = "temptable_#{Knj::Php.md5(Knj::Datet.new.time.to_f)}"
+    temp_name = "temptable_#{Time.now.to_f.to_s.hash}"
     cloned_tabled = self.clone(temp_name)
     cols_cur = self.columns
     @db.query("DROP TABLE `#{self.name}`")
@@ -162,7 +235,7 @@ class KnjDB_sqlite3::Tables::Table
   end
   
   def copy(args = {})
-    temp_name = "temptable_#{Knj::Php.md5(Knj::Datet.new.time.to_f)}"
+    temp_name = "temptable_#{Time.now.to_f.to_s.hash}"
     cloned_tabled = self.clone(temp_name)
     cols_cur = self.columns
     @db.query("DROP TABLE `#{self.name}`")
@@ -217,18 +290,41 @@ class KnjDB_sqlite3::Tables::Table
   end
   
   def index(name)
-    list = self.indexes
-    return list[name] if list[name]
+    name = name.to_s
+    
+    begin
+      return @indexes_list[name]
+    rescue Wref::Recycled
+      if @db.opts[:index_append_table_name]
+        tryname = "#{self.name}__#{name}"
+        
+        begin
+          return @indexes_list[tryname]
+        rescue Wref::Recycled
+          #ignore.
+        end
+      else
+        #ignore
+      end
+    end
+    
+    self.indexes do |index|
+      return index if index.name.to_s == name
+    end
+    
     raise Knj::Errors::NotFound.new("Index not found: #{name}.")
   end
   
   def indexes
-    if !@indexes_list
-      @db.indexes
-      @indexes_list = {}
+    @db.indexes
+    ret = {} unless block_given?
+    
+    @db.q("PRAGMA index_list(`#{@db.esc_table(self.name)}`)") do |d_indexes|
+      next if d_indexes[:Key_name] == "PRIMARY"
       
-      q_indexes = @db.query("PRAGMA index_list(`#{@driver.esc_table(self.name)}`)")
-      while d_indexes = q_indexes.fetch
+      obj = @indexes_list.get!(d_indexes[:name])
+      
+      if !obj
         if @db.opts[:index_append_table_name]
           match_name = d_indexes[:name].match(/__(.+)$/)
           
@@ -241,22 +337,39 @@ class KnjDB_sqlite3::Tables::Table
           name = d_indexes[:name]
         end
         
-        @indexes_list[name] = KnjDB_sqlite3::Indexes::Index.new(
-          :table => self,
+        obj = KnjDB_sqlite3::Indexes::Index.new(
+          :table_name => self.name,
           :db => @db,
-          :driver => @driver,
           :data => d_indexes
         )
-        
-        @indexes_list[name].columns << name
+        obj.columns << name
+        @indexes_list[d_indexes[:name]] = obj
+      end
+      
+      if block_given?
+        yield(obj)
+      else
+        ret[d_indexes[:name]] = obj
       end
     end
     
-    return @indexes_list
+    if block_given?
+      return nil
+    else
+      return ret
+    end
   end
   
-  def create_indexes(index_arr)
+  def create_indexes(index_arr, args = nil)
+    if args and args[:return_sql]
+      ret = []
+    end
+    
     index_arr.each do |index_data|
+      if index_data.is_a?(String)
+        index_data = {"name" => index_data, "columns" => [index_data]}
+      end
+      
       raise "No name was given." if !index_data.key?("name") or index_data["name"].strip.length <= 0
       raise "No columns was given on index #{index_data["name"]}." if index_data["columns"].empty?
       
@@ -275,8 +388,17 @@ class KnjDB_sqlite3::Tables::Table
       
       sql << ")"
       
-      @db.query(sql)
-      @indexes_list = nil
+      if args and args[:return_sql]
+        ret << sql
+      else
+        @db.query(sql)
+      end
+    end
+    
+    if args and args[:return_sql]
+      return ret
+    else
+      return nil
     end
   end
   
@@ -296,5 +418,9 @@ class KnjDB_sqlite3::Tables::Table
     end
     
     return ret
+  end
+  
+  def insert(data)
+    @db.insert(self.name, data)
   end
 end

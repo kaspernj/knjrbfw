@@ -1,4 +1,7 @@
 module Knj::Os
+  #Returns the path of the home-dir as a string.
+  #===Examples
+  # print "Looks like the current user uses Mozilla software?" if File.exists?("#{Knj::Os.homedir}/.mozilla")
   def self.homedir
     if ENV["USERPROFILE"]
       homedir = ENV["USERPROFILE"]
@@ -13,6 +16,24 @@ module Knj::Os
     return homedir
   end
   
+  #This method was created to make up for the fact that Dir.tmpdir sometimes returns empty strings??
+  #===Examples
+  # tmp_db_path = "#{Knj::Os.tmpdir}/temp_db.sqlite3"
+  def self.tmpdir
+    require "tmpdir"
+    tmpdir = Dir.tmpdir.to_s.strip
+    
+    return tmpdir if tmpdir.length >= 3 and File.exists?(tmpdir)
+    return ENV["TEMP"] if ENV["TEMP"].to_s.strip.length > 0 and File.exists?(ENV["TMP"])
+    return ENV["TMP"] if ENV["TMP"].to_s.strip.length > 0 and File.exists?(ENV["TMP"])
+    return "/tmp" if File.exists?("/tmp")
+    
+    raise "Could not figure out temp-dir."
+  end
+  
+  #This method returns the username of the current user.
+  #===Examples
+  # print "I can do what I want, I am root!" if Knj::Os.whoami == "root"
   def self.whoami
     if ENV["USERNAME"]
       whoami = ENV["USERNAME"]
@@ -27,10 +48,14 @@ module Knj::Os
     return whoami
   end
   
+  #Returns the operating system a string.
+  #===Examples
+  # print "Can I please move to another machine?" if Knj::Os.os == "windows"
+  # print "I like it better now." if Knj::Os.os == "linux"
   def self.os
     if ENV["OS"]
       teststring = ENV["OS"].to_s
-    elsif (RUBY_PLATFORM)
+    elsif RUBY_PLATFORM
       teststring = RUBY_PLATFORM.to_s
     end
     
@@ -43,8 +68,17 @@ module Knj::Os
     end
   end
   
-  def self.mode
-    Knj::Php.print_r(ENV)
+  #Returns the current graphical toolkit running.
+  #===Examples
+  # Knj::Os.toolkit #=> 'kde'
+  def self.toolkit
+    if self.os == "linux"
+      if ENV["DESKTOP_SESSION"].index("plasma") != nil
+        return "kde"
+      end
+    end
+    
+    raise "Could not figure out the toolkit."
   end
   
   def self.class_exist(classstr)
@@ -78,9 +112,25 @@ module Knj::Os
       :err => ""
     }
     
-    Open3.popen3(cmd) do |stdin, stdout, stderr|
-      res[:out] << stdout.read
-      res[:err] << stderr.read
+    if RUBY_ENGINE == "jruby"
+      begin
+        IO.popen4(cmd) do |pid, stdin, stdout, stderr|
+          res[:out] << stdout.read
+          res[:err] << stderr.read
+        end
+      rescue Errno::EBADF => e
+        #Catch and rescue retarted JRuby.
+        if e.message == "Bad file descriptor - Bad file descriptor"
+          retry
+        else
+          raise e
+        end
+      end
+    else
+      Open3.popen3(cmd) do |stdin, stdout, stderr|
+        res[:out] << stdout.read
+        res[:err] << stderr.read
+      end
     end
     
     if res[:err].to_s.strip.length > 0
@@ -173,6 +223,21 @@ module Knj::Os
   #Returns the Ruby executable that is running the current process if possible.
   def self.executed_executable
     return ENV["rvm_ruby_string"] if ENV["rvm_ruby_string"].to_s.length > 0
+    
+    #Try to look the executeable up by command.
+    if self.os == "linux"
+      unix_proc = Knj::Unix_proc.find_self
+      if unix_proc
+        if match_cmd = unix_proc["cmd"].match(/^(\/usr\/bin\/|)((j|iron|)ruby([\d\.-]*))(\s+|$)/)
+          return "#{match_cmd[1]}#{match_cmd[2]}"
+        else
+          raise "Could not match the executed command from the process."
+        end
+      else
+        raise "Could not find the self-process."
+      end
+    end
+    
     raise "Could not figure out the executed executable."
   end
 end

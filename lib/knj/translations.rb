@@ -3,7 +3,6 @@ class Knj::Translations
   
   def initialize(args)
     @args = args
-    @cache = {}
     
     raise "No DB given." if !@args[:db]
     @db = @args[:db]
@@ -18,58 +17,61 @@ class Knj::Translations
     )
   end
   
+  #Returns the translated value for an object by the given key.
   def get(obj, key, args = {})
     return "" if !obj
     
     if args[:locale]
-      locale = args[:locale]
+      locale = args[:locale].to_sym
     else
-      locale = @args[:locale]
+      locale = @args[:locale].to_sym
     end
     
-    classn = obj.class.name
-    objid = obj.id.to_s
+    #Force to symbol to save memory when caching.
+    key = key.to_sym
     
-    if @cache[classn] and @cache[classn][objid] and @cache[classn][objid][key] and @cache[classn][objid][key][locale]
-      return @cache[classn][objid][key][locale][:value]
+    #Set-get the cache-hash for the object.
+    if !obj.instance_variable_defined?("@knj_translations_cache")
+      obj.instance_variable_set("@knj_translations_cache", {})
+    end
+    
+    cache = obj.instance_variable_get("@knj_translations_cache")
+    
+    #Return from cache if set.
+    if cache.key?(key) and cache[key].key?(locale)
+      return cache[key][locale]
     end
     
     trans = @ob.list(:Translation, {
-      "object_class" => classn,
-      "object_id" => objid,
+      "object_class" => obj.class.name,
+      "object_id" => obj.id,
       "key" => key,
       "locale" => locale
     })
-    return "" if trans.empty?
+    
+    if trans.empty?
+      print "Nothing found - returning empty string.\n" if @args[:debug] or args[:debug]
+      return ""
+    end
     
     trans.each do |tran|
-      if !@cache.key?(classn)
-        @cache[classn] = {
-          objid => {
-            key => {
-              locale => tran
-            }
-          }
+      if !cache[key]
+        cache[key] = {
+          locale => tran[:value]
         }
-      elsif !@cache[classn][objid]
-        @cache[classn][objid] = {
-          key => {
-            locale => tran
-          }
-        }
-      elsif !@cache[classn][objid][key]
-        @cache[classn][objid][key] = {
-          locale => tran
-        }
-      elsif !@cache[classn][objid][key][locale]
-        @cache[classn][objid][key][locale] = tran
+      elsif !cache[key][locale]
+        cache[key][locale] = tran[:value]
       end
     end
     
-    return trans[0][:value]
+    return cache[key][locale]
   end
   
+  #Sets translations for an object by the given hash-keys and hash-values.
   def set(obj, values, args = {})
+    #Reset cache to reflect the updates when read next time.
+    obj.instance_variable_set("@knj_translations_cache", {})
+    
     if args[:locale]
       locale = args[:locale]
     else
@@ -97,19 +99,26 @@ class Knj::Translations
     end
   end
   
+  #Deletes all translations for a given object.
   def delete(obj)
     classn = obj.class.name
     objid = obj.id.to_s
+    
+    if obj.instance_variable_defined?("@knj_translations_cache")
+      cache = obj.instance_variable_get("@knj_translations_cache")
+    end
     
     trans = @ob.list(:Translation, {
       "object_id" => obj.id,
       "object_class" => obj.class.name
     })
     trans.each do |tran|
+      #Delete the cache if defined on the object.
+      cache.delete(tran[:key].to_sym) if cache and cache.key?(tran[:key].to_sym)
+      
+      #Delete the translation object.
       @ob.delete(tran)
     end
-    
-    @cache[classn].delete(objid) if @cache.key?(classn) and @cache.key?(objid)
   end
 end
 

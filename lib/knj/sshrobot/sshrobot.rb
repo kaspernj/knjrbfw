@@ -28,6 +28,28 @@ class Knj::SSHRobot
     return self.session.exec!(command)
   end
   
+  def sudo_exec(sudo_passwd, command)
+    result = ""
+    
+    self.session.open_channel do |ch|
+      ch.request_pty
+      
+      ch.exec("sudo #{command}") do |ch, success|
+        ch.on_data do |ch, data|
+          if data =~ /^\[sudo\] password for (.+):\s*$/
+            ch.send_data("#{sudo_passwd}\n")
+          else
+            result << data
+          end
+        end
+      end
+    end
+    
+    self.session.loop
+    
+    return result
+  end
+  
   def fileExists(filepath)
     result = self.exec("ls #{Strings.UnixSafe(filepath)}").strip
     return true if result == filepath
@@ -72,7 +94,7 @@ class Knj::SSHRobot::Forward
         @args[:session].loop do
           true
         end
-      rescue Exception => e
+      rescue => e
         puts e.inspect
         puts e.backtrace
         

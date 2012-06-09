@@ -1,0 +1,45 @@
+<div data-role="page">
+	<div data-role="header">
+		<h1><%=_"Open YouTube link"%></h1>
+		
+		<a href="javascript: history.back(-1)" class="ui-btn-left" data-icon="back" data-back="true"><%=_("Back")%></a>
+	</div>
+	<div data-role="content">
+		<ul data-role="listview">
+			<%if System::get_property('platform') != "APPLE"%>
+				<li>
+					<a href="javascript: knj_rhodes_html_links({'url': 'vnd.youtube://<%=@params["youtube_id"]%>'})">
+						<h3><%=_"Open in built-in app. (VND)"%></h3>
+						<p><%=_"This will trigger the YouTube-app. in Android."%></p>
+					</a>
+				</li>
+			<%end%>
+			
+			<%if System::get_property("platform") == "APPLE"%>
+				<li>
+					<a href="javascript: knj_rhodes_html_links({'url': iphone_str})">
+						<h3><%=_"Open in built-in app. (iPhone)"%></h3>
+						<p><%=_"This will trigger the YouTube-app. on iPhone."%></p>
+					</a>
+				</li>
+			<%end%>
+			
+			<li>
+				<a href="javascript: knj_rhodes_html_links({'url': 'http://www.youtube.com/watch?v=<%=@params["youtube_id"]%>'})">
+					<h3><%=_"Open YouTube-URL"%></h3>
+					<p><%=_"This will open the YouTube-video in a browser."%></p>
+				</a>
+			</li>
+			<li>
+				<a href="<%=url_for(:action => :youtube_embed, :query => {:youtube_id => @params["youtube_id"]})%>">
+					<h3><%=_"Open YouTube embedded"%></h3>
+					<p><%=_"Watch the video in this app. using embedding from YouTube."%></p>
+				</a>
+			</li>
+		</ul>
+		
+		<script>
+			var iphone_str = "[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@\"http://www.youtube.com/v/oHg5SJYRHA0&f=gdata_videos\"]]; "
+		</script>
+	</div>
+</div>

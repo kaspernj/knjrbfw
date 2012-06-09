@@ -1,4 +1,19 @@
+#This class holds various methods to generate commands for command-line-purpose.
 class Knj::Cmd_gen
+  #Generates rsync commands as strings.
+  #===Examples
+  # Knj::Cmd_gen.rsync(
+  #   :bin => "/usr/bin/rsync",
+  #   :verbose => 2,
+  #   :ssh => true,
+  #   :port => 10022,
+  #   :delete => true,
+  #   :exclude => "cache",
+  #   :user => "username",
+  #   :host => "mydomain.com",
+  #   :dir_host => "/home/username/sync_path",
+  #   :dir_local => "/home/otheruser/sync_path"
+  # ) #=> <String>
   def self.rsync(args)
     cmd = ""
     
@@ -39,6 +54,18 @@ class Knj::Cmd_gen
     return cmd
   end
   
+  #Generates tar commands.
+  #===Examples
+  # Knj::Cmd_gen.tar(
+  #   :bin => "/usr/bin/tar",
+  #   :gzip => true,
+  #   :extract => false,
+  #   :file => true,
+  #   :create => true,
+  #   :verbose => 1,
+  #   :archive_path => "~/myarchive.tar.gz",
+  #   :paths => ["~/mylib1", "~/mylib2", "~/mylib3"]
+  # ) #=> <String>
   def self.tar(args)
     cmd = ""
     

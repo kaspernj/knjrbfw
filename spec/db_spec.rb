@@ -7,10 +7,12 @@ describe "Db" do
     #I never got this test to actually fail... :-(
     
     require "knj/db"
-    require "tmpdir"
-    require "sqlite3"
+    require "knj/os"
+    require "rubygems"
+    require "sqlite3" if !Kernel.const_defined?("SQLite3") and RUBY_ENGINE != "jruby"
     
-    db_path = "#{Dir.tmpdir}/knjrbfw_test_sqlite3.sqlite3"
+    db_path = "#{Knj::Os.tmpdir}/knjrbfw_test_sqlite3.sqlite3"
+    File.unlink(db_path) if File.exists?(db_path)
     
     db = Knj::Db.new(
       :type => "sqlite3",
@@ -26,15 +28,106 @@ describe "Db" do
       ]
     })
     
-    begin
-      cont = File.read("#{File.dirname(__FILE__)}/db_spec_encoding_test_file.txt")
-      cont.force_encoding("ASCII-8BIT")
-      
-      db.insert("test", {
-        "text" => cont
-      })
-    ensure
-      File.unlink(db_path) if File.exists?(db_path)
+    
+    
+    #Get a list of tables and check the list for errors.
+    list = db.tables.list
+    raise "Table not found: 'test'." if !list.key?("test")
+    raise "Table-name expected to be 'test' but wasnt: '#{list["test"].name}'." if list["test"].name != "test"
+    
+    
+    #Test revision to create tables, indexes and insert rows.
+    schema = {
+      "tables" => {
+        "test_table" => {
+          "columns" => [
+            {"name" => "id", "type" => "int", "autoincr" => true, "primarykey" => true},
+            {"name" => "name", "type" => "varchar"}
+          ],
+          "indexes" => [
+            "name"
+          ],
+          "rows" => [
+            {
+              "find_by" => {"id" => 1},
+              "data" => {"id" => 1, "name" => "trala"}
+            }
+          ]
+        }
+      }
+    }
+    
+    rev = Knj::Db::Revision.new
+    rev.init_db("schema" => schema, "db" => db)
+    
+    
+    #Test wrong encoding.
+    cont = File.read("#{File.dirname(__FILE__)}/db_spec_encoding_test_file.txt")
+    cont.force_encoding("ASCII-8BIT")
+    
+    db.insert("test", {
+      "text" => cont
+    })
+    
+    
+    #Throw out invalid encoding because it will make dumping fail.
+    db.tables[:test].truncate
+    
+    
+    
+    #Test IDQueries.
+    rows_count = 1250
+    db.transaction do
+      0.upto(rows_count) do |count|
+        db.insert(:test_table, {:name => "User #{count}"})
+      end
     end
+    
+    block_ran = 0
+    idq = Knj::Db::Idquery.new(:db => db, :debug => false, :table => :test_table, :query => "SELECT id FROM test_table") do |data|
+      block_ran += 1
+    end
+    
+    raise "Block with should have ran too little: #{block_ran}." if block_ran < rows_count
+    
+    block_ran = 0
+    db.select(:test_table, {}, {:idquery => true}) do |data|
+      block_ran += 1
+    end
+    
+    raise "Block with should have ran too little: #{block_ran}." if block_ran < rows_count
+    
+    
+    #Test dumping.
+    dump = Knj::Db::Dump.new(:db => db, :debug => false)
+    str_io = StringIO.new
+    dump.dump(str_io)
+    str_io.rewind
+    
+    
+    #Remember some numbers for validation.
+    tables_count = db.tables.list.length
+    
+    
+    #Remove everything in the db.
+    db.tables.list do |table|
+      table.drop
+    end
+    
+    
+    #Run the exported SQL.
+    db.transaction do
+      str_io.each_line do |sql|
+        db.q(sql)
+      end
+    end
+    
+    
+    #Vaildate import.
+    raise "Not same amount of tables: #{tables_count}, #{db.tables.list.length}" if tables_count != db.tables.list.length
+    
+    
+    #Delete test-database if everything went well.
+    File.unlink(db_path) if File.exists?(db_path)
   end
 end

@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{knjrbfw}
-  s.version = "0.0.8"
+  s.version = "0.0.42"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Kasper Johansen"]
-  s.date = %q{2011-11-15}
+  s.date = %q{2012-06-08}
   s.description = %q{Including stuff for HTTP, SSH and much more.}
   s.email = %q{k@spernj.org}
   s.extra_rdoc_files = [
@@ -20,6 +20,7 @@ Gem::Specification.new do |s|
     ".document",
     ".rspec",
     "Gemfile",
+    "Gemfile.lock",
     "LICENSE.txt",
     "README.rdoc",
     "Rakefile",
@@ -40,7 +41,7 @@ Gem::Specification.new do |s|
     "lib/knj/autoload/gd2.rb",
     "lib/knj/autoload/gettext.rb",
     "lib/knj/autoload/gtk2.rb",
-    "lib/knj/autoload/json_autoload.rb",
+    "lib/knj/autoload/json.rb",
     "lib/knj/autoload/magick.rb",
     "lib/knj/autoload/mysql.rb",
     "lib/knj/autoload/parsedate.rb",
@@ -49,15 +50,20 @@ Gem::Specification.new do |s|
     "lib/knj/autoload/soap.rb",
     "lib/knj/autoload/sqlite3.rb",
     "lib/knj/autoload/tmail.rb",
-    "lib/knj/autoload/twitter.rb",
+    "lib/knj/autoload/tzinfo.rb",
+    "lib/knj/autoload/wref.rb",
     "lib/knj/autoload/xmlsimple.rb",
     "lib/knj/autoload/zip.rb",
     "lib/knj/cmd_gen.rb",
+    "lib/knj/cmd_parser.rb",
     "lib/knj/compiler.rb",
     "lib/knj/cpufreq.rb",
+    "lib/knj/csv.rb",
     "lib/knj/datarow.rb",
+    "lib/knj/datarow_custom.rb",
     "lib/knj/datestamp.rb",
     "lib/knj/datet.rb",
+    "lib/knj/db.rb",
     "lib/knj/degulesider.rb",
     "lib/knj/erb/apache_knjerb.conf",
     "lib/knj/erb/cache/README",
@@ -74,7 +80,6 @@ Gem::Specification.new do |s|
     "lib/knj/event_filemod.rb",
     "lib/knj/event_handler.rb",
     "lib/knj/exchangerates.rb",
-    "lib/knj/ext/webrick.rb",
     "lib/knj/facebook_connect.rb",
     "lib/knj/filesystem.rb",
     "lib/knj/fs/drivers/filesystem.rb",
@@ -89,11 +94,13 @@ Gem::Specification.new do |s|
     "lib/knj/gtk2_menu.rb",
     "lib/knj/gtk2_statuswindow.rb",
     "lib/knj/gtk2_tv.rb",
+    "lib/knj/gtk2_window.rb",
     "lib/knj/hash_methods.rb",
     "lib/knj/http.rb",
     "lib/knj/http2.rb",
     "lib/knj/image.rb",
     "lib/knj/includes/appserver_cli.rb",
+    "lib/knj/includes/require_info.rb",
     "lib/knj/ip2location.rb",
     "lib/knj/ironruby-gtk2/button.rb",
     "lib/knj/ironruby-gtk2/dialog.rb",
@@ -135,7 +142,6 @@ Gem::Specification.new do |s|
     "lib/knj/jruby-gtk2/dialog.rb",
     "lib/knj/jruby-gtk2/eventbutton.rb",
     "lib/knj/jruby-gtk2/gladexml.rb",
-    "lib/knj/jruby-gtk2/gtk-4.0.jar",
     "lib/knj/jruby-gtk2/gtk2.rb",
     "lib/knj/jruby-gtk2/hbox.rb",
     "lib/knj/jruby-gtk2/iconsize.rb",
@@ -153,6 +159,7 @@ Gem::Specification.new do |s|
     "lib/knj/jruby-gtk2/treeview.rb",
     "lib/knj/jruby-gtk2/vbox.rb",
     "lib/knj/jruby-gtk2/window.rb",
+    "lib/knj/jruby/sqlitejdbc-v056.jar",
     "lib/knj/jruby_compiler.rb",
     "lib/knj/knj.rb",
     "lib/knj/knj_controller.rb",
@@ -160,17 +167,23 @@ Gem::Specification.new do |s|
     "lib/knj/knjdb/drivers/mysql/knjdb_mysql.rb",
     "lib/knj/knjdb/drivers/mysql/knjdb_mysql_columns.rb",
     "lib/knj/knjdb/drivers/mysql/knjdb_mysql_indexes.rb",
+    "lib/knj/knjdb/drivers/mysql/knjdb_mysql_sqlspecs.rb",
     "lib/knj/knjdb/drivers/mysql/knjdb_mysql_tables.rb",
     "lib/knj/knjdb/drivers/sqlite3/knjdb_sqlite3.rb",
     "lib/knj/knjdb/drivers/sqlite3/knjdb_sqlite3_columns.rb",
     "lib/knj/knjdb/drivers/sqlite3/knjdb_sqlite3_indexes.rb",
+    "lib/knj/knjdb/drivers/sqlite3/knjdb_sqlite3_sqlspecs.rb",
     "lib/knj/knjdb/drivers/sqlite3/knjdb_sqlite3_tables.rb",
+    "lib/knj/knjdb/dump.rb",
+    "lib/knj/knjdb/idquery.rb",
     "lib/knj/knjdb/libknjdb.rb",
     "lib/knj/knjdb/libknjdb_java_sqlite3.rb",
     "lib/knj/knjdb/libknjdb_row.rb",
     "lib/knj/knjdb/libknjdb_sqlite3_ironruby.rb",
-    "lib/knj/knjdb/mysql-connector-java-5.1.13-bin.jar",
-    "lib/knj/knjdb/sqlitejdbc-v056.jar",
+    "lib/knj/knjdb/query_buffer.rb",
+    "lib/knj/knjdb/revision.rb",
+    "lib/knj/knjdb/sqlspecs.rb",
+    "lib/knj/kvm.rb",
     "lib/knj/libqt.rb",
     "lib/knj/libqt_window.rb",
     "lib/knj/locale_strings.rb",
@@ -178,11 +191,13 @@ Gem::Specification.new do |s|
     "lib/knj/maemo/fremantle-calendar/fremantle-calendar.rb",
     "lib/knj/mail.rb",
     "lib/knj/mailobj.rb",
+    "lib/knj/memory_analyzer.rb",
     "lib/knj/mount.rb",
     "lib/knj/mutexcl.rb",
     "lib/knj/notify.rb",
     "lib/knj/nvidia_settings.rb",
     "lib/knj/objects.rb",
+    "lib/knj/objects/objects_sqlhelper.rb",
     "lib/knj/opts.rb",
     "lib/knj/os.rb",
     "lib/knj/php.rb",
@@ -193,32 +208,42 @@ Gem::Specification.new do |s|
     "lib/knj/php_parser/tests/test_function.php",
     "lib/knj/php_parser/tests/test_function_run.rb",
     "lib/knj/power_manager.rb",
+    "lib/knj/process.rb",
+    "lib/knj/process_meta.rb",
     "lib/knj/rand.rb",
     "lib/knj/retry.rb",
     "lib/knj/rhodes/mutex.rb",
     "lib/knj/rhodes/rhodes.js",
     "lib/knj/rhodes/rhodes.rb",
+    "lib/knj/rhodes/youtube_embed.erb",
+    "lib/knj/rhodes/youtube_open.erb",
     "lib/knj/rsvgbin.rb",
     "lib/knj/scripts/degulesider.rb",
     "lib/knj/scripts/filesearch.rb",
     "lib/knj/scripts/ip2location.rb",
     "lib/knj/scripts/keepalive.rb",
+    "lib/knj/scripts/php_to_rb_helper.rb",
+    "lib/knj/scripts/process_meta_exec.rb",
     "lib/knj/scripts/svn_merge.rb",
     "lib/knj/scripts/upgrade_knjrbfw_checker.rb",
     "lib/knj/sms.rb",
+    "lib/knj/sshrobot.rb",
     "lib/knj/sshrobot/sshrobot.rb",
     "lib/knj/strings.rb",
     "lib/knj/sysuser.rb",
+    "lib/knj/table_writer.rb",
     "lib/knj/tests/compiler/compiler_test.rb",
     "lib/knj/tests/compiler/compiler_test_file.rb",
     "lib/knj/tests/test_degulesider.rb",
     "lib/knj/tests/test_http2.rb",
+    "lib/knj/tests/test_http2_proxy.rb",
     "lib/knj/tests/test_mount.rb",
     "lib/knj/tests/test_retry.rb",
     "lib/knj/thread.rb",
     "lib/knj/thread2.rb",
     "lib/knj/threadhandler.rb",
     "lib/knj/threadpool.rb",
+    "lib/knj/threadsafe.rb",
     "lib/knj/translations.rb",
     "lib/knj/unix_proc.rb",
     "lib/knj/web.rb",
@@ -230,8 +255,20 @@ Gem::Specification.new do |s|
     "lib/knj/youtube.rb",
     "lib/knjrbfw.rb",
     "spec/amixer_spec.rb",
+    "spec/cmd_parser_spec.rb",
+    "spec/datet_spec.rb",
+    "spec/db_spec.rb",
+    "spec/db_spec_encoding_test_file.txt",
+    "spec/http2_spec.rb",
     "spec/knjrbfw_spec.rb",
+    "spec/objects_spec.rb",
+    "spec/php_spec.rb",
+    "spec/process_meta_spec.rb",
+    "spec/process_spec.rb",
     "spec/spec_helper.rb",
+    "spec/strings_spec.rb",
+    "spec/threadsafe_spec.rb",
+    "spec/web_spec.rb",
     "testfiles/image.jpg"
   ]
   s.homepage = %q{http://github.com/kaspernj/knjrbfw}
@@ -244,23 +281,29 @@ Gem::Specification.new do |s|
     s.specification_version = 3
 
     if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
+      s.add_runtime_dependency(%q<wref>, [">= 0"])
+      s.add_runtime_dependency(%q<tsafe>, [">= 0"])
       s.add_development_dependency(%q<rspec>, ["~> 2.3.0"])
-      s.add_development_dependency(%q<bundler>, ["~> 1.0.0"])
+      s.add_development_dependency(%q<bundler>, [">= 1.0.0"])
       s.add_development_dependency(%q<jeweler>, ["~> 1.6.3"])
       s.add_development_dependency(%q<rcov>, [">= 0"])
       s.add_development_dependency(%q<sqlite3>, [">= 0"])
       s.add_development_dependency(%q<rmagick>, [">= 0"])
     else
+      s.add_dependency(%q<wref>, [">= 0"])
+      s.add_dependency(%q<tsafe>, [">= 0"])
       s.add_dependency(%q<rspec>, ["~> 2.3.0"])
-      s.add_dependency(%q<bundler>, ["~> 1.0.0"])
+      s.add_dependency(%q<bundler>, [">= 1.0.0"])
       s.add_dependency(%q<jeweler>, ["~> 1.6.3"])
       s.add_dependency(%q<rcov>, [">= 0"])
       s.add_dependency(%q<sqlite3>, [">= 0"])
       s.add_dependency(%q<rmagick>, [">= 0"])
     end
   else
+    s.add_dependency(%q<wref>, [">= 0"])
+    s.add_dependency(%q<tsafe>, [">= 0"])
     s.add_dependency(%q<rspec>, ["~> 2.3.0"])
-    s.add_dependency(%q<bundler>, ["~> 1.0.0"])
+    s.add_dependency(%q<bundler>, [">= 1.0.0"])
     s.add_dependency(%q<jeweler>, ["~> 1.6.3"])
     s.add_dependency(%q<rcov>, [">= 0"])
     s.add_dependency(%q<sqlite3>, [">= 0"])

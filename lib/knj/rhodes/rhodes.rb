@@ -15,16 +15,12 @@ class Knj::Rhodes
     require "#{$knjpath}errors.rb"
     require "#{$knjpath}gettext_threadded.rb"
     require "#{$knjpath}locales.rb"
+    require "#{$knjpath}locale_strings.rb"
     require "#{$knjpath}web.rb"
     
     if !Kernel.const_defined?("Mutex")
       print "Mutex not defined - loading alternative.\n"
       require "#{$knjpath}rhodes/mutex.rb"
-    end
-    
-    if !Kernel.const_defined?("WeakRef")
-      print "WeakRef not defined - loading alternative.\n"
-      require "#{$knjpath}rhodes/weakref.rb"
     end
     
     require "#{$knjpath}opts.rb"
@@ -43,9 +39,10 @@ class Knj::Rhodes
     @db = Knj::Db.new(
       :type => "sqlite3",
       :subtype => "rhodes",
-      :path => "#{Rho::RhoApplication.get_base_app_path}app/rhodes_default.sqlite3",
+      :path => "#{Rho::RhoApplication.get_user_path}rhodes_default.sqlite3",
       :return_keys => "symbols",
-      :require => false
+      :require => false,
+      :index_append_table_name => true
     )
     
     if @args[:schema]
@@ -54,6 +51,7 @@ class Knj::Rhodes
       schema = {"tables" => {}}
     end
     
+    #Table used for options-module.
     schema["tables"]["Option"] = {
       "columns" => [
         {"name" => "id", "type" => "int", "autoincr" => true, "primarykey" => true},
@@ -62,23 +60,26 @@ class Knj::Rhodes
       ]
     }
     
+    #Run database-revision.
     dbrev = Knj::Db::Revision.new
-    dbrev.init_db(schema, @db)
+    dbrev.init_db("schema" => schema, "db" => @db)
     
-    @ob = Knj::Objects.new(
-      :db => @db,
-      :class_path => "#{Rho::RhoApplication.get_base_app_path}app/models",
-      :require => false,
-      :module => @args[:module],
-      :datarow => true,
-      :cache => :none
-    )
-    
+    #Initialize options-module.
     Knj::Opts.init(
       "table" => "Option",
       "knjdb" => @db
     )
     
+    #Initialize objects-module.
+    @ob = Knj::Objects.new(
+      :db => @db,
+      :class_path => "#{Rho::RhoApplication.get_base_app_path}app/models",
+      :require => false,
+      :module => @args[:module],
+      :datarow => true
+    )
+    
+    #Initialize locales.
     @gettext = Knj::Gettext_threadded.new
     @gettext.load_dir("#{Rho::RhoApplication.get_base_app_path}app/locales")
     
@@ -181,8 +182,8 @@ class Knj::Rhodes
 end
 
 #This method is used to emulate web-behavior and make Knj::Locales.number_out and friends work properly.
-def _session(key)
-  return $rhodes.session_key(key)
+def _session
+  return {:locale => $rhodes.locale}
 end
 
 #This method is used to make gettext work.

@@ -2,7 +2,8 @@ class Knj::Threadhandler
   attr_reader :inactive_blocks, :args, :activate_blocks, :mutex, :objects
   
   def initialize(args = {})
-    require "#{$knjpath}thread"
+    require "#{$knjpath}errors"
+    require "tsafe"
     
     @args = args
     @objects = []
@@ -12,11 +13,15 @@ class Knj::Threadhandler
     @activate_blocks = []
     @mutex = Mutex.new
     
-    @thread_timeout = Knj::Thread.new do
-      loop do
-        sleep @args[:timeout]
-        break if !@mutex
-        check_inactive
+    @thread_timeout = Thread.new do
+      begin
+        loop do
+          sleep @args[:timeout]
+          break if !@mutex
+          check_inactive
+        end
+      rescue => e
+        STDOUT.print Knj::Errors.error_str(e)
       end
     end
   end
@@ -110,10 +115,10 @@ class Knj::Threadhandler
         else
           #No free objects, but we can spawn a new one and use that...
           newobj = @spawn_new_block.call
-          @objects << {
+          @objects << Tsafe::MonHash.new.merge(
             :free => false,
             :object => newobj
-          }
+          )
           STDOUT.print "Spawned db and locked new.\n" if @args[:debug]
         end
       end

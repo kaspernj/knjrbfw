@@ -1,2 +1,2 @@
 require "rubygems"
-require "twitter"
+require "tzinfo"

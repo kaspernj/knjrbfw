@@ -1,12 +1,20 @@
 #This class can manipulate the CPU behavior through "cpufreq".
 class Knj::Cpufreq
+  #Data that is used to identify the CPU controlled by this object.
   attr_reader :data
   
+  #Useually called through "Knj::Cpufreq.list".
   def initialize(data)
     @data = data
     @allowed_govs = ["performance", "ondemand", "powersafe", "conservative"]
   end
   
+  #Returns a list of CPUs.
+  #===Examples
+  # list = Knj::Cpufreq.list
+  # list.each do |cpufreq|
+  #   cpufreq.governor = "performance"
+  # end
   def self.list
     ret = []
     cont = File.read("/proc/cpuinfo")
@@ -28,6 +36,9 @@ class Knj::Cpufreq
     return ret
   end
   
+  #Sets the governor.
+  #===Examples
+  # cpufreq.governor = "performance"
   def governor=(newgov)
     raise "Governor not found." if @allowed_govs.index(newgov) == nil
     

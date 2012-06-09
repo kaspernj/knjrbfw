@@ -1,12 +1,24 @@
 #encoding: utf-8
 
+#This module contains various methods to escape, change or treat strings.
 module Knj::Strings
+  #Returns a string that is safe to use on the command line.
   def self.UnixSafe(tha_string)
-    return tha_string.to_s.gsub(" ", "\\ ").gsub("&", "\&").gsub("(", "\\(").gsub(")", "\\)").gsub('"', '\"').gsub("\n", "\"\n\"")
+    return tha_string.to_s.gsub(" ", "\\ ").gsub("&", "\&").gsub("(", "\\(").gsub(")", "\\)").gsub('"', '\"').gsub("\n", "\"\n\"").gsub(":", "\\:").gsub('\'', "\\\\'").gsub("`", "\\\\`")
   end
   
+  #Alias for UnixSafe.
   def self.unixsafe(string)
     return Knj::Strings.UnixSafe(string)
+  end
+  
+  #Returns true if given string is regex-compatible.
+  def self.is_regex?(str)
+    if str.to_s.match(/^\/(.+)\/(i|m|x|)$/)
+      return true
+    else
+      return false
+    end
   end
   
   #Returns a Regexp-object from the string formatted as what you would give to Php's preg_match.
@@ -79,13 +91,13 @@ module Knj::Strings
     return words
   end
   
-  #Returns true if the given string is formatted as an email.
+  #Returns boolean if the strings is a correctly formatted email: k@spernj.org.
   def self.is_email?(str)
     return true if str.to_s.match(/^\S+@\S+\.\S+$/)
     return false
   end
   
-  #Returns true if the given string is formatted as a international phone-number (example: +4512345678).
+  #Returns boolean if the string is a correctly formatted phonenumber as: +4512345678.
   def self.is_phonenumber?(str)
     return true if str.to_s.match(/^\+\d{2}\d+$/)
     return false
@@ -107,9 +119,10 @@ module Knj::Strings
     return str
   end
   
-  #Returns yes or no based on value-variable. value-variable can be boolean, "yes", "no", 0 or 1.
+  #Returns 'Yes' or 'No' based on a value. The value can be 0, 1, yes, no, true or false.
   def self.yn_str(value, str_yes = "Yes", str_no = "No")
     value = value.to_i if Knj::Php.is_numeric(value)
+    value_s = value.to_s
     
     if value.is_a?(Integer)
       if value == 0
@@ -119,19 +132,26 @@ module Knj::Strings
       end
     end
     
-    return str_no if !value or value == "no"
+    return str_no if !value or value_s == "no" or value_s == "false" or value_s == ""
     return str_yes
   end
   
   #Shortens a string to maxlength and adds "..." if it was shortened.
+  #===Examples
+  # Knj::Strings.shorten("Kasper Johansen", 6) #=> "Kasper..."
   def self.shorten(str, maxlength)
     str = str.to_s
     str = str.slice(0..(maxlength - 1)).strip + "..." if str.length > maxlength
     return str
   end
   
+  #Search for what looks like links in a string and does something with it based on block given or arguments given.
+  #===Examples
+  # str = "asd asd asd asdjklqwejqwer http://www.google.com asdfas df asf"
+  # Knj::Strings.html_links(str) #=> "asd asd asd asdjklqwejqwer <a href=\"http://www.google.com\">http://www.google.com</a> asdfas df asf"
+  # Knj::Strings.html_links(str){ |data| str.gsub(data[:match][0], "!!!#{data[:match][1]}!!!")} #=> "asd asd asd asdjklqwejqwer !!!www!!! asdfas df asf"
   def self.html_links(str, args = {})
-    str.to_s.html.scan(/(http:\/\/([A-z]+)\S*\.([A-z]{2,4})(\S+))/) do |match|
+    Knj::Web.html(str).scan(/(http:\/\/([A-z]+)\S*\.([A-z]{2,4})(\S+))/) do |match|
       if block_given?
         str = yield(:str => str, :args => args, :match => match)
       else
@@ -149,8 +169,11 @@ module Knj::Strings
     return str
   end
   
+  #Strips various given characters from a given string.
+  #===Examples
+  # Knj::Strings.strip("...kasper...", {:right => false, :left => true, :strips => [".", ","]}) #=> "kasper..."
   def self.strip(origstr, args)
-    newstr = "#{origstr}<br>"
+    newstr = "#{origstr}"
     
     if !args.key?(:right) or args[:right]
       loop do
@@ -245,5 +268,49 @@ module Knj::Strings
     else
       return parts[0].to_s
     end
+  end
+  
+  #Returns a human readable time-string from a given number of seconds.
+  def self.secs_to_human_time_str(secs)
+    secs = secs.to_i
+    hours = (secs.to_f / 3600.0).floor.to_i
+    secs = secs - (hours * 3600)
+    
+    mins = (secs.to_f / 60).floor.to_i
+    secs = secs - (mins * 60)
+    
+    return "#{"%02d" % hours}:#{"%02d" % mins}:#{"%02d" % secs}"
+  end
+  
+  #Turns a human readable time-string into a number of seconds.
+  def self.human_time_str_to_secs(str)
+    match = str.match(/^\s*(\d+)\s*:\s*(\d+)\s*:\s*(\d+)\s*/)
+    raise "Could not match string: '#{str}'." if !match
+    
+    hours = match[1].to_i
+    minutes = match[2].to_i
+    secs = match[3].to_i
+    
+    total = (hours * 3600) + (minutes * 60) + secs
+    return total
+  end
+  
+  #Same as 'Class#is_a?' but takes a string instead of the actual class. Then it doesnt get autoloaded or anything like that. It can also test against an array containing string-class-names.
+  def self.is_a?(obj, str)
+    obj_class = obj.class
+    str = str.to_s if !str.is_a?(Array)
+    
+    loop do
+      if str.is_a?(Array)
+        return true if str.index(obj_class.name.to_s) != nil
+      else
+        return true if obj_class.name.to_s == str
+      end
+      
+      obj_class = obj_class.superclass
+      break if !obj_class
+    end
+    
+    return false
   end
 end

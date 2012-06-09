@@ -64,13 +64,13 @@ class Knj::Objects
             if val[1] == "asc"
               ordermode = " ASC"
             elsif val[1] == "desc"
-              ordermode = "DESC"
+              ordermode = " DESC"
             end
             
             if val[0].is_a?(Array)
               if args[:joined_tables]
                 args[:joined_tables].each do |table_name, table_data|
-                  next if table_name.to_s != val[0][0]
+                  next if table_name.to_s != val[0][0].to_s
                   do_joins[table_name] = true
                   orders << "`#{db.esc_table(table_name)}`.`#{db.esc_col(val[0][1])}`#{ordermode}"
                   found = true
@@ -141,7 +141,7 @@ class Knj::Objects
                 if table_data[:parent_table]
                   table_name_real = table_name
                 elsif table_data[:datarow]
-                  table_name_real = table_data[:datarow].classname
+                  table_name_real = self.datarow_from_datarow_argument(table_data[:datarow]).classname
                 else
                   table_name_real = @args[:module].const_get(table_name).classname
                 end
@@ -220,8 +220,8 @@ class Knj::Objects
             )
             sql_where << " AND #{table}`#{db.esc_col(key)}` IN (#{escape_sql})"
           end
-        elsif val.is_a?(Hash) and val[:type] == "col"
-          raise "No table was given for join." if !val.key?(:table)
+        elsif val.is_a?(Hash) and val[:type] == :col
+          raise "No table was given for join: '#{val}', key: '#{key}' on table #{table}." if !val.key?(:table)
           
           do_joins[val[:table].to_sym] = true
           sql_where << " AND #{table}`#{db.esc_col(key)}` = `#{db.esc_table(val[:table])}`.`#{db.esc_col(val[:name])}`"
@@ -288,7 +288,7 @@ class Knj::Objects
         if match[2] == "not"
           if val.is_a?(Array)
             if val.empty?
-              sql_where << " AND false"
+              #ignore.
             else
               escape_sql = Knj::ArrayExt.join(
                 :arr => val,
@@ -310,7 +310,7 @@ class Knj::Objects
         end
         
         found = true
-      elsif args.key?(:cols_date) and match = key.match(/^(.+)_(day|month|year|from|to|below|above)$/) and args[:cols_date].index(match[1]) != nil
+      elsif args.key?(:cols_date) and match = key.match(/^(.+)_(day|week|month|year|from|to|below|above)$/) and args[:cols_date].index(match[1]) != nil
         val = Knj::Datet.in(val) if val.is_a?(Time)
         
         if match[2] == "day"
@@ -332,8 +332,10 @@ class Knj::Objects
           else
             sql_where << " AND DATE_FORMAT(#{table}`#{db.esc_col(match[1])}`, '%d %m %Y') = DATE_FORMAT('#{db.esc(val.dbstr)}', '%d %m %Y')"
           end
+        elsif match[2] == "week"
+          sql_where << " AND #{db.sqlspecs.strftime("%W %Y", "#{table}`#{db.esc_col(match[1])}`")} = #{db.sqlspecs.strftime("%W %Y", "'#{db.esc(val.dbstr)}'")}"
         elsif match[2] == "month"
-          sql_where << " AND DATE_FORMAT(#{table}`#{db.esc_col(match[1])}`, '%m %Y') = DATE_FORMAT('#{db.esc(val.dbstr)}', '%m %Y')"
+          sql_where << " AND #{db.sqlspecs.strftime("%m %Y", "#{table}`#{db.esc_col(match[1])}`")} = #{db.sqlspecs.strftime("%m %Y", "'#{db.esc(val.dbstr)}'")}"
         elsif match[2] == "year"
           sql_where << " AND DATE_FORMAT(#{table}`#{db.esc_col(match[1])}`, '%Y') = DATE_FORMAT('#{db.esc(val.dbstr)}', '%Y')"
         elsif match[2] == "from" or match[2] == "above"
@@ -347,9 +349,9 @@ class Knj::Objects
         found = true
       elsif args.key?(:cols_num) and match = key.match(/^(.+)_(from|to|above|below)$/) and args[:cols_num].index(match[1]) != nil
         if match[2] == "from"
-          sql_where << " AND #{table}`#{db.esc_col(match[1])}` <= '#{db.esc(val)}'"
-        elsif match[2] == "to"
           sql_where << " AND #{table}`#{db.esc_col(match[1])}` >= '#{db.esc(val)}'"
+        elsif match[2] == "to"
+          sql_where << " AND #{table}`#{db.esc_col(match[1])}` <= '#{db.esc(val)}'"
         elsif match[2] == "above"
           sql_where << " AND #{table}`#{db.esc_col(match[1])}` > '#{db.esc(val)}'"
         elsif match[2] == "below"
@@ -410,7 +412,7 @@ class Knj::Objects
         class_name = args[:table].to_sym
         
         if table_data[:datarow]
-          datarow = table_data[:datarow]
+          datarow = self.datarow_from_datarow_argument(table_data[:datarow])
         else
           self.requireclass(class_name) if @objects.key?(class_name)
           datarow = @args[:module].const_get(class_name)
@@ -463,12 +465,20 @@ class Knj::Objects
     
     args[:joined_tables].each do |table_name, table_data|
       next if table_name.to_sym != class_name
-      return table_data[:datarow] if table_data[:datarow]
+      return self.datarow_from_datarow_argument(table_data[:datarow]) if table_data[:datarow]
       
       self.requireclass(class_name) if @objects.key?(class_name)
       return @args[:module].const_get(class_name)
     end
     
     raise "Could not figure out datarow for: '#{class_name}'."
+  end
+  
+  def datarow_from_datarow_argument(datarow_argument)
+    if datarow_argument.is_a?(String)
+      return Knj::Strings.const_get_full(datarow_argument)
+    end
+    
+    return datarow_argument
   end
 end

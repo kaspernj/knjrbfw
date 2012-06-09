@@ -2,8 +2,6 @@ require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
 describe "Php" do
   it "explode" do
-    require "knj/php"
-    
     teststr = "1;2;3"
     arr = Knj::Php.explode(";", teststr)
     
@@ -14,8 +12,6 @@ describe "Php" do
   end
   
   it "is_numeric" do
-    require "knj/php"
-    
     raise "Failed." if !Knj::Php.is_numeric(123)
     raise "Failed." if !Knj::Php.is_numeric("123")
     raise "Failed." if Knj::Php.is_numeric("kasper123")
@@ -49,12 +45,12 @@ describe "Php" do
     
     res = Knj::Php.substr("test_kasper", 1, 3)
     raise "substr should have returned 'est' but didnt: '#{res}'." if res != "est"
+    
+    res = Knj::Php.substr("test_kasper", 0, -3)
+    raise "substr should have returned 'test_kas' but didnt: '#{res}'." if res != "test_kas"
   end
   
   it "parse_str" do
-    require "knj/php"
-    require "knj/web"
-    
     teststr = "first=value&arr[]=foo+bar&arr[]=baz&hash[trala]=hmm&hash[trala2]=wtf"
     
     hash = {}
@@ -65,5 +61,33 @@ describe "Php" do
     raise "Invalid value for second in arr." if hash["arr"]["1"] != "baz"
     raise "Invalid value for hash-trala." if hash["hash"]["trala"] != "hmm"
     raise "Invalid value for hash-trala2." if hash["hash"]["trala2"] != "wtf"
+  end
+  
+  #Moved from "knjrbfw_spec.rb".
+  it "should be able to execute various Knj::Php functions correctly." do
+    str = "Kasper Johansen"
+    
+    #substr
+    teststr = Knj::Php.substr(str, 7, 8)
+    if teststr != "Johansen"
+      raise "substr did not return expected result: '#{teststr}'"
+    end
+    
+    teststr = Knj::Php.substr(str, -8, 8)
+    if teststr != "Johansen"
+      raise "substr did not returned expected result when using negative positions: '#{teststr}'."
+    end
+    
+    #strtoupper
+    teststr = Knj::Php.strtoupper(str)
+    if teststr != "KASPER JOHANSEN"
+      raise "strtoupper did not return expected result: '#{teststr}'."
+    end
+    
+    #strtolower
+    teststr = Knj::Php.strtolower(str)
+    if teststr != "kasper johansen"
+      raise "strtolower did not return expected result: '#{teststr}'."
+    end
   end
 end

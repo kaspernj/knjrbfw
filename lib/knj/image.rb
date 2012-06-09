@@ -1,8 +1,17 @@
+#This class holds methods to manipulate images.
 class Knj::Image
   #This function can make rounded transparent corners on an image with a given radius. Further more it can also draw borders around the entire image in a given color and take the border into account.
+  #===Examples
+  # img = Magick::Image.read(path_str)
+  # Knj::Image.rounded_corners(
+  #   :img => img,
+  #   :radius => 25,
+  #   :border => 1,
+  #   :border_color => "#000000"
+  # )
   def self.rounded_corners(args)
-    raise "No or invalid ':img' given." if !args[:img]
-    raise "No or invalid ':radius' given." if args[:radius].to_i <= 0
+    raise "No or invalid ':img' given: '#{args}'." if !args[:img]
+    raise "No or invalid ':radius' given: '#{args}'." if !args[:radius].respond_to?("to_i") or args[:radius].to_i <= 0
     
     pic = args[:img]
     
@@ -92,16 +101,27 @@ class Knj::Image
         next if y_to <= 0
         
         #Make corners transparent.
-        pixels = pic.get_pixels(x_from, y_from, 1, y_to)
-        pixels.each do |pixel|
-          pixel.opacity = Magick::TransparentOpacity
+        if false or RUBY_ENGINE == "jruby"
+          #Make up for the fact that "get_pixels" has not been implemented in "rmagick4j"...
+          pixels = []
+          0.upto(y_to) do |count|
+            pixels << Magick::Pixel.new(0, 0, 0, 255)
+          end
+          
+          pic.store_pixels(x_from, y_from, 1, y_to, pixels)
+        else
+          pixels = pic.get_pixels(x_from, y_from, 1, y_to)
+          pixels.each do |pixel|
+            pixel.opacity = Magick::TransparentOpacity
+          end
+          pic.store_pixels(x_from, y_from, 1, y_to, pixels)
         end
-        
-        pic.store_pixels(x_from, y_from, 1, y_to, pixels)
       end
     end
     
     if borders
+      color = args[:border_color]
+      
       borders.each do |border|
         if border.key?(:x)
           count_from = border[:yf]
@@ -112,17 +132,47 @@ class Knj::Image
         end
         
         count_from.upto(count_to - 1) do |coord|
-          pixel = Magick::Pixel.from_color(args[:border_color])
+          if RUBY_ENGINE == "jruby" and color[0, 1] == "#"
+            r = color[1, 2].hex
+            b = color[3, 2].hex
+            g = color[5, 2].hex
+            
+            pixel = Magick::Pixel.new(r, b, g)
+          else
+            pixel = Magick::Pixel.from_color(color)
+          end
           
           if border.key?(:x)
-            pic.pixel_color(border[:x], coord, pixel)
+            if RUBY_ENGINE == "jruby"
+              pic.store_pixels(border[:x], coord, 1, 1, [pixel])
+            else
+              pic.pixel_color(border[:x], coord, pixel)
+            end
           elsif border.key?(:y)
-            pic.pixel_color(coord, border[:y], pixel)
+            if RUBY_ENGINE == "jruby"
+              pic.store_pixels(coord, border[:y], 1, 1, [pixel])
+            else
+              pic.pixel_color(coord, border[:y], pixel)
+            end
           end
         end
       end
     end
     
     pic.matte = true
+  end
+  
+  #Returns the width relative to the height.
+  #===Examples
+  # Knj::Image.width_for_height(640, 480, 400) #=> 533
+  def self.width_for_height(orig_width, orig_height, new_height)
+    return (orig_width.to_f / (orig_height.to_f / new_height.to_f)).to_i
+  end
+  
+  #Returns the height relative to the width.
+  #===Examples
+  # Knj::Image.height_for_width(640, 480, 533) #=> 399
+  def self.height_for_width(orig_width, orig_height, new_width)
+    return (orig_height.to_f / (orig_width.to_f / new_width.to_f)).to_i
   end
 end

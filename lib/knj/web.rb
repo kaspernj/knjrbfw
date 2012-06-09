@@ -1,213 +1,16 @@
 class Knj::Web
-  attr_reader :session, :cgi, :data
-  
-  def initialize(args = {})
-    @args = Knj::ArrayExt.hash_sym(args)
-    @db = @args[:db] if @args[:db] 
-    @args[:tmp] = "/tmp" if !@args[:tmp]
+  #Parses URI and returns hash with data.
+  def self.parse_uri(str)
+    uri_match = str.to_s.match(/^\/(.+?\..*?|)(\?(.*)|)$/)
+    raise "Could not parse the URI: '#{str}'." if !uri_match
     
-    raise "No ID was given." if !@args[:id]
-    raise "No DB was given." if !@args[:db]
-    
-    if @args[:cgi]
-      @cgi = @args[:cgi]
-    elsif $_CGI
-      @cgi = $_CGI
-    else
-      if ENV["HTTP_HOST"] or $knj_eruby or Knj::Php.class_exists("Apache")
-        @cgi = CGI.new
-      end
-    end
-    
-    $_CGI = @cgi if !$_CGI
-    self.read_cgi
-    
-    if $_FCGI
-      KnjEruby.connect("exit") do
-        @session.close
-        
-        @post = nil
-        @get = nil
-        @server = nil
-        @cookie = nil
-        
-        $_POST = nil
-        $_GET = nil
-        $_SERVER = nil
-        $_COOKIE = nil
-      end
-    else
-      Kernel.at_exit do
-        @session.close
-        
-        @post = nil
-        @get = nil
-        @server = nil
-        @cookie = nil
-        
-        $_POST = nil
-        $_GET = nil
-        $_SERVER = nil
-        $_COOKIE = nil
-      end
-    end
+    return {
+      :path => "/#{uri_match[1]}",
+      :query => uri_match[3]
+    }
   end
   
-  def read_cgi(args = {})
-    args.each do |key, value|
-      if key == :cgi
-        @cgi = value
-      else
-        raise "No such key: #{key.to_s}"
-      end
-    end
-    
-    if $_FCGI_COUNT and $_FCGI and $_CGI
-      @server = {}
-      $_CGI.env_table.each do |key, value|
-        @server[key] = value
-      end
-    elsif $_CGI and ENV["HTTP_HOST"] and ENV["REMOTE_ADDR"]
-      @server = {}
-      ENV.each do |key, value|
-        @server[key] = value
-      end
-    elsif Knj::Php.class_exists("Apache")
-      @server = {
-        "HTTP_HOST" => Apache.request.hostname,
-        "HTTP_USER_AGENT" => Apache.request.headers_in["User-Agent"],
-        "REMOTE_ADDR" => Apache.request.remote_host(1),
-        "REQUEST_URI" => Apache.request.unparsed_uri
-      }
-    else
-      @server = {}
-    end
-    
-    @files = {}
-    @post = {}
-    if @cgi and @cgi.request_method == "POST"
-      @cgi.params.each do |pair|
-        do_files = false
-        isstring = true
-        varname = pair[0]
-        stringparse = nil
-        
-        if pair[1][0].class.name == "Tempfile"
-          if varname[0..3] == "file"
-            isstring = false
-            do_files = true
-            
-            if pair[1][0].size > 0
-              stringparse = {
-                "name" => pair[1][0].original_filename,
-                "tmp_name" => pair[1][0].path,
-                "size" => pair[1][0].size,
-                "error" => 0
-              }
-              
-              stringparse["name"] = pair[1][0].original_filename if pair[1][0].respond_to?("original_filename")
-            end
-          else
-            stringparse = File.read(pair[1][0].path)
-          end
-        elsif pair[1][0].is_a?(StringIO)
-          if varname[0..3] == "file"
-            tmpname = @args[:tmp] + "/knj_web_upload_#{Time.now.to_f.to_s}_#{rand(1000).to_s.untaint}"
-            isstring = false
-            do_files = true
-            cont = pair[1][0].string
-            Knj::Php.file_put_contents(tmpname, cont.to_s)
-            
-            if cont.length > 0
-              stringparse = {
-                "tmp_name" => tmpname,
-                "size" => cont.length,
-                "error" => 0
-              }
-              
-              stringparse["name"] = pair[1][0].original_filename if pair[1][0].respond_to?("original_filename")
-            end
-          else
-            stringparse = pair[1][0].string
-          end
-        else
-          stringparse = pair[1][0]
-        end
-        
-        if stringparse
-          if !do_files
-            if isstring
-              Knj::Web.parse_name(@post, varname, stringparse)
-            else
-              @post[varname] = stringparse
-            end
-          else
-            if isstring
-              Knj::Web.parse_name(@files, varname, stringparse)
-            else
-              @files[varname] = stringparse
-            end
-          end
-        end
-      end
-    end
-    
-    
-    if @cgi and @cgi.query_string
-      @get = Knj::Web.parse_urlquery(@cgi.query_string)
-    else
-      @get = {}
-    end
-    
-    @cookie = {}
-    if @cgi
-      @cgi.cookies.each do |key, value|
-        @cookie[key] = value[0]
-      end
-    end
-    
-    self.global_params if @args[:globals]
-    
-    if @cookie[@args[:id]] and (sdata = @args[:db].single(:sessions, :id => @cookie[@args[:id]]))
-      @data = Knj::ArrayExt.hash_sym(sdata)
-      
-      if @data
-        if @data[:user_agent] != @server["HTTP_USER_AGENT"] or @data[:ip] != @server["REMOTE_ADDR"]
-          @data = nil
-        else
-          @db.update(:sessions, {"last_url" => @server["REQUEST_URI"].to_s, "date_active" => Time.new}, {"id" => @data[:id]})
-          session_id = @args[:id] + "_" + @data[:id]
-        end
-      end
-    end
-    
-    if !@data or !session_id
-      @db.insert(:sessions,
-        :date_start => Time.new,
-        :date_active => Time.new,
-        :user_agent => @server["HTTP_USER_AGENT"],
-        :ip => @server["REMOTE_ADDR"],
-        :last_url => @server["REQUEST_URI"].to_s
-      )
-      
-      @data = Knj::ArrayExt.hash_sym(@db.single(:sessions, :id => @db.last_id))
-      session_id = @args[:id] + "_" + @data[:id]
-      Knj::Php.setcookie(@args[:id], @data[:id])
-    end
-    
-    require "cgi/session"
-    require "cgi/session/pstore"
-    @session = CGI::Session.new(@session, "database_manager" => CGI::Session::PStore, "session_id" => session_id, "session_path" => @args[:tmp])
-  end
-  
-  def [](key)
-    return @session[key.to_sym]
-  end
-  
-  def []=(key, value)
-    return @session[key.to_sym] = value
-  end
-  
+  #Parses cookies-string and returns hash with parsed cookies.
   def self.parse_cookies(str)
     ret = {}
     
@@ -356,22 +159,6 @@ class Knj::Web
     end
   end
   
-  def global_params
-    $_POST = @post
-    $_GET = @get
-    $_COOKIE = @cookie
-    $_FILES = @files
-    $_SERVER = @server
-  end
-  
-  def destroy
-    @cgi = nil
-    @post = nil
-    @get = nil
-    @session = nil
-    @args = nil
-  end
-  
   def self.require_eruby(filepath)
     cont = File.read(filepath).untaint
     parse = Erubis.Eruby.new(cont)
@@ -466,7 +253,7 @@ class Knj::Web
     Knj::ArrayExt.hash_sym(args)
     
     if args.key?(:value)
-      if args[:value].is_a?(Array) and args[:value].first.is_a?(NilClass)
+      if args[:value].is_a?(Array) and (args[:value].first.is_a?(NilClass) or args[:value].first == false)
         value = nil
       elsif args[:value].is_a?(Array)
         if !args[:value][2] or args[:value][2] == :key
@@ -530,6 +317,7 @@ class Knj::Web
     }
     attr.merge!(args[:attr]) if args[:attr]
     attr["disabled"] = "disabled" if args[:disabled]
+    attr["maxlength"] = args[:maxlength] if args.key?(:maxlength)
     
     raise "No name given to the Web::input()-method." if !args[:name] and args[:type] != :info and args[:type] != :textshow and args[:type] != :plain and args[:type] != :spacer and args[:type] != :headline
     
@@ -553,6 +341,12 @@ class Knj::Web
       classes_tr_html = ""
     end
     
+    if args.key?(:title)
+      title_html = args[:title].to_s.html
+    elsif args.key?(:title_html)
+      title_html = args[:title_html]
+    end
+    
     html = ""
     
     classes = ["input_#{args[:type]}"]
@@ -567,17 +361,17 @@ class Knj::Web
       html << "<tr#{classes_tr_html}>"
       html << "<td colspan=\"2\" class=\"tdcheck\">"
       html << "<input#{self.attr_html(attr)} />"
-      html << "<label for=\"#{args[:id].html}\">#{args[:title].html}</label>"
+      html << "<label for=\"#{args[:id].html}\">#{title_html}</label>"
       html << "</td>"
       html << "</tr>"
     elsif args[:type] == :headline
-      html << "<tr#{classes_tr_html}><td colspan=\"2\"><h2 class=\"input_headline\">#{args[:title].html}</h2></td></tr>"
+      html << "<tr#{classes_tr_html}><td colspan=\"2\"><h2 class=\"input_headline\">#{title_html}</h2></td></tr>"
     elsif args[:type] == :spacer
       html << "<tr#{classes_tr_html}><td colspan=\"2\">&nbsp;</td></tr>"
     else
       html << "<tr#{classes_tr_html}>"
       html << "<td class=\"tdt\">"
-      html << args[:title].to_s.html
+      html << title_html
       html << "</td>"
       html << "<td#{self.style_html(css)} class=\"tdc\">"
       
@@ -671,12 +465,7 @@ class Knj::Web
   
   def self.opts(opthash, curvalue = nil, opts_args = {})
     opts_args = {} if !opts_args
-    opts_args.each do |key, value|
-      if !key.is_a?(Symbol)
-        opts_args[key.to_sym] = value
-        opts_args.delete(key)
-      end
-    end
+    Knj::ArrayExt.hash_sym(opts_args)
     
     return "" if !opthash
     cname = curvalue.class.name
@@ -720,13 +509,8 @@ class Knj::Web
     return html
   end
   
-  def self.rendering_engine
-    begin
-      servervar = _server
-    rescue Exception
-      servervar = $_SERVER
-    end
-    
+  def self.rendering_engine(servervar = nil)
+    servervar = _server if !servervar
     if !servervar
       raise "Could not figure out meta data."
     end
@@ -739,7 +523,7 @@ class Knj::Web
       return "gecko"
     elsif agent.index("msie") != nil
       return "msie"
-    elsif agent.index("w3c") != nil or agent.index("baiduspider") != nil or agent.index("googlebot") != nil
+    elsif agent.index("w3c") != nil or agent.index("baiduspider") != nil or agent.index("googlebot") != nil or agent.index("bot") != nil
       return "bot"
     else
       #print "Unknown agent: #{agent}"
@@ -747,13 +531,8 @@ class Knj::Web
     end
   end
   
-  def self.os
-    begin
-      servervar = _server
-    rescue Exception
-      servervar = $_SERVER
-    end
-    
+  def self.os(servervar = nil)
+    servervar = _server if !servervar
     if !servervar
       raise "Could not figure out meta data."
     end
@@ -776,14 +555,7 @@ class Knj::Web
   end
   
   def self.browser(servervar = nil)
-    if !servervar
-      begin
-        servervar = _server
-      rescue Exception => e
-        servervar = $_SERVER
-      end
-    end
-    
+    servervar = _server if !servervar
     raise "Could not figure out meta data." if !servervar
     agent = servervar["HTTP_USER_AGENT"].to_s.downcase
     
@@ -887,24 +659,44 @@ class Knj::Web
       browser = "bot"
       title = "AhrefsBot"
       version = match[1]
+    elsif agent.index("sosospider") != nil
+      browser = "bot"
+      title = "Bot"
+      version = "Sosospider"
     else
       browser = "unknown"
       title = "(unknown browser)"
       version = "(unknown version)"
     end
     
+    os = nil
+    os_version = nil
+    if agent.index("linux") != nil
+      os = "linux"
+    elsif match = agent.match(/mac\s+os\s+x\s+([\d_+])/)
+      os = "mac"
+    elsif match = agent.match(/windows\s+nt\s+([\d\.]+)/)
+      os = "windows"
+      
+      if match[1] == "5.1"
+        os_version = "xp"
+      end
+    end
+    
     return {
       "browser" => browser,
       "title" => title,
-      "version" => version
+      "version" => version,
+      "os" => os,
+      "os_version" => os_version
     }
   end
   
   def self.locale(args = {})
-    begin
+    if args[:servervar]
+      servervar = args[:servervar]
+    else
       servervar = _server
-    rescue Exception
-      servervar = $_SERVER
     end
     
     if !servervar

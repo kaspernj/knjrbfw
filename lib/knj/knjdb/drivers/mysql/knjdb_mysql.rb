@@ -5,7 +5,6 @@ class KnjDB_mysql
   def initialize(knjdb_ob)
     @knjdb = knjdb_ob
     @opts = @knjdb.opts
-    @encoding = @opts[:encoding]
     @escape_table = "`"
     @escape_col = "`"
     @escape_val = "'"
@@ -13,17 +12,40 @@ class KnjDB_mysql
     @esc_col = "`"
     @mutex = Mutex.new
     
+    if @opts[:encoding]
+      @encoding = @opts[:encoding]
+    else
+      @encoding = "utf8"
+    end
+    
     if @knjdb.opts.key?(:port)
       @port = @knjdb.opts[:port].to_i
     else
       @port = 3306
     end
     
+    @java_rs_data = {}
     @subtype = @knjdb.opts[:subtype]
     @subtype = "mysql" if @subtype.to_s.length <= 0
-    reconnect
+    self.reconnect
   end
   
+  #This method handels the closing of statements and results for the Java MySQL-mode.
+  def java_mysql_resultset_killer(id)
+    data = @java_rs_data[id]
+    return nil if !data
+    
+    data[:res].close
+    data[:stmt].close
+    @java_rs_data.delete(id)
+  end
+  
+  #Cleans the wref-map holding the tables.
+  def clean
+    self.tables.clean if self.tables
+  end
+  
+  #Respawns the connection to the MySQL-database.
   def reconnect
     case @subtype
       when "mysql"
@@ -42,13 +64,16 @@ class KnjDB_mysql
           :cache_rows => false
         }
         
-        @query_args = {}
+        #Symbolize keys should also be given here, else table-data wont be symbolized for some reason - knj.
+        @query_args = {:symbolize_keys => true}
         @query_args.merge!(@knjdb.opts[:query_args]) if @knjdb.opts[:query_args]
         
         pos_args = [:as, :async, :cast_booleans, :database_timezone, :application_timezone, :cache_rows, :connect_flags, :cast]
         pos_args.each do |key|
           args[key] = @knjdb.opts[key] if @knjdb.opts.key?(key)
         end
+        
+        args[:as] = :array if @opts[:result] == "array"
         
         tries = 0
         begin
@@ -72,8 +97,8 @@ class KnjDB_mysql
           @jdbc_loaded = true
         end
         
-        @conn = java.sql::DriverManager.getConnection("jdbc:mysql://#{@knjdb.opts[:host]}:#{@port}/#{@knjdb.opts[:db]}?user=#{@knjdb.opts[:user]}&password=#{@knjdb.opts[:pass]}&populateInsertRowWithDefaultValues=true&zeroDateTimeBehavior=round")
-        query("SET SQL_MODE = ''")
+        @conn = java.sql::DriverManager.getConnection("jdbc:mysql://#{@knjdb.opts[:host]}:#{@port}/#{@knjdb.opts[:db]}?user=#{@knjdb.opts[:user]}&password=#{@knjdb.opts[:pass]}&populateInsertRowWithDefaultValues=true&zeroDateTimeBehavior=round&characterEncoding=#{@encoding}&holdResultsOpenOverStatementClose=true")
+        self.query("SET SQL_MODE = ''")
       else
         raise "Unknown subtype: #{@subtype}"
     end
@@ -87,64 +112,66 @@ class KnjDB_mysql
     str = str.force_encoding("UTF-8") if @encoding == "utf8" and str.respond_to?(:force_encoding)
     tries = 0
     
-    @mutex.synchronize do
-      case @subtype
-        when "mysql"
-          begin
-            tries += 1
+    begin
+      tries += 1
+      @mutex.synchronize do
+        case @subtype
+          when "mysql"
             return KnjDB_mysql_result.new(self, @conn.query(str))
-          rescue Mysql::Error => e
-            if e.message == "MySQL server has gone away" or e.message == "Can't connect to local MySQL server through socket"
-              raise e if tries >= 3
-              sleep 0.5
-              reconnect
-              retry
-            else
-              raise e
-            end
-          end
-        when "mysql2"
-          begin
-            tries += 1
+          when "mysql2"
             return KnjDB_mysql2_result.new(@conn.query(str, @query_args))
-          rescue Mysql2::Error => e
-            if e.message == "MySQL server has gone away" or e.message == "closed MySQL connection" or e.message == "Can't connect to local MySQL server through socket"
-              raise e if tries >= 3
-              sleep 0.5
-              reconnect
-              retry
-            elsif e.message == "This connection is still waiting for a result, try again once you have the result"
-              sleep 0.1
-              retry
-            else
-              print str
-              raise e
-            end
-          end
-        when "java"
-          begin
-            tries += 1
-            stmt = conn.createStatement
+          when "java"
+            stmt = conn.create_statement
             
-            if str.match(/^\s*(delete|update|create|drop|insert\s+into)\s+/i)
-              stmt.execute(str)
+            if str.match(/^\s*(delete|update|create|drop|insert\s+into|alter)\s+/i)
+              begin
+                stmt.execute(str)
+              ensure
+                stmt.close
+              end
+              
               return nil
             else
-              res = stmt.executeQuery(str)
-              return KnjDB_java_mysql_result.new(@knjdb, @opts, res)
+              id = nil
+              
+              begin
+                res = stmt.execute_query(str)
+                ret = KnjDB_java_mysql_result.new(@knjdb, @opts, res)
+                id = ret.__id__
+                
+                #If ID is being reused we have to free the result.
+                self.java_mysql_resultset_killer(id) if @java_rs_data.key?(id)
+                
+                #Save reference to result and statement, so we can close them when they are garbage collected.
+                @java_rs_data[id] = {:res => res, :stmt => stmt}
+                ObjectSpace.define_finalizer(ret, self.method("java_mysql_resultset_killer"))
+                
+                return ret
+              rescue => e
+                res.close if res
+                stmt.close
+                @java_rs_data.delete(id) if ret and id
+                raise e
+              end
             end
-          rescue => e
-            if e.to_s.index("No operations allowed after connection closed") != nil
-              reconnect
-              retry
-            end
-            
-            print str
-            raise e
-          end
-        else
-          raise "Unknown subtype: '#{@subtype}'."
+          else
+            raise "Unknown subtype: '#{@subtype}'."
+        end
       end
+    rescue => e
+      if tries < 3
+        if e.message == "MySQL server has gone away" or e.message == "closed MySQL connection" or e.message == "Can't connect to local MySQL server through socket"
+          sleep 0.5
+          self.reconnect
+          retry
+        elsif e.to_s.index("No operations allowed after connection closed") != nil or e.message == "This connection is still waiting for a result, try again once you have the result"
+          self.reconnect
+          retry
+        end
+      end
+      
+      #print str
+      raise e
     end
   end
   
@@ -153,22 +180,40 @@ class KnjDB_mysql
     @mutex.synchronize do
       case @subtype
         when "mysql"
-          conn.query_with_result = false
+          @conn.query_with_result = false
           return KnjDB_mysql_unbuffered_result.new(@conn, @opts, @conn.query(str))
         when "mysql2"
-          raise "MySQL2 does not support unbuffered queries yet! Waiting for :stream..."
+          return KnjDB_mysql2_result.new(@conn.query(str, @query_args.merge(:stream => true)))
         when "java"
-          stmt = conn.createStatement
-          
           if str.match(/^\s*(delete|update|create|drop|insert\s+into)\s+/i)
-            stmt.execute(str)
+            stmt = @conn.createStatement
+            
+            begin
+              stmt.execute(str)
+            ensure
+              stmt.close
+            end
+            
             return nil
           else
-            stmt.setFetchSize(500)
-            res = stmt.executeQuery(str)
-            return KnjDB_java_mysql_result.new(@knjdb, @opts, res)
+            stmt = @conn.createStatement(java.sql.ResultSet.TYPE_FORWARD_ONLY, java.sql.ResultSet.CONCUR_READ_ONLY)
+            stmt.setFetchSize(java.lang.Integer::MIN_VALUE)
+            
+            begin
+              res = stmt.executeQuery(str)
+              ret = KnjDB_java_mysql_result.new(@knjdb, @opts, res)
+              
+              #Save reference to result and statement, so we can close them when they are garbage collected.
+              @java_rs_data[ret.__id__] = {:res => res, :stmt => stmt}
+              ObjectSpace.define_finalizer(ret, self.method("java_mysql_resultset_killer"))
+              
+              return ret
+            rescue => e
+              res.close if res
+              stmt.close
+              raise e
+            end
           end
-          raise "Not implemented yet."
         else
           raise "Unknown subtype: '#{@subtype}'"
       end
@@ -197,7 +242,7 @@ class KnjDB_mysql
         when "\n" then "\\n"
         when "\r" then "\\r"
         when "\032" then "\\Z"
-        else "\\" + $1
+        else "\\#{$1}"
       end
     end
   end
@@ -217,15 +262,15 @@ class KnjDB_mysql
     case @subtype
       when "mysql"
         @mutex.synchronize do
-          return @conn.insert_id
+          return @conn.insert_id.to_i
         end
       when "mysql2"
         @mutex.synchronize do
-          return @conn.last_id
+          return @conn.last_id.to_i
         end
       when "java"
         data = self.query("SELECT LAST_INSERT_ID() AS id").fetch
-        return data[:id] if data.key?(:id)
+        return data[:id].to_i if data.key?(:id)
         raise "Could not figure out last inserted ID."
     end
   end
@@ -248,11 +293,20 @@ class KnjDB_mysql
     @port = nil
   end
   
-  def insert_multi(tablename, arr_hashes)
-    sql = "INSERT INTO `#{self.esc_table(tablename)}` ("
+  #Inserts multiple rows in a table. Can return the inserted IDs if asked to in arguments.
+  def insert_multi(tablename, arr_hashes, args = nil)
+    sql = "INSERT INTO `#{tablename}` ("
     
     first = true
-    arr_hashes.first.keys.each do |col_name|
+    if args and args[:keys]
+      keys = args[:keys]
+    elsif arr_hashes.first.is_a?(Hash)
+      keys = arr_hashes.first.keys
+    else
+      raise "Could not figure out keys."
+    end
+    
+    keys.each do |col_name|
       sql << "," if !first
       first = false if first
       sql << "`#{self.esc_col(col_name)}`"
@@ -269,24 +323,68 @@ class KnjDB_mysql
       end
       
       first_key = true
-      hash.each do |key, val|
-        if first_key
-          first_key = false
-        else
-          sql << ","
+      if hash.is_a?(Array)
+        hash.each do |val|
+          if first_key
+            first_key = false
+          else
+            sql << ","
+          end
+          
+          sql << "'#{self.escape(val)}'"
         end
-        
-        sql << "'#{self.escape(val)}'"
+      else
+        hash.each do |key, val|
+          if first_key
+            first_key = false
+          else
+            sql << ","
+          end
+          
+          sql << "'#{self.escape(val)}'"
+        end
       end
     end
     
     sql << ")"
     
+    return sql if args and args[:return_sql]
+    
     self.query(sql)
+    
+    if args and args[:return_id]
+      first_id = self.lastID
+      raise "Invalid ID: #{first_id}" if first_id.to_i <= 0
+      ids = [first_id]
+      1.upto(arr_hashes.length - 1) do |count|
+        ids << first_id + count
+      end
+      
+      ids_length = ids.length
+      arr_hashes_length = arr_hashes.length
+      raise "Invalid length (#{ids_length}, #{arr_hashes_length})." if ids_length != arr_hashes_length
+      
+      return ids
+    else
+      return nil
+    end
+  end
+  
+  #Starts a transaction, yields the database and commits at the end.
+  def transaction
+    @knjdb.q("START TRANSACTION")
+    
+    begin
+      yield(@knjdb)
+    ensure
+      @knjdb.q("COMMIT")
+    end
   end
 end
 
+#This class controls the results for the normal MySQL-driver.
 class KnjDB_mysql_result
+  #Constructor. This should not be called manually.
   def initialize(driver, result)
     @driver = driver
     @result = result
@@ -301,17 +399,20 @@ class KnjDB_mysql_result
     end
   end
   
+  #Returns a single result.
   def fetch
     return self.fetch_hash_symbols if @driver.knjdb.opts[:return_keys] == "symbols"
     return self.fetch_hash_strings
   end
   
+  #Returns a single result as a hash with strings as keys.
   def fetch_hash_strings
     @mutex.synchronize do
       return @result.fetch_hash
     end
   end
   
+  #Returns a single result as a hash with symbols as keys.
   def fetch_hash_symbols
     fetched = nil
     @mutex.synchronize do
@@ -330,6 +431,7 @@ class KnjDB_mysql_result
     return ret
   end
   
+  #Loops over every result yielding it.
   def each
     while data = self.fetch_hash_symbols
       yield(data)
@@ -337,7 +439,9 @@ class KnjDB_mysql_result
   end
 end
 
+#This class controls the unbuffered result for the normal MySQL-driver.
 class KnjDB_mysql_unbuffered_result
+  #Constructor. This should not be called manually.
   def initialize(conn, opts, result)
     @conn = conn
     @result = result
@@ -351,6 +455,7 @@ class KnjDB_mysql_unbuffered_result
     end
   end
   
+  #Lods the keys for the object.
   def load_keys
     @keys = []
     keys = @res.fetch_fields
@@ -359,6 +464,7 @@ class KnjDB_mysql_unbuffered_result
     end
   end
   
+  #Returns a single result.
   def fetch
     if @enum
       begin
@@ -398,6 +504,7 @@ class KnjDB_mysql_unbuffered_result
     end
   end
   
+  #Loops over every single result yielding it.
   def each
     while data = self.fetch
       yield(data)
@@ -405,11 +512,14 @@ class KnjDB_mysql_unbuffered_result
   end
 end
 
+#This class controls the result for the MySQL2 driver.
 class KnjDB_mysql2_result
+  #Constructor. This should not be called manually.
   def initialize(result)
     @result = result
   end
   
+  #Returns a single result.
   def fetch
     @enum = @result.to_enum if !@enum
     
@@ -420,12 +530,19 @@ class KnjDB_mysql2_result
     end
   end
   
-  def each(&block)
-    @result.each(&block)
+  #Loops over every single result yielding it.
+  def each
+    @result.each do |res|
+      #This sometimes happens when streaming results...
+      next if !res
+      yield(res)
+    end
   end
 end
 
+#This class controls the result for the Java-MySQL-driver.
 class KnjDB_java_mysql_result
+  #Constructor. This should not be called manually.
   def initialize(knjdb, opts, result)
     @knjdb = knjdb
     @result = result
@@ -447,24 +564,31 @@ class KnjDB_java_mysql_result
     
     @keys = []
     1.upto(@count) do |count|
-      @keys << meta.column_name(count).to_sym
+      @keys << meta.column_label(count).to_sym
     end
   end
   
   def fetch
+    return false if !@result
     self.read_meta if !@keys
     status = @result.next
-    return false if !status
+    
+    if !status
+      @result = nil
+      @keys = nil
+      @count = nil
+      return false
+    end
     
     if @as_hash
       ret = {}
       1.upto(@keys.length) do |count|
-        ret[@keys[count - 1]] = @result.string(count).to_s.encode("utf-8")
+        ret[@keys[count - 1]] = @result.string(count)
       end
     else
       ret = []
       1.upto(@count) do |count|
-        ret << @result.string(count).to_s.encode("utf-8")
+        ret << @result.string(count)
       end
     end
     

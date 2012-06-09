@@ -1,13 +1,20 @@
+#Contains various methods for doing stuff quick using the Gtk2-extension.
 module Knj::Gtk2
-  autoload :Cb, "knj/gtk2_cb"
-  autoload :Menu, "knj/gtk2_menu"
-  autoload :StatusWindow, "knj/gtk2_statuswindow"
-  autoload :Tv, "knj/gtk2_tv"
-  
-  def msgbox(p1, p2 = "warning", p3 = "Warning")
-    return Knj::Gtk2.msgbox(p1, p2, p3)
+  #Autoloader.
+  def self.const_missing(name)
+    require "#{$knjpath}gtk2_#{name.to_s.downcase}"
+    return Knj::Gtk2.const_get(name)
   end
   
+  #Alias for self.msgbox.
+  def msgbox(*args, &block)
+    return Knj::Gtk2.msgbox(*args, &block)
+  end
+  
+  #Shows a dialog on the screen based on various arguments.
+  #===Examples
+  # Knj::Gtk2.msgbox("Message", "Title", "info")
+  # Knj::Gtk2.msgbox("Question", "Title", "yesno") #=> "yes"|"no"|"cancel"|"close"
   def self.msgbox(paras, type = "warning", title = nil)
     if paras.is_a?(Array)
       msg = paras[0]
@@ -20,7 +27,7 @@ module Knj::Gtk2
     elsif paras.is_a?(String) or paras.is_a?(Integer)
       msg = paras
     else
-      raise "Cant handle the parameters: " + paras.class.to_s
+      raise "Cant handle the parameters: '#{paras.class.name}'."
     end
     
     type = "info" if !type
@@ -74,13 +81,13 @@ module Knj::Gtk2
           if element.respond_to?("id") and element.respond_to?("title")
             tv.append([count.to_s, element.title])
           else
-            raise "Could not handle object in array: " + element.class.to_s
+            raise "Could not handle object in array: '#{element.class.name}'."
           end
           
           count += 1
         end
       else
-        raise "Unhandeled class: " + items.class.to_s
+        raise "Unhandeled class: '#{items.class.name}'."
       end
       
       sw = Gtk::ScrolledWindow.new
@@ -88,7 +95,7 @@ module Knj::Gtk2
       
       box.pack_start(sw)
     else
-      raise "No such mode: " + type
+      raise "No such mode: '#{type}'."
     end
     
     if button1 and button2
@@ -97,12 +104,12 @@ module Knj::Gtk2
       dialog = Gtk::Dialog.new(title, nil, Gtk::Dialog::MODAL, button1)
     end
     
-    if image
-      box.pack_start(image)
-    end
+    box.pack_start(image) if image
     
     if msg
-      box.pack_start(Gtk::Label.new(msg))
+      label = Gtk::Label.new(msg)
+      label.selectable = true
+      box.pack_start(label)
     end
     
     box.spacing = 15
@@ -116,7 +123,23 @@ module Knj::Gtk2
       tv.grab_focus
     end
     
-    response = dialog.run
+    if paras.is_a?(Hash) and paras["transient_for"]
+      dialog.transient_for = paras["transient_for"]
+    end
+    
+    do_run = true
+    do_run = false if paras.is_a?(Hash) and paras.key?("run") and !paras["run"]
+    
+    if do_run
+      response = dialog.run
+    else
+      #Connect the one button to close the window.
+      dialog.children[0].children[1].children[0].signal_connect("clicked") do
+        dialog.destroy
+      end
+      
+      return false
+    end
     
     if type == "list"
       sel = tv.sel
@@ -146,10 +169,13 @@ module Knj::Gtk2
     elsif response == Gtk::Dialog::RESPONSE_CLOSE or response == Gtk::Dialog::RESPONSE_DELETE_EVENT
       return close_sig
     else
-      raise "Unknown response: " + response.to_s
+      raise "Unknown response: '#{response}'."
     end
   end
   
+  #Takes a Gtk::Builder-object and runs labels and titles through GetText.gettext in order to translate them.
+  #===Examples
+  # Knj::Gtk2.translate(builder_obj)
   def self.translate(builderob)
     builderob.objects.each do |object|
       class_str = object.class.to_s
@@ -162,6 +188,9 @@ module Knj::Gtk2
     end
   end
   
+  #Makes a Gtk::Table based on the given arguments.
+  #===Examples
+  # Knj::Gtk2.form([{"type" => "text", "name" => "txtname", "title" => _("Name")}]) #=> {"table" => <Gtk::Table>, "objects" => <Array>}
   def self.form(paras)
     table = Gtk::Table.new(paras.length, 2)
     table.row_spacings = 4
@@ -178,7 +207,7 @@ module Knj::Gtk2
         elsif item["name"][0..2] == "che"
           item["type"] = "check"
         else
-          raise "Could not figure out type for: " + item["name"]
+          raise "Could not figure out type for: '#{item["name"]}'."
         end
       end
       
@@ -225,7 +254,7 @@ module Knj::Gtk2
           "object" => cb
         }
       else
-        raise "Unknown type: " + item["type"]
+        raise "Unknown type: '#{item["type"]}'."
       end
       
       
@@ -238,11 +267,15 @@ module Knj::Gtk2
     }
   end
   
+  #Takes a given object and sets its value.
+  #===Examples
+  # Knj::Gtk2.form_setval(text_obj, "Hejsa")
+  # Knj::Gtk2.form_setval(checkbox_obj, 1)
   def self.form_setval(object, val)
     if object.is_a?(Gtk::Entry)
       object.text = val.to_s
     elsif object.is_a?(Gtk::CheckButton)
-      if (val.to_s == "1")
+      if val.to_s == "1"
         object.active = true
       else
         object.active = false
@@ -252,11 +285,15 @@ module Knj::Gtk2
     end
   end
   
+  #Returns the value of an object regardless of that type the object is.
+  #===Examples
+  # Knj::Gtk2.form_getval(text_obj) #=> "Hejsa"
+  # Knj::Gtk2.form_getval(checkbox_obj) #=> "1"
   def self.form_getval(object)
     if object.is_a?(Gtk::Entry)
       return object.text
     elsif object.is_a?(Gtk::CheckButton)
-      if (object.active?)
+      if object.active?
         return "1"
       else
         return "0"
@@ -265,12 +302,14 @@ module Knj::Gtk2
       sel = object.sel
       return sel["text"]
     else
-      raise "Unknown object: #{object.class.name}"
+      raise "Unknown object: '#{object.class.name}'."
     end
   end
 end
 
+#Defines a shortcut-method on Gtk::Builder
 class Gtk::Builder
+  #Proxies to Knj::Gtk2.translate
   def translate
     return Knj::Gtk2.translate(self)
   end

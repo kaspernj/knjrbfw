@@ -12,13 +12,32 @@ class KnjDB_mysql::Indexes::Index
     @columns = []
   end
   
+  #Used to validate in Knj::Wrap_map.
+  def __object_unique_id__
+    return @args[:data][:Key_name]
+  end
+  
   def name
     return @args[:data][:Key_name]
   end
   
+  def table
+    return @args[:db].tables[@args[:table_name]]
+  end
+  
   def drop
-    sql = "DROP INDEX `#{self.name}` ON `#{@args[:table].name}`"
-    @args[:db].query(sql)
+    sql = "DROP INDEX `#{self.name}` ON `#{self.table.name}`"
+    
+    begin
+      @args[:db].query(sql)
+    rescue => e
+      #The index has already been dropped - ignore.
+      if e.message.index("check that column/key exists") != nil
+        #ignore.
+      else
+        raise e
+      end
+    end
   end
   
   def data

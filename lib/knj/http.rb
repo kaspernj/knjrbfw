@@ -10,7 +10,6 @@ class Knj::Http
   end
   
   def initialize(opts = {})
-    require "webrick" if !opts["skip_webrick"]
     require "net/http"
     
     @opts = opts
@@ -22,6 +21,31 @@ class Knj::Http
     else
       @useragent = "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.0.1; knj:true) Gecko/20060111 Firefox/3.6.0.1"
     end
+    
+    if block_given?
+      begin
+        self.check_connected
+        yield(self)
+      ensure
+        self.destroy
+      end
+    end
+  end
+  
+  #Finished the HTTP-object and unsets all variables to free memory.
+  def destroy
+    begin
+      @http.finish if @http
+    rescue IOError
+      #ignore - happens when the connection is not started yet.
+    end
+    
+    @http = nil
+    @opts = nil
+    @cookies = nil
+    @mutex = nil
+    @useragent = nil
+    @lasturl = nil
   end
   
   def opts
@@ -106,7 +130,7 @@ class Knj::Http
   end
   
   def get(addr)
-    check_connected
+    self.check_connected
     
     @mutex.synchronize do
       resp, data = @http.get(addr, self.headers)
@@ -126,7 +150,8 @@ class Knj::Http
   end
   
   def head(addr)
-    check_connected
+    self.check_connected
+    
     @mutex.synchronize do
       resp, data = @http.head(addr, self.headers)
       self.setcookie(resp.response.to_hash["set-cookie"])

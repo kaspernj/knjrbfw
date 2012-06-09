@@ -1,6 +1,9 @@
+#This class helps handeling time-columns in databases.
 class Knj::Db::Dbtime
+  #These variables return information about the object.
   attr_reader :hours, :mins, :secs, :total_secs
   
+  #Initializes the object from arguments useually given by Knj::Datarow.
   def initialize(args)
     args = {:time => args} if args.is_a?(String)
     
@@ -20,10 +23,12 @@ class Knj::Db::Dbtime
     @total_secs += @secs
   end
   
+  #Returns the total amount of hours.
   def hours_total
     return (@total_secs.to_f / 3600)
   end
   
+  #Return the total amount of minutes.
   def mins_total
     return (@total_secs.to_f / 60)
   end

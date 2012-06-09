@@ -26,6 +26,12 @@
     end
   end
   
+  #Base64-encoding of path.
+  if _get["path64"]
+    require "base64"
+    _get["path"] = Base64.decode64(_get["path64"])
+  end
+  
   
 	idstr = Digest::MD5.hexdigest("#{_get["path"]}_#{_get["smartsize"].to_i}_#{_get["width"].to_i}_#{_get["height"].to_i}_#{_get["maxwidth"].to_i}_#{_get["maxheight"].to_i}_#{_get["rounded_corners"].to_i}_#{_get["border"].to_i}_#{_get["border_color"]}")
 	
@@ -38,9 +44,9 @@
 	
 	tmp_use = false
 	tmp_write = false
-	if $knj_webscripts_image_config
+	if Knj::CONFIG["webscripts_image"]
 		tmp_use = true
-		tmp_path = "#{$knj_webscripts_image_config["tmp_path"]}/#{idstr}"
+		tmp_path = "#{Knj::CONFIG["webscripts_image"]["tmp_path"]}/#{idstr}"
 		tmp_exists = File.exists?(tmp_path)
 		tmp_write = true if !tmp_exists
 		
@@ -53,6 +59,12 @@
 		end
 	end
 	
+	if _get["force"] == "true" or _get["force"] == "1"
+    force = true
+  else
+    force = false
+  end
+  
 	notchanged = false
 	
 	if _httpsession.handler.modified_since and time_cache and _httpsession.handler.modified_since.utc.to_s == time_cache.utc.to_s
@@ -61,75 +73,95 @@
     notchanged = true
   end
   
-  if notchanged
+  if notchanged and !force
     _httpsession.resp.status = 304
     exit
   end
   
-	if !tmp_use or tmp_write or _get["force"].to_i > 0
-    pic = Magick::Image.read(_get["path"]).first
-    if !pic
-      print "Could not open image from '#{_get["path"]}'."
-      exit
-    end
-    
-    pic.format = "png"
-    
-		width = pic.columns
-		height = pic.rows
-		
-		height = _get["height"].to_i if _get["height"]
-		width = _get["width"].to_i if _get["width"]
-		
-		if _get["smartsize"]
-			if pic.columns > pic.rows
-				width = _get["smartsize"].to_i
-				height = (pic.rows.to_f / (pic.columns.to_f / width.to_f)).to_i
-			else
-				height = _get["smartsize"].to_i
-				width = (pic.columns.to_f / (pic.rows.to_f / height.to_f)).to_i
-			end
-		end
-		
-		if _get["maxwidth"]
-			maxwidth = _get["maxwidth"].to_i
-			
-			if width > maxwidth
-				height = (pic.rows.to_f / (pic.columns.to_f / maxwidth.to_f)).to_i
-				width = maxwidth
-			end
-		end
-		
-		if _get["maxheight"]
-			maxheight = _get["maxheight"].to_i
-			
-			if height > maxheight
-				width = (pic.columns.to_f / (pic.rows.to_f / maxheight.to_f)).to_i
-				height = maxheight
-			end
-		end
-		
-		if _get["width"] and _get["height"]
-			width = _get["width"].to_i
-			height = _get["height"].to_i
-		end
-		
-		if height != pic.rows or width != pic.columns
-			pic = pic.resize_to_fit(width.to_i, height.to_i)
-		end
-		
-		if _get["rounded_corners"]
-      args = {:img => pic, :radius => _get["rounded_corners"].to_i}
+	if !tmp_use or tmp_write or force
+    blob_cont = nil
+    Knj::Process_meta.new("debug_err" => true) do |subproc|
+      subproc.static("Object", "require", "rubygems")
+      subproc.static("Object", "require", "#{File.dirname(Knj::Os.realpath(__FILE__))}/../../knjrbfw.rb")
+      subproc.static("Object", "require", "knj/autoload")
+      subproc.static("Dir", "chdir", File.dirname(__FILE__))
       
-      if _get["border"] and _get["border_color"]
-        args[:border] = _get["border"].to_i
-        args[:border_color] = _get["border_color"]
+      list_proxy = subproc.proxy_from_static("Magick::Image", "read", _get["path"])
+      pic = subproc.proxy_from_call(list_proxy, "first")
+      #pic = Magick::Image.read(_get["path"]).first
+      
+      if !pic
+        print "Could not open image from '#{_get["path"]}'."
+        exit
       end
       
-      Knj::Image.rounded_corners(args)
+      pic._pm_send_noret("format=", "png")
+      
+      pic_columns = pic.columns
+      pic_rows = pic.rows
+      
+      width = pic_columns
+      height = pic_rows
+      
+      height = _get["height"].to_i if _get["height"]
+      width = _get["width"].to_i if _get["width"]
+      
+      if _get["smartsize"]
+        if pic_columns > pic_rows
+          width = _get["smartsize"].to_i
+          height = (pic_rows.to_f / (pic_columns.to_f / width.to_f)).to_i
+        else
+          height = _get["smartsize"].to_i
+          width = (pic_columns.to_f / (pic_rows.to_f / height.to_f)).to_i
+        end
+      end
+      
+      if _get["maxwidth"]
+        maxwidth = _get["maxwidth"].to_i
+        
+        if width > maxwidth
+          height = (pic_rows.to_f / (pic_columns.to_f / maxwidth.to_f)).to_i
+          width = maxwidth
+        end
+      end
+      
+      if _get["maxheight"]
+        maxheight = _get["maxheight"].to_i
+        
+        if height > maxheight
+          width = (pic_columns.to_f / (pic_rows.to_f / maxheight.to_f)).to_i
+          height = maxheight
+        end
+      end
+      
+      if _get["width"] and _get["height"]
+        width = _get["width"].to_i
+        height = _get["height"].to_i
+      end
+      
+      if height != pic_rows or width != pic_columns
+        pic = subproc.proxy_from_call(pic, "resize_to_fit", width.to_i, height.to_i)
+        #pic = pic.resize_to_fit(width.to_i, height.to_i)
+      end
+      
+      if _get["rounded_corners"]
+        args = {:img => pic, :radius => _get["rounded_corners"].to_i}
+        
+        if _get["border"] and _get["border_color"]
+          args[:border] = _get["border"].to_i
+          args[:border_color] = _get["border_color"]
+        end
+        
+        #Spawn arguments-hash for Knj::Image.rounded_corners in subprocess.
+        proxy_hash = subproc.new("{}", args)
+        
+        #Call rounded_corners with the proxy-hash.
+        subproc.static_noret("Knj::Image", "rounded_corners", proxy_hash)
+        #Knj::Image.rounded_corners(args)
+      end
+      
+      blob_cont = pic.to_blob
     end
-		
-		blob_cont = pic.to_blob
 	end
 	
 	if tmp_write and blob_cont
@@ -138,10 +170,10 @@
     end
 	end
 	
-	if tmp_use
+	if tmp_use and !force
     _kas.header("Last-Modified", "#{time_orig.httpdate} GMT") if time_orig
 		_kas.header("Content-Type", "image/png")
-		_httpsession.force_content(File.new(tmp_path))
+		_httpsession.force_content(File.read(tmp_path))
 	else
     _kas.header("Last-Modified", "#{time_orig.httpdate} GMT") if time_orig
 		_kas.header("Content-Type", "image/png")

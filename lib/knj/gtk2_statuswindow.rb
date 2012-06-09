@@ -6,6 +6,7 @@ class Knj::Gtk2::StatusWindow
     @window.modal = true
     @window.border_width = 8
     @window.set_frame_dimensions(3, 3, 3, 3)
+    @window.window_position = Gtk::Window::POS_CENTER_ALWAYS
     @window.signal_connect("destroy") do
       destroy
     end

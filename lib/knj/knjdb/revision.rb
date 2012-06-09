@@ -1,22 +1,53 @@
+#This class takes a database-schema from a hash and runs it against the database. It then checks that the database matches the given schema.
+#
+#===Examples
+# db = Knj::Db.new(:type => "sqlite3", :path => "test_db.sqlite3")
+# schema = {
+#   "tables" => {
+#     "columns" => [
+#       {"name" => "id", "type" => "int", "autoincr" => true, "primarykey" => true},
+#       {"name" => "name", "type" => "varchar"},
+#       {"name" => "lastname", "type" => "varchar"}
+#     ],
+#     "indexes" => [
+#       "name",
+#       {"name" => "lastname", "columns" => ["lastname"]}
+#     ]
+#   }
+# }
+# 
+# rev = Knj::Db::Revision.new
+# rev.init_db("db" => db, "schema" => schema)
 class Knj::Db::Revision
   def initialize(args = {})
     @args = args
   end
   
+  #This initializes a database-structure and content based on a schema-hash.
+  #===Examples
+  # dbrev = Knj::Db::Revision.new
+  # dbrev.init_db("db" => db_obj, "schema" => schema_hash)
   def init_db(args)
     schema = args["schema"]
     db = args["db"]
     
     #Check for normal bugs and raise apropiate error.
-    raise "'schema' argument was not a Hash." if !schema.is_a?(Hash)
+    raise "'schema' argument was not a Hash: '#{schema.class.name}'." if !schema.is_a?(Hash)
     raise "':return_keys' is not 'symbols' - Knjdbrevision will not work without it." if db.opts[:return_keys] != "symbols"
     raise "No tables given." if !schema.has_key?("tables")
+    
+    #Cache tables to avoid constant reloading.
+    tables = db.tables.list
     
     schema["tables"].each do |table_name, table_data|
       begin
         begin
-          table_obj = db.tables[table_name.to_sym]
-          table_obj_columns = table_obj.columns
+          raise Knj::Errors::NotFound if !tables.key?(table_name)
+          table_obj = db.tables[table_name]
+          
+          #Cache indexes- and column-objects to avoid constant reloading.
+          cols = table_obj.columns
+          indexes = table_obj.indexes
           
           if table_data["columns"]
             first_col = true
@@ -40,7 +71,7 @@ class Knj::Db::Revision
                   
                   actual_after = nil
                   set_next = false
-                  table_obj_columns.each do |name, col_iter|
+                  table_obj.columns do |col_iter|
                     if col_iter.name == col_obj.name
                       break
                     else
@@ -61,6 +92,16 @@ class Knj::Db::Revision
                 
                 if type and col_obj.type.to_s != type
                   print "Type mismatch on #{col_str}: #{col_data["type"]}, #{col_obj.type}\n" if args["debug"]
+                  dochange = true
+                end
+                
+                if col_data.has_key?("primarykey") and col_obj.primarykey? != col_data["primarykey"]
+                  print "Primary-key mismatch for #{col_str}: #{col_data["primarykey"]}, #{col_obj.primarykey?}\n" if args["debug"]
+                  dochange = true
+                end
+                
+                if col_data.has_key?("autoincr") and col_obj.autoincr? != col_data["autoincr"]
+                  print "Auto-increment mismatch for #{col_str}: #{col_data["autoincr"]}, #{col_obj.autoincr?}\n" if args["debug"]
                   dochange = true
                 end
                 
@@ -99,6 +140,8 @@ class Knj::Db::Revision
                 print "Column not found: #{table_obj.name}.#{col_data["name"]}.\n" if args["debug"]
                 
                 if col_data.has_key?("renames")
+                  raise "'renames' was not an array for column '#{table_obj.name}.#{col_data["name"]}'." if !col_data["renames"].is_a?(Array)
+                  
                   rename_found = false
                   col_data["renames"].each do |col_name|
                     begin
@@ -148,6 +191,10 @@ class Knj::Db::Revision
           
           if table_data["indexes"]
             table_data["indexes"].each do |index_data|
+              if index_data.is_a?(String)
+                index_data = {"name" => index_data, "columns" => [index_data]}
+              end
+              
               begin
                 index_obj = table_obj.index(index_data["name"])
                 
@@ -180,37 +227,12 @@ class Knj::Db::Revision
             end
           end
           
-          if table_data["rows"]
-            table_data["rows"].each do |row_data|
-              if row_data["find_by"]
-                find_by = row_data["find_by"]
-              elsif row_data["data"]
-                find_by = row_data["data"]
-              else
-                raise "Could not figure out the find-by."
-              end
-              
-              rows_found = 0
-              q_rows = db.select(table_name, find_by)
-              while d_rows = q_rows.fetch
-                rows_found += 1
-                
-                if Knj::ArrayExt.hash_diff?(Knj::ArrayExt.hash_sym(row_data["data"]), Knj::ArrayExt.hash_sym(d_rows), {"h2_to_h1" => false})
-                  print "Data was not right - updating row: #{JSON.generate(row_data["data"])}\n" if args["debug"]
-                  db.update(table_name, row_data["data"], d_rows)
-                end
-              end
-              
-              if rows_found == 0
-                print "Inserting row: #{JSON.generate(row_data["data"])}\n" if args["debug"]
-                db.insert(table_name, row_data["data"])
-              end
-            end
-          end
+          rows_init("db" => db, "table" => table_obj, "rows" => table_data["rows"]) if table_data and table_data["rows"]
         rescue Knj::Errors::NotFound => e
           if table_data["renames"]
             table_data["renames"].each do |table_name_rename|
               begin
+                raise Knj::Errors::NotFound if !tables.key?(table_name)
                 table_rename = db.tables[table_name_rename]
                 table_rename.rename(table_name)
                 raise Knj::Errors::Retry
@@ -220,15 +242,23 @@ class Knj::Db::Revision
             end
           end
           
+          if !table_data.key?("columns")
+            print "Notice: Skipping creation of '#{table_name}' because no columns were given in hash.\n"
+            next
+          end
+          
           if table_data["on_create"]
             table_data["on_create"].call("db" => db, "table_name" => table_name, "table_data" => table_data)
           end
           
-          table_obj = db.tables.create(table_name, table_data)
+          db.tables.create(table_name, table_data)
+          table_obj = db.tables[table_name]
           
           if table_data["on_create_after"]
             table_data["on_create_after"].call("db" => db, "table_name" => table_name, "table_data" => table_data)
           end
+          
+          rows_init("db" => db, "table" => table_obj, "rows" => table_data["rows"]) if table_data["rows"]
         end
       rescue Knj::Errors::Retry
         retry
@@ -239,11 +269,52 @@ class Knj::Db::Revision
       schema["tables_remove"].each do |table_name, table_data|
         begin
           table_obj = db.tables[table_name.to_sym]
-          table_data["callback"].call if table_data.is_a?(Hash) and table_data["callback"]
+          table_data["callback"].call("db" => db, "table" => table_obj) if table_data.is_a?(Hash) and table_data["callback"]
           table_obj.drop
         rescue Knj::Errors::NotFound => e
           next
         end
+      end
+    end
+    
+    
+    #Free cache.
+    tables.clear
+    tables = nil
+  end
+  
+  private
+  
+  #This method checks if certain rows are present in a table based on a hash.
+  def rows_init(args)
+    db = args["db"]
+    table = args["table"]
+    
+    raise "No db given." if !db
+    raise "No table given." if !table
+    
+    args["rows"].each do |row_data|
+      if row_data["find_by"]
+        find_by = row_data["find_by"]
+      elsif row_data["data"]
+        find_by = row_data["data"]
+      else
+        raise "Could not figure out the find-by."
+      end
+      
+      rows_found = 0
+      args["db"].select(table.name, find_by) do |d_rows|
+        rows_found += 1
+        
+        if Knj::ArrayExt.hash_diff?(Knj::ArrayExt.hash_sym(row_data["data"]), Knj::ArrayExt.hash_sym(d_rows), {"h2_to_h1" => false})
+          print "Data was not right - updating row: #{JSON.generate(row_data["data"])}\n" if args["debug"]
+          args["db"].update(table.name, row_data["data"], d_rows)
+        end
+      end
+      
+      if rows_found == 0
+        print "Inserting row: #{JSON.generate(row_data["data"])}\n" if args["debug"]
+        table.insert(row_data["data"])
       end
     end
   end

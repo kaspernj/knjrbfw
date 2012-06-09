@@ -38,14 +38,16 @@ module Knj::Php
     supercl = argument.class.superclass
     superstr = supercl.to_s if supercl
     
-    if (Knj.const_defined?(:Datarow_custom) and argument.is_a?(Knj::Datarow_custom)) or argument.is_a?(Hash) or supercl.is_a?(Hash) or cstr == "Knj::Hash_methods" or cstr == "Knjappserver::Session_accessor" or cstr == "SQLite3::ResultSet::HashWithTypes" or cstr == "CGI" or cstr == "Knj::Db_row" or cstr == "Knj::Datarow" or cstr == "Apache::Table" or superstr == "Knj::Db_row" or superstr == "Knj::Datarow" or superstr == "Knj::Datarow_custom" or argument.respond_to?(:to_hash)
+    valids = ["Apache::Table", "CGI", "Hash", "Knj::Datarow", "Knj::Datarow_custom", "Knj::Db_row", "Knj::Hash_methods", "Knjappserver::Session_accessor", "SQLite3::ResultSet::HashWithTypes"]
+    
+    if Knj::Strings.is_a?(argument, valids) or argument.respond_to?(:to_hash)
       if argument.respond_to?(:to_hash)
         argument_use = argument.to_hash
       else
         argument_use = argument
       end
       
-      retstr << argument.class.to_s + "{\n"
+      retstr << "#{argument.class.name}{\n"
       argument_use.each do |pair|
         i = 0
         while(i < count)
@@ -60,7 +62,7 @@ module Knj::Php
         end
         
         retstr << "[#{keystr}] => "
-        retstr << print_r(pair[1], true, count + 1).to_s
+        retstr << Knj::Php.print_r(pair[1], true, count + 1).to_s
       end
       
       i = 0
@@ -71,7 +73,7 @@ module Knj::Php
       
       retstr << "}\n"
     elsif cstr == "Dictionary"
-      retstr << argument.class.to_s + "{\n"
+      retstr << "#{argument.class.name}{\n"
       argument.each do |key, val|
         i = 0
         while(i < count)
@@ -97,7 +99,7 @@ module Knj::Php
       
       retstr << "}\n"
     elsif argument.is_a?(MatchData) or argument.is_a?(Array) or cstr == "Array" or supercl.is_a?(Array)
-      retstr << argument.class.to_s + "{\n"
+      retstr << "#{argument.class.name}{\n"
       
       arr_count = 0
       argument.to_a.each do |i|
@@ -107,8 +109,8 @@ module Knj::Php
           i_spaces += 1
         end
         
-        retstr << "[" + arr_count.to_s + "] => "
-        retstr << print_r(i, true, count + 1).to_s
+        retstr << "[#{arr_count}] => "
+        retstr << Knj::Php.print_r(i, true, count + 1).to_s
         arr_count += 1
       end
       
@@ -128,21 +130,21 @@ module Knj::Php
     elsif argument.is_a?(Exception)
       retstr << "#\{#{argument.class.to_s}: #{argument.message}}\n"
     elsif cstr == "Knj::Unix_proc"
-      retstr << "#{argument.class.to_s}::data - "
-      retstr << print_r(argument.data, true, count).to_s
+      retstr << "#{argument.class.name}::data - "
+      retstr << Knj::Php.print_r(argument.data, true, count).to_s
     elsif cstr == "Thread"
-      retstr << "#{argument.class.to_s} - "
+      retstr << "#{argument.class.name} - "
       
       hash = {}
       argument.keys.each do |key|
         hash[key] = argument[key]
       end
       
-      retstr << print_r(hash, true, count).to_s
+      retstr << Knj::Php.print_r(hash, true, count).to_s
     elsif cstr == "Class"
       retstr << "#{argument.class.to_s} - "
       hash = {"name" => argument.name}
-      retstr << print_r(hash, true, count).to_s
+      retstr << Knj::Php.print_r(hash, true, count).to_s
     elsif cstr == "URI::Generic"
       retstr << "#{argument.class.to_s}{\n"
       methods = [:host, :port, :scheme, :path]
@@ -244,7 +246,7 @@ module Knj::Php
       
       obj.each do |val|
         orig_key_str = "#{orig_key}[#{ele_count}]"
-        val = "#<Model::#{val.table}::#{val.id}>" if val.is_a?(Knj::Datarow) or val.is_a?(Knj::Datarow_custom)
+        val = "#<Model::#{val.table}::#{val.id}>" if val.respond_to?("is_knj?")
         
         if val.is_a?(Hash) or val.is_a?(Array)
           url << self.http_build_query_rec(orig_key_str, val, false)
@@ -264,7 +266,7 @@ module Knj::Php
           orig_key_str = "#{orig_key}[#{key}]"
         end
         
-        val = "#<Model::#{val.table}::#{val.id}>" if val.is_a?(Knj::Datarow) or val.is_a?(Knj::Datarow_custom)
+        val = "#<Model::#{val.table}::#{val.id}>" if val.respond_to?("is_knj?")
         
         if val.is_a?(Hash) or val.is_a?(Array)
           url << self.http_build_query_rec(orig_key_str, val, false)
@@ -294,17 +296,25 @@ module Knj::Php
   end
   
   def substr(string, from, to = nil)
+    #If 'to' is not given it should be the total length of the string.
     if to == nil
       to = string.length
     end
     
-    string = "#{string[from.to_i, to.to_i]}"
-    
-    if !string.valid_encoding? and Knj::Php.class_exists("Iconv")
-      ic = Iconv.new("UTF-8//IGNORE", "UTF-8")
-      string = ic.iconv(string + "  ")[0..-2]
+    #The behaviour with a negative 'to' is not the same as in PHP. Hack it!
+    if to < 0
+      to = string.length + to
     end
     
+    #Cut the string.
+    string = "#{string[from.to_i, to.to_i]}"
+    
+    #Sometimes the encoding will no longer be valid. Fix that if that is the case.
+    if !string.valid_encoding? and Knj::Php.class_exists("Iconv")
+      string = Iconv.conv("UTF-8//IGNORE", "UTF-8", "#{string}  ")[0..-2]
+    end
+    
+    #Return the cut string.
     return string
   end
   
@@ -330,30 +340,8 @@ module Knj::Php
       end
     end
     
-    sent = false
-    
-    if Knj::Php.class_exists("Apache")
-      Apache.request.headers_out[key] = value
-      sent = true
-    end
-    
-    begin
-      _kas.header(key, value) #This is for knjAppServer - knj.
-      sent = true
-    rescue NameError => e
-      if $knj_eruby
-        $knj_eruby.header(key, value)
-        sent = true
-      elsif $cgi.class.name == "CGI"
-        sent = true
-        $cgi.header(key => value)
-      elsif $_CGI.class.name == "CGI"
-        sent = true
-        $_CGI.header(key => value)
-      end
-    end
-    
-    return sent
+    _kas.header(key, value) #This is for knjAppServer - knj.
+    return true
   end
   
   def nl2br(string)
@@ -417,7 +405,7 @@ module Knj::Php
       if File.file?(filepath)
         return true
       end
-    rescue Exception
+    rescue
       return false
     end
     
@@ -426,10 +414,8 @@ module Knj::Php
   
   def is_dir(filepath)
     begin
-      if File.directory?(filepath)
-        return true
-      end
-    rescue Exception
+      return true if File.directory?(filepath)
+    rescue
       return false
     end
     
@@ -498,7 +484,7 @@ module Knj::Php
     begin
       Kernel.const_get(classname)
       return true
-    rescue Exception
+    rescue
       return false
     end
   end
@@ -541,7 +527,7 @@ module Knj::Php
   def fopen(filename, mode)
     begin
       return File.open(filename, mode)
-    rescue Exception
+    rescue
       return false
     end
   end
@@ -549,7 +535,7 @@ module Knj::Php
   def fwrite(fp, str)
     begin
       fp.print str
-    rescue Exception
+    rescue
       return false
     end
     
@@ -559,7 +545,7 @@ module Knj::Php
   def fputs(fp, str)
     begin
       fp.print str
-    rescue Exception
+    rescue
       return false
     end
     
@@ -632,14 +618,7 @@ module Knj::Php
     args["expires"] = Time.at(expire) if expire
     args["domain"] = domain if domain
     
-    begin
-      _kas.cookie(args)
-    rescue NameError
-      cookie = CGI::Cookie.new(args)
-      status = Knj::Php.header("Set-Cookie: #{cookie.to_s}")
-      $_COOKIE[cname] = cvalue if $_COOKIE
-    end
-    
+    _kas.cookie(args)
     return status
   end
   
@@ -758,7 +737,12 @@ module Knj::Php
   end
   
   def base64_encode(str)
-    return Base64.encode64(str.to_s)
+    #The strict-encode wont do corrupt newlines...
+    if Base64.respond_to?("strict_encode64")
+      return Base64.strict_encode64(str.to_s)
+    else
+      return Base64.encode64(str.to_s)
+    end
   end
   
   def base64_decode(str)
@@ -803,6 +787,68 @@ module Knj::Php
   
   def ip2long(ip)
     return IPAddr.new(ip).to_i
+  end
+  
+  # Execute an external program and display raw output.
+  def passthru(cmd)
+    if RUBY_ENGINE == "jruby"
+      IO.popen4(cmd) do |pid, stdin, stdout, stderr|
+        tout = Thread.new do
+          begin
+            stdout.sync = true
+            stdout.each do |str|
+              $stdout.print str
+            end
+          rescue => e
+            $stdout.print Knj::Errors.error_str(e)
+          end
+        end
+        
+        terr = Thread.new do
+          begin
+            stderr.sync = true
+            stderr.each do |str|
+              $stderr.print str
+            end
+          rescue => e
+            $stderr.print Knj::Errors.error_str(e)
+          end
+        end
+        
+        tout.join
+        terr.join
+      end
+    else
+      require "open3"
+      Open3.popen3(cmd) do |stdin, stdout, stderr|
+        tout = Thread.new do
+          begin
+            stdout.sync = true
+            stdout.each do |str|
+              $stdout.print str
+            end
+          rescue => e
+            $stdout.print Knj::Errors.error_str(e)
+          end
+        end
+        
+        terr = Thread.new do
+          begin
+            stderr.sync = true
+            stderr.each do |str|
+              $stderr.print str
+            end
+          rescue => e
+            $stderr.print Knj::Errors.error_str(e)
+          end
+        end
+        
+        tout.join
+        terr.join
+      end
+    end
+    
+    return nil
   end
   
   # Thanks to this link for the following functions: http://snippets.dzone.com/posts/show/4509
@@ -906,6 +952,8 @@ module Knj::Php
   def empty(obj)
     if obj.respond_to?("empty?")
       return obj.empty?
+    elsif obj == nil
+      return true
     else
       raise "Dont know how to handle object on 'empty': '#{obj.class.name}'."
     end
@@ -923,11 +971,6 @@ module Knj::Php
   def unserialize(argument)
     require "php_serialize" #gem: php-serialize
     return PHP.unserialize(argument.to_s)
-  end
-  
-  @methods = instance_methods
-  def self.php_list_defined_methods
-    return @methods
   end
   
   module_function(*instance_methods)

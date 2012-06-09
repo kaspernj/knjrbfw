@@ -1,7 +1,9 @@
+#This class handels SQLite3-specific behaviour.
 class KnjDB_sqlite3
   attr_reader :knjdb, :conn, :escape_table, :escape_col, :escape_val, :esc_table, :esc_col, :symbolize
   attr_accessor :tables, :cols, :indexes
   
+  #Constructor. This should not be called manually.
   def initialize(knjdb_ob)
     @escape_table = "`"
     @escape_col = "`"
@@ -21,7 +23,7 @@ class KnjDB_sqlite3
       if @knjdb.opts[:sqlite_driver]
         require @knjdb.opts[:sqlite_driver]
       else
-        require "#{File.dirname(__FILE__)}/../../sqlitejdbc-v056.jar"
+        require "#{File.dirname(__FILE__)}/../../../jruby/sqlitejdbc-v056.jar"
       end
       
       require "java"
@@ -37,6 +39,7 @@ class KnjDB_sqlite3
     end
   end
   
+  #Executes a query against the driver.
   def query(string)
     begin
       if @knjdb.opts[:subtype] == "rhodes"
@@ -45,7 +48,7 @@ class KnjDB_sqlite3
         begin
           return KnjDB_sqlite3_result_java.new(self, @stat.executeQuery(string))
         rescue java.sql.SQLException => e
-          if e.message == "java.sql.SQLException: query does not return ResultSet"
+          if e.message.to_s.index("query does not return ResultSet") != nil
             return KnjDB_sqlite3_result_java.new(self, nil)
           else
             raise e
@@ -56,16 +59,21 @@ class KnjDB_sqlite3
       end
     rescue => e
       #Add SQL to the error message.
-      raise e.class, "#{e.message}\n\nSQL: #{string}"
+      raise e.class, "#{e.message} (SQL: #{string})"
     end
   end
   
+  #SQLite3 driver doesnt support unbuffered queries??
+  alias query_ubuf query
+  
+  #Escapes a string to be safe to used in a query.
   def escape(string)
     #This code is taken directly from the documentation so we dont have to rely on the SQLite3::Database class. This way it can also be used with JRuby and IronRuby...
     #http://sqlite-ruby.rubyforge.org/classes/SQLite/Database.html
     return string.to_s.gsub(/'/, "''")
   end
   
+  #Escapes a string to be used as a column.
   def esc_col(string)
     string = string.to_s
     raise "Invalid column-string: #{string}" if string.index(@escape_col) != nil
@@ -75,16 +83,26 @@ class KnjDB_sqlite3
   alias :esc_table :esc_col
   alias :esc :escape
   
+  #Returns the last inserted ID.
   def lastID
     return @conn.last_insert_row_id if @conn.respond_to?(:last_insert_row_id)
     return self.query("SELECT last_insert_rowid() AS id").fetch[:id].to_i
   end
   
+  #Closes the connection to the database.
   def close
     @conn.close
   end
+  
+  #Starts a transaction, yields the database and commits.
+  def transaction
+    @conn.transaction do
+      yield(@knjdb)
+    end
+  end
 end
 
+#This class handels results when running in JRuby.
 class KnjDB_sqlite3_result_java
   def initialize(driver, rs)
     @index = 0
@@ -108,6 +126,7 @@ class KnjDB_sqlite3_result_java
     end
   end
   
+  #Returns a single result.
   def fetch
     return false if !@rows
     ret = @rows[@index]
@@ -116,6 +135,7 @@ class KnjDB_sqlite3_result_java
     return ret
   end
   
+  #Loops over every result and yields them.
   def each
     while data = self.fetch
       yield(data)
@@ -123,7 +143,9 @@ class KnjDB_sqlite3_result_java
   end
 end
 
+#This class handels the result when running MRI (or others).
 class KnjDB_sqlite3_result
+  #Constructor. This should not be called manually.
   def initialize(driver, result_array)
     @result_array = result_array
     @index = 0
@@ -135,6 +157,7 @@ class KnjDB_sqlite3_result
     end
   end
   
+  #Returns a single result.
   def fetch
     result_hash = @result_array[@index]
     return false if !result_hash
@@ -154,6 +177,7 @@ class KnjDB_sqlite3_result
     return ret
   end
   
+  #Loops over every result yielding them.
   def each
     while data = self.fetch
       yield(data)

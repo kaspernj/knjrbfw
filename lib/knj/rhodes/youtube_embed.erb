@@ -1,0 +1,12 @@
+<div data-role="page">
+	<div data-role="header">
+		<h1><%=_"YouTube embedded"%></h1>
+		
+		<a href="javascript: history.back(-1)" class="ui-btn-left" data-icon="back" data-back="true"><%=_("Back")%></a>
+	</div>
+	<div data-role="content">
+		<center>
+			<iframe width="100%" height="<%=@iframe_height%>px" src="http://www.youtube.com/embed/<%=@params["youtube_id"]%>" frameborder="0" allowfullscreen></iframe>
+		</center>
+	</div>
+</div>
