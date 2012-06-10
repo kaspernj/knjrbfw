@@ -282,7 +282,11 @@ class Knj::Db
     
     self.conn_exec do |driver|
       if driver.respond_to?(:insert_multi)
-        return [driver.insert_multi(tablename, arr_hashes, args)]
+        if args and args[:return_sql]
+          return [driver.insert_multi(tablename, arr_hashes, args)]
+        else
+          return driver.insert_multi(tablename, arr_hashes, args)
+        end
       else
         ret = [] if args and (args[:return_id] or args[:return_sql])
         arr_hashes.each do |hash|
