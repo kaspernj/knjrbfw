@@ -369,11 +369,11 @@ class Knj::Web
     elsif args[:type] == :spacer
       html << "<tr#{classes_tr_html}><td colspan=\"2\">&nbsp;</td></tr>"
     else
-      html << "<tr#{classes_tr_html}>"
-      html << "<td class=\"tdt\">"
+      html << "<tr#{classes_tr_html} id=\"#{Knj::Web.html("#{args[:id]}_tr")}\">"
+      html << "<td class=\"tdt\" id=\"#{Knj::Web.html("#{args[:id]}_label")}\"><div>"
       html << title_html
-      html << "</td>"
-      html << "<td#{self.style_html(css)} class=\"tdc\">"
+      html << "</div></td>"
+      html << "<td#{self.style_html(css)} class=\"tdc\" id=\"#{Knj::Web.html("#{args[:id]}_content")}\"><div>"
       
       if args[:type] == :textarea
         if args.key?(:height)
@@ -385,7 +385,6 @@ class Knj::Web
         end
         
         html << "<textarea#{self.style_html(css)} class=\"input_textarea\" name=\"#{args[:name].html}\" id=\"#{args[:id].html}\">#{value}</textarea>"
-        html << "</td>"
       elsif args[:type] == :fckeditor
         args[:height] = 400 if !args[:height]
         
@@ -394,8 +393,6 @@ class Knj::Web
         fck.Height = args[:height].to_i
         fck.Value = value
         html << fck.CreateHtml
-        
-        html << "</td>"
       elsif args[:type] == :select
         attr["multiple"] = "multiple" if args[:multiple]
         attr["size"] = args["size"] if args[:size]
@@ -403,7 +400,6 @@ class Knj::Web
         html << "<select#{self.attr_html(attr)}>"
         html << Knj::Web.opts(args[:opts], value, args[:opts_args])
         html << "</select>"
-        html << "</td>"
       elsif args[:type] == :imageupload
         html << "<table class=\"designtable\"><tr#{classes_tr_html}><td style=\"width: 100%;\">"
         html << "<input type=\"file\" name=\"#{args[:name].html}\" class=\"input_file\" />"
@@ -423,11 +419,10 @@ class Knj::Web
         end
         
         html << "</td></tr></table>"
-        html << "</td>"
       elsif args[:type] == :file
-        html << "<input type=\"#{args[:type].to_s}\" class=\"input_#{args[:type].to_s}\" name=\"#{args[:name].html}\" /></td>"
+        html << "<input type=\"#{args[:type].to_s}\" class=\"input_#{args[:type].to_s}\" name=\"#{args[:name].html}\" />"
       elsif args[:type] == :textshow or args[:type] == :info
-        html << "#{value}</td>"
+        html << value.to_s
       elsif args[:type] == :plain
         html << "#{Knj::Php.nl2br(Knj::Web.html(value))}"
       elsif args[:type] == :editarea
@@ -450,13 +445,16 @@ class Knj::Web
         html << "editAreaLoader.init(#{Knj::Php.json_encode(jshash)});"
         html << "}"
         html << "</script>"
+      elsif args[:type] == :numeric
+        attr[:type] = :text
+        attr[:value] = value
+        html << "<input#{self.attr_html(attr)} />"
       else
         attr[:value] = value
-        html << "<input#{self.attr_html(attr)} /></td>"
-        html << "</td>"
+        html << "<input#{self.attr_html(attr)} />"
       end
       
-      html << "</tr>"
+      html << "</div></td></tr>"
     end
     
     html << "<tr#{classes_tr_html}><td colspan=\"2\" class=\"tdd\">#{args[:descr]}</td></tr>" if args[:descr]
