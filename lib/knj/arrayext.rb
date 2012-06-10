@@ -230,4 +230,20 @@ module Knj::ArrayExt
     
     return hash
   end
+  
+  #Forces an array to have a certain amount of columns.
+  #===Examples
+  # arr = [1, 2, 3, 4, 5]
+  # Knj::ArrayExt.force_no_cols(:arr => arr, :no => 4) #=> [1, 2, 3, 4]
+  def self.force_no_cols(args)
+    while args[:arr].length > args[:no]
+      args[:arr].slice!(-1)
+    end
+    
+    while args[:arr].length < args[:no]
+      args[:arr] << args[:empty]
+    end
+    
+    return nil
+  end
 end
