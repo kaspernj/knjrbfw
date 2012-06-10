@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{knjrbfw}
-  s.version = "0.0.42"
+  s.version = "0.0.43"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Kasper Johansen"]
-  s.date = %q{2012-06-08}
+  s.date = %q{2012-06-10}
   s.description = %q{Including stuff for HTTP, SSH and much more.}
   s.email = %q{k@spernj.org}
   s.extra_rdoc_files = [
@@ -255,6 +255,7 @@ Gem::Specification.new do |s|
     "lib/knj/youtube.rb",
     "lib/knjrbfw.rb",
     "spec/amixer_spec.rb",
+    "spec/arrayext_spec.rb",
     "spec/cmd_parser_spec.rb",
     "spec/datet_spec.rb",
     "spec/db_spec.rb",
