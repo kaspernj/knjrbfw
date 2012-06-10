@@ -26,8 +26,8 @@ class Knj::Unix_proc
     grepstr = ""
     
     if args["grep"]
-      grepstr = "grep #{Knj::Strings.unixsafe(args["grep"])}"
-      cmdstr << " | #{grepstr}"
+      grepstr = "grep #{args["grep"]}" #used for ignoring the grep-process later.
+      cmdstr << " | grep #{Knj::Strings.unixsafe(args["grep"])}"
     end
     
     MUTEX.synchronize do

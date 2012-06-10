@@ -127,6 +127,7 @@ module Knj::Os
         end
       end
     else
+      require "open3"
       Open3.popen3(cmd) do |stdin, stdout, stderr|
         res[:out] << stdout.read
         res[:err] << stderr.read
