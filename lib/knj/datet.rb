@@ -15,7 +15,6 @@ class Knj::Datet
       @time = time
     else
       begin
-        raise ArgumentError if args[0] and args[0] > 12
         @time = Time.new(*([time] | args))
       rescue ArgumentError => e
         days_left = 0
