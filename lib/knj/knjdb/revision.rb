@@ -42,7 +42,6 @@ class Knj::Db::Revision
     schema["tables"].each do |table_name, table_data|
       begin
         begin
-          raise Knj::Errors::NotFound if !tables.key?(table_name)
           table_obj = db.tables[table_name]
           
           #Cache indexes- and column-objects to avoid constant reloading.
@@ -229,10 +228,9 @@ class Knj::Db::Revision
           
           rows_init("db" => db, "table" => table_obj, "rows" => table_data["rows"]) if table_data and table_data["rows"]
         rescue Knj::Errors::NotFound => e
-          if table_data["renames"]
+          if table_data.key?("renames")
             table_data["renames"].each do |table_name_rename|
               begin
-                raise Knj::Errors::NotFound if !tables.key?(table_name)
                 table_rename = db.tables[table_name_rename]
                 table_rename.rename(table_name)
                 raise Knj::Errors::Retry
