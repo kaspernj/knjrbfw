@@ -9,8 +9,71 @@ require "time"
 class Knj::Datet
   attr_accessor :time
   
-  def initialize(time = Time.now)
-    @time = time
+  #Initializes the object. Default is the current time. A time-object can be given.
+  def initialize(time = Time.now, *args)
+    if time.is_a?(Time)
+      @time = time
+    else
+      begin
+        raise ArgumentError if args[0] and args[0] > 12
+        @time = Time.new(*([time] | args))
+      rescue ArgumentError => e
+        days_left = 0
+        months_left = 0
+        hours_left = 0
+        mins_left = 0
+        secs_left = 0
+        usecs_left = 0
+        
+        #Check larger month the allowed.
+        if args[0] and args[0] > 12
+          months_left = args[0] - 12
+          args[0] = 12
+        end
+        
+        #Check larger date than allowed.
+        datet = Knj::Datet.new(time, args[0], 1)
+        dim = datet.days_in_month
+        
+        if args[1] and args[1] > dim
+          days_left = args[1] - dim
+          args[1] = dim if days_left > 0
+        end
+        
+        #Check larger hour than allowed.
+        if args[2] and args[2] >= 24
+          hours_left = args[2] + 1
+          args[2] = 0
+        end
+        
+        #Check larger minute than allowed.
+        if args[3] and args[3] >= 60
+          mins_left = args[3] + 1
+          args[3] = 0
+        end
+        
+        #Check larger secs than allowed.
+        if args[4] and args[4] >= 60
+          secs_left = args[4] + 1
+          args[4] = 0
+        end
+        
+        #Check larger usecs than allowed.
+        if args[5] and args[5] >= 60
+          usecs_left = args[5] + 1
+          args[5] = 0
+        end
+        
+        #Generate new stamp.
+        @time = Time.new(*([time] | args))
+        self.mins + mins_left if mins_left > 0
+        self.hours + hours_left if hours_left > 0
+        self.days + days_left if days_left > 0
+        self.months + months_left if months_left > 0
+        self.secs + secs_left if secs_left > 0
+        self.usecs + usecs_left if usecs_left > 0
+      end
+    end
   end
   
   #Goes forward day-by-day and stops at a date matching the criteria given.
@@ -43,6 +106,48 @@ class Knj::Datet
       count += 1
       raise "Endless loop?" if count > 999
     end
+  end
+  
+  #Add a given amount of seconds to the object.
+  def add_usecs(usecs = 1)
+    usecs = usecs.to_i
+    cur_usecs = @time.usec
+    next_usec  = cur_usecs + usecs
+    
+    if next_usec >= 60
+      @time = self.add_secs(1).stamp(:datet => false, :usec => 0)
+      usecs_left = (usecs - 1) - (60 - cur_usecs)
+      return self.add_usecs(usecs_left) if usecs_left > 0
+    elsif next_usec < 0
+      @time = self.add_secs(-1).stamp(:datet => false, :usec => 59)
+      usecs_left = usecs + cur_usecs + 1
+      self.add_usecs(usecs_left) if usecs_left > 0
+    else
+      @time = self.stamp(:datet => false, :usec => next_usec)
+    end
+    
+    return self
+  end
+  
+  #Add a given amount of seconds to the object.
+  def add_secs(secs = 1)
+    secs = secs.to_i
+    cur_secs = @time.sec
+    next_sec  = cur_secs + secs
+    
+    if next_sec >= 60
+      @time = self.add_mins(1).stamp(:datet => false, :sec => 0)
+      secs_left = (secs - 1) - (60 - cur_secs)
+      return self.add_secs(secs_left) if secs_left > 0
+    elsif next_sec < 0
+      @time = self.add_mins(-1).stamp(:datet => false, :sec => 59)
+      secs_left = secs + cur_secs + 1
+      self.add_secs(secs_left) if secs_left > 0
+    else
+      @time = self.stamp(:datet => false, :sec => next_sec)
+    end
+    
+    return self
   end
   
   #Add a given amount of minutes to the object.
@@ -234,6 +339,16 @@ class Knj::Datet
     return @time.min
   end
   
+  #Returns the seconds as an integer.
+  def sec
+    return @time.sec
+  end
+  
+  #Returns the microsecond as an integer.
+  def usec
+    return @time.usec
+  end
+  
   #Changes the year to the given year.
   # datet = Knj::Datet.now #=> 2014-05-03 17:46:11 +0200
   # datet.year = 2005
@@ -373,6 +488,8 @@ class Knj::Datet
     return self.add_days(val) if @mode == :days
     return self.add_months(val) if @mode == :months
     return self.add_mins(val) if @mode == :mins
+    return self.add_secs(val) if @mode == :secs
+    return self.add_usecs(val) if @mode == :usecs
     raise "No such mode: #{@mode}"
   end
   
@@ -414,6 +531,18 @@ class Knj::Datet
     return self
   end
   
+  #Sets the mode to seconds and gets ready to plus or minus.
+  def secs
+    @mode = :secs
+    return self
+  end
+  
+  #Sets the mode to mili-seconds and gets ready to plus or minus.
+  def usecs
+    @mode = :usecs
+    return self
+  end
+  
   #Sets the mode to days and gets ready to plus or minus.
   #===Examples
   # datet.time #=> 2005-05-08 22:51:11 +0200
@@ -448,13 +577,13 @@ class Knj::Datet
   #===Examples
   # time = datet.stamp(:datet => false, :min => 15, :day => 5) #=> 2012-07-05 05:15:20 +0200
   def stamp(args)
-    vars = {:year => @time.year, :month => @time.month, :day => @time.day, :hour => @time.hour, :min => @time.min, :sec => @time.sec}
+    vars = {:year => @time.year, :month => @time.month, :day => @time.day, :hour => @time.hour, :min => @time.min, :sec => @time.sec, :usec => @time.usec}
     
     args.each do |key, value|
       vars[key.to_sym] = value.to_i if key != :datet
     end
     
-    time = Time.local(vars[:year], vars[:month], vars[:day], vars[:hour], vars[:min], vars[:sec])
+    time = Time.local(vars[:year], vars[:month], vars[:day], vars[:hour], vars[:min], vars[:sec], vars[:usec])
     
     if !args.key?(:datet) or args[:datet]
       return Knj::Datet.new(time)
@@ -632,7 +761,7 @@ class Knj::Datet
       #Datet.code format
       return Knj::Datet.new(Time.local(match[1], match[2], match[3], match[4], match[5], match[6], match[7]))
     elsif match = timestr.to_s.match(/^\s*(\d{4})-(\d{1,2})-(\d{1,2})(|\s+(\d{2}):(\d{2}):(\d{2})(|\.\d+)\s*)(|\s+(UTC))(|\s+(\+|\-)(\d{2})(\d{2}))$/)
-      #Database date format (with possibility of .0 in the end - miliseconds? -knj.
+      #Database date format (with possibility of .0 in the end - microseconds? -knj.
       
       if match[11] and match[13] and match[14]
         if match[12] == "+" or match[12] == "-"

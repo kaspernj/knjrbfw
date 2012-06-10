@@ -70,4 +70,29 @@ describe "Datet" do
     raise "Date1 was wrongly not the same as date3." if date1 != date3
     raise "Date1 was the same as date2?" if date1 == date2
   end
+  
+  it "various methods should just work" do
+    date = Knj::Datet.new(1985, 6, 17)
+    raise "Invalid days in month: #{date.days_in_month}" if date.days_in_month != 30
+  end
+  
+  it "should be able to handle invalid timestamps" do
+    datet = Knj::Datet.new(2012, 3, 40)
+    raise "Expected dbstr to be '2012-04-09' but it wasnt: '#{datet.dbstr(:time => false)}'." if datet.dbstr(:time => false) != "2012-04-09"
+    
+    datet = Knj::Datet.new(2012, 14)
+    raise "Expected dbstr to be '2013-02-01' but it wasnt: '#{datet.dbstr(:time => false)}'." if datet.dbstr(:time => false) != "2013-02-01"
+    
+    datet = Knj::Datet.new(1985, 6, 17, 28)
+    raise "Expected dbstr to be '1985-06-18 04:00:00' but it wasnt: '#{datet.dbstr}'." if datet.dbstr != "1985-06-18 04:00:00"
+    
+    datet = Knj::Datet.new(1985, 6, 17, 28, 68)
+    raise "Expected dbstr to be '1985-06-18 05:08:00' but it wasnt: '#{datet.dbstr}'." if datet.dbstr != "1985-06-18 05:08:00"
+    
+    datet = Knj::Datet.new(1985, 6, 17, 28, 68, 68)
+    raise "Expected dbstr to be '1985-06-18 05:09:08' but it wasnt: '#{datet.dbstr}'." if datet.dbstr != "1985-06-18 05:09:08"
+    
+    datet = Knj::Datet.new(1985, 6, 17, 28, 68, 68, 68)
+    raise "Expected dbstr to be '1985-06-18 05:09:09' but it wasnt: '#{datet.dbstr}'." if datet.dbstr != "1985-06-18 05:09:09"
+  end
 end
