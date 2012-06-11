@@ -141,6 +141,21 @@ describe "Db" do
     raise "Expected 'new_test_table' to exist but it didnt." if !tables.key?("new_test_table")
     
     
+    #Test revision for column renaming.
+    Knj::Db::Revision.new.init_db("db" => db, "schema" => {
+      "tables" => {
+        "new_test_table" => {
+          "columns" => [
+            {"name" => "new_name", "type" => "varchar", "renames" => ["name"]}
+          ]
+        }
+      }
+    })
+    columns = db.tables["new_test_table"].columns
+    raise "Didnt expect 'name' to exist but it did." if columns.key?("name")
+    raise "Expected 'new_name'-column to exist but it didnt." if !columns.key?("new_name")
+    
+    
     #Delete test-database if everything went well.
     File.unlink(db_path) if File.exists?(db_path)
   end
