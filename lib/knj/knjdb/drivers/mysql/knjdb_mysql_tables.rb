@@ -130,8 +130,14 @@ class KnjDB_mysql::Tables::Table
   end
   
   def drop
-    sql = "DROP TABLE `#{self.name}`"
-    @db.query(sql)
+    raise "Cant drop native table: '#{self.name}'." if self.native?
+    @db.query("DROP TABLE `#{self.name}`")
+  end
+  
+  #Returns true if the table is safe to drop.
+  def native?
+    return true if @db.q("SELECT DATABASE() AS db").fetch[:db] == "mysql"
+    return false
   end
   
   def optimize

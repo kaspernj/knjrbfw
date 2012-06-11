@@ -111,7 +111,7 @@ describe "Db" do
     
     #Remove everything in the db.
     db.tables.list do |table|
-      table.drop
+      table.drop unless table.native?
     end
     
     
@@ -125,6 +125,20 @@ describe "Db" do
     
     #Vaildate import.
     raise "Not same amount of tables: #{tables_count}, #{db.tables.list.length}" if tables_count != db.tables.list.length
+    
+    
+    
+    #Test revision table renaming.
+    Knj::Db::Revision.new.init_db("db" => db, "schema" => {
+      "tables" => {
+        "new_test_table" => {
+          "renames" => ["test_table"]
+        }
+      }
+    })
+    tables = db.tables.list
+    raise "Didnt expect table 'test_table' to exist but it did." if tables.key?("test_table")
+    raise "Expected 'new_test_table' to exist but it didnt." if !tables.key?("new_test_table")
     
     
     #Delete test-database if everything went well.

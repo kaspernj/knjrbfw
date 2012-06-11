@@ -40,6 +40,7 @@ class Knj::Db::Dump
     
     tables.each do |table_obj|
       table_obj = @args[:db].tables[table_obj] if table_obj.is_a?(String) or table_obj.is_a?(Symbol)
+      next if table_obj.native?
       
       #Figure out keys.
       @keys = []

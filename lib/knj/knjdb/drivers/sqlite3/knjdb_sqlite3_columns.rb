@@ -85,6 +85,9 @@ class KnjDB_sqlite3::Columns::Column
       elsif match = @args[:data][:type].match(/^(.+)\((\d+)\)$/)
         @maxlength = match[2]
         type = match[1].to_sym
+      elsif @args[:data].key?(:type) and @args[:data][:type].to_s == ""
+        #A type can actually be empty in SQLite... Wtf?
+        return @args[:data][:type]
       end
       
       if type == :integer
@@ -93,7 +96,7 @@ class KnjDB_sqlite3::Columns::Column
         @type = type
       end
       
-      raise "Still not type?" if @type.to_s.strip.length <= 0
+      raise "Still not type? (#{@args[:data]})" if @type.to_s.strip.length <= 0
     end
     
     return @type

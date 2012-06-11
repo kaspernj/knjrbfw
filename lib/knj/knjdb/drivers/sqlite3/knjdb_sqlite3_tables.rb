@@ -113,13 +113,25 @@ class KnjDB_sqlite3::Tables::Table
     return @data[:maxlength]
   end
   
+  #Drops the table from the database.
   def drop
-    sql = "DROP TABLE `#{self.name}`"
-    @db.query(sql)
+    raise "Cant drop native table: '#{self.name}'." if self.native?
+    @db.query("DROP TABLE `#{self.name}`")
+  end
+  
+  #Returns true if the table is safe to drop.
+  def native?
+    return true if self.name.to_s == "sqlite_sequence"
+    return false
   end
   
   def optimize
     raise "stub!"
+  end
+  
+  def rename(newname)
+    self.clone(newname)
+    self.drop
   end
   
   def truncate
