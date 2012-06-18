@@ -85,7 +85,9 @@ class Knj::Eruby
       end
     rescue SystemExit
       #do nothing.
-    rescue => e
+    rescue Interrupt => e
+      raise e
+    rescue Exception => e
       @error = true
       self.handle_error(e)
     end
