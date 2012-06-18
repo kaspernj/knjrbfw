@@ -29,4 +29,9 @@ module Knj
   def self.knjrbfw_path
     return File.realpath(File.dirname(__FILE__))
   end
+  
+  #Shortcut to Knj::Php.print_r.
+  def self.p(*args, &block)
+    return Knj::Php.print_r(*args, &block)
+  end
 end
