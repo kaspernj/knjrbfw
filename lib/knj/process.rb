@@ -127,7 +127,7 @@ class Knj::Process
               @on_rec.call(result_obj)
             rescue SystemExit, Interrupt => e
               raise e
-            rescue => e
+            rescue Exception => e
               #Error was raised - try to forward it to the server.
               result_obj.answer("type" => "process_error", "class" => e.class.name, "msg" => e.message, "backtrace" => e.backtrace)
             end

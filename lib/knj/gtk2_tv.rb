@@ -48,6 +48,7 @@ module Knj::Gtk2::Tv
         col.add_attribute(renderer, :text, count)
         
         renderer.model = args[:model] if args.key?(:model)
+        renderer.has_entry = args[:has_entry] if args.key?(:has_entry)
         tv.append_column(col)
       else
         raise "Invalid type: '#{args[:type]}'."
@@ -103,6 +104,117 @@ module Knj::Gtk2::Tv
     end
     
     return returnval
+  end
+  
+  @@editable_text_callbacks = {
+    :datetime => {
+      :value => proc{ |data|
+        begin
+          Knj::Datet.in(data[:value]).dbstr
+        rescue Knj::Errors::InvalidData
+          raise "Invalid timestamp entered."
+        end
+      },
+      :value_set => proc{ |data|
+        Knj::Datet.in(data[:value]).out
+      }
+    },
+    :time_as_sec => {
+      :value => proc{ |data| Knj::Strings.human_time_str_to_secs(data[:value]) },
+      :value_set => proc{ |data| Knj::Strings.secs_to_human_time_str(data[:value]) }
+    },
+    :int => {
+      :value => proc{ |data| data[:value].to_i.to_s }
+    },
+    :human_number => {
+      :value => proc{ |data| Knj::Locales.number_in(data[:value]) },
+      :value_set => proc{ |data| Knj::Locales.number_out(data[:value], data[:col_data][:decimals]) }
+    }
+  }
+  
+  def self.editable_text_renderers_to_model(args)
+    args[:id_col] = 0 if !args.key?(:id_col)
+    
+    args[:cols].each do |col_no, col_data|
+      col_data = {:col => col_data} if col_data.is_a?(Symbol)
+      
+      if col_data.key?(:type)
+        if callbacks = @@editable_text_callbacks[col_data[:type]]
+          col_data[:value_callback] = callbacks[:value] if callbacks.key?(:value)
+          col_data[:value_set_callback] = callbacks[:value_set] if callbacks.key?(:value_set)
+        else
+          raise "Invalid type: '#{col_data[:type]}'."
+        end
+      end
+      
+      renderer = args[:renderers][col_no]
+      
+      if renderer.is_a?(Gtk::CellRendererText)
+        renderer.editable = true
+        renderer.signal_connect("edited") do |renderer, row_no, value|
+          iter = args[:tv].model.get_iter(row_no)
+          id = args[:tv].model.get_value(iter, args[:id_col])
+          model_obj = args[:ob].get(args[:model_class], id)
+          cancel = false
+          
+          if col_data[:value_callback]
+            begin
+              value = col_data[:value_callback].call(:args => args, :value => value, :model => model_obj, :col_no => col_no, :col_data => col_data)
+            rescue => e
+              Knj::Gtk2.msgbox(e.message, "warning")
+              cancel = true
+            end
+          end
+          
+          if !cancel
+            args[:change_before].call if args[:change_before]
+            
+            begin
+              model_obj[col_data[:col]] = value
+              value = col_data[:value_set_callback].call(:args => args, :value => value, :model => model_obj, :col_no => col_no, :col_data => col_data) if col_data.key?(:value_set_callback)
+              iter[col_no] = value
+            rescue => e
+              Knj::Gtk2.msgbox(e.message, "warning")
+            ensure
+              args[:change_after].call(:args => args) if args[:change_after]
+            end
+          end
+        end
+      elsif renderer.is_a?(Gtk::CellRendererToggle)
+        renderer.activatable = true
+        renderer.signal_connect("toggled") do |renderer, path, val|
+          iter = args[:tv].model.get_iter(path)
+          id = args[:tv].model.get_value(iter, 0)
+          model_obj = args[:ob].get(args[:model_class], id)
+          
+          if col_data[:value_callback]
+            begin
+              value = col_data[:value_callback].call(:args => args, :value => value, :model => model_obj, :col_no => col_no, :col_data => col_data)
+            rescue => e
+              Knj::Gtk2.msgbox(e.message, "warning")
+              cancel = true
+            end
+          end
+          
+          if !cancel
+            args[:change_before].call if args[:change_before]
+            begin
+              if model_obj[col_data[:col]].to_i == 1
+                model_obj[col_data[:col]] = 0
+                iter[col_no] = 0
+              else
+                model_obj[col_data[:col]] = 1
+                iter[col_no] = 1
+              end
+            ensure
+              args[:change_after].call(:args => args) if args[:change_after]
+            end
+          end
+        end
+      else
+        raise "Invalid cellrenderer: '#{renderer.class.name}'."
+      end
+    end
   end
 end
 

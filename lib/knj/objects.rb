@@ -87,7 +87,7 @@ class Knj::Objects
       @objects[classname] = {}
     end
     
-    @locks[classname] = Mutex.new
+    @locks[classname] = Monitor.new
   end
   
   def uninit_class(classname)
