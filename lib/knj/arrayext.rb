@@ -246,4 +246,20 @@ module Knj::ArrayExt
     
     return nil
   end
+  
+  #Returns a powerset of the given array. Copied from 'http://obvio171.wordpress.com/2007/12/13/power-set-method-for-ruby-hash/'.
+  #===Examples
+  # ps = Knj::ArrayExt.powerset(:arr => [1, 2 , 3, 4])
+  # ps.length #=> 16
+  def self.powerset(args)
+    return args[:arr].inject([[]]) do |c,y|
+      r = []
+      c.each do |i|
+        r << i
+        r << i + [y]
+      end
+      
+      r
+    end
+  end
 end

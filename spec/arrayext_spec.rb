@@ -1,6 +1,11 @@
 require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
 describe "ArrayExt" do
+  it "it should be able to do powersets" do
+    ps = Knj::ArrayExt.powerset(:arr => [1, 2, 3, 4])
+    raise "Expected length of 16 but it wasnt: #{ps.length}" if ps.length != 16
+  end
+  
   it "should be able to make ago-strings" do
     arr = [1, 2]
     Knj::ArrayExt.force_no_cols(:arr => arr, :no => 1)
