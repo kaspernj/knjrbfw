@@ -251,7 +251,7 @@ class Knj::Datarow
         table_name => {
           :where => {
             "object_class" => self.name,
-            "object_id" => {:type => :col, :name => "id"},
+            "object_id" => {:type => :col, :name => :id},
             "key" => val.to_s,
             "locale" => proc{|d| _session[:locale]}
           },
