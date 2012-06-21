@@ -253,6 +253,7 @@ module Knj::ArrayExt
   # ps.length #=> 16
   def self.powerset(args)
     arr = args[:arr]
+    raise "No array was given." if !arr
     
     if block_given?
       if arr.length == 0
@@ -263,6 +264,7 @@ module Knj::ArrayExt
           yield set + [arr[-1]]
         end
       end
+      
       arr
     else
       Enumerator.new do |sets|
@@ -270,6 +272,58 @@ module Knj::ArrayExt
           sets << set
         end
       end
+    end
+  end
+  
+  #Divides an array based on callback.
+  #===Examples
+  # arr = [1, 2, 3, 4, 6, 7, 8, 9, 15, 16, 17, 18]
+  # res = Knj::ArrayExt.divide(:arr => arr) do |a, b|
+  #   if (b - a) > 1
+  #     false
+  #   else
+  #     true
+  #   end
+  # end
+  # 
+  # res.length #=> 3
+  def self.divide(args)
+    prev_ele = args[:arr].shift
+    chunk = [prev_ele]
+    ret = [] if !args[:callback]
+    
+    args[:arr].each do |ele|
+      if !chunk
+        chunk = [ele]
+        prev_ele = ele
+        next
+      end
+      
+      if yield(prev_ele, ele)
+        chunk << ele
+      elsif callback = args[:callback]
+        callback.call(chunk)
+        chunk = nil
+      else
+        ret << chunk
+        chunk = nil
+      end
+      
+      prev_ele = ele
+    end
+    
+    if chunk and !chunk.empty?
+      if callback = args[:callback]
+        callback.call(chunk)
+      else
+        ret << chunk
+      end
+    end
+    
+    if args[:callback]
+      return nil
+    else
+      return ret
     end
   end
 end

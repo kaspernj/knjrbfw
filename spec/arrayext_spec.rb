@@ -1,7 +1,7 @@
 require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
 describe "ArrayExt" do
-  it "it should be able to do powersets" do
+  it "should be able to do powersets" do
     ps = Knj::ArrayExt.powerset(:arr => [1, 2, 3, 4]).to_a
     raise "Expected length of 16 but it wasnt: #{ps.length}" if ps.length != 16
     
@@ -11,6 +11,22 @@ describe "ArrayExt" do
     end
     
     raise "Expected block to be executed 16 times but it wasnt: #{ite}" if ite != 16
+  end
+  
+  it "should be able to divide arrays" do
+    arr = [1, 2, 3, 4, 6, 7, 8, 9, 15, 16, 17, 18]
+    res = Knj::ArrayExt.divide(:arr => arr) do |a, b|
+      if (b - a) > 1
+        false
+      else
+        true
+      end
+    end
+    
+    raise "Expected length of 3 but it wasnt: #{res.length}" if res.length != 3
+    raise "Expected length of 4 but it wasnt: #{res[0].length}" if res[0].length != 4
+    raise "Expected length of 3 but it wasnt: #{res[1].length}" if res[1].length != 3
+    raise "Expected length of 3 but it wasnt: #{res[2].length}" if res[2].length != 3
   end
   
   it "should be able to make ago-strings" do
