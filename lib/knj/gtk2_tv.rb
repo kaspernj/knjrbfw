@@ -1,4 +1,8 @@
+#This module contains various helper-methods for handeling stuff regarding treeviews.
 module Knj::Gtk2::Tv
+  #Initializes a treeview with a model and a number of columns. Returns a hash containing various data like the renderers.
+  #===Examples
+  # Knj::Gtk2::Tv.init(treeview, ["ID", "Name"])
   def self.init(tv, columns)
     ret = {
       :renderers => []
@@ -62,6 +66,9 @@ module Knj::Gtk2::Tv
     return ret
   end
   
+  #Appends data to the treeview.
+  #===Examples
+  # Knj::Gtk2::Tv.append(treeview, [1, "Kasper"])
   def self.append(tv, data)
     iter = tv.model.append
     
@@ -86,6 +93,9 @@ module Knj::Gtk2::Tv
     return {:iter => iter}
   end
   
+  #Gets the selected data from the treeview.
+  #===Examples
+  # Knj::Gtk2::Tv.sel(treeview) #=> [1, "Kasper"]
   def self.sel(tv)
     selected = tv.selection.selected_rows
     
@@ -218,15 +228,19 @@ module Knj::Gtk2::Tv
   end
 end
 
+#Shortcuts on the actual treeview-objects.
 class Gtk::TreeView
+  #Shortcut to do Knj::Gtk2::Tv.sel(treeview)
   def sel
     return Knj::Gtk2::Tv.sel(self)
   end
   
+  #Shortcut to do Knj::Gtk2.append(treeview, [data1, data2])
   def append(data)
     return Knj::Gtk2::Tv.append(self, data)
   end
   
+  #Shortcut to do Knj::Gtk2.init(treeview, columns_array)
   def init(cols)
     return Knj::Gtk2::Tv.init(self, cols)
   end
