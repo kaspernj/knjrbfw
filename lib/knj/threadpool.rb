@@ -1,3 +1,4 @@
+#A small threadpool framework.
 class Knj::Threadpool
   def self.worker_data
     raise "This thread is not running via the threadpool." if !Thread.current[:knj_threadpool]
@@ -6,6 +7,9 @@ class Knj::Threadpool
   
   attr_reader :workers, :blocks, :mutex, :args, :events
   
+  #Constructor.
+  #===Examples
+  # tp = Knj::Threadpool.new(:threads => 5)
   def initialize(args = {})
     @args = args
     @args[:sleep] = 0.2 if !@args.key?(:sleep)
@@ -21,6 +25,7 @@ class Knj::Threadpool
     self.start
   end
   
+  #Starts the threadpool. This is automatically called from the constructor.
   def start
     @mutex.synchronize do
       if !@running
@@ -33,6 +38,7 @@ class Knj::Threadpool
     end
   end
   
+  #Stops the threadpool.
   def stop
     if @running
       @workers.each do |worker|
@@ -46,6 +52,7 @@ class Knj::Threadpool
     end
   end
   
+  #Runs the given block, waits for the result and returns the result.
   def run(*args, &block)
     raise "No block given." if !block_given?
     blockdata = {:block => block, :result => nil, :running => false, :runned => false, :args => args}
@@ -70,16 +77,18 @@ class Knj::Threadpool
     end
   end
   
+  #Runs the given block in the threadpool asynced. Returns a 'Knj::Threadpool::Asynced'-object that can be used to get the result and more.
   def run_async(*args, &block)
     raise "No block given." if !block_given?
     
     @mutex.synchronize do
       blockdata = {:block => block, :running => false, :runned => false, :args => args}
       @blocks << blockdata
-      return blockdata
+      return Knj::Threadpool::Asynced.new(blockdata)
     end
   end
   
+  #Returns a new block to be runned if there is one. Otherwise false.
   def get_block
     return false if !@running
     
@@ -96,9 +105,11 @@ class Knj::Threadpool
   end
 end
 
+#This is the threadpool worker-object. No need to spawn this manually.
 class Knj::Threadpool::Worker
   attr_reader :running
   
+  #Constructor. Should not be called manually.
   def initialize(args)
     @args = args
     @tp = @args[:threadpool]
@@ -112,6 +123,8 @@ class Knj::Threadpool::Worker
   def spawn_thread
     @thread = Knj::Thread.new do
       loop do
+        break if !@sleep or !@tp
+        
         if !@blockdata
           sleep @sleep
           @blockdata = @tp.get_block if !@blockdata
@@ -128,47 +141,28 @@ class Knj::Threadpool::Worker
         }
         
         begin
-          if @blockdata.key?(:result)
-            begin
-              @running = true
-              res = @blockdata[:block].call(*@blockdata[:args])
-            rescue Exception => e
-              @mutex_tp.synchronize do
-                @blockdata[:error] = e
-              end
-            ensure
-              @running = false
-              
-              @mutex_tp.synchronize do
-                @blockdata[:result] = res
-                @blockdata[:runned] = true
-                @blockdata[:running] = false
-              end
-              
-              #Try to avoid slowdown of sleep by checking if there is a new block right away.
-              @blockdata = @tp.get_block
-            end
-          else
-            begin
-              @blockdata[:block].call(*@blockdata[:args])
-            rescue Exception => e
-              if @tp.events.connected?(:on_error)
-                @tp.events.call(:on_error, e)
-              else
-                STDOUT.print Knj::Errors.error_str(e)
-              end
-            ensure
-              @mutex_tp.synchronize do
-                @blockdata.clear if @blockdata
-                @tp.blocks.delete(@blockdata)
-              end
-              
-              #Try to avoid slowdown of sleep by checking if there is a new block right away.
-              @blockdata = @tp.get_block
-            end
+          @running = true
+          res = @blockdata[:block].call(*@blockdata[:args])
+        rescue => e
+          @mutex_tp.synchronize do
+            @blockdata[:error] = e
           end
         ensure
+          #Reset thread.
           Thread.current[:knj_threadpool] = nil
+          
+          #Set running-status on worker.
+          @running = false
+          
+          #Update block-data.
+          @mutex_tp.synchronize do
+            @blockdata[:result] = res if res
+            @blockdata[:runned] = true
+            @blockdata[:running] = false
+          end
+          
+          #Try to avoid slowdown of sleep by checking if there is a new block right away.
+          @blockdata = @tp.get_block
         end
       end
     end
@@ -196,7 +190,7 @@ class Knj::Threadpool::Worker
         begin
           sleep 0.1
           raise "The worker was stopped during execution of the block."
-        rescue Exception => e
+        rescue => e
           @blockdata[:error] = e
         end
       end
@@ -211,17 +205,60 @@ class Knj::Threadpool::Worker
     end
   end
   
-  #Sleeps the thread.
-  def stop
-    @mutex_tp.synchronize do
-      @thread.stop
-    end
-  end
-  
   #Kills the thread.
   def kill
     @mutex_tp.synchronize do
       @thread.kill
     end
+  end
+end
+
+#An object of this class will be returned when calling 'run_async'.
+class Knj::Threadpool::Asynced
+  #Constructor. Should not be called manually.
+  def initialize(args)
+    @args = args
+  end
+  
+  #Returns true if the asynced job is still running.
+  def running?
+    return true if @args[:running]
+    return false
+  end
+  
+  #Returns true if the asynced job is done running.
+  def done?
+    return true if @args[:runned] or @args.empty? or @args[:error]
+    return false
+  end
+  
+  #Returns true if the asynced job is still waiting to run.
+  def waiting?
+    return true if !@args.empty? and !@args[:running] and !@args[:runned]
+    return false
+  end
+  
+  #Raises error if one has happened in the asynced job.
+  def error!
+    raise @args[:error] if @args.key?(:error)
+  end
+  
+  #Sleeps until the asynced job is done. If an error occurred in the job, that error will be raised when calling the method.
+  def join
+    loop do
+      self.error!
+      break if self.done?
+      sleep 0.1
+    end
+    
+    self.error!
+  end
+  
+  #Returns the result of the job. If an error occurred in the job, that error will be raised when calling the method.
+  def result(args = nil)
+    self.join if args and args[:wait]
+    raise "Not done yet." unless self.done?
+    self.error!
+    return @args[:result]
   end
 end

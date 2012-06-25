@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{knjrbfw}
-  s.version = "0.0.32"
+  s.version = "0.0.49"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Kasper Johansen"]
-  s.date = %q{2012-05-06}
+  s.date = %q{2012-06-18}
   s.description = %q{Including stuff for HTTP, SSH and much more.}
   s.email = %q{k@spernj.org}
   s.extra_rdoc_files = [
@@ -20,6 +20,7 @@ Gem::Specification.new do |s|
     ".document",
     ".rspec",
     "Gemfile",
+    "Gemfile.lock",
     "LICENSE.txt",
     "README.rdoc",
     "Rakefile",
@@ -50,6 +51,7 @@ Gem::Specification.new do |s|
     "lib/knj/autoload/sqlite3.rb",
     "lib/knj/autoload/tmail.rb",
     "lib/knj/autoload/tzinfo.rb",
+    "lib/knj/autoload/wref.rb",
     "lib/knj/autoload/xmlsimple.rb",
     "lib/knj/autoload/zip.rb",
     "lib/knj/cmd_gen.rb",
@@ -92,6 +94,7 @@ Gem::Specification.new do |s|
     "lib/knj/gtk2_menu.rb",
     "lib/knj/gtk2_statuswindow.rb",
     "lib/knj/gtk2_tv.rb",
+    "lib/knj/gtk2_window.rb",
     "lib/knj/hash_methods.rb",
     "lib/knj/http.rb",
     "lib/knj/http2.rb",
@@ -164,16 +167,22 @@ Gem::Specification.new do |s|
     "lib/knj/knjdb/drivers/mysql/knjdb_mysql.rb",
     "lib/knj/knjdb/drivers/mysql/knjdb_mysql_columns.rb",
     "lib/knj/knjdb/drivers/mysql/knjdb_mysql_indexes.rb",
+    "lib/knj/knjdb/drivers/mysql/knjdb_mysql_sqlspecs.rb",
     "lib/knj/knjdb/drivers/mysql/knjdb_mysql_tables.rb",
     "lib/knj/knjdb/drivers/sqlite3/knjdb_sqlite3.rb",
     "lib/knj/knjdb/drivers/sqlite3/knjdb_sqlite3_columns.rb",
     "lib/knj/knjdb/drivers/sqlite3/knjdb_sqlite3_indexes.rb",
+    "lib/knj/knjdb/drivers/sqlite3/knjdb_sqlite3_sqlspecs.rb",
     "lib/knj/knjdb/drivers/sqlite3/knjdb_sqlite3_tables.rb",
+    "lib/knj/knjdb/dump.rb",
+    "lib/knj/knjdb/idquery.rb",
     "lib/knj/knjdb/libknjdb.rb",
     "lib/knj/knjdb/libknjdb_java_sqlite3.rb",
     "lib/knj/knjdb/libknjdb_row.rb",
     "lib/knj/knjdb/libknjdb_sqlite3_ironruby.rb",
+    "lib/knj/knjdb/query_buffer.rb",
     "lib/knj/knjdb/revision.rb",
+    "lib/knj/knjdb/sqlspecs.rb",
     "lib/knj/kvm.rb",
     "lib/knj/libqt.rb",
     "lib/knj/libqt_window.rb",
@@ -242,17 +251,18 @@ Gem::Specification.new do |s|
     "lib/knj/win.rb",
     "lib/knj/win_registry.rb",
     "lib/knj/win_tightvnc.rb",
-    "lib/knj/wref.rb",
     "lib/knj/x11vnc.rb",
     "lib/knj/youtube.rb",
     "lib/knjrbfw.rb",
     "spec/amixer_spec.rb",
+    "spec/arrayext_spec.rb",
     "spec/cmd_parser_spec.rb",
     "spec/datet_spec.rb",
     "spec/db_spec.rb",
     "spec/db_spec_encoding_test_file.txt",
     "spec/http2_spec.rb",
     "spec/knjrbfw_spec.rb",
+    "spec/objects_spec.rb",
     "spec/php_spec.rb",
     "spec/process_meta_spec.rb",
     "spec/process_spec.rb",
@@ -260,7 +270,6 @@ Gem::Specification.new do |s|
     "spec/strings_spec.rb",
     "spec/threadsafe_spec.rb",
     "spec/web_spec.rb",
-    "spec/wref_spec.rb",
     "testfiles/image.jpg"
   ]
   s.homepage = %q{http://github.com/kaspernj/knjrbfw}
@@ -273,6 +282,8 @@ Gem::Specification.new do |s|
     s.specification_version = 3
 
     if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
+      s.add_runtime_dependency(%q<wref>, [">= 0"])
+      s.add_runtime_dependency(%q<tsafe>, [">= 0"])
       s.add_development_dependency(%q<rspec>, ["~> 2.3.0"])
       s.add_development_dependency(%q<bundler>, [">= 1.0.0"])
       s.add_development_dependency(%q<jeweler>, ["~> 1.6.3"])
@@ -280,6 +291,8 @@ Gem::Specification.new do |s|
       s.add_development_dependency(%q<sqlite3>, [">= 0"])
       s.add_development_dependency(%q<rmagick>, [">= 0"])
     else
+      s.add_dependency(%q<wref>, [">= 0"])
+      s.add_dependency(%q<tsafe>, [">= 0"])
       s.add_dependency(%q<rspec>, ["~> 2.3.0"])
       s.add_dependency(%q<bundler>, [">= 1.0.0"])
       s.add_dependency(%q<jeweler>, ["~> 1.6.3"])
@@ -288,6 +301,8 @@ Gem::Specification.new do |s|
       s.add_dependency(%q<rmagick>, [">= 0"])
     end
   else
+    s.add_dependency(%q<wref>, [">= 0"])
+    s.add_dependency(%q<tsafe>, [">= 0"])
     s.add_dependency(%q<rspec>, ["~> 2.3.0"])
     s.add_dependency(%q<bundler>, [">= 1.0.0"])
     s.add_dependency(%q<jeweler>, ["~> 1.6.3"])

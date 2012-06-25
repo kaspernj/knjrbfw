@@ -1,6 +1,8 @@
+#This class handels various MySQL-table-specific behaviour.
 class KnjDB_mysql::Tables
   attr_reader :db, :list
   
+  #Constructor. This should not be called manually.
   def initialize(args)
     @args = args
     @db = @args[:db]
@@ -10,6 +12,7 @@ class KnjDB_mysql::Tables
     @list_should_be_reloaded = true
   end
   
+  #Cleans the wref-map.
   def clean
     @list.clean
   end
@@ -31,6 +34,7 @@ class KnjDB_mysql::Tables
     raise Knj::Errors::NotFound.new("Table was not found: #{table_name}.")
   end
   
+  #Yields the tables of the current database.
   def list(args = {})
     ret = {} unless block_given?
     
@@ -66,7 +70,8 @@ class KnjDB_mysql::Tables
     end
   end
   
-  def create(name, data)
+  #Creates a new table by the given name and data.
+  def create(name, data, args = nil)
     raise "No columns was given for '#{name}'." if !data["columns"] or data["columns"].empty?
     
     sql = "CREATE TABLE `#{name}` ("
@@ -91,6 +96,8 @@ class KnjDB_mysql::Tables
     end
     
     sql << ")"
+    
+    return [sql] if args and args[:return_sql]
     @db.query(sql)
   end
 end
@@ -106,7 +113,7 @@ class KnjDB_mysql::Tables::Table
     @list = Wref_map.new
     @indexes_list = Wref_map.new
     
-    raise "Could not figure out name from: '#{@data}'." if !@data[:Name]
+    raise "Could not figure out name from: '#{@data}'." if @data[:Name].to_s.strip.length <= 0
   end
   
   def reload
@@ -123,8 +130,14 @@ class KnjDB_mysql::Tables::Table
   end
   
   def drop
-    sql = "DROP TABLE `#{self.name}`"
-    @db.query(sql)
+    raise "Cant drop native table: '#{self.name}'." if self.native?
+    @db.query("DROP TABLE `#{self.name}`")
+  end
+  
+  #Returns true if the table is safe to drop.
+  def native?
+    return true if @db.q("SELECT DATABASE() AS db").fetch[:db] == "mysql"
+    return false
   end
   
   def optimize
@@ -321,7 +334,7 @@ class KnjDB_mysql::Tables::Table
   
   def data
     ret = {
-      "name" => name,
+      "name" => self.name,
       "columns" => [],
       "indexes" => []
     }

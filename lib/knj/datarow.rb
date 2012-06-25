@@ -150,7 +150,7 @@ class Knj::Datarow
       self.joined_tables(
         classname => {
           :where => {
-            colname.to_s => {:type => "col", :name => :id}
+            colname.to_s => {:type => :col, :name => :id}
           }
         }
       )
@@ -201,19 +201,26 @@ class Knj::Datarow
         return @ob.get_try(self, colname, classname)
       end
       
-      methodname_html = "#{methodname.to_s}_html".to_sym
+      methodname_html = "#{methodname}_html".to_sym
       define_method(methodname_html) do |*args|
-        obj = self.send(methodname)
+        obj = self.__send__(methodname)
         return @ob.events.call(:no_html, classname) if !obj
         
         raise "Class '#{classname}' does not have a 'html'-method." if !obj.respond_to?(:html)
         return obj.html(*args)
       end
       
+      methodname_name = "#{methodname}_name".to_sym
+      define_method(methodname_name) do |*args|
+        obj = self.__send__(methodname)
+        return @ob.events.call(:no_name, classname) if !obj
+        return obj.name(*args)
+      end
+      
       self.joined_tables(
         classname => {
           :where => {
-            "id" => {:type => "col", :name => colname}
+            "id" => {:type => :col, :name => colname}
           }
         }
       )
@@ -244,7 +251,7 @@ class Knj::Datarow
         table_name => {
           :where => {
             "object_class" => self.name,
-            "object_id" => {:type => "col", :name => "id"},
+            "object_id" => {:type => :col, :name => "id"},
             "key" => val.to_s,
             "locale" => proc{|d| _session[:locale]}
           },
@@ -328,33 +335,33 @@ class Knj::Datarow
       d.db.tables[table].columns do |col_obj|
         col_name = col_obj.name
         col_type = col_obj.type
-        col_type = "int" if col_type == "bigint" or col_type == "tinyint" or col_type == "mediumint" or col_type == "smallint"
+        col_type = :int if col_type == :bigint or col_type == :tinyint or col_type == :mediumint or col_type == :smallint
         sqlhelper_args[:cols][col_name] = true
         
         self.define_bool_methods(:inst_methods => inst_methods, :col_name => col_name)
         
-        if col_type == "enum" and col_obj.maxlength == "'0','1'"
+        if col_type == :enum and col_obj.maxlength == "'0','1'"
           sqlhelper_args[:cols_bools] << col_name
-        elsif col_type == "int" and col_name.slice(-3, 3) == "_id"
+        elsif col_type == :int and col_name.slice(-3, 3) == "_id"
           sqlhelper_args[:cols_dbrows] << col_name
-        elsif col_type == "int" or col_type == "bigint" or col_type == "decimal"
+        elsif col_type == :int or col_type == :decimal
           sqlhelper_args[:cols_num] << col_name
-        elsif col_type == "varchar" or col_type == "text" or col_type == "enum"
+        elsif col_type == :varchar or col_type == :text or col_type == :enum
           sqlhelper_args[:cols_str] << col_name
-        elsif col_type == "date" or col_type == "datetime"
+        elsif col_type == :date or col_type == :datetime
           sqlhelper_args[:cols_date] << col_name
           self.define_date_methods(:inst_methods => inst_methods, :col_name => col_name)
         end
         
-        if col_type == "int" or col_type == "decimal"
+        if col_type == :int or col_type == :decimal
           self.define_numeric_methods(:inst_methods => inst_methods, :col_name => col_name)
         end
         
-        if col_type == "int" or col_type == "varchar"
+        if col_type == :int or col_type == :varchar
           self.define_text_methods(:inst_methods => inst_methods, :col_name => col_name)
         end
         
-        if col_type == "time"
+        if col_type == :time
           self.define_time_methods(:inst_methods => inst_methods, :col_name => col_name)
         end
       end
@@ -362,7 +369,7 @@ class Knj::Datarow
       if @columns_joined_tables
         @columns_joined_tables.each do |table_name, table_data|
           table_data[:where].each do |key, val|
-            val[:table] = self.table.to_sym if val.is_a?(Hash) and !val.key?(:table) and val[:type] == "col"
+            val[:table] = self.table.to_sym if val.is_a?(Hash) and !val.key?(:table) and val[:type].to_sym == :col
           end
           
           table_data[:datarow] = @ob.args[:module].const_get(table_name.to_sym) if !table_data.key?(:datarow)
@@ -418,7 +425,7 @@ class Knj::Datarow
         when :cloned_ubuf
           qargs = {:cloned_ubuf => true}
         else
-          raise "Invalid key: '#{key}' for '#{self.name}'. Valid keys are: '#{@columns_sqlhelper_args[:cols].keys.sort}'."
+          raise "Invalid key: '#{key}' for '#{self.name}'. Valid keys are: '#{@columns_sqlhelper_args[:cols].keys.sort}'. Date-keys: '#{@columns_sqlhelper_args[:cols_date]}'."
       end
     end
     
@@ -502,7 +509,7 @@ class Knj::Datarow
       classname = self.class.classname.to_sym
       if @ob.ids_cache_should.key?(classname)
         #ID caching is enabled for this model - dont reload until first use.
-        raise Knj::Errors::NotFound, "ID was not found in cache: '#{id}'." if !@ob.ids_cache_should.key?(classname)
+        raise Knj::Errors::NotFound, "ID was not found in cache: '#{id}'." if !@ob.ids_cache[classname].key?(@id)
         @should_reload = true
       else
         #ID caching is not enabled - reload now to check if row exists. Else set 'should_reload'-variable if 'skip_reload' is set.
@@ -516,7 +523,10 @@ class Knj::Datarow
       raise Knj::Errors::InvalidData, "Could not figure out the data from '#{data.class.name}'."
     end
     
-    raise "Invalid ID: '#{@id}'." if @id.to_i <= 0
+    if @id.to_i <= 0
+      raise "Invalid ID: '#{@id}' from '#{@data}'."if @data
+      raise "Invalid ID: '#{@id}'."
+    end
   end
   
   #Reloads the data from the database.
@@ -536,6 +546,7 @@ class Knj::Datarow
   # obj.should_reload
   def should_reload
     @should_reload = true
+    @data = nil
   end
   
   #Writes/updates new data for the object.

@@ -94,7 +94,7 @@ class Knj::SSHRobot::Forward
         @args[:session].loop do
           true
         end
-      rescue Exception => e
+      rescue => e
         puts e.inspect
         puts e.backtrace
         

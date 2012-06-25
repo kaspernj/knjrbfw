@@ -101,7 +101,7 @@ class Knj::Win::TightVNC
     begin
       @process.GetOwner
       return true
-    rescue Exception => e
+    rescue => e
       return false
     end
   end
@@ -111,7 +111,7 @@ class Knj::Win::TightVNC
     
     begin
       @process.Terminate
-    rescue Exception => e
+    rescue => e
       if e.class.to_s == "WIN32OLERuntimeError" and e.message.index("Terminate") != nil
         #do nothing.
       else

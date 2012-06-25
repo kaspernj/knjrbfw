@@ -68,8 +68,17 @@ module Knj::Os
     end
   end
   
-  def self.mode
-    raise "stub!"
+  #Returns the current graphical toolkit running.
+  #===Examples
+  # Knj::Os.toolkit #=> 'kde'
+  def self.toolkit
+    if self.os == "linux"
+      if ENV["DESKTOP_SESSION"].index("plasma") != nil
+        return "kde"
+      end
+    end
+    
+    raise "Could not figure out the toolkit."
   end
   
   def self.class_exist(classstr)
@@ -118,6 +127,7 @@ module Knj::Os
         end
       end
     else
+      require "open3"
       Open3.popen3(cmd) do |stdin, stdout, stderr|
         res[:out] << stdout.read
         res[:err] << stderr.read

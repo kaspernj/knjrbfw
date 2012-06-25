@@ -20,19 +20,15 @@ module Knj::Locales
   def self.localeconv
     f = Knj::Locales.lang["first"]
     
-    dec = "."
-    thousand = ","
-    csv_delimiter = ","
-    
     case f
-      when "da", "es", "de", "sv"
+      when "da", "de", "es", "pl", "sv"
         dec = ","
         thousand = "."
         csv_delimiter = ";"
-      when "en"
-        #do nothing.
       else
-        raise "Cant figure out numbers for language: #{f}."
+        dec = "."
+        thousand = ","
+        csv_delimiter = ","
     end
     
     return {
@@ -73,6 +69,8 @@ module Knj::Locales
       return Thread.current[:locale]
     elsif ENV["LANGUAGE"]
       return ENV["LANGUAGE"]
+    elsif ENV["LANG"]
+      return ENV["LANG"]
     end
     
     raise "Could not figure out locale."

@@ -13,16 +13,17 @@ class KnjDB_sqlite3::Tables
     table_name = table_name.to_s
     
     begin
-      return @list[table_name]
+      ret = @list[table_name]
+      return ret
     rescue Wref::Recycled
       #ignore.
     end
     
     self.list do |table_obj|
-      return table_obj if table_obj.name.to_s == table_name
+      return table_obj if table_obj.name.to_s == table_name.to_s
     end
     
-    raise Knj::Errors::NotFound.new("Table was not found: #{table_name}.")
+    raise Knj::Errors::NotFound, "Table was not found: #{table_name}."
   end
   
   def list
@@ -55,7 +56,7 @@ class KnjDB_sqlite3::Tables
     end
   end
   
-  def create(name, data)
+  def create(name, data, args = nil)
     sql = "CREATE TABLE `#{name}` ("
     
     first = true
@@ -67,11 +68,26 @@ class KnjDB_sqlite3::Tables
     
     sql << ")"
     
-    @db.query(sql)
+    if args and args[:return_sql]
+      ret = [sql]
+    else
+      @db.query(sql)
+    end
     
     if data.key?("indexes") and data["indexes"]
       table_obj = self[name]
-      table_obj.create_indexes(data["indexes"])
+      
+      if args and args[:return_sql]
+        ret += table_obj.create_indexes(data["indexes"], :return_sql => true)
+      else
+        table_obj.create_indexes(data["indexes"])
+      end
+    end
+    
+    if args and args[:return_sql]
+      return ret
+    else
+      return nil
     end
   end
 end
@@ -89,13 +105,38 @@ class KnjDB_sqlite3::Tables::Table
     return @data[:name]
   end
   
+  def type
+    return @data[:type]
+  end
+  
+  def maxlength
+    return @data[:maxlength]
+  end
+  
+  #Drops the table from the database.
   def drop
-    sql = "DROP TABLE `#{self.name}`"
-    @db.query(sql)
+    raise "Cant drop native table: '#{self.name}'." if self.native?
+    @db.query("DROP TABLE `#{self.name}`")
+  end
+  
+  #Returns true if the table is safe to drop.
+  def native?
+    return true if self.name.to_s == "sqlite_sequence"
+    return false
   end
   
   def optimize
     raise "stub!"
+  end
+  
+  def rename(newname)
+    self.clone(newname)
+    self.drop
+  end
+  
+  def truncate
+    @db.query("DELETE FROM `#{self.name}` WHERE 1=1")
+    return nil
   end
   
   def table
@@ -331,8 +372,16 @@ class KnjDB_sqlite3::Tables::Table
     end
   end
   
-  def create_indexes(index_arr)
+  def create_indexes(index_arr, args = nil)
+    if args and args[:return_sql]
+      ret = []
+    end
+    
     index_arr.each do |index_data|
+      if index_data.is_a?(String)
+        index_data = {"name" => index_data, "columns" => [index_data]}
+      end
+      
       raise "No name was given." if !index_data.key?("name") or index_data["name"].strip.length <= 0
       raise "No columns was given on index #{index_data["name"]}." if index_data["columns"].empty?
       
@@ -351,7 +400,17 @@ class KnjDB_sqlite3::Tables::Table
       
       sql << ")"
       
-      @db.query(sql)
+      if args and args[:return_sql]
+        ret << sql
+      else
+        @db.query(sql)
+      end
+    end
+    
+    if args and args[:return_sql]
+      return ret
+    else
+      return nil
     end
   end
   

@@ -18,11 +18,12 @@ class Knj::Objects
     @data = {}
     @lock_require = Monitor.new
     
-    require "wref" if @args[:cache] == :weak
+    require "wref" if @args[:cache] == :weak and !Kernel.const_defined?(:Wref)
     
     #Set up various events.
     @events = Knj::Event_handler.new
     @events.add_event(:name => :no_html, :connections_max => 1)
+    @events.add_event(:name => :no_name, :connections_max => 1)
     @events.add_event(:name => :no_date, :connections_max => 1)
     @events.add_event(:name => :missing_class, :connections_max => 1)
     @events.add_event(:name => :require_class, :connections_max => 1)
@@ -86,7 +87,7 @@ class Knj::Objects
       @objects[classname] = {}
     end
     
-    @locks[classname] = Mutex.new
+    @locks[classname] = Monitor.new
   end
   
   def uninit_class(classname)
@@ -125,9 +126,10 @@ class Knj::Objects
     raise "No object given." if !args["object"]
     raise "No signals given." if !args.key?("signal") and !args.key?("signals")
     args["block"] = block if block_given?
-    @callbacks[args["object"]] = {} if !@callbacks[args["object"]]
-    conn_id = @callbacks[args["object"]].length.to_s
-    @callbacks[args["object"]][conn_id] = args
+    @callbacks[args["object"].to_sym] = {} if !@callbacks[args["object"]]
+    conn_id = @callbacks[args["object"].to_sym].length.to_s
+    @callbacks[args["object"].to_sym][conn_id] = args
+    return conn_id
   end
   
   #Returns true if the given signal is connected to the given object.
@@ -135,8 +137,8 @@ class Knj::Objects
     raise "No object given." if !args["object"]
     raise "No signal given." if !args.key?("signal")
     
-    if @callbacks.key?(args["object"])
-      @callbacks[args["object"]].clone.each do |ckey, callback|
+    if @callbacks.key?(args["object"].to_sym)
+      @callbacks[args["object"].to_sym].clone.each do |ckey, callback|
         return true if callback.key?("signal") and callback["signal"] == args["signal"]
         return true if callback.key?("signals") and callback["signals"].index(args["signal"]) != nil
       end
@@ -145,9 +147,18 @@ class Knj::Objects
     return false
   end
   
+  #Unconnects a connect by 'object' and 'conn_id'.
+  def unconnect(args)
+    raise "No object given." if !args["object"]
+    raise "No conn-ID given." if !args["conn_id"]
+    raise "Object doesnt exist: '#{args["object"]}'." if !@callbacks.key?(args["object"].to_sym)
+    raise "Conn ID doest exist: '#{args["conn_id"]}'." if !@callbacks[args["object"].to_sym].key?(args["conn_id"])
+    @callbacks[args["object"].to_sym].delete(args["conn_id"])
+  end
+  
   #This method is used to call the connected callbacks for an event.
   def call(args, &block)
-    classstr = args["object"].class.to_s.split("::").last
+    classstr = args["object"].class.classname.to_sym
     
     if @callbacks.key?(classstr)
       @callbacks[classstr].clone.each do |callback_key, callback|
@@ -486,7 +497,7 @@ class Knj::Objects
         
         raise "Could not figure out which name-method to call?" if !objhtml
         html << ">#{objhtml}</option>"
-      rescue Exception => e
+      rescue => e
         html << ">[#{object.class.name}: #{e.message}]</option>"
       end
     end

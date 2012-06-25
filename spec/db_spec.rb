@@ -36,13 +36,16 @@ describe "Db" do
     raise "Table-name expected to be 'test' but wasnt: '#{list["test"].name}'." if list["test"].name != "test"
     
     
-    #Test revision to create tables.
+    #Test revision to create tables, indexes and insert rows.
     schema = {
       "tables" => {
         "test_table" => {
           "columns" => [
             {"name" => "id", "type" => "int", "autoincr" => true, "primarykey" => true},
             {"name" => "name", "type" => "varchar"}
+          ],
+          "indexes" => [
+            "name"
           ],
           "rows" => [
             {
@@ -57,15 +60,103 @@ describe "Db" do
     rev = Knj::Db::Revision.new
     rev.init_db("schema" => schema, "db" => db)
     
-    begin
-      cont = File.read("#{File.dirname(__FILE__)}/db_spec_encoding_test_file.txt")
-      cont.force_encoding("ASCII-8BIT")
-      
-      db.insert("test", {
-        "text" => cont
-      })
-    ensure
-      File.unlink(db_path) if File.exists?(db_path)
+    
+    #Test wrong encoding.
+    cont = File.read("#{File.dirname(__FILE__)}/db_spec_encoding_test_file.txt")
+    cont.force_encoding("ASCII-8BIT")
+    
+    db.insert("test", {
+      "text" => cont
+    })
+    
+    
+    #Throw out invalid encoding because it will make dumping fail.
+    db.tables[:test].truncate
+    
+    
+    
+    #Test IDQueries.
+    rows_count = 1250
+    db.transaction do
+      0.upto(rows_count) do |count|
+        db.insert(:test_table, {:name => "User #{count}"})
+      end
     end
+    
+    block_ran = 0
+    idq = Knj::Db::Idquery.new(:db => db, :debug => false, :table => :test_table, :query => "SELECT id FROM test_table") do |data|
+      block_ran += 1
+    end
+    
+    raise "Block with should have ran too little: #{block_ran}." if block_ran < rows_count
+    
+    block_ran = 0
+    db.select(:test_table, {}, {:idquery => true}) do |data|
+      block_ran += 1
+    end
+    
+    raise "Block with should have ran too little: #{block_ran}." if block_ran < rows_count
+    
+    
+    #Test dumping.
+    dump = Knj::Db::Dump.new(:db => db, :debug => false)
+    str_io = StringIO.new
+    dump.dump(str_io)
+    str_io.rewind
+    
+    
+    #Remember some numbers for validation.
+    tables_count = db.tables.list.length
+    
+    
+    #Remove everything in the db.
+    db.tables.list do |table|
+      table.drop unless table.native?
+    end
+    
+    
+    #Run the exported SQL.
+    db.transaction do
+      str_io.each_line do |sql|
+        db.q(sql)
+      end
+    end
+    
+    
+    #Vaildate import.
+    raise "Not same amount of tables: #{tables_count}, #{db.tables.list.length}" if tables_count != db.tables.list.length
+    
+    
+    
+    #Test revision table renaming.
+    Knj::Db::Revision.new.init_db("db" => db, "schema" => {
+      "tables" => {
+        "new_test_table" => {
+          "renames" => ["test_table"]
+        }
+      }
+    })
+    tables = db.tables.list
+    raise "Didnt expect table 'test_table' to exist but it did." if tables.key?("test_table")
+    raise "Expected 'new_test_table' to exist but it didnt." if !tables.key?("new_test_table")
+    
+    
+    #Test revision for column renaming.
+    Knj::Db::Revision.new.init_db("db" => db, "schema" => {
+      "tables" => {
+        "new_test_table" => {
+          "columns" => [
+            {"name" => "new_name", "type" => "varchar", "renames" => ["name"]}
+          ]
+        }
+      }
+    })
+    columns = db.tables["new_test_table"].columns
+    raise "Didnt expect 'name' to exist but it did." if columns.key?("name")
+    raise "Expected 'new_name'-column to exist but it didnt." if !columns.key?("new_name")
+    
+    
+    #Delete test-database if everything went well.
+    File.unlink(db_path) if File.exists?(db_path)
   end
 end

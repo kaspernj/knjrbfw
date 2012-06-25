@@ -42,7 +42,6 @@ class Knj::Db::Revision
     schema["tables"].each do |table_name, table_data|
       begin
         begin
-          raise Knj::Errors::NotFound if !tables.key?(table_name)
           table_obj = db.tables[table_name]
           
           #Cache indexes- and column-objects to avoid constant reloading.
@@ -92,6 +91,16 @@ class Knj::Db::Revision
                 
                 if type and col_obj.type.to_s != type
                   print "Type mismatch on #{col_str}: #{col_data["type"]}, #{col_obj.type}\n" if args["debug"]
+                  dochange = true
+                end
+                
+                if col_data.has_key?("primarykey") and col_obj.primarykey? != col_data["primarykey"]
+                  print "Primary-key mismatch for #{col_str}: #{col_data["primarykey"]}, #{col_obj.primarykey?}\n" if args["debug"]
+                  dochange = true
+                end
+                
+                if col_data.has_key?("autoincr") and col_obj.autoincr? != col_data["autoincr"]
+                  print "Auto-increment mismatch for #{col_str}: #{col_data["autoincr"]}, #{col_obj.autoincr?}\n" if args["debug"]
                   dochange = true
                 end
                 
@@ -217,12 +226,11 @@ class Knj::Db::Revision
             end
           end
           
-          self.rows_init("db" => db, "table" => table_obj, "rows" => table_data["rows"]) if table_data and table_data["rows"]
+          rows_init("db" => db, "table" => table_obj, "rows" => table_data["rows"]) if table_data and table_data["rows"]
         rescue Knj::Errors::NotFound => e
-          if table_data["renames"]
+          if table_data.key?("renames")
             table_data["renames"].each do |table_name_rename|
               begin
-                raise Knj::Errors::NotFound if !tables.key?(table_name)
                 table_rename = db.tables[table_name_rename]
                 table_rename.rename(table_name)
                 raise Knj::Errors::Retry

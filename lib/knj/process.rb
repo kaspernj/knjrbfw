@@ -1,6 +1,7 @@
 require "#{$knjpath}errors"
 require "#{$knjpath}thread"
 
+#This class is able to control communicate with another Ruby-process also running Knj::Process.
 class Knj::Process
   attr_reader :blocks, :blocks_send
   
@@ -48,7 +49,7 @@ class Knj::Process
       @listen_thread = Knj::Thread.new do
         begin
           self.listen
-        rescue Exception => e
+        rescue => e
           $stderr.print "#{Knj::Errors.error_str(e)}\n\n" if @debug
           @thread_error = e
         end
@@ -56,10 +57,12 @@ class Knj::Process
     end
   end
   
+  #Kills the listen-thread.
   def kill_listen
     @listen_thread.kill if @listen_thread
   end
   
+  #Joins the listen-thread and the error-thread.
   def join
     @listen_thread.join if @listen_thread
     sleep 0.5
@@ -76,6 +79,7 @@ class Knj::Process
     end
   end
   
+  #This method is called by listen on every loop.
   def listen_loop
     $stderr.print "listen-loop called.\n" if @debug
     
@@ -121,7 +125,7 @@ class Knj::Process
             
             begin
               @on_rec.call(result_obj)
-            rescue SystemExit => e
+            rescue SystemExit, Interrupt => e
               raise e
             rescue Exception => e
               #Error was raised - try to forward it to the server.
@@ -251,7 +255,7 @@ class Knj::Process
               ensure
                 buffer_thread.join
               end
-            rescue Exception => e
+            rescue => e
               $stderr.print Knj::Errors.error_str(e) if @debug
               #Error was raised - try to forward it to the server.
               result_obj.answer("type" => "process_error", "class" => e.class.name, "msg" => e.message, "backtrace" => e.backtrace)
@@ -272,7 +276,7 @@ class Knj::Process
           $stderr.print "Unknown command: '#{data[0]}'."
           raise "Unknown command: '#{data[0]}'."
       end
-    rescue Exception => e
+    rescue => e
       $stderr.print Knj::Errors.error_str(e) if @debug
       #Error was raised - try to forward it to the server.
       result_obj = Knj::Process::Resultobject.new(:process => self, :id => id, :obj => obj)
@@ -421,6 +425,8 @@ class Knj::Process
       end
       
       err.set_backtrace(bt)
+      
+      $stderr.print Knj::Errors.error_str(err) if @debug
       raise err
     end
     

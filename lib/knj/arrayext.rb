@@ -230,4 +230,100 @@ module Knj::ArrayExt
     
     return hash
   end
+  
+  #Forces an array to have a certain amount of columns.
+  #===Examples
+  # arr = [1, 2, 3, 4, 5]
+  # Knj::ArrayExt.force_no_cols(:arr => arr, :no => 4) #=> [1, 2, 3, 4]
+  def self.force_no_cols(args)
+    while args[:arr].length > args[:no]
+      args[:arr].slice!(-1)
+    end
+    
+    while args[:arr].length < args[:no]
+      args[:arr] << args[:empty]
+    end
+    
+    return nil
+  end
+  
+  #Returns a powerset of the given array. Copied from 'http://mikeburnscoder.wordpress.com/2009/05/30/powerset-in-ruby-using-the-list-monad/'.
+  #===Examples
+  # ps = Knj::ArrayExt.powerset(:arr => [1, 2 , 3, 4])
+  # ps.length #=> 16
+  def self.powerset(args)
+    arr = args[:arr]
+    raise "No array was given." if !arr
+    
+    if block_given?
+      if arr.length == 0
+        yield []
+      else
+        Knj::ArrayExt.powerset(:arr => arr[0..-2]) do |set|
+          yield set
+          yield set + [arr[-1]]
+        end
+      end
+      
+      arr
+    else
+      Enumerator.new do |sets|
+        Knj::ArrayExt.powerset(:arr => arr) do |set|
+          sets << set
+        end
+      end
+    end
+  end
+  
+  #Divides an array based on callback.
+  #===Examples
+  # arr = [1, 2, 3, 4, 6, 7, 8, 9, 15, 16, 17, 18]
+  # res = Knj::ArrayExt.divide(:arr => arr) do |a, b|
+  #   if (b - a) > 1
+  #     false
+  #   else
+  #     true
+  #   end
+  # end
+  # 
+  # res.length #=> 3
+  def self.divide(args)
+    prev_ele = args[:arr].shift
+    chunk = [prev_ele]
+    ret = [] if !args[:callback]
+    
+    args[:arr].each do |ele|
+      if !chunk
+        chunk = [ele]
+        prev_ele = ele
+        next
+      end
+      
+      if yield(prev_ele, ele)
+        chunk << ele
+      elsif callback = args[:callback]
+        callback.call(chunk)
+        chunk = nil
+      else
+        ret << chunk
+        chunk = nil
+      end
+      
+      prev_ele = ele
+    end
+    
+    if chunk and !chunk.empty?
+      if callback = args[:callback]
+        callback.call(chunk)
+      else
+        ret << chunk
+      end
+    end
+    
+    if args[:callback]
+      return nil
+    else
+      return ret
+    end
+  end
 end

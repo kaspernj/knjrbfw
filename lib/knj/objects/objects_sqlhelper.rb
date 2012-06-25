@@ -220,8 +220,8 @@ class Knj::Objects
             )
             sql_where << " AND #{table}`#{db.esc_col(key)}` IN (#{escape_sql})"
           end
-        elsif val.is_a?(Hash) and val[:type] == "col"
-          raise "No table was given for join." if !val.key?(:table)
+        elsif val.is_a?(Hash) and val[:type] == :col
+          raise "No table was given for join: '#{val}', key: '#{key}' on table #{table}." if !val.key?(:table)
           
           do_joins[val[:table].to_sym] = true
           sql_where << " AND #{table}`#{db.esc_col(key)}` = `#{db.esc_table(val[:table])}`.`#{db.esc_col(val[:name])}`"
@@ -310,7 +310,7 @@ class Knj::Objects
         end
         
         found = true
-      elsif args.key?(:cols_date) and match = key.match(/^(.+)_(day|month|year|from|to|below|above)$/) and args[:cols_date].index(match[1]) != nil
+      elsif args.key?(:cols_date) and match = key.match(/^(.+)_(day|week|month|year|from|to|below|above)$/) and args[:cols_date].index(match[1]) != nil
         val = Knj::Datet.in(val) if val.is_a?(Time)
         
         if match[2] == "day"
@@ -332,8 +332,10 @@ class Knj::Objects
           else
             sql_where << " AND DATE_FORMAT(#{table}`#{db.esc_col(match[1])}`, '%d %m %Y') = DATE_FORMAT('#{db.esc(val.dbstr)}', '%d %m %Y')"
           end
+        elsif match[2] == "week"
+          sql_where << " AND #{db.sqlspecs.strftime("%W %Y", "#{table}`#{db.esc_col(match[1])}`")} = #{db.sqlspecs.strftime("%W %Y", "'#{db.esc(val.dbstr)}'")}"
         elsif match[2] == "month"
-          sql_where << " AND DATE_FORMAT(#{table}`#{db.esc_col(match[1])}`, '%m %Y') = DATE_FORMAT('#{db.esc(val.dbstr)}', '%m %Y')"
+          sql_where << " AND #{db.sqlspecs.strftime("%m %Y", "#{table}`#{db.esc_col(match[1])}`")} = #{db.sqlspecs.strftime("%m %Y", "'#{db.esc(val.dbstr)}'")}"
         elsif match[2] == "year"
           sql_where << " AND DATE_FORMAT(#{table}`#{db.esc_col(match[1])}`, '%Y') = DATE_FORMAT('#{db.esc(val.dbstr)}', '%Y')"
         elsif match[2] == "from" or match[2] == "above"

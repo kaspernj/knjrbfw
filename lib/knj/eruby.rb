@@ -85,6 +85,8 @@ class Knj::Eruby
       end
     rescue SystemExit
       #do nothing.
+    rescue Interrupt => e
+      raise e
     rescue Exception => e
       @error = true
       self.handle_error(e)
@@ -212,7 +214,7 @@ class Knj::Eruby
       self.printcont(tmp_out, args)
     rescue SystemExit => e
       self.printcont(tmp_out, args)
-    rescue Exception => e
+    rescue => e
       self.handle_error(e)
       self.printcont(tmp_out, args)
     end
@@ -227,8 +229,8 @@ class Knj::Eruby
         end
       end
     rescue SystemExit => e
-      exit
-    rescue Exception => e
+      raise e
+    rescue => e
       #An error occurred while trying to run the on-error-block - show this as an normal error.
       print "\n\n<pre>\n\n"
       print "<b>#{Knj::Web.html(e.class.name)}: #{Knj::Web.html(e.message)}</b>\n\n"

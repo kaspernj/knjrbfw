@@ -1,3 +1,4 @@
+#Requires the 'wref'-gem.
 require "wref"
 
 #This class handels various stuff regarding Unix-processes.
@@ -7,6 +8,7 @@ class Knj::Unix_proc
   PROCS = Wref_map.new
   MUTEX = Mutex.new
   
+  #Spawns a process if it doesnt already exist in the wrap-map.
   def self.spawn(data)
     pid = data["pid"].to_i
     
@@ -21,13 +23,14 @@ class Knj::Unix_proc
     return proc_ele
   end
   
+  #Returns an array with (or yields if block given) Unix_proc. Hash-arguments as 'grep'.
   def self.list(args = {})
     cmdstr = "ps aux"
     grepstr = ""
     
     if args["grep"]
-      grepstr = "grep #{Knj::Strings.unixsafe(args["grep"])}"
-      cmdstr << " | #{grepstr}"
+      grepstr = "grep #{args["grep"]}" #used for ignoring the grep-process later.
+      cmdstr << " | grep #{Knj::Strings.unixsafe(args["grep"])}"
     end
     
     MUTEX.synchronize do
@@ -80,13 +83,14 @@ class Knj::Unix_proc
     end
   end
   
+  #Returns the "Knj::Unix_proc" for the current process.
   def self.find_self
     procs = Knj::Unix_proc.list("ignore_self" => false)
     pid_find = Process.pid
     
     proc_find = false
     procs.each do |proc_ele|
-      if proc_ele["pid"].to_s == pid_find.to_s
+      if proc_ele["pid"].to_i == pid_find.to_i
         proc_find = proc_ele
         break
       end
@@ -95,20 +99,39 @@ class Knj::Unix_proc
     return proc_find
   end
   
+  #Return true if the given PID is running.
+  def self.pid_running?(pid)
+    begin
+      Process.getpgid(pid)
+      return true
+    rescue Errno::ESRCH
+      return false
+    end
+  end
+  
+  #Initializes various data for a Unix_proc-object. This should not be called manually but through "Unix_proc.list".
   def initialize(data)
     @data = data
   end
   
+  #Updates the data. This should not be called manually, but is exposed because of various code in "Unix_proc.list".
   def update_data(data)
     @data = data
   end
   
+  #Returns a key from the data or raises an error.
   def [](key)
     raise "No such data: #{key}" if !@data.key?(key)
     return @data[key]
   end
   
+  #Kills the process.
   def kill
+    Process.kill("TERM", @data["pid"].to_i)
+  end
+  
+  #Kills the process with 9.
+  def kill!
     Process.kill(9, @data["pid"].to_i)
   end
 end

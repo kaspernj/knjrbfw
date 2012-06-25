@@ -29,7 +29,7 @@ class Knj::Thread2
       rescue SystemExit
         call(:on_exit)
         exit
-      rescue Exception => e
+      rescue => e
         call(:on_error, e)
         
         if !@args.key?(:print_error) or @args[:print_error]
