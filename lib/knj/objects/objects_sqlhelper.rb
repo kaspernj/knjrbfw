@@ -309,7 +309,8 @@ class Knj::Objects
         end
         
         found = true
-      elsif args.key?(:cols_date) and match = key.match(/^(.+)_(day|week|month|year|from|to|below|above)$/) and args[:cols_date].index(match[1]) != nil
+      elsif args.key?(:cols_date) and match = key.match(/^(.+)_(day|week|month|year|from|to|below|above)(|_(not))$/) and args[:cols_date].index(match[1]) != nil
+        not_v = match[4]
         val = Knj::Datet.in(val) if val.is_a?(Time)
         
         if match[2] == "day"
@@ -324,19 +325,19 @@ class Knj::Objects
                 sql_where << " OR "
               end
               
-              sql_where << "DATE_FORMAT(#{table}`#{db.esc_col(match[1])}`, '%d %m %Y') = DATE_FORMAT('#{db.esc(realval.dbstr)}', '%d %m %Y')"
+              sql_where << " AND #{db.sqlspecs.strftime("%d %m %Y", "#{table}`#{db.esc_col(match[1])}`")} #{self.not(not_v, "!")}= #{db.sqlspecs.strftime("%d %m %Y", "'#{db.esc(realval.dbstr)}'")}"
             end
             
             sql_where << ")"
           else
-            sql_where << " AND DATE_FORMAT(#{table}`#{db.esc_col(match[1])}`, '%d %m %Y') = DATE_FORMAT('#{db.esc(val.dbstr)}', '%d %m %Y')"
+            sql_where << " AND #{db.sqlspecs.strftime("%d %m %Y", "#{table}`#{db.esc_col(match[1])}`")} #{self.not(not_v, "!")}= #{db.sqlspecs.strftime("%d %m %Y", "'#{db.esc(val.dbstr)}'")}"
           end
         elsif match[2] == "week"
-          sql_where << " AND #{db.sqlspecs.strftime("%W %Y", "#{table}`#{db.esc_col(match[1])}`")} = #{db.sqlspecs.strftime("%W %Y", "'#{db.esc(val.dbstr)}'")}"
+          sql_where << " AND #{db.sqlspecs.strftime("%W %Y", "#{table}`#{db.esc_col(match[1])}`")} #{self.not(not_v, "!")}= #{db.sqlspecs.strftime("%W %Y", "'#{db.esc(val.dbstr)}'")}"
         elsif match[2] == "month"
-          sql_where << " AND #{db.sqlspecs.strftime("%m %Y", "#{table}`#{db.esc_col(match[1])}`")} = #{db.sqlspecs.strftime("%m %Y", "'#{db.esc(val.dbstr)}'")}"
+          sql_where << " AND #{db.sqlspecs.strftime("%m %Y", "#{table}`#{db.esc_col(match[1])}`")} #{self.not(not_v, "!")}= #{db.sqlspecs.strftime("%m %Y", "'#{db.esc(val.dbstr)}'")}"
         elsif match[2] == "year"
-          sql_where << " AND DATE_FORMAT(#{table}`#{db.esc_col(match[1])}`, '%Y') = DATE_FORMAT('#{db.esc(val.dbstr)}', '%Y')"
+          sql_where << " AND #{db.sqlspecs.strftime("%Y", "#{table}`#{db.esc_col(match[1])}`")} #{self.not(not_v, "!")}= #{db.sqlspecs.strftime("%Y", "'#{db.esc(val.dbstr)}'")}"
         elsif match[2] == "from" or match[2] == "above"
           sql_where << " AND #{table}`#{db.esc_col(match[1])}` >= '#{db.esc(val.dbstr)}'"
         elsif match[2] == "to" or match[2] == "below"
@@ -479,5 +480,13 @@ class Knj::Objects
     end
     
     return datarow_argument
+  end
+  
+  def not(not_v, val)
+    if not_v == "not" or not_v == "not_"
+      return val
+    end
+    
+    return ""
   end
 end
