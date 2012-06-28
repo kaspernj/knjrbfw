@@ -168,8 +168,9 @@ module Knj::Php
       end
       
       retstr << "}\n"
-    elsif cstr == "Time"
-      retstr << "Time::#{argument.year}-#{argument.month}-#{argument.day} #{argument.hour}:#{argument.min}:#{argument.sec}\n"
+    elsif cstr == "Time" or cstr == "Knj::Datet"
+      argument = argument.time if cstr == "Knj::Datet"
+      retstr << "#{cstr}::#{"%04d" % argument.year}-#{"%02d" % argument.month}-#{"%02d" % argument.day} #{"%02d" % argument.hour}:#{"%02d" % argument.min}:#{"%02d" % argument.sec}\n"
     else
       #print argument.to_s, "\n"
       retstr << "Unknown class: '#{cstr}' with superclass '#{supercl}'.\n"

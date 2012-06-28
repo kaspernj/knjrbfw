@@ -287,9 +287,17 @@ module Knj::ArrayExt
   # end
   # 
   # res.length #=> 3
-  def self.divide(args)
+  def self.divide(args, &block)
     prev_ele = args[:arr].shift
     chunk = [prev_ele]
+    
+    if !args[:evaluate]
+      callback_eval = block
+    elsif !args[:callback] and args[:evaluate]
+      callback_res = block
+      callback_eval = args[:evaluate]
+    end
+    
     ret = [] if !args[:callback]
     
     args[:arr].each do |ele|
@@ -299,10 +307,10 @@ module Knj::ArrayExt
         next
       end
       
-      if yield(prev_ele, ele)
+      if callback_eval.call(prev_ele, ele)
         chunk << ele
-      elsif callback = args[:callback]
-        callback.call(chunk)
+      elsif callback_res
+        callback_res.call(chunk)
         chunk = nil
       else
         ret << chunk
@@ -313,8 +321,8 @@ module Knj::ArrayExt
     end
     
     if chunk and !chunk.empty?
-      if callback = args[:callback]
-        callback.call(chunk)
+      if callback_res
+        callback_res.call(chunk)
       else
         ret << chunk
       end
