@@ -73,9 +73,9 @@ class Knj::Event_handler
   # events.call(:test_event) #=> Doesnt print 'test event!'.
   def disconnect(name, callback_id)
     raise "No such event: '#{name}'." if !@events.key?(name)
-    raise "No such connection: '#{name}' --> '#{callback_id}'" if !@events[name].key?(callback_id)
-    @events[name][callback_id].clear
-    @events[name].delete(callback_id)
+    raise "No such connection: '#{name}' --> '#{callback_id}' (#{@events[name]})" if !@events[name][:callbacks].key?(callback_id)
+    @events[name][:callbacks][callback_id].clear
+    @events[name][:callbacks].delete(callback_id)
   end
   
   #Returns how many blocks have been connected to an event.

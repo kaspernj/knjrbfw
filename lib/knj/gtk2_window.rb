@@ -23,4 +23,16 @@ class Knj::Gtk2::Window
       @@uniques[id] = obj
     end
   end
+  
+  #Returns the object if it hasnt been destroyed.
+  #===Examples
+  # Knj::Gtk2::Window.get("my_window") #=> nil
+  # Knj::Gtk2::Window.get("my_window") #=> Gtk::Builder-object
+  def self.get(id)
+    if instance and !instance.gui["window"].destroyed?
+      return instance.gui["window"]
+    end
+    
+    return nil
+  end
 end

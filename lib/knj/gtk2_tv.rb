@@ -35,8 +35,14 @@ module Knj::Gtk2::Tv
       end
       
       if args[:type] == :string
+        if args[:markup]
+          col_args = {:markup => count}
+        else
+          col_args = {:text => count}
+        end
+        
         renderer = Gtk::CellRendererText.new
-        col = Gtk::TreeViewColumn.new(args[:title], renderer, :text => count)
+        col = Gtk::TreeViewColumn.new(args[:title], renderer, col_args)
         col.resizable = true
         tv.append_column(col)
       elsif args[:type] == :toggle
@@ -47,9 +53,13 @@ module Knj::Gtk2::Tv
         renderer = Gtk::CellRendererCombo.new
         renderer.text_column = 0
         
-        col = Gtk::TreeViewColumn.new(args[:title])
-        col.pack_start(renderer, false)
-        col.add_attribute(renderer, :text, count)
+        if args[:markup]
+          col_args = {:markup => count}
+        else
+          col_args = {:text => count}
+        end
+        
+        col = Gtk::TreeViewColumn.new(args[:title], renderer, col_args)
         
         renderer.model = args[:model] if args.key?(:model)
         renderer.has_entry = args[:has_entry] if args.key?(:has_entry)
@@ -166,10 +176,12 @@ module Knj::Gtk2::Tv
           id = args[:tv].model.get_value(iter, args[:id_col])
           model_obj = args[:ob].get(args[:model_class], id)
           cancel = false
+          callback_hash = {:args => args, :value => value, :model => model_obj, :col_no => col_no, :col_data => col_data}
           
           if col_data[:value_callback]
             begin
-              value = col_data[:value_callback].call(:args => args, :value => value, :model => model_obj, :col_no => col_no, :col_data => col_data)
+              value = col_data[:value_callback].call(callback_hash)
+              callback_hash[:value] = value
             rescue => e
               Knj::Gtk2.msgbox(e.message, "warning")
               cancel = true
@@ -177,29 +189,38 @@ module Knj::Gtk2::Tv
           end
           
           if !cancel
-            args[:change_before].call if args[:change_before]
-            
             begin
-              model_obj[col_data[:col]] = value
-              value = col_data[:value_set_callback].call(:args => args, :value => value, :model => model_obj, :col_no => col_no, :col_data => col_data) if col_data.key?(:value_set_callback)
-              iter[col_no] = value
+              args[:change_before].call(callback_hash) if args[:change_before]
             rescue => e
+              cancel = true
               Knj::Gtk2.msgbox(e.message, "warning")
-            ensure
-              args[:change_after].call(:args => args) if args[:change_after]
+            end
+            
+            if !cancel
+              begin
+                model_obj[col_data[:col]] = value
+                value = col_data[:value_set_callback].call(callback_hash) if col_data.key?(:value_set_callback)
+                iter[col_no] = value
+              rescue => e
+                Knj::Gtk2.msgbox(e.message, "warning")
+              ensure
+                args[:change_after].call(callback_hash) if args[:change_after]
+              end
             end
           end
         end
       elsif renderer.is_a?(Gtk::CellRendererToggle)
         renderer.activatable = true
-        renderer.signal_connect("toggled") do |renderer, path, val|
+        renderer.signal_connect("toggled") do |renderer, path, value|
           iter = args[:tv].model.get_iter(path)
           id = args[:tv].model.get_value(iter, 0)
           model_obj = args[:ob].get(args[:model_class], id)
+          callback_hash = {:args => args, :value => value, :model => model_obj, :col_no => col_no, :col_data => col_data}
           
           if col_data[:value_callback]
             begin
-              value = col_data[:value_callback].call(:args => args, :value => value, :model => model_obj, :col_no => col_no, :col_data => col_data)
+              value = col_data[:value_callback].call(callback_hash)
+              callback_hash[:value] = value
             rescue => e
               Knj::Gtk2.msgbox(e.message, "warning")
               cancel = true
@@ -207,7 +228,7 @@ module Knj::Gtk2::Tv
           end
           
           if !cancel
-            args[:change_before].call if args[:change_before]
+            args[:change_before].call(callback_hash) if args[:change_before]
             begin
               if model_obj[col_data[:col]].to_i == 1
                 model_obj[col_data[:col]] = 0
