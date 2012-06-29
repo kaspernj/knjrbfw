@@ -387,7 +387,11 @@ class Knj::Http2
         cstr << "; " if !first
         first = false if first
         
-        cstr << "#{Knj::Web.urlenc(cookie_data["name"])}=#{Knj::Web.urlenc(cookie_data["value"])}"
+        if cookie_data.is_a?(Hash)
+          cstr << "#{Knj::Web.urlenc(cookie_data["name"])}=#{Knj::Web.urlenc(cookie_data["value"])}"
+        else
+          cstr << "#{Knj::Web.urlenc(cookie_name)}=#{Knj::Web.urlenc(cookie_data)}"
+        end
       end
       
       headers_hash["Cookie"] = cstr
