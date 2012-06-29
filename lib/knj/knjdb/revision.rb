@@ -4,15 +4,20 @@
 # db = Knj::Db.new(:type => "sqlite3", :path => "test_db.sqlite3")
 # schema = {
 #   "tables" => {
-#     "columns" => [
-#       {"name" => "id", "type" => "int", "autoincr" => true, "primarykey" => true},
-#       {"name" => "name", "type" => "varchar"},
-#       {"name" => "lastname", "type" => "varchar"}
-#     ],
-#     "indexes" => [
-#       "name",
-#       {"name" => "lastname", "columns" => ["lastname"]}
-#     ]
+#     "User" => {
+#       "columns" => [
+#         {"name" => "id", "type" => "int", "autoincr" => true, "primarykey" => true},
+#         {"name" => "name", "type" => "varchar"},
+#         {"name" => "lastname", "type" => "varchar"}
+#       ],
+#       "indexes" => [
+#         "name",
+#         {"name" => "lastname", "columns" => ["lastname"]}
+#       ],
+#       "on_create_after" => proc{|d|
+#         d["db"].insert("User", {"name" => "John", "lastname" => "Doe"})
+#       }
+#     }
 #   }
 # }
 # 

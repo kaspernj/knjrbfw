@@ -4,40 +4,78 @@ class Knj::Db::Query_buffer
   def initialize(args)
     @args = args
     @queries = []
+    @inserts = {}
+    @queries_count = 0
     @debug = @args[:debug]
+    @lock = Mutex.new
     
     begin
       yield(self)
     ensure
-      self.flush if !@queries.empty?
+      self.flush if @queries_count > 0 or !@queries.empty? or !@inserts.empty?
     end
   end
   
   #Adds a query to the buffer.
   def query(str)
-    STDOUT.print "Adding to buffer: #{str}\n" if @debug
-    @queries << str
-    self.flush if @queries.length > 1000
+    @lock.synchronize do
+      STDOUT.print "Adding to buffer: #{str}\n" if @debug
+      @queries << str
+      @queries_count += 1
+    end
+    
+    self.flush if @queries_count > 1000
     return nil
   end
   
   #Delete as on a normal Knj::Db.
+  #===Examples
+  # db.q_buffer do |buffer|
+  #   buffer.delete(:users, {:id => 5})
+  # end
   def delete(table, where)
     self.query(@args[:db].delete(table, where, :return_sql => true))
     return nil
   end
   
-  #Flushes all queries out in a transaction.
-  def flush
-    return nil if @queries.empty?
-    
-    @args[:db].transaction do
-      @queries.shift(1000).each do |str|
-        STDOUT.print "Executing via buffer: #{str}\n" if @debug
-        @args[:db].q(str)
-      end
+  #Plans to inset a hash into a table. It will only be inserted when flush is called.
+  #===Examples
+  # db.q_buffer do |buffer|
+  #   buffer.insert(:users, {:name => "John Doe"})
+  # end
+  def insert(table, data)
+    @lock.synchronize do
+      @inserts[table] = [] if !@inserts.key?(table)
+      @inserts[table] << data
+      @queries_count += 1
     end
     
+    self.flush if @queries_count > 1000
     return nil
+  end
+  
+  #Flushes all queries out in a transaction. This will automatically be called for every 1000 queries.
+  def flush
+    @lock.synchronize do
+      return nil if @queries_count <= 0 and @queries.empty? and @inserts.empty?
+      
+      @args[:db].transaction do
+        @queries.shift(1000).each do |str|
+          STDOUT.print "Executing via buffer: #{str}\n" if @debug
+          @args[:db].q(str)
+        end
+        
+        @inserts.each do |table, datas_arr|
+          while !datas_arr.empty?
+            datas_chunk_arr = datas_arr.shift(1000)
+            @args[:db].insert_multi(table, datas_chunk_arr)
+          end
+        end
+      end
+      
+      @inserts.clear
+      @queries_count = 0
+      return nil
+    end
   end
 end

@@ -74,7 +74,9 @@ class KnjDB_mysql::Tables
   def create(name, data, args = nil)
     raise "No columns was given for '#{name}'." if !data["columns"] or data["columns"].empty?
     
-    sql = "CREATE TABLE `#{name}` ("
+    sql = "CREATE"
+    sql << " TEMPORARY" if data["temp"]
+    sql << " TABLE `#{name}` ("
     
     first = true
     data["columns"].each do |col_data|
