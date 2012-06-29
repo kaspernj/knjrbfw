@@ -29,8 +29,10 @@ class Knj::Gtk2::Window
   # Knj::Gtk2::Window.get("my_window") #=> nil
   # Knj::Gtk2::Window.get("my_window") #=> Gtk::Builder-object
   def self.get(id)
+    instance = @@uniques.get!(id)
+    
     if instance and !instance.gui["window"].destroyed?
-      return instance.gui["window"]
+      return instance
     end
     
     return nil
