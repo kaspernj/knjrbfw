@@ -6,6 +6,12 @@ class Knj::Datarow_custom
     return true
   end
   
+  #Initializes variables on the class from objects.
+  def self.datarow_init(d)
+    @@ob = d.ob
+    @@db = d.db
+  end
+  
   def self.has_one(arr)
     arr.each do |val|
       methodname = nil
@@ -28,13 +34,13 @@ class Knj::Datarow_custom
       colname = "#{classname.to_s.downcase}_id".to_sym if !colname
       
       define_method(methodname) do
-        return @ob.get_try(self, colname, classname)
+        return @@ob.get_try(self, colname, classname)
       end
       
       methodname_html = "#{methodname.to_s}_html".to_sym
       define_method(methodname_html) do |*args|
         obj = self.send(methodname)
-        return @ob.events.call(:no_html, classname) if !obj
+        return @@ob.events.call(:no_html, classname) if !obj
         
         raise "Class '#{classname}' does not have a 'html'-method." if !obj.respond_to?(:html)
         return obj.html(*args)
@@ -63,13 +69,10 @@ class Knj::Datarow_custom
   end
   
   def table
-    return self.class.name.split("::").last
+    return self.class.table
   end
   
-  def initialize(d)
-    @ob = d.ob
-    data = d.data
-    
+  def initialize(data, args)
     if data.is_a?(Hash)
       @data = Knj::ArrayExt.hash_sym(data)
       @id = self.id
@@ -95,14 +98,8 @@ class Knj::Datarow_custom
   
   #Returns a key from the hash that this object is holding or raises an error if it doesnt exist.
   def [](key)
-    if !@data
-      raise "No data spawned on object."
-    end
-    
-    if !@data.key?(key)
-      raise "No such key: '#{key}'. Available keys are: '#{@data.keys.sort.join(", ")}'."
-    end
-    
+    raise "No data spawned on object." if !@data
+    raise "No such key: '#{key}'. Available keys are: '#{@data.keys.sort.join(", ")}'." if !@data.key?(key)
     return @data[key]
   end
   

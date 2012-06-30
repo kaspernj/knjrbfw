@@ -481,7 +481,6 @@ class Knj::Web
     if opthash.is_a?(Hash) or opthash.class.to_s == "Dictionary"
       opthash.each do |key, value|
         html << "<option"
-        
         sel = false
         
         if curvalue.is_a?(Array) and curvalue.index(key) != nil
@@ -499,8 +498,8 @@ class Knj::Web
       opthash.each_index do |key|
         if opthash[key.to_i] != nil
           html << "<option"
-          html << " selected=\"selected\"" if curvalue.to_i == key.to_i
-          html << " value=\"#{key.to_s}\">#{opthash[key].to_s}</option>"
+          html << " selected=\"selected\"" if curvalue.to_s == key.to_s
+          html << " value=\"#{Knj::Web.html(key)}\">#{Knj::Web.html(opthash[key])}</option>"
         end
       end
     end
