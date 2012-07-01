@@ -19,6 +19,7 @@ class Knj::Objects
     @lock_require = Monitor.new
     
     require "wref" if @args[:cache] == :weak and !Kernel.const_defined?(:Wref)
+    require "array_enumerator" if @args[:array_enum] and !Kernel.const_defined?(:Array_enumerator)
     
     #Set up various events.
     @events = Knj::Event_handler.new
@@ -562,18 +563,33 @@ class Knj::Objects
       end
     end
     
-    @args[:db].q(sql, qargs) do |d_obs|
-      if block
-        block.call(self.get(classname, d_obs))
-      else
-        ret << self.get(classname, d_obs)
+    if @args[:array_enum]
+      enum = Enumerator.new do |yielder|
+        @args[:db].q(sql, qargs) do |d_obs|
+          yielder << self.get(classname, d_obs)
+        end
       end
-    end
-    
-    if !block
-      return ret
+      
+      if block
+        enum.each(&block)
+        return nil
+      else
+        return Array_enumerator.new(enum)
+      end
     else
-      return nil
+      @args[:db].q(sql, qargs) do |d_obs|
+        if block
+          block.call(self.get(classname, d_obs))
+        else
+          ret << self.get(classname, d_obs)
+        end
+      end
+      
+      if !block
+        return ret
+      else
+        return nil
+      end
     end
   end
   

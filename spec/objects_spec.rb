@@ -2,11 +2,12 @@ require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
 describe "Objects" do
   it "should be able to cache rows" do
+    require "~/Dev/Ruby/array_enumerator/lib/array_enumerator"
     require "sqlite3" if RUBY_ENGINE != "jruby"
     
     $db_path = "#{Knj::Os.tmpdir}/knjrbfw_objects_cache_test.sqlite3"
     File.unlink($db_path) if File.exists?($db_path)
-    $db = Knj::Db.new(:type => :sqlite3, :path => $db_path, :return_keys => "symbols")
+    $db = Knj::Db.new(:type => :sqlite3, :path => $db_path, :return_keys => "symbols", :debug => false)
     
     schema = {
       "tables" => {
@@ -32,6 +33,7 @@ describe "Objects" do
       :db => $db,
       :datarow => true,
       :require => false,
+      :array_enum => false,
       :models => {
         :User => {
           :cache_ids => true
@@ -50,6 +52,7 @@ describe "Objects" do
     raise "Expected user-ID-cache to be 5 but it wasnt: #{$ob.ids_cache[:User].length}" if $ob.ids_cache[:User].length != 5
     
     user = $ob.get(:User, 4)
+    raise "No user returned." if !user
     $ob.delete(user)
     raise "Expected user-ID-cache to be 4 but it wasnt: #{$ob.ids_cache[:User].length} #{$ob.ids_cache}" if $ob.ids_cache[:User].length != 4
     
@@ -64,7 +67,7 @@ describe "Objects" do
     end
     
     $ob.adds(:User, userd)
-    users = $ob.list(:User)
+    users = $ob.list(:User).to_a
     
     #Stress it to test threadsafety...
     threads = []
@@ -72,16 +75,23 @@ describe "Objects" do
       threads << Knj::Thread.new do
         0.upto(10) do |ic|
           user = $ob.add(:User, {:username => "User #{tc}-#{ic}"})
+          raise "No user returned." if !user
           $ob.delete(user)
           
           user1 = $ob.add(:User, {:username => "User #{tc}-#{ic}-1"})
           user2 = $ob.add(:User, {:username => "User #{tc}-#{ic}-2"})
           user3 = $ob.add(:User, {:username => "User #{tc}-#{ic}-3"})
+          
+          raise "Missing user?" if !user1 or !user2 or !user3 or user1.deleted? or user2.deleted? or user3.deleted?
           $ob.deletes([user1, user2, user3])
           
+          count = 0
           users.each do |user|
+            count += 1
             user[:username] = "#{user[:username]}." if !user.deleted?
           end
+          
+          raise "Expected at least 15 users but got #{count}." if count != 18
         end
       end
     end
