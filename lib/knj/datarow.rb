@@ -452,19 +452,18 @@ class Knj::Datarow
     return sql.to_s if d.args["return_sql"]
     
     if select_col_as_array
-      ids = [] if !block
-      d.db.q(sql, qargs) do |data|
-        if block
-          block.call(data[:id])
-        else
-          ids << data[:id]
+      enum = Enumerator.new do |yielder|
+        d.db.q(sql, qargs) do |data|
+          yielder << data[:id]
         end
       end
       
-      if !block
-        return ids
+      if block
+        enum.each(&block)
+      elsif d.ob.args[:array_enum]
+        return Array_enumerator.new(enum)
       else
-        return nil
+        return enum.to_a
       end
     elsif count
       ret = d.db.query(sql).fetch

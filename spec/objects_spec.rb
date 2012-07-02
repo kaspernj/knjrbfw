@@ -33,7 +33,7 @@ describe "Objects" do
       :db => $db,
       :datarow => true,
       :require => false,
-      :array_enum => false,
+      :array_enum => true,
       :models => {
         :User => {
           :cache_ids => true
@@ -58,6 +58,11 @@ describe "Objects" do
     
     $ob.deletes([$ob.get(:User, 1), $ob.get(:User, 2)])
     raise "Expected user-ID-cache to be 2 but it wasnt: #{$ob.ids_cache[:User].length} #{$ob.ids_cache}" if $ob.ids_cache[:User].length != 2
+  end
+  
+  it "should be able to do 'select_col_as_array'" do
+    res = $ob.list(:User, {"select_col_as_array" => "id"})
+    raise "Expected length of 2 but got: #{res.length}" if res.length != 2
   end
   
   it "should work even though stressed by threads (thread-safe)." do
