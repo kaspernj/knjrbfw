@@ -460,6 +460,7 @@ class Knj::Datarow
       
       if block
         enum.each(&block)
+        return nil
       elsif d.ob.args[:array_enum]
         return Array_enumerator.new(enum)
       else

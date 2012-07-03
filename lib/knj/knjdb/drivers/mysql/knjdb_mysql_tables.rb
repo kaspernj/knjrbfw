@@ -39,9 +39,7 @@ class KnjDB_mysql::Tables
     ret = {} unless block_given?
     
     sql = "SHOW TABLE STATUS"
-    if args[:name]
-      sql << " WHERE `Name` = '#{@db.esc(args[:name])}'"
-    end
+    sql << " WHERE `Name` = '#{@db.esc(args[:name])}'" if args[:name]
     
     @list_mutex.synchronize do
       @db.q(sql) do |d_tables|
@@ -154,26 +152,25 @@ class KnjDB_mysql::Tables::Table
   def column(name)
     name = name.to_s
     
-    begin
+    if col = @list.get!(name)
       return @list[name]
-    rescue Wref::Recycled
-      #ignore.
     end
     
-    self.columns do |col|
+    self.columns(:name => name) do |col|
       return col if col.name == name
     end
     
     raise Knj::Errors::NotFound.new("Column not found: '#{name}'.")
   end
   
-  def columns
+  def columns(args = nil)
     @db.cols
     ret = {}
     sql = "SHOW FULL COLUMNS FROM `#{self.name}`"
+    sql << " WHERE `Field` = '#{@db.esc(args[:name])}'" if args and args.key?(:name)
     
     @db.q(sql) do |d_cols|
-      obj = @list.get!(d_cols[:Field])
+      obj = @list.get!(d_cols[:Field].to_s)
       
       if !obj
         obj = KnjDB_mysql::Columns::Column.new(
@@ -181,13 +178,13 @@ class KnjDB_mysql::Tables::Table
           :db => @db,
           :data => d_cols
         )
-        @list[d_cols[:Field]] = obj
+        @list[d_cols[:Field].to_s] = obj
       end
       
       if block_given?
         yield(obj)
       else
-        ret[d_cols[:Field]] = obj
+        ret[d_cols[:Field].to_s] = obj
       end
     end
     
@@ -198,14 +195,17 @@ class KnjDB_mysql::Tables::Table
     end
   end
   
-  def indexes
+  def indexes(args = nil)
     @db.indexes
     ret = {}
     
-    @db.q("SHOW INDEX FROM `#{self.name}`") do |d_indexes|
+    sql = "SHOW INDEX FROM `#{self.name}`"
+    sql << " WHERE `Key_name` = '#{@db.esc(args[:name])}'" if args and args.key?(:name)
+    
+    @db.q(sql) do |d_indexes|
       next if d_indexes[:Key_name] == "PRIMARY"
       
-      obj = @indexes_list.get!(d_indexes[:Key_name])
+      obj = @indexes_list.get!(d_indexes[:Key_name].to_s)
       
       if !obj
         obj = KnjDB_mysql::Indexes::Index.new(
@@ -214,13 +214,13 @@ class KnjDB_mysql::Tables::Table
           :data => d_indexes
         )
         obj.columns << d_indexes[:Column_name]
-        @indexes_list[d_indexes[:Key_name]] = obj
+        @indexes_list[d_indexes[:Key_name].to_s] = obj
       end
       
       if block_given?
         yield(obj)
       else
-        ret[d_indexes[:Key_name]] = obj
+        ret[d_indexes[:Key_name].to_s] = obj
       end
     end
     
@@ -234,14 +234,12 @@ class KnjDB_mysql::Tables::Table
   def index(name)
     name = name.to_s
     
-    begin
-      return @indexes_list[name]
-    rescue Wref::Recycled
-      #ignore.
+    if index = @indexes_list.get!(name)
+      return index
     end
     
-    self.indexes do |index|
-      return index if index.name == name
+    self.indexes(:name => name) do |index|
+      return index if index.name.to_s == name
     end
     
     raise Knj::Errors::NotFound.new("Index not found: #{name}.")
