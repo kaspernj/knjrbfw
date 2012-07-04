@@ -741,7 +741,7 @@ class Knj::Objects
   #===Examples
   # user = ob.get(:User, 1)
   # ob.delete(user)
-  def delete(object)
+  def delete(object, args = nil)
     #Return false if the object has already been deleted.
     return false if object.deleted?
     classname = object.class.classname.to_sym
@@ -755,7 +755,7 @@ class Knj::Objects
       #If autodelete is set by 'has_many'-method, go through it and delete the various objects first.
       object.class.autodelete_data.each do |adel_data|
         self.list(adel_data[:classname], {adel_data[:colname].to_s => object.id}) do |obj_del|
-          self.delete(obj_del)
+          self.delete(obj_del, args)
         end
       end
       
@@ -772,12 +772,18 @@ class Knj::Objects
         _kas.trans_del(object)
       end
       
-      @args[:db].delete(object.table, {:id => obj_id})
+      #If a buffer is given in arguments, then use that to delete the object.
+      if args and buffer = args[:db_buffer]
+        buffer.delete(object.table, {:id => obj_id})
+      else
+        @args[:db].delete(object.table, {:id => obj_id})
+      end
     end
     
     @ids_cache[classname].delete(obj_id.to_i) if @ids_cache_should.key?(classname)
     self.call("object" => object, "signal" => "delete")
     object.destroy
+    return nil
   end
   
   #Deletes several objects as one. If running datarow-mode it checks all objects before it starts to actually delete them. Its faster than deleting every single object by itself...

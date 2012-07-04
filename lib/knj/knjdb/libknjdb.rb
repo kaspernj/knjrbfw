@@ -235,33 +235,37 @@ class Knj::Db
   # sql = db.insert(:users, {:name => "John", :lastname => "Doe"}, :return_sql => true) #=> "INSERT INTO `users` (`name`, `lastname`) VALUES ('John', 'Doe')"
   def insert(tablename, arr_insert, args = nil)
     self.conn_exec do |driver|
-      sql = "INSERT INTO #{driver.escape_table}#{tablename.to_s}#{driver.escape_table} ("
+      sql = "INSERT INTO #{driver.escape_table}#{tablename.to_s}#{driver.escape_table}"
       
-      first = true
-      arr_insert.each do |key, value|
-        if first
-          first = false
-        else
-          sql << ", "
+      if arr_insert and !arr_insert.empty?
+        sql << " ("
+        
+        first = true
+        arr_insert.each do |key, value|
+          if first
+            first = false
+          else
+            sql << ", "
+          end
+          
+          sql << "#{driver.escape_col}#{key.to_s}#{driver.escape_col}"
         end
         
-        sql << "#{driver.escape_col}#{key.to_s}#{driver.escape_col}"
-      end
-      
-      sql << ") VALUES ("
-      
-      first = true
-      arr_insert.each do |key, value|
-        if first
-          first = false
-        else
-          sql << ", "
+        sql << ")  VALUES ("
+        
+        first = true
+        arr_insert.each do |key, value|
+          if first
+            first = false
+          else
+            sql << ", "
+          end
+          
+          sql << "#{driver.escape_val}#{driver.escape(value.to_s)}#{driver.escape_val}"
         end
         
-        sql << "#{driver.escape_val}#{driver.escape(value.to_s)}#{driver.escape_val}"
+        sql << ")"
       end
-      
-      sql << ")"
       
       return sql if args and args[:return_sql]
       driver.query(sql)
@@ -473,11 +477,11 @@ class Knj::Db
   #   str = driver.escape('something̈́')
   # end
   def conn_exec
-    if Thread.current[:knjdb]
+    if tcur = Thread.current and tcur[:knjdb]
       tid = self.__id__
       
-      if Thread.current[:knjdb].key?(tid)
-        yield(Thread.current[:knjdb][tid])
+      if tcur[:knjdb].key?(tid)
+        yield(tcur[:knjdb][tid])
         return nil
       end
     end
@@ -603,6 +607,7 @@ class Knj::Db
   #Yields a query-buffer and flushes at the end of the block given.
   def q_buffer(&block)
     Knj::Db::Query_buffer.new(:db => self, &block)
+    return nil
   end
   
   #Returns the last inserted ID.

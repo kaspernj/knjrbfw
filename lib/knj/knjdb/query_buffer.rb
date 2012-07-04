@@ -12,7 +12,7 @@ class Knj::Db::Query_buffer
     begin
       yield(self)
     ensure
-      self.flush if @queries_count > 0 or !@queries.empty? or !@inserts.empty?
+      self.flush
     end
   end
   
@@ -24,7 +24,7 @@ class Knj::Db::Query_buffer
       @queries_count += 1
     end
     
-    self.flush if @queries_count > 1000
+    self.flush if @queries_count >= 1000
     return nil
   end
   
@@ -50,15 +50,15 @@ class Knj::Db::Query_buffer
       @queries_count += 1
     end
     
-    self.flush if @queries_count > 1000
+    self.flush if @queries_count >= 1000
     return nil
   end
   
   #Flushes all queries out in a transaction. This will automatically be called for every 1000 queries.
   def flush
+    return nil if @queries_count <= 0
+    
     @lock.synchronize do
-      return nil if @queries_count <= 0 and @queries.empty? and @inserts.empty?
-      
       @args[:db].transaction do
         @queries.shift(1000).each do |str|
           STDOUT.print "Executing via buffer: #{str}\n" if @debug
@@ -75,7 +75,8 @@ class Knj::Db::Query_buffer
       
       @inserts.clear
       @queries_count = 0
-      return nil
     end
+    
+    return nil
   end
 end

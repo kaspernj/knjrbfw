@@ -61,7 +61,7 @@ describe "Objects" do
   end
   
   it "should be able to do 'select_col_as_array'" do
-    res = $ob.list(:User, {"select_col_as_array" => "id"})
+    res = $ob.list(:User, {"select_col_as_array" => "id"}).to_a
     raise "Expected length of 2 but got: #{res.length}" if res.length != 2
   end
   
@@ -119,7 +119,8 @@ describe "Objects" do
     0.upto(10) do
       threads << Knj::Thread.new do
         0.upto(15) do
-          $ob2.add(:Group, {:groupname => "User 1"}, {:skip_ret => true})
+          ret = $ob2.add(:Group, {:groupname => "User 1"}, {:skip_ret => true})
+          raise "Expected empty return but got something: #{ret}" if ret
         end
       end
     end
@@ -184,10 +185,14 @@ describe "Objects" do
       "name" => "Test project"
     })
     
+    count = 0
     $db.q("SELECT * FROM Project") do |d|
       raise "Somehow name was not 'Test project'" if d[:name] != "Test project"
       raise "ID was not set?" if d[:id].to_i <= 0
+      count += 1
     end
+    
+    raise "Expected count of 1 but it wasnt: #{count}" if count != 1
   end
   
   it "should be able to automatic generate methods on datarow-classes (has_many, has_one)." do
@@ -280,6 +285,31 @@ describe "Objects" do
     raise "Unexpected person_html from task (should have been 'Kasper'): '#{task.person_html}'." if task.person_html != "Kasper"
     task.update(:person_id => 0)
     raise "Unexpected person_html from task (should have been '[no person]')." if task.person_html != "[no person]"
+  end
+  
+  it "should be able to to multiple additions and delete objects through a buffer" do
+    objs = []
+    0.upto(10000) do
+      objs << {:name => :Kasper}
+    end
+    
+    $ob.adds(:Person, objs)
+    pers_length = $ob.list(:Person, "count" => true)
+    
+    count = 0
+    $db.q_buffer do |buffer|
+      $ob.list(:Person) do |person|
+        count += 1
+        $ob.delete(person, :db_buffer => buffer)
+      end
+      
+      buffer.flush
+    end
+    
+    raise "Expected count to be #{pers_length} but it wasnt: #{count}" if count != pers_length
+    
+    persons = $ob.list(:Person).to_a
+    raise "Expected persons count to be 0 but it wasnt: #{persons.map{|e| e.data} }" if persons.length > 0
   end
   
   it "should delete the temp database again." do
