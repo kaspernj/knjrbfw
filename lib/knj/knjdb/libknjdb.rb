@@ -237,7 +237,10 @@ class Knj::Db
     self.conn_exec do |driver|
       sql = "INSERT INTO #{driver.escape_table}#{tablename.to_s}#{driver.escape_table}"
       
-      if arr_insert and !arr_insert.empty?
+      if !arr_insert or arr_insert.empty?
+        #This is the correct syntax for inserting a blank row in MySQL.
+        sql << " VALUES ()"
+      else
         sql << " ("
         
         first = true
@@ -314,7 +317,7 @@ class Knj::Db
   #
   #===Examples
   # db.update(:users, {:name => "John"}, {:lastname => "Doe"})
-  def update(tablename, arr_update, arr_terms = {})
+  def update(tablename, arr_update, arr_terms = {}, args = nil)
     return false if arr_update.empty?
     
     self.conn_exec do |driver|
@@ -340,6 +343,7 @@ class Knj::Db
         sql << " WHERE #{self.makeWhere(arr_terms, driver)}"
       end
       
+      return sql if args and args[:return_sql]
       driver.query(sql)
     end
   end
@@ -459,6 +463,7 @@ class Knj::Db
       end
       
       if value.is_a?(Array)
+        raise "Array for column '#{key}' was empty." if value.empty?
         sql << "#{driver.escape_col}#{key}#{driver.escape_col} IN (#{Knj::ArrayExt.join(:arr => value, :sep => ",", :surr => "'", :callback => proc{|ele| self.esc(ele)})})"
       elsif value.is_a?(Hash)
         raise "Dont know how to handle hash."

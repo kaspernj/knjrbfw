@@ -42,7 +42,7 @@ class Knj::Db::Revision
     raise "No tables given." if !schema.has_key?("tables")
     
     #Cache tables to avoid constant reloading.
-    if !args["tables_cache"] or args["tables_cache"]
+    if !args.key?("tables_cache") or args["tables_cache"]
       print "Caching tables-list.\n" if args["debug"]
       tables = db.tables.list
     else
