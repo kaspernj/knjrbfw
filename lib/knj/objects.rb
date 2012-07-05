@@ -455,40 +455,6 @@ class Knj::Objects
     end
   end
   
-  #Yields every object that is missing certain required objects (based on 'has_one' depends-argument).
-  def list_invalid_depend(args, &block)
-    enum = Enumerator.new do |yielder|
-      classname = args[:class]
-      classob = @args[:module].const_get(classname)
-      dep_data = classob.depending_data
-      
-      dep_data.each do |dep_data|
-        self.list(dep_data[:classname], :cloned_ubuf => true) do |obj|
-          puts "Checking #{obj.classname}(#{obj.id}) for dep." if args[:debug]
-          
-          begin
-            obj_dep_on = self.get(classname, obj[dep_data[:colname]])
-          rescue Knj::Errors::NotFound
-            yielder << {:obj => obj, :type => :depends, :data => dep_data}
-          end
-        end
-      end
-    end
-    
-    return Knj::Objects.handle_return(:enum => enum, :block => block)
-  end
-  
-  def self.handle_return(args)
-    if args[:block]
-      args[:enum].each(&args[:block])
-      return nil
-    elsif @args[:array_enum]
-      return Array_enumerator.new(args[:enum])
-    else
-      return args[:enum]
-    end
-  end
-  
   #Yields every object that is missing certain required objects (based on 'has_many' required-argument).
   def list_invalid_required(args, &block)
     enum = Enumerator.new do |yielder|
@@ -499,11 +465,13 @@ class Knj::Objects
       required_data.each do |req_data|
         self.list(args[:class], :cloned_ubuf => true) do |obj|
           puts "Checking #{obj.classname}(#{obj.id}) for required #{req_data[:class]}." if args[:debug]
+          id = obj[req_data[:col]]
           
           begin
-            obj_req = self.get(req_data[:class], obj[req_data[:col]])
+            raise Knj::Errors::NotFound if !id
+            obj_req = self.get(req_data[:class], id)
           rescue Knj::Errors::NotFound
-            yielder << {:obj => obj, :type => :required, :id => obj[req_data[:col]], :data => req_data}
+            yielder << {:obj => obj, :type => :required, :id => id, :data => req_data}
           end
         end
       end

@@ -76,9 +76,9 @@ describe "Objects" do
     
     #Stress it to test threadsafety...
     threads = []
-    0.upto(10) do |tc|
+    0.upto(5) do |tc|
       threads << Knj::Thread.new do
-        0.upto(10) do |ic|
+        0.upto(5) do |ic|
           user = $ob.add(:User, {:username => "User #{tc}-#{ic}"})
           raise "No user returned." if !user
           $ob.delete(user)
@@ -116,9 +116,9 @@ describe "Objects" do
     )
     
     threads = []
-    0.upto(10) do
+    0.upto(5) do
       threads << Knj::Thread.new do
-        0.upto(15) do
+        0.upto(5) do
           ret = $ob2.add(:Group, {:groupname => "User 1"}, {:skip_ret => true})
           raise "Expected empty return but got something: #{ret}" if ret
         end
@@ -228,6 +228,28 @@ describe "Objects" do
       :project_id => 1
     })
     
+    begin
+      $obb.add(:Task, {:name => "Test task"})
+      raise "Method should fail but didnt."
+    rescue
+      #ignore.
+    end
+    
+    
+    #Test 'list_invalid_required'.
+    $db.insert(:Task, :name => "Invalid require")
+    id = $db.last_id
+    found = false
+    
+    $ob.list_invalid_required(:class => :Task) do |d|
+      raise "Expected object ID to be #{id} but it wasnt: #{d[:obj].id}" if d[:obj].id.to_i != id.to_i
+      $ob.delete(d[:obj])
+      found = true
+    end
+    
+    raise "Expected to find a task but didnt." if !found
+    
+    
     ret_proc = []
     $ob.list(:Task) do |task|
       ret_proc << task
@@ -289,7 +311,7 @@ describe "Objects" do
   
   it "should be able to to multiple additions and delete objects through a buffer" do
     objs = []
-    0.upto(10000) do
+    0.upto(500) do
       objs << {:name => :Kasper}
     end
     
