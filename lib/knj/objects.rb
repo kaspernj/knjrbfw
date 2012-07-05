@@ -367,6 +367,15 @@ class Knj::Objects
     return obj
   end
   
+  #Same as normal get but returns false if not found instead of raising error.
+  def get!(*args, &block)
+    begin
+      return self.get(*args, &block)
+    rescue Knj::Errors::NotFound
+      return false
+    end
+  end
+  
   def object_finalizer(id)
     classname = @objects_idclass[id]
     if classname
@@ -411,6 +420,10 @@ class Knj::Objects
   end
   
   #Returns an array-list of objects. If given a block the block will be called for each element and memory will be spared if running weak-link-mode.
+  #===Examples
+  # ob.list(:User) do |user|
+  #   print "Username: #{user.name}\n"
+  # end
   def list(classname, args = {}, &block)
     args = {} if args == nil
     classname = classname.to_sym
@@ -439,6 +452,68 @@ class Knj::Objects
       return nil
     else
       return ret
+    end
+  end
+  
+  #Yields every object that is missing certain required objects (based on 'has_one' depends-argument).
+  def list_invalid_depend(args, &block)
+    enum = Enumerator.new do |yielder|
+      classname = args[:class]
+      classob = @args[:module].const_get(classname)
+      dep_data = classob.depending_data
+      
+      dep_data.each do |dep_data|
+        self.list(dep_data[:classname], :cloned_ubuf => true) do |obj|
+          puts "Checking #{obj.classname}(#{obj.id}) for dep." if args[:debug]
+          
+          begin
+            obj_dep_on = self.get(classname, obj[dep_data[:colname]])
+          rescue Knj::Errors::NotFound
+            yielder << {:obj => obj, :type => :depends, :data => dep_data}
+          end
+        end
+      end
+    end
+    
+    return Knj::Objects.handle_return(:enum => enum, :block => block)
+  end
+  
+  def self.handle_return(args)
+    if args[:block]
+      args[:enum].each(&args[:block])
+      return nil
+    elsif @args[:array_enum]
+      return Array_enumerator.new(args[:enum])
+    else
+      return args[:enum]
+    end
+  end
+  
+  #Yields every object that is missing certain required objects (based on 'has_many' required-argument).
+  def list_invalid_required(args, &block)
+    enum = Enumerator.new do |yielder|
+      classname = args[:class]
+      classob = @args[:module].const_get(classname)
+      required_data = classob.required_data
+      
+      required_data.each do |req_data|
+        self.list(args[:class], :cloned_ubuf => true) do |obj|
+          puts "Checking #{obj.classname}(#{obj.id}) for required #{req_data[:class]}." if args[:debug]
+          
+          begin
+            obj_req = self.get(req_data[:class], obj[req_data[:col]])
+          rescue Knj::Errors::NotFound
+            yielder << {:obj => obj, :type => :required, :id => obj[req_data[:col]], :data => req_data}
+          end
+        end
+      end
+    end
+    
+    if block
+      enum.each(&block)
+      return nil
+    else
+      return enum
     end
   end
   

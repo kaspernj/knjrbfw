@@ -90,9 +90,22 @@ class Knj::Datarow
       if val.is_a?(Array)
         classname, colname, methodname = *val
       elsif val.is_a?(Hash)
-        classname = val[:class]
-        colname = val[:col]
-        methodname = val[:method]
+        classname, colname, methodname = nil, nil, nil
+        
+        val.each do |hkey, hval|
+          case hkey
+            when :class
+              classname = hval
+            when :col
+              colname = hval
+            when :method
+              methodname = hval
+            when :depends, :autodelete
+              #ignore
+            else
+              raise "Invalid key for 'has_many': '#{hkey}'."
+          end
+        end
         
         if val[:depends]
           self.depending_data << {
@@ -110,6 +123,8 @@ class Knj::Datarow
       else
         raise "Unknown argument: '#{val.class.name}'."
       end
+      
+      raise "No column was given for '#{self.name}' regarding has-many-class: '#{classname}'." if !colname
       
       if val.is_a?(Hash) and val.key?(:where)
         where_args = val[:where]
@@ -181,7 +196,22 @@ class Knj::Datarow
       elsif val.is_a?(Array)
         classname, colname, methodname = *val
       elsif val.is_a?(Hash)
-        classname, colname, methodname = val[:class], val[:col], val[:method]
+        classname, colname, methodname = nil, nil, nil
+        
+        val.each do |hkey, hval|
+          case hkey
+            when :class
+              classname = hval
+            when :col
+              colname = hval
+            when :method
+              methodname = hval
+            when :required
+              #ignore
+            else
+              raise "Invalid key for class '#{self.name}' functionality 'has_many': '#{hkey}'."
+          end
+        end
         
         if val[:required]
           colname = "#{classname.to_s.downcase}_id".to_sym if !colname
