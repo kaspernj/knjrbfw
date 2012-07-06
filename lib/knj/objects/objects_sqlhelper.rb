@@ -189,6 +189,7 @@ class Knj::Objects
         if !args[:joins_skip]
           datarow_obj = self.datarow_obj_from_args(args_def, list_args, realkey[0])
           args = datarow_obj.columns_sqlhelper_args
+          raise "Couldnt get arguments from SQLHelper." if !args
         else
           datarow_obj = @args[:module].const_get(realkey[0])
           args = args_def
@@ -476,10 +477,14 @@ class Knj::Objects
   
   def datarow_from_datarow_argument(datarow_argument)
     if datarow_argument.is_a?(String)
-      return Knj::Strings.const_get_full(datarow_argument)
+      const = Knj::Strings.const_get_full(datarow_argument)
+    else
+      const = datarow_argument
     end
     
-    return datarow_argument
+    self.load_class(datarow_argument.to_s.split("::").last) if !const.initialized? #Make sure the class is initialized.
+    
+    return const
   end
   
   def not(not_v, val)

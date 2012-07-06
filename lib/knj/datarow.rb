@@ -42,6 +42,12 @@ class Knj::Datarow
     return @depending_data
   end
   
+  #Returns true if this class has been initialized.
+  def self.initialized?
+    return false if !@ob or !@columns_sqlhelper_args
+    return true
+  end
+  
   #This is used by 'Knj::Objects' to find out which other objects should be deleted when an object of this class is deleted automatically. Returns the array that tells about autodelete data.
   #===Examples
   #This will trigger Knj::Objects to automatically delete all the users pictures, when deleting the current user.
@@ -107,6 +113,8 @@ class Knj::Datarow
           end
         end
         
+        colname = "#{self.name.to_s.split("::").last.to_s.downcase}_id".to_sym if colname.to_s.empty?
+        
         if val[:depends]
           self.depending_data << {
             :colname => colname,
@@ -124,6 +132,8 @@ class Knj::Datarow
         raise "Unknown argument: '#{val.class.name}'."
       end
       
+      raise "No classname given." if !classname
+      methodname = "#{classname.to_s.downcase}s".to_sym if !methodname
       raise "No column was given for '#{self.name}' regarding has-many-class: '#{classname}'." if !colname
       
       if val.is_a?(Hash) and val.key?(:where)
@@ -131,9 +141,6 @@ class Knj::Datarow
       else
         where_args = nil
       end
-      
-      raise "No classname given." if !classname
-      methodname = "#{classname.to_s.downcase}s".to_sym if !methodname
       
       define_method(methodname) do |*args, &block|
         if args and args[0]
@@ -336,6 +343,7 @@ class Knj::Datarow
   
   #Returns various data for the objects-sql-helper. This can be used to view various informations about the columns and more.
   def self.columns_sqlhelper_args
+    raise "No SQLHelper arguments has been spawned yet." if !@columns_sqlhelper_args
     return @columns_sqlhelper_args
   end
   

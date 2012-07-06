@@ -9,6 +9,8 @@ class Knj::Db::Query_buffer
     @debug = @args[:debug]
     @lock = Mutex.new
     
+    STDOUT.puts "Query buffer started." if @debug
+    
     begin
       yield(self)
     ensure
@@ -34,6 +36,7 @@ class Knj::Db::Query_buffer
   #   buffer.delete(:users, {:id => 5})
   # end
   def delete(table, where)
+    STDOUT.puts "Delete called on table #{table} with arguments: '#{where}'." if @debug
     self.query(@args[:db].delete(table, where, :return_sql => true))
     return nil
   end

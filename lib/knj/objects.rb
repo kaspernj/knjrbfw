@@ -462,27 +462,24 @@ class Knj::Objects
       classob = @args[:module].const_get(classname)
       required_data = classob.required_data
       
-      required_data.each do |req_data|
-        self.list(args[:class], :cloned_ubuf => true) do |obj|
-          puts "Checking #{obj.classname}(#{obj.id}) for required #{req_data[:class]}." if args[:debug]
-          id = obj[req_data[:col]]
-          
-          begin
-            raise Knj::Errors::NotFound if !id
-            obj_req = self.get(req_data[:class], id)
-          rescue Knj::Errors::NotFound
-            yielder << {:obj => obj, :type => :required, :id => id, :data => req_data}
+      if required_data and !required_data.empty?
+        required_data.each do |req_data|
+          self.list(args[:class], :cloned_ubuf => true) do |obj|
+            puts "Checking #{obj.classname}(#{obj.id}) for required #{req_data[:class]}." if args[:debug]
+            id = obj[req_data[:col]]
+            
+            begin
+              raise Knj::Errors::NotFound if !id
+              obj_req = self.get(req_data[:class], id)
+            rescue Knj::Errors::NotFound
+              yielder << {:obj => obj, :type => :required, :id => id, :data => req_data}
+            end
           end
         end
       end
     end
     
-    if block
-      enum.each(&block)
-      return nil
-    else
-      return enum
-    end
+    return Knj.handle_return(:enum => enum, :block => block)
   end
   
   #Returns select-options-HTML for inserting into a HTML-select-element.
@@ -811,9 +808,7 @@ class Knj::Objects
       end
       
       #Delete any translations that has been set on the object by 'has_translation'-method.
-      if object.class.translations
-        _kas.trans_del(object)
-      end
+      _kas.trans_del(object) if object.class.translations
       
       #If a buffer is given in arguments, then use that to delete the object.
       if args and buffer = args[:db_buffer]
@@ -909,6 +904,10 @@ class Knj::Objects
   #Erases the whole cache and regenerates is from ObjectSpace if not running weak-link-caching. If running weaklink-caching then only removes the dead links.
   def clean_all
     self.clean(@objects.keys)
+  end
+  
+  def classes_loaded
+    return @objects.keys
   end
 end
 

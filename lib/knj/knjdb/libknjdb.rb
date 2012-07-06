@@ -764,8 +764,20 @@ class Knj::Db
     end
   end
   
+  #Returns the sign to be used for surrounding tables.
   def col_table
     return "`"
+  end
+  
+  #Optimizes all tables in the database.
+  def optimize(args = nil)
+    STDOUT.puts "Beginning optimization of database." if @debug or (args and args[:debug])
+    self.tables.list do |table|
+      STDOUT.puts "Optimizing table: '#{table.name}'." if @debug or (args and args[:debug])
+      table.optimize
+    end
+    
+    return nil
   end
   
   #Proxies the method to the driver.
