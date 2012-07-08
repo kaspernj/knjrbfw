@@ -334,4 +334,22 @@ module Knj::ArrayExt
       return ret
     end
   end
+  
+  #Returns a given hash in an array by mathing the contents up against another hash.
+  def self.array_hash_find(args)
+    args[:arr].each do |h|
+      found = true
+      
+      args[:args].each do |key, val|
+        if h[key] != val
+          found = false
+          break
+        end
+      end
+      
+      return h if found
+    end
+    
+    return nil
+  end
 end
