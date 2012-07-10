@@ -25,7 +25,14 @@ class KnjDB_sqlite3::Columns
     sql << "(#{data["maxlength"]})" if data["maxlength"] and !data["autoincr"]
     sql << " PRIMARY KEY" if data["primarykey"]
     sql << " AUTOINCREMENT" if data["autoincr"]
-    sql << " NOT NULL" if !data["null"] and data.key?("null")
+    
+    if !data["null"] and data.key?("null")
+      sql << " NOT NULL"
+      
+      if !data.key?("default") or !data["default"]
+        data["default"] = 0 if type == "int"
+      end
+    end
     
     if data.key?("default_func")
       sql << " DEFAULT #{data["default_func"]}"

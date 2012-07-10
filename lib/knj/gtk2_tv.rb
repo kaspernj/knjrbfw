@@ -108,10 +108,7 @@ module Knj::Gtk2::Tv
   # Knj::Gtk2::Tv.sel(treeview) #=> [1, "Kasper"]
   def self.sel(tv)
     selected = tv.selection.selected_rows
-    
-    if !tv.model or selected.size <= 0
-      return nil
-    end
+    return nil if !tv.model or selected.size <= 0
     
     iter = tv.model.get_iter(selected[0])
     returnval = []
