@@ -143,8 +143,7 @@ module Knj::Os
   
   #Runs a command as a process of its own and wont block or be depended on this process.
   def self.subproc(cmd)
-    cmd = cmd.to_s + "  >> /dev/null 2>&1 &"
-    %x[#{cmd}]
+    %x[#{cmd} >> /dev/null 2>&1 &]
   end
   
   #Returns the xauth file for GDM.
