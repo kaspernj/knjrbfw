@@ -902,8 +902,9 @@ module Knj::Php
   def foreach(element, &block)
     raise "No or unsupported block given." if !block.respond_to?(:call) or !block.respond_to?(:arity)
     arity = block.arity
+    cname = element.class.name.to_s
     
-    if element.is_a?(Array)
+    if element.is_a?(Array) or cname == "Array_enumerator"
       element.each_index do |key|
         if arity == 2
           block.call(key, element[key])
