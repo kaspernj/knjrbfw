@@ -106,7 +106,7 @@ class Knj::Datarow
               colname = hval
             when :method
               methodname = hval
-            when :depends, :autodelete
+            when :depends, :autodelete, :where
               #ignore
             else
               raise "Invalid key for 'has_many': '#{hkey}'."
