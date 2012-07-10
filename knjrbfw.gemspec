@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{knjrbfw}
-  s.version = "0.0.55"
+  s.version = "0.0.57"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Kasper Johansen"]
-  s.date = %q{2012-07-05}
+  s.date = %q{2012-07-10}
   s.description = %q{Including stuff for HTTP, SSH and much more.}
   s.email = %q{k@spernj.org}
   s.extra_rdoc_files = [
@@ -101,6 +101,7 @@ Gem::Specification.new do |s|
     "lib/knj/image.rb",
     "lib/knj/includes/appserver_cli.rb",
     "lib/knj/includes/require_info.rb",
+    "lib/knj/iotop.rb",
     "lib/knj/ip2location.rb",
     "lib/knj/ironruby-gtk2/button.rb",
     "lib/knj/ironruby-gtk2/dialog.rb",
@@ -224,6 +225,7 @@ Gem::Specification.new do |s|
     "lib/knj/scripts/keepalive.rb",
     "lib/knj/scripts/php_to_rb_helper.rb",
     "lib/knj/scripts/process_meta_exec.rb",
+    "lib/knj/scripts/speed_test.rb",
     "lib/knj/scripts/svn_merge.rb",
     "lib/knj/scripts/upgrade_knjrbfw_checker.rb",
     "lib/knj/sms.rb",
