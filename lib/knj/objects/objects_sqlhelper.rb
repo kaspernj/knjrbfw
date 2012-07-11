@@ -208,7 +208,7 @@ class Knj::Objects
       
       if args[:cols].key?(key)
         if val.is_a?(Array)
-          if val.empty?
+          if val.empty? and db.opts[:type].to_s == "mysql"
             sql_where << " AND false"
           else
             escape_sql = Knj::ArrayExt.join(

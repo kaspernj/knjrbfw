@@ -401,6 +401,13 @@ class Knj::Web
         html << "<select#{self.attr_html(attr)}>"
         html << Knj::Web.opts(args[:opts], value, args[:opts_args])
         html << "</select>"
+        
+        if args[:moveable]
+          html << "<div style=\"padding-top: 3px;\">"
+          html << "<input type=\"button\" value=\"#{_("Up")}\" onclick=\"select_moveup($('##{args[:id]}'));\" />"
+          html << "<input type=\"button\" value=\"#{_("Down")}\" onclick=\"select_movedown($('##{args[:id]}'));\" />"
+          html << "</div>"
+        end
       elsif args[:type] == :imageupload
         html << "<table class=\"designtable\"><tr#{classes_tr_html}><td style=\"width: 100%;\">"
         html << "<input type=\"file\" name=\"#{args[:name].html}\" class=\"input_file\" />"
