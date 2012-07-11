@@ -103,7 +103,7 @@ class KnjDB_mysql::Tables
 end
 
 class KnjDB_mysql::Tables::Table
-  attr_accessor :list
+  attr_reader :list
   
   def initialize(args)
     @args = args

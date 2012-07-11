@@ -3,7 +3,7 @@ class Knj::Threadhandler
   
   def initialize(args = {})
     require "#{$knjpath}errors"
-    require "tsafe"
+    require "tsafe" if !Kernel.const_defined?(:Tsafe)
     
     @args = args
     @objects = []

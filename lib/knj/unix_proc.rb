@@ -1,5 +1,5 @@
 #Requires the 'wref'-gem.
-require "wref"
+require "wref" if !Kernel.const_defined?(:Wref)
 
 #This class handels various stuff regarding Unix-processes.
 class Knj::Unix_proc

@@ -1,6 +1,6 @@
 #Containing various helper methods for Gtk2-windows.
 class Knj::Gtk2::Window
-  require "wref"
+  require "wref" if !Kernel.const_defined?(:Wref)
   @@uniques = Wref_map.new
   
   #Used to make a window-instance unique. If it already exists when unique! is called, then it will pass focus to the existing window instead of yielding the block, which should contain code to create the window.
