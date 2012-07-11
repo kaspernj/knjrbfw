@@ -1,13 +1,16 @@
 class Knj::Table_writer
   def initialize(args = {})
     @args = args
-    
-    if !@args["filepath"]
-      raise "No filepath was given."
-    end
+    raise "No filepath was given." if @args["filepath"].to_s.empty?
     
     if @args["format"] == "csv"
-      @fp = File.open(@args["filepath"], "w")
+      if @args["encoding"]
+        encoding = @args["encoding"]
+      else
+        encoding = "utf-8"
+      end
+      
+      @fp = File.open(@args["filepath"], "w", :encoding => encoding)
     elsif @args["format"] == "excel5"
       require "spreadsheet"
       
