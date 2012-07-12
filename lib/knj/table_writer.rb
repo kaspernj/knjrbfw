@@ -92,7 +92,7 @@ class Knj::Table_writer
           @sheet.setCellValue(colval, val["value"])
           @sheet.getStyle(colval).getNumberFormat.setFormatCode("#,##0.00")
         elsif val.is_a?(Hash) and val["type"] == "date"
-          datet = Knj::Datet.in(val["value"])
+          datet = Datet.in(val["value"])
           datet.days + 1
           
           date_val = @php.static("PHPExcel_Shared_Date", "PHPToExcel", datet.to_i)

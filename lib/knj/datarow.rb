@@ -736,19 +736,19 @@ class Knj::Datarow
     method_name = "#{args[:col_name]}_str".to_sym
     if args[:inst_methods].index(method_name) == nil
       define_method(method_name) do |*method_args|
-        if Knj::Datet.is_nullstamp?(self[args[:col_name].to_sym])
+        if Datet.is_nullstamp?(self[args[:col_name].to_sym])
           return @ob.events.call(:no_date, self.class.name)
         end
         
-        return Knj::Datet.in(self[args[:col_name].to_sym]).out(*method_args)
+        return Datet.in(self[args[:col_name].to_sym]).out(*method_args)
       end
     end
     
     method_name = "#{args[:col_name]}".to_sym
     if args[:inst_methods].index(method_name) == nil
       define_method(method_name) do |*method_args|
-        return false if Knj::Datet.is_nullstamp?(self[args[:col_name].to_sym])
-        return Knj::Datet.in(self[args[:col_name].to_sym])
+        return false if Datet.is_nullstamp?(self[args[:col_name].to_sym])
+        return Datet.in(self[args[:col_name].to_sym])
       end
     end
   end

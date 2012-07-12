@@ -312,7 +312,7 @@ class Knj::Objects
         found = true
       elsif args.key?(:cols_date) and match = key.match(/^(.+)_(day|week|month|year|from|to|below|above)(|_(not))$/) and args[:cols_date].index(match[1]) != nil
         not_v = match[4]
-        val = Knj::Datet.in(val) if val.is_a?(Time)
+        val = Datet.in(val) if val.is_a?(Time)
         
         if match[2] == "day"
           if val.is_a?(Array)

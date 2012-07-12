@@ -168,8 +168,8 @@ module Knj::Php
       end
       
       retstr << "}\n"
-    elsif cstr == "Time" or cstr == "Knj::Datet"
-      argument = argument.time if cstr == "Knj::Datet"
+    elsif cstr == "Time" or cstr == "Datet"
+      argument = argument.time if cstr == "Datet"
       retstr << "#{cstr}::#{"%04d" % argument.year}-#{"%02d" % argument.month}-#{"%02d" % argument.day} #{"%02d" % argument.hour}:#{"%02d" % argument.min}:#{"%02d" % argument.sec}\n"
     else
       #print argument.to_s, "\n"
@@ -707,7 +707,7 @@ module Knj::Php
     month = cur_time.month if month == nil
     year = cur_time.year if year == nil
     
-    new_time = Knj::Datet.in("#{year.to_s}-#{month.to_s}-#{date.to_s} #{hour.to_s}:#{min.to_s}:#{sec.to_s}")
+    new_time = Datet.in("#{year.to_s}-#{month.to_s}-#{date.to_s} #{hour.to_s}:#{min.to_s}:#{sec.to_s}")
     return new_time.to_i
   end
   
@@ -716,7 +716,7 @@ module Knj::Php
       date_object = Time.now
     elsif Knj::Php.is_numeric(date_input)
       date_object = Time.at(date_input.to_i)
-    elsif date_input.is_a?(Knj::Datet)
+    elsif date_input.is_a?(Datet)
       date_object = date_input.time
     elsif date_input.is_a?(Time)
       date_object = date_input

@@ -333,7 +333,7 @@ class Knj::Db
         end
         
         #Convert dates to valid dbstr.
-        value = self.date_out(value) if value.is_a?(Knj::Datet) or value.is_a?(Time)
+        value = self.date_out(value) if value.is_a?(Datet) or value.is_a?(Time)
         
         sql << "#{driver.escape_col}#{key.to_s}#{driver.escape_col} = "
         sql << "#{driver.escape_val}#{driver.escape(value.to_s)}#{driver.escape_val}"
@@ -678,17 +678,17 @@ class Knj::Db
   #Returns a string which can be used in SQL with the current driver.
   #===Examples
   # str = db.date_out(Time.now) #=> "2012-05-20 22:06:09"
-  def date_out(date_obj = Knj::Datet.new, args = {})
+  def date_out(date_obj = Datet.new, args = {})
     conn_exec do |driver|
       if driver.respond_to?(:date_out)
         return driver.date_out(date_obj, args)
       end
     end
     
-    return Knj::Datet.in(date_obj).dbstr(args)
+    return Datet.in(date_obj).dbstr(args)
   end
   
-  #Takes a valid date-db-string and converts it into a Knj::Datet.
+  #Takes a valid date-db-string and converts it into a Datet.
   #===Examples
   # db.date_in('2012-05-20 22:06:09') #=> 2012-05-20 22:06:09 +0200
   def date_in(date_obj)
@@ -698,7 +698,7 @@ class Knj::Db
       end
     end
     
-    return Knj::Datet.in(date_obj)
+    return Datet.in(date_obj)
   end
   
   #Returns the table-module and spawns it if it isnt already spawned.

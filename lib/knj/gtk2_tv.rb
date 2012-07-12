@@ -127,13 +127,13 @@ module Knj::Gtk2::Tv
     :datetime => {
       :value => proc{ |data|
         begin
-          Knj::Datet.in(data[:value]).dbstr
+          Datet.in(data[:value]).dbstr
         rescue Knj::Errors::InvalidData
           raise "Invalid timestamp entered."
         end
       },
       :value_set => proc{ |data|
-        Knj::Datet.in(data[:value]).out
+        Datet.in(data[:value]).out
       }
     },
     :time_as_sec => {

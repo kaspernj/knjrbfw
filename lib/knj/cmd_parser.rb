@@ -27,7 +27,7 @@ class Knj::Cmd_parser
         month = match[18].to_i
         date = match[19].to_i
       elsif match[20] and match[21] and match[22]
-        month = Knj::Datet.month_str_to_no(match[21])
+        month = Datet.month_str_to_no(match[21])
         date = match[22].to_i
       end
       
