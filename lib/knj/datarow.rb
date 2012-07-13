@@ -547,7 +547,7 @@ class Knj::Datarow
       classname = self.class.classname.to_sym
       if @ob.ids_cache_should.key?(classname)
         #ID caching is enabled for this model - dont reload until first use.
-        raise Knj::Errors::NotFound, "ID was not found in cache: '#{id}'." if !@ob.ids_cache[classname].key?(@id)
+        raise Errno::ENOENT, "ID was not found in cache: '#{id}'." if !@ob.ids_cache[classname].key?(@id)
         @should_reload = true
       else
         #ID caching is not enabled - reload now to check if row exists. Else set 'should_reload'-variable if 'skip_reload' is set.
@@ -558,7 +558,7 @@ class Knj::Datarow
         end
       end
     else
-      raise Knj::Errors::InvalidData, "Could not figure out the data from '#{data.class.name}'."
+      raise ArgumentError, "Could not figure out the data from '#{data.class.name}'."
     end
     
     if @id.to_i <= 0
@@ -574,7 +574,7 @@ class Knj::Datarow
   # print "The username changed in the database!" if user[:username] != old_username
   def reload
     @data = @db.single(self.table, {:id => @id})
-    raise Knj::Errors::NotFound, "Could not find any data for the object with ID: '#{@id}' in the table '#{self.table}'." if !@data
+    raise Errno::ENOENT, "Could not find any data for the object with ID: '#{@id}' in the table '#{self.table}'." if !@data
     @should_reload = false
   end
   

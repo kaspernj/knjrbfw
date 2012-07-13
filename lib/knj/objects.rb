@@ -305,7 +305,7 @@ class Knj::Objects
       else
         return false
       end
-    rescue Knj::Errors::NotFound
+    rescue Errno::ENOENT
       return false
     end
   end
@@ -323,7 +323,7 @@ class Knj::Objects
     elsif data.is_a?(Hash) and data.key?(@args[:col_id].to_s)
       id = data[@args[:col_id].to_s].to_i
     elsif
-      raise Knj::Errors::InvalidData, "Unknown data: '#{data.class.to_s}'."
+      raise ArgumentError, "Unknown data: '#{data.class.to_s}'."
     end
     
     if @objects.key?(classname)
@@ -371,7 +371,7 @@ class Knj::Objects
   def get!(*args, &block)
     begin
       return self.get(*args, &block)
-    rescue Knj::Errors::NotFound
+    rescue Errno::ENOENT
       return false
     end
   end
@@ -414,7 +414,7 @@ class Knj::Objects
     
     begin
       return self.get(obj_name, id_data)
-    rescue Knj::Errors::NotFound
+    rescue Errno::ENOENT
       return false
     end
   end
@@ -469,9 +469,9 @@ class Knj::Objects
             id = obj[req_data[:col]]
             
             begin
-              raise Knj::Errors::NotFound if !id
+              raise Errno::ENOENT if !id
               obj_req = self.get(req_data[:class], id)
-            rescue Knj::Errors::NotFound
+            rescue Errno::ENOENT
               yielder << {:obj => obj, :type => :required, :id => id, :data => req_data}
             end
           end

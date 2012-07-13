@@ -24,7 +24,7 @@ class Knj::Facebook_connect
         
         error_type = RuntimeError
         if jdata["error"] and jdata["error"]["message"] == "Code was invalid or expired. The session is invalid because the user logged out."
-          error_type = Knj::Errors::InvalidData
+          error_type = ArgumentError
         end
         
         raise error_type, "#{jdata["error"]["type"]}: #{jdata["error"]["message"]}" if jdata["error"]

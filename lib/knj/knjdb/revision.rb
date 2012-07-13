@@ -151,7 +151,7 @@ class Knj::Db::Revision
                 end
                 
                 first_col = false
-              rescue Knj::Errors::NotFound => e
+              rescue Errno::ENOENT => e
                 print "Column not found: #{table_obj.name}.#{col_data["name"]}.\n" if args["debug"]
                 
                 if col_data.has_key?("renames")
@@ -161,7 +161,7 @@ class Knj::Db::Revision
                   col_data["renames"].each do |col_name|
                     begin
                       col_rename = table_obj.column(col_name)
-                    rescue Knj::Errors::NotFound => e
+                    rescue Errno::ENOENT => e
                       next
                     end
                     
@@ -202,7 +202,7 @@ class Knj::Db::Revision
             table_data["columns_remove"].each do |column_name, column_data|
               begin
                 col_obj = table_obj.column(column_name)
-              rescue Knj::Errors::NotFound => e
+              rescue Errno::ENOENT => e
                 next
               end
               
@@ -227,7 +227,7 @@ class Knj::Db::Revision
                   index_obj.drop
                   table_obj.create_indexes([index_data])
                 end
-              rescue Knj::Errors::NotFound => e
+              rescue Errno::ENOENT => e
                 table_obj.create_indexes([index_data])
               end
             end
@@ -237,7 +237,7 @@ class Knj::Db::Revision
             table_data["indexes_remove"].each do |index_name, index_data|
               begin
                 index_obj = table_obj.index(index_name)
-              rescue Knj::Errors::NotFound => e
+              rescue Errno::ENOENT => e
                 next
               end
               
@@ -250,14 +250,14 @@ class Knj::Db::Revision
           end
           
           rows_init("db" => db, "table" => table_obj, "rows" => table_data["rows"]) if table_data and table_data["rows"]
-        rescue Knj::Errors::NotFound => e
+        rescue Errno::ENOENT => e
           if table_data.key?("renames")
             table_data["renames"].each do |table_name_rename|
               begin
                 table_rename = db.tables[table_name_rename.to_sym]
                 table_rename.rename(table_name)
                 raise Knj::Errors::Retry
-              rescue Knj::Errors::NotFound
+              rescue Errno::ENOENT
                 next
               end
             end
@@ -292,7 +292,7 @@ class Knj::Db::Revision
           table_obj = db.tables[table_name.to_sym]
           table_data["callback"].call("db" => db, "table" => table_obj) if table_data.is_a?(Hash) and table_data["callback"]
           table_obj.drop
-        rescue Knj::Errors::NotFound => e
+        rescue Errno::ENOENT => e
           next
         end
       end

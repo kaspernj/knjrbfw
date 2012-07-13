@@ -128,7 +128,7 @@ module Knj::Gtk2::Tv
       :value => proc{ |data|
         begin
           Datet.in(data[:value]).dbstr
-        rescue Knj::Errors::InvalidData
+        rescue ArgumentError
           raise "Invalid timestamp entered."
         end
       },
