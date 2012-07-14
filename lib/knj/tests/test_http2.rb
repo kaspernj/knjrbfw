@@ -5,14 +5,14 @@ require "../../knjrbfw.rb"
 
 require "../autoload"
 
-http = Knj::Http2.new(:host => "www.partyworm.dk", :port => 80, :ssl => false)
-resp = http.get("/?show=frontpage")
-resp = http.get("/?show=login")
+http = Http2.new(:host => "www.partyworm.dk", :port => 80, :ssl => false)
+resp = http.get(:url => "/?show=frontpage")
+resp = http.get(:url => "/?show=login")
 
 #print "Wee!\n"
 #exit
 
-http = Knj::Http2.new(:host => "mexico.balance4u.com", :port => 443, :ssl => true)
-resp = http.get("/")
+http = Http2.new(:host => "mexico.balance4u.com", :port => 443, :ssl => true)
+resp = http.get(:url => "/")
 
 Knj::Php.print_r(http.cookies)

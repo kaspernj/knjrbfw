@@ -9,9 +9,9 @@ class Knj::Thread < Thread
     super(*args) do
       begin
         yield(*args)
-      rescue SystemExit
-        exit
-      rescue => e
+      rescue SystemExit, Interrupt
+        raise
+      rescue Exception => e
         print "#{Knj::Errors.error_str(e)}\n\n"
       end
     end

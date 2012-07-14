@@ -34,4 +34,13 @@ module Knj
   def self.p(*args, &block)
     return Knj::Php.print_r(*args, &block)
   end
+  
+  def self.handle_return(args)
+    if args[:block]
+      args[:enum].each(&args[:block])
+      return nil
+    else
+      return Array_enumerator.new(args[:enum])
+    end
+  end
 end

@@ -14,7 +14,7 @@ describe "Strings" do
     begin
       regex = Knj::Strings.regex("/\d+/U")
       raise "Ruby doesnt support the U-modifier - an exception should be thrown!"
-    rescue Knj::Errors::InvalidData
+    rescue ArgumentError
       #this should happen - Ruby doesnt support U-modifier...
     end
     

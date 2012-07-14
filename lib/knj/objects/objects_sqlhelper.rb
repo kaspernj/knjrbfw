@@ -189,6 +189,7 @@ class Knj::Objects
         if !args[:joins_skip]
           datarow_obj = self.datarow_obj_from_args(args_def, list_args, realkey[0])
           args = datarow_obj.columns_sqlhelper_args
+          raise "Couldnt get arguments from SQLHelper." if !args
         else
           datarow_obj = @args[:module].const_get(realkey[0])
           args = args_def
@@ -207,7 +208,7 @@ class Knj::Objects
       
       if args[:cols].key?(key)
         if val.is_a?(Array)
-          if val.empty?
+          if val.empty? and db.opts[:type].to_s == "mysql"
             sql_where << " AND false"
           else
             escape_sql = Knj::ArrayExt.join(
@@ -311,7 +312,7 @@ class Knj::Objects
         found = true
       elsif args.key?(:cols_date) and match = key.match(/^(.+)_(day|week|month|year|from|to|below|above)(|_(not))$/) and args[:cols_date].index(match[1]) != nil
         not_v = match[4]
-        val = Knj::Datet.in(val) if val.is_a?(Time)
+        val = Datet.in(val) if val.is_a?(Time)
         
         if match[2] == "day"
           if val.is_a?(Array)
@@ -476,10 +477,14 @@ class Knj::Objects
   
   def datarow_from_datarow_argument(datarow_argument)
     if datarow_argument.is_a?(String)
-      return Knj::Strings.const_get_full(datarow_argument)
+      const = Knj::Strings.const_get_full(datarow_argument)
+    else
+      const = datarow_argument
     end
     
-    return datarow_argument
+    self.load_class(datarow_argument.to_s.split("::").last) if !const.initialized? #Make sure the class is initialized.
+    
+    return const
   end
   
   def not(not_v, val)

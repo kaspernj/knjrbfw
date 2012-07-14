@@ -23,7 +23,7 @@ class KnjDB_sqlite3::Tables
       return table_obj if table_obj.name.to_s == table_name.to_s
     end
     
-    raise Knj::Errors::NotFound, "Table was not found: #{table_name}."
+    raise Errno::ENOENT, "Table was not found: #{table_name}."
   end
   
   def list
@@ -146,7 +146,7 @@ class KnjDB_sqlite3::Tables::Table
   def column(name)
     list = self.columns
     return list[name] if list[name]
-    raise Knj::Errors::NotFound.new("Column not found: #{name}.")
+    raise Errno::ENOENT.new("Column not found: #{name}.")
   end
   
   def columns
@@ -324,7 +324,7 @@ class KnjDB_sqlite3::Tables::Table
       return index if index.name.to_s == name
     end
     
-    raise Knj::Errors::NotFound.new("Index not found: #{name}.")
+    raise Errno::ENOENT.new("Index not found: #{name}.")
   end
   
   def indexes

@@ -190,7 +190,7 @@ module Knj::ArrayExt
   def self.validate_hash(h, args)
     h.each do |key, val|
       if args.key?(:not_empty) and args[:not_empty].index(key) != nil and val.to_s.strip.length <= 0
-        raise Knj::Errors::InvalidData, sprintf(args[:not_empty_error], key)
+        raise ArgumentError, sprintf(args[:not_empty_error], key)
       end
     end
   end
@@ -333,5 +333,23 @@ module Knj::ArrayExt
     else
       return ret
     end
+  end
+  
+  #Returns a given hash in an array by mathing the contents up against another hash.
+  def self.array_hash_find(args)
+    args[:arr].each do |h|
+      found = true
+      
+      args[:args].each do |key, val|
+        if h[key] != val
+          found = false
+          break
+        end
+      end
+      
+      return h if found
+    end
+    
+    return nil
   end
 end

@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{knjrbfw}
-  s.version = "0.0.52"
+  s.version = "0.0.62"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Kasper Johansen"]
-  s.date = %q{2012-06-29}
+  s.date = %q{2012-07-14}
   s.description = %q{Including stuff for HTTP, SSH and much more.}
   s.email = %q{k@spernj.org}
   s.extra_rdoc_files = [
@@ -62,7 +62,6 @@ Gem::Specification.new do |s|
     "lib/knj/datarow.rb",
     "lib/knj/datarow_custom.rb",
     "lib/knj/datestamp.rb",
-    "lib/knj/datet.rb",
     "lib/knj/db.rb",
     "lib/knj/degulesider.rb",
     "lib/knj/erb/apache_knjerb.conf",
@@ -96,11 +95,10 @@ Gem::Specification.new do |s|
     "lib/knj/gtk2_tv.rb",
     "lib/knj/gtk2_window.rb",
     "lib/knj/hash_methods.rb",
-    "lib/knj/http.rb",
-    "lib/knj/http2.rb",
     "lib/knj/image.rb",
     "lib/knj/includes/appserver_cli.rb",
     "lib/knj/includes/require_info.rb",
+    "lib/knj/iotop.rb",
     "lib/knj/ip2location.rb",
     "lib/knj/ironruby-gtk2/button.rb",
     "lib/knj/ironruby-gtk2/dialog.rb",
@@ -224,6 +222,7 @@ Gem::Specification.new do |s|
     "lib/knj/scripts/keepalive.rb",
     "lib/knj/scripts/php_to_rb_helper.rb",
     "lib/knj/scripts/process_meta_exec.rb",
+    "lib/knj/scripts/speed_test.rb",
     "lib/knj/scripts/svn_merge.rb",
     "lib/knj/scripts/upgrade_knjrbfw_checker.rb",
     "lib/knj/sms.rb",
@@ -257,10 +256,8 @@ Gem::Specification.new do |s|
     "spec/amixer_spec.rb",
     "spec/arrayext_spec.rb",
     "spec/cmd_parser_spec.rb",
-    "spec/datet_spec.rb",
     "spec/db_spec.rb",
     "spec/db_spec_encoding_test_file.txt",
-    "spec/http2_spec.rb",
     "spec/knjrbfw_spec.rb",
     "spec/objects_spec.rb",
     "spec/php_spec.rb",
@@ -284,6 +281,8 @@ Gem::Specification.new do |s|
     if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
       s.add_runtime_dependency(%q<wref>, [">= 0"])
       s.add_runtime_dependency(%q<tsafe>, [">= 0"])
+      s.add_runtime_dependency(%q<datet>, [">= 0"])
+      s.add_runtime_dependency(%q<http2>, [">= 0"])
       s.add_development_dependency(%q<rspec>, ["~> 2.3.0"])
       s.add_development_dependency(%q<bundler>, [">= 1.0.0"])
       s.add_development_dependency(%q<jeweler>, ["~> 1.6.3"])
@@ -293,6 +292,8 @@ Gem::Specification.new do |s|
     else
       s.add_dependency(%q<wref>, [">= 0"])
       s.add_dependency(%q<tsafe>, [">= 0"])
+      s.add_dependency(%q<datet>, [">= 0"])
+      s.add_dependency(%q<http2>, [">= 0"])
       s.add_dependency(%q<rspec>, ["~> 2.3.0"])
       s.add_dependency(%q<bundler>, [">= 1.0.0"])
       s.add_dependency(%q<jeweler>, ["~> 1.6.3"])
@@ -303,6 +304,8 @@ Gem::Specification.new do |s|
   else
     s.add_dependency(%q<wref>, [">= 0"])
     s.add_dependency(%q<tsafe>, [">= 0"])
+    s.add_dependency(%q<datet>, [">= 0"])
+    s.add_dependency(%q<http2>, [">= 0"])
     s.add_dependency(%q<rspec>, ["~> 2.3.0"])
     s.add_dependency(%q<bundler>, [">= 1.0.0"])
     s.add_dependency(%q<jeweler>, ["~> 1.6.3"])

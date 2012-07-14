@@ -16,7 +16,7 @@ class Knj::Facebook_connect
   end
   
   def get(http, url)
-    resp = http.get(url)
+    resp = http.get(:url => url)
     
     if resp.body.length > 0
       begin
@@ -24,7 +24,7 @@ class Knj::Facebook_connect
         
         error_type = RuntimeError
         if jdata["error"] and jdata["error"]["message"] == "Code was invalid or expired. The session is invalid because the user logged out."
-          error_type = Knj::Errors::InvalidData
+          error_type = ArgumentError
         end
         
         raise error_type, "#{jdata["error"]["type"]}: #{jdata["error"]["message"]}" if jdata["error"]
@@ -72,7 +72,7 @@ class Knj::Facebook_connect
   end
   
   def login(args = {})
-    http = Knj::Http2.new(
+    http = Http2.new(
       :host => "graph.facebook.com",
       :ssl => true
     )
@@ -93,7 +93,7 @@ class Knj::Facebook_connect
   end
   
   def wall_post(args)
-    http = Knj::Http2.new(
+    http = Http2.new(
       :host => "graph.facebook.com",
       :ssl => true
     )
@@ -108,7 +108,7 @@ class Knj::Facebook_connect
       end
     end
     
-    res = http.post("/me/feed?access_token=#{atoken}", post_data)
+    res = http.post(:url => "/me/feed?access_token=#{atoken}", :post => post_data)
     raise res.body.to_s.strip if res.code.to_s != "200"
   end
 end

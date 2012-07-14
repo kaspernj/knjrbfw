@@ -2,11 +2,12 @@ require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
 describe "Objects" do
   it "should be able to cache rows" do
+    require "~/Dev/Ruby/array_enumerator/lib/array_enumerator"
     require "sqlite3" if RUBY_ENGINE != "jruby"
     
     $db_path = "#{Knj::Os.tmpdir}/knjrbfw_objects_cache_test.sqlite3"
     File.unlink($db_path) if File.exists?($db_path)
-    $db = Knj::Db.new(:type => :sqlite3, :path => $db_path, :return_keys => "symbols")
+    $db = Knj::Db.new(:type => :sqlite3, :path => $db_path, :return_keys => "symbols", :debug => false)
     
     schema = {
       "tables" => {
@@ -32,6 +33,7 @@ describe "Objects" do
       :db => $db,
       :datarow => true,
       :require => false,
+      :array_enum => true,
       :models => {
         :User => {
           :cache_ids => true
@@ -50,11 +52,17 @@ describe "Objects" do
     raise "Expected user-ID-cache to be 5 but it wasnt: #{$ob.ids_cache[:User].length}" if $ob.ids_cache[:User].length != 5
     
     user = $ob.get(:User, 4)
+    raise "No user returned." if !user
     $ob.delete(user)
     raise "Expected user-ID-cache to be 4 but it wasnt: #{$ob.ids_cache[:User].length} #{$ob.ids_cache}" if $ob.ids_cache[:User].length != 4
     
     $ob.deletes([$ob.get(:User, 1), $ob.get(:User, 2)])
     raise "Expected user-ID-cache to be 2 but it wasnt: #{$ob.ids_cache[:User].length} #{$ob.ids_cache}" if $ob.ids_cache[:User].length != 2
+  end
+  
+  it "should be able to do 'select_col_as_array'" do
+    res = $ob.list(:User, {"select_col_as_array" => "id"}).to_a
+    raise "Expected length of 2 but got: #{res.length}" if res.length != 2
   end
   
   it "should work even though stressed by threads (thread-safe)." do
@@ -64,24 +72,31 @@ describe "Objects" do
     end
     
     $ob.adds(:User, userd)
-    users = $ob.list(:User)
+    users = $ob.list(:User).to_a
     
     #Stress it to test threadsafety...
     threads = []
-    0.upto(10) do |tc|
+    0.upto(5) do |tc|
       threads << Knj::Thread.new do
-        0.upto(10) do |ic|
+        0.upto(5) do |ic|
           user = $ob.add(:User, {:username => "User #{tc}-#{ic}"})
+          raise "No user returned." if !user
           $ob.delete(user)
           
           user1 = $ob.add(:User, {:username => "User #{tc}-#{ic}-1"})
           user2 = $ob.add(:User, {:username => "User #{tc}-#{ic}-2"})
           user3 = $ob.add(:User, {:username => "User #{tc}-#{ic}-3"})
+          
+          raise "Missing user?" if !user1 or !user2 or !user3 or user1.deleted? or user2.deleted? or user3.deleted?
           $ob.deletes([user1, user2, user3])
           
+          count = 0
           users.each do |user|
+            count += 1
             user[:username] = "#{user[:username]}." if !user.deleted?
           end
+          
+          raise "Expected at least 15 users but got #{count}." if count != 18
         end
       end
     end
@@ -101,10 +116,11 @@ describe "Objects" do
     )
     
     threads = []
-    0.upto(10) do
+    0.upto(5) do
       threads << Knj::Thread.new do
-        0.upto(15) do
-          $ob2.add(:Group, {:groupname => "User 1"}, {:skip_ret => true})
+        0.upto(5) do
+          ret = $ob2.add(:Group, {:groupname => "User 1"}, {:skip_ret => true})
+          raise "Expected empty return but got something: #{ret}" if ret
         end
       end
     end
@@ -169,10 +185,14 @@ describe "Objects" do
       "name" => "Test project"
     })
     
+    count = 0
     $db.q("SELECT * FROM Project") do |d|
       raise "Somehow name was not 'Test project'" if d[:name] != "Test project"
       raise "ID was not set?" if d[:id].to_i <= 0
+      count += 1
     end
+    
+    raise "Expected count of 1 but it wasnt: #{count}" if count != 1
   end
   
   it "should be able to automatic generate methods on datarow-classes (has_many, has_one)." do
@@ -207,6 +227,28 @@ describe "Objects" do
       :person_id => 1,
       :project_id => 1
     })
+    
+    begin
+      $obb.add(:Task, {:name => "Test task"})
+      raise "Method should fail but didnt."
+    rescue
+      #ignore.
+    end
+    
+    
+    #Test 'list_invalid_required'.
+    $db.insert(:Task, :name => "Invalid require")
+    id = $db.last_id
+    found = false
+    
+    $ob.list_invalid_required(:class => :Task) do |d|
+      raise "Expected object ID to be #{id} but it wasnt: #{d[:obj].id}" if d[:obj].id.to_i != id.to_i
+      $ob.delete(d[:obj])
+      found = true
+    end
+    
+    raise "Expected to find a task but didnt." if !found
+    
     
     ret_proc = []
     $ob.list(:Task) do |task|
@@ -265,6 +307,31 @@ describe "Objects" do
     raise "Unexpected person_html from task (should have been 'Kasper'): '#{task.person_html}'." if task.person_html != "Kasper"
     task.update(:person_id => 0)
     raise "Unexpected person_html from task (should have been '[no person]')." if task.person_html != "[no person]"
+  end
+  
+  it "should be able to to multiple additions and delete objects through a buffer" do
+    objs = []
+    0.upto(500) do
+      objs << {:name => :Kasper}
+    end
+    
+    $ob.adds(:Person, objs)
+    pers_length = $ob.list(:Person, "count" => true)
+    
+    count = 0
+    $db.q_buffer do |buffer|
+      $ob.list(:Person) do |person|
+        count += 1
+        $ob.delete(person, :db_buffer => buffer)
+      end
+      
+      buffer.flush
+    end
+    
+    raise "Expected count to be #{pers_length} but it wasnt: #{count}" if count != pers_length
+    
+    persons = $ob.list(:Person).to_a
+    raise "Expected persons count to be 0 but it wasnt: #{persons.map{|e| e.data} }" if persons.length > 0
   end
   
   it "should delete the temp database again." do

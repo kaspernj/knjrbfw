@@ -100,7 +100,7 @@ end
 #Match catch exception handeling.
 cont.scan(/((\s+?)}\s*catch\s*\(\s*(#{regexes["class"]})\s+\$(#{regexes["var"]})\s*\)\s*{(\s+))/) do |match|
   classname = "#{match[2][0..0].upcase}#{match[2][1..999]}"
-  classname = "Knj::Errors::NotFound" if classname == "Knjdb_rownotfound_exception"
+  classname = "Errno::ENOENT" if classname == "Knjdb_rownotfound_exception"
   
   rb_str = "#{match[1]}rescue #{classname} => #{match[3]}#{match[4]}"
   cont = cont.gsub(match[0], rb_str)

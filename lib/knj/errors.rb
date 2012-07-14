@@ -3,20 +3,8 @@ module Knj::Errors
   #An error that is used when the error is just a notice.
   class Notice < StandardError; end
   
-  #Typically used when an object is not found by the given arguments.
-  class NotFound < StandardError; end
-  
-  #If invalid data was supplied to a list-method or something like it.
-  class InvalidData < StandardError; end
-  
   #An error that specifies that the caller should retry the operation.
   class Retry < StandardError; end
-  
-  #The current env does not have access to calling the method.
-  class NoAccess < StandardError; end
-  
-  #The thing you are trying to add already exists or have already been done.
-  class Exists < StandardError; end
   
   #Returns a string describing the given error. Possible arguments can be given if you want the returned string formatted as HTML.
   #

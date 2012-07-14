@@ -19,6 +19,7 @@ class Knj::Objects
     @lock_require = Monitor.new
     
     require "wref" if @args[:cache] == :weak and !Kernel.const_defined?(:Wref)
+    require "#{@args[:array_enumerator_path]}array_enumerator" if @args[:array_enum] and !Kernel.const_defined?(:Array_enumerator)
     
     #Set up various events.
     @events = Knj::Event_handler.new
@@ -304,7 +305,7 @@ class Knj::Objects
       else
         return false
       end
-    rescue Knj::Errors::NotFound
+    rescue Errno::ENOENT
       return false
     end
   end
@@ -322,7 +323,7 @@ class Knj::Objects
     elsif data.is_a?(Hash) and data.key?(@args[:col_id].to_s)
       id = data[@args[:col_id].to_s].to_i
     elsif
-      raise Knj::Errors::InvalidData, "Unknown data: '#{data.class.to_s}'."
+      raise ArgumentError, "Unknown data: '#{data.class.to_s}'."
     end
     
     if @objects.key?(classname)
@@ -366,6 +367,15 @@ class Knj::Objects
     return obj
   end
   
+  #Same as normal get but returns false if not found instead of raising error.
+  def get!(*args, &block)
+    begin
+      return self.get(*args, &block)
+    rescue Errno::ENOENT
+      return false
+    end
+  end
+  
   def object_finalizer(id)
     classname = @objects_idclass[id]
     if classname
@@ -404,12 +414,16 @@ class Knj::Objects
     
     begin
       return self.get(obj_name, id_data)
-    rescue Knj::Errors::NotFound
+    rescue Errno::ENOENT
       return false
     end
   end
   
   #Returns an array-list of objects. If given a block the block will be called for each element and memory will be spared if running weak-link-mode.
+  #===Examples
+  # ob.list(:User) do |user|
+  #   print "Username: #{user.name}\n"
+  # end
   def list(classname, args = {}, &block)
     args = {} if args == nil
     classname = classname.to_sym
@@ -439,6 +453,33 @@ class Knj::Objects
     else
       return ret
     end
+  end
+  
+  #Yields every object that is missing certain required objects (based on 'has_many' required-argument).
+  def list_invalid_required(args, &block)
+    enum = Enumerator.new do |yielder|
+      classname = args[:class]
+      classob = @args[:module].const_get(classname)
+      required_data = classob.required_data
+      
+      if required_data and !required_data.empty?
+        required_data.each do |req_data|
+          self.list(args[:class], :cloned_ubuf => true) do |obj|
+            puts "Checking #{obj.classname}(#{obj.id}) for required #{req_data[:class]}." if args[:debug]
+            id = obj[req_data[:col]]
+            
+            begin
+              raise Errno::ENOENT if !id
+              obj_req = self.get(req_data[:class], id)
+            rescue Errno::ENOENT
+              yielder << {:obj => obj, :type => :required, :id => id, :data => req_data}
+            end
+          end
+        end
+      end
+    end
+    
+    return Knj.handle_return(:enum => enum, :block => block)
   end
   
   #Returns select-options-HTML for inserting into a HTML-select-element.
@@ -562,18 +603,33 @@ class Knj::Objects
       end
     end
     
-    @args[:db].q(sql, qargs) do |d_obs|
-      if block
-        block.call(self.get(classname, d_obs))
-      else
-        ret << self.get(classname, d_obs)
+    if @args[:array_enum]
+      enum = Enumerator.new do |yielder|
+        @args[:db].q(sql, qargs) do |d_obs|
+          yielder << self.get(classname, d_obs)
+        end
       end
-    end
-    
-    if !block
-      return ret
+      
+      if block
+        enum.each(&block)
+        return nil
+      else
+        return Array_enumerator.new(enum)
+      end
     else
-      return nil
+      @args[:db].q(sql, qargs) do |d_obs|
+        if block
+          block.call(self.get(classname, d_obs))
+        else
+          ret << self.get(classname, d_obs)
+        end
+      end
+      
+      if !block
+        return ret
+      else
+        return nil
+      end
     end
   end
   
@@ -725,7 +781,7 @@ class Knj::Objects
   #===Examples
   # user = ob.get(:User, 1)
   # ob.delete(user)
-  def delete(object)
+  def delete(object, args = nil)
     #Return false if the object has already been deleted.
     return false if object.deleted?
     classname = object.class.classname.to_sym
@@ -739,7 +795,7 @@ class Knj::Objects
       #If autodelete is set by 'has_many'-method, go through it and delete the various objects first.
       object.class.autodelete_data.each do |adel_data|
         self.list(adel_data[:classname], {adel_data[:colname].to_s => object.id}) do |obj_del|
-          self.delete(obj_del)
+          self.delete(obj_del, args)
         end
       end
       
@@ -752,16 +808,20 @@ class Knj::Objects
       end
       
       #Delete any translations that has been set on the object by 'has_translation'-method.
-      if object.class.translations
-        _kas.trans_del(object)
-      end
+      _kas.trans_del(object) if object.class.translations
       
-      @args[:db].delete(object.table, {:id => obj_id})
+      #If a buffer is given in arguments, then use that to delete the object.
+      if args and buffer = args[:db_buffer]
+        buffer.delete(object.table, {:id => obj_id})
+      else
+        @args[:db].delete(object.table, {:id => obj_id})
+      end
     end
     
     @ids_cache[classname].delete(obj_id.to_i) if @ids_cache_should.key?(classname)
     self.call("object" => object, "signal" => "delete")
     object.destroy
+    return nil
   end
   
   #Deletes several objects as one. If running datarow-mode it checks all objects before it starts to actually delete them. Its faster than deleting every single object by itself...
@@ -844,6 +904,10 @@ class Knj::Objects
   #Erases the whole cache and regenerates is from ObjectSpace if not running weak-link-caching. If running weaklink-caching then only removes the dead links.
   def clean_all
     self.clean(@objects.keys)
+  end
+  
+  def classes_loaded
+    return @objects.keys
   end
 end
 

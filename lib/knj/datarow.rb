@@ -42,6 +42,12 @@ class Knj::Datarow
     return @depending_data
   end
   
+  #Returns true if this class has been initialized.
+  def self.initialized?
+    return false if !@ob or !@columns_sqlhelper_args
+    return true
+  end
+  
   #This is used by 'Knj::Objects' to find out which other objects should be deleted when an object of this class is deleted automatically. Returns the array that tells about autodelete data.
   #===Examples
   #This will trigger Knj::Objects to automatically delete all the users pictures, when deleting the current user.
@@ -90,9 +96,24 @@ class Knj::Datarow
       if val.is_a?(Array)
         classname, colname, methodname = *val
       elsif val.is_a?(Hash)
-        classname = val[:class]
-        colname = val[:col]
-        methodname = val[:method]
+        classname, colname, methodname = nil, nil, nil
+        
+        val.each do |hkey, hval|
+          case hkey
+            when :class
+              classname = hval
+            when :col
+              colname = hval
+            when :method
+              methodname = hval
+            when :depends, :autodelete, :where
+              #ignore
+            else
+              raise "Invalid key for 'has_many': '#{hkey}'."
+          end
+        end
+        
+        colname = "#{self.name.to_s.split("::").last.to_s.downcase}_id".to_sym if colname.to_s.empty?
         
         if val[:depends]
           self.depending_data << {
@@ -111,14 +132,15 @@ class Knj::Datarow
         raise "Unknown argument: '#{val.class.name}'."
       end
       
+      raise "No classname given." if !classname
+      methodname = "#{classname.to_s.downcase}s".to_sym if !methodname
+      raise "No column was given for '#{self.name}' regarding has-many-class: '#{classname}'." if !colname
+      
       if val.is_a?(Hash) and val.key?(:where)
         where_args = val[:where]
       else
         where_args = nil
       end
-      
-      raise "No classname given." if !classname
-      methodname = "#{classname.to_s.downcase}s".to_sym if !methodname
       
       define_method(methodname) do |*args, &block|
         if args and args[0]
@@ -181,7 +203,22 @@ class Knj::Datarow
       elsif val.is_a?(Array)
         classname, colname, methodname = *val
       elsif val.is_a?(Hash)
-        classname, colname, methodname = val[:class], val[:col], val[:method]
+        classname, colname, methodname = nil, nil, nil
+        
+        val.each do |hkey, hval|
+          case hkey
+            when :class
+              classname = hval
+            when :col
+              colname = hval
+            when :method
+              methodname = hval
+            when :required
+              #ignore
+            else
+              raise "Invalid key for class '#{self.name}' functionality 'has_many': '#{hkey}'."
+          end
+        end
         
         if val[:required]
           colname = "#{classname.to_s.downcase}_id".to_sym if !colname
@@ -306,6 +343,7 @@ class Knj::Datarow
   
   #Returns various data for the objects-sql-helper. This can be used to view various informations about the columns and more.
   def self.columns_sqlhelper_args
+    raise "No SQLHelper arguments has been spawned yet." if !@columns_sqlhelper_args
     return @columns_sqlhelper_args
   end
   
@@ -452,19 +490,19 @@ class Knj::Datarow
     return sql.to_s if d.args["return_sql"]
     
     if select_col_as_array
-      ids = [] if !block
-      d.db.q(sql, qargs) do |data|
-        if block
-          block.call(data[:id])
-        else
-          ids << data[:id]
+      enum = Enumerator.new do |yielder|
+        d.db.q(sql, qargs) do |data|
+          yielder << data[:id]
         end
       end
       
-      if !block
-        return ids
-      else
+      if block
+        enum.each(&block)
         return nil
+      elsif d.ob.args[:array_enum]
+        return Array_enumerator.new(enum)
+      else
+        return enum.to_a
       end
     elsif count
       ret = d.db.query(sql).fetch
@@ -509,7 +547,7 @@ class Knj::Datarow
       classname = self.class.classname.to_sym
       if @ob.ids_cache_should.key?(classname)
         #ID caching is enabled for this model - dont reload until first use.
-        raise Knj::Errors::NotFound, "ID was not found in cache: '#{id}'." if !@ob.ids_cache[classname].key?(@id)
+        raise Errno::ENOENT, "ID was not found in cache: '#{id}'." if !@ob.ids_cache[classname].key?(@id)
         @should_reload = true
       else
         #ID caching is not enabled - reload now to check if row exists. Else set 'should_reload'-variable if 'skip_reload' is set.
@@ -520,7 +558,7 @@ class Knj::Datarow
         end
       end
     else
-      raise Knj::Errors::InvalidData, "Could not figure out the data from '#{data.class.name}'."
+      raise ArgumentError, "Could not figure out the data from '#{data.class.name}'."
     end
     
     if @id.to_i <= 0
@@ -536,7 +574,7 @@ class Knj::Datarow
   # print "The username changed in the database!" if user[:username] != old_username
   def reload
     @data = @db.single(self.table, {:id => @id})
-    raise Knj::Errors::NotFound, "Could not find any data for the object with ID: '#{@id}' in the table '#{self.table}'." if !@data
+    raise Errno::ENOENT, "Could not find any data for the object with ID: '#{@id}' in the table '#{self.table}'." if !@data
     @should_reload = false
   end
   
@@ -698,19 +736,19 @@ class Knj::Datarow
     method_name = "#{args[:col_name]}_str".to_sym
     if args[:inst_methods].index(method_name) == nil
       define_method(method_name) do |*method_args|
-        if Knj::Datet.is_nullstamp?(self[args[:col_name].to_sym])
+        if Datet.is_nullstamp?(self[args[:col_name].to_sym])
           return @ob.events.call(:no_date, self.class.name)
         end
         
-        return Knj::Datet.in(self[args[:col_name].to_sym]).out(*method_args)
+        return Datet.in(self[args[:col_name].to_sym]).out(*method_args)
       end
     end
     
     method_name = "#{args[:col_name]}".to_sym
     if args[:inst_methods].index(method_name) == nil
       define_method(method_name) do |*method_args|
-        return false if Knj::Datet.is_nullstamp?(self[args[:col_name].to_sym])
-        return Knj::Datet.in(self[args[:col_name].to_sym])
+        return false if Datet.is_nullstamp?(self[args[:col_name].to_sym])
+        return Datet.in(self[args[:col_name].to_sym])
       end
     end
   end

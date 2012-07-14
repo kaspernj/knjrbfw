@@ -27,7 +27,7 @@ class Knj::Db_row
       @data[@args[:col_id].to_sym] = @args[:id]
       self.reload
     else
-      raise Knj::Errors::InvalidData.new("Invalid data: #{@args[:data].to_s} (#{@args[:data].class.to_s})")
+      raise ArgumentError.new("Invalid data: #{@args[:data].to_s} (#{@args[:data].class.to_s})")
     end
   end
   
@@ -54,7 +54,7 @@ class Knj::Db_row
     last_id = self.id
     data = self.db.single(@args[:table], {@args[:col_id] => self.id})
     if !data
-      raise Knj::Errors::NotFound.new("Could not find any data for the object with ID: '#{last_id}' in the table '#{@args[:table].to_s}'.")
+      raise Errno::ENOENT.new("Could not find any data for the object with ID: '#{last_id}' in the table '#{@args[:table].to_s}'.")
     end
     
     @data = {}
