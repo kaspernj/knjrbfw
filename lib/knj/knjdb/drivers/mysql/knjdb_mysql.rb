@@ -10,7 +10,9 @@ class KnjDB_mysql
     @escape_val = "'"
     @esc_table = "`"
     @esc_col = "`"
-    @mutex = Mutex.new
+    
+    require "monitor"
+    @mutex = Monitor.new
     
     if @opts[:encoding]
       @encoding = @opts[:encoding]

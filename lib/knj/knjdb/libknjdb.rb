@@ -1,6 +1,11 @@
+require "rubygems"
+
 if !Kernel.const_defined?(:Wref)
-  require "rubygems"
   require "wref"
+end
+
+if !Kernel.const_defined?(:Datet)
+  require "datet"
 end
 
 #A wrapper of several possible database-types.
