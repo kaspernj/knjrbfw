@@ -7,15 +7,18 @@ class Knj::SSHRobot
     @args[:port] = 22 if !@args.key?(:port)
   end
   
+  #Spawns a session if it hasnt already been spawned and returns it.
   def session
     @session = self.session_spawn if !@session
     return @session
   end
   
+  #Spawns a new net-ssh-instance.
   def session_spawn
     return Net::SSH.start(@args[:host], @args[:user], :password => @args[:passwd], :port => @args[:port].to_i)
   end
   
+  #Returns the a shell-session.
   def shell
     return self.session.shell.sync
   end
@@ -24,10 +27,18 @@ class Knj::SSHRobot
     @sftp = Net::SFTP.start(@args[:host], @args[:user], @args[:passwd], :port => @args[:port].to_i)
   end
   
-  def exec(command)
-    return self.session.exec!(command)
+  #Executes a command.
+  def exec(command, &block)
+    if block
+      return self.session.exec!(command) do |channel, stream, line|
+        block.call(:channel => channel, :stream => stream, :line => line)
+      end
+    else
+      return self.session.exec!(command)
+    end
   end
   
+  #Executes a command as "root" via "sudo". Accepts the "sudo"-password and a command.
   def sudo_exec(sudo_passwd, command)
     result = ""
     
@@ -46,7 +57,6 @@ class Knj::SSHRobot
     end
     
     self.session.loop
-    
     return result
   end
   

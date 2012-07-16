@@ -119,6 +119,11 @@ class Knj::Unix_proc
     @data = data
   end
   
+  #Returns the PID of the process.
+  def pid
+    return @data["pid"].to_i
+  end
+  
   #Returns a key from the data or raises an error.
   def [](key)
     raise "No such data: #{key}" if !@data.key?(key)
@@ -133,5 +138,32 @@ class Knj::Unix_proc
   #Kills the process with 9.
   def kill!
     Process.kill(9, @data["pid"].to_i)
+  end
+  
+  #Tries to kill the process gently, waits a couple of secs to check if the process is actually dead, then sends -9 kill signals.
+  def kill_ensure(args = {})
+    begin
+      self.kill
+      sleep 0.1
+      return nil if !self.alive?
+      
+      args[:sleep] = 2 if !args.key(:sleep)
+      
+      0.upto(5) do
+        sleep args[:sleep]
+        self.kill!
+        sleep 0.1
+        return nil if !self.alive?
+      end
+      
+      raise "Could not kill the process."
+    rescue Errno::ESRCH
+      return nil
+    end
+  end
+  
+  #Returns true if the process is still alive.
+  def alive?
+    return Knj::Unix_proc.pid_running?(@data["pid"].to_i)
   end
 end
