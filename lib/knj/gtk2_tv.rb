@@ -166,6 +166,22 @@ module Knj::Gtk2::Tv
       
       renderer = args[:renderers][col_no]
       
+      if args[:on_edit]
+        renderer.signal_connect("editing-started") do |renderer, row_no, path|
+          iter = args[:tv].model.get_iter(path)
+          id = args[:tv].model.get_value(iter, args[:id_col])
+          model_obj = args[:ob].get(args[:model_class], id)
+          
+          args[:on_edit].call(:renderer => renderer, :row_no => row_no, :path => path, :args => args, :model => model_obj, :col_no => col_no, :col_data => col_data)
+        end
+      end
+      
+      if args[:on_edit_done]
+        renderer.signal_connect("editing-canceled") do |renderer|
+          args[:on_edit_done].call(:renderer => renderer, :done_mode => :canceled, :args => args, :col_no => col_no, :col_data => col_data)
+        end
+      end
+      
       if renderer.is_a?(Gtk::CellRendererText)
         renderer.editable = true
         renderer.signal_connect("edited") do |renderer, row_no, value|
@@ -174,6 +190,10 @@ module Knj::Gtk2::Tv
           model_obj = args[:ob].get(args[:model_class], id)
           cancel = false
           callback_hash = {:args => args, :value => value, :model => model_obj, :col_no => col_no, :col_data => col_data}
+          
+          if args[:on_edit_done]
+            args[:on_edit_done].call(:renderer => renderer, :row_no => row_no, :done_mode => :canceled, :args => args, :model => model_obj, :col_no => col_no, :col_data => col_data)
+          end
           
           if col_data[:value_callback]
             begin
