@@ -1,5 +1,11 @@
 #Contains various methods for doing stuff quick using the Gtk2-extension.
-module Knj::Gtk2
+class Knj::Gtk2
+  Knj::Gtk2::MSGBOX = {
+    :current = nil
+  }
+  
+  STDOUT.print "ARGH!\n"
+  
   #Autoloader.
   def self.const_missing(name)
     require "#{$knjpath}gtk2_#{name.to_s.downcase}"
@@ -7,7 +13,7 @@ module Knj::Gtk2
   end
   
   #Alias for self.msgbox.
-  def msgbox(*args, &block)
+  def self.msgbox(*args, &block)
     return Knj::Gtk2.msgbox(*args, &block)
   end
   
@@ -117,6 +123,11 @@ module Knj::Gtk2
     dialog.vbox.add(box)
     dialog.has_separator = false
     dialog.show_all
+    
+    Knj::Gtk2::MSGBOX[:current] = dialog
+    dialog.signal_connect(:destroy) do
+      Knj::Gtk2::MSGBOX[:current] = nil
+    end
     
     if type == "list"
       dialog.set_size_request(250, 370)
