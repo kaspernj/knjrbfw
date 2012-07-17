@@ -60,6 +60,10 @@ class Knj::Datarow_custom
     return @events
   end
   
+  def self.classname
+    self.name.split("::").last
+  end
+  
   def self.add(d)
     return @events.call(:add, d)
   end
