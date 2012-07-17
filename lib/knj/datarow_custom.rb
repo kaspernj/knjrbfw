@@ -72,6 +72,11 @@ class Knj::Datarow_custom
     return self.name.split("::").last
   end
   
+  def deleted?
+    return true if @data
+    return false
+  end
+  
   def table
     return self.class.table
   end
