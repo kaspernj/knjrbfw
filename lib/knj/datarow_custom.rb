@@ -73,7 +73,7 @@ class Knj::Datarow_custom
   end
   
   def deleted?
-    return true if @data
+    return true if !@data
     return false
   end
   
