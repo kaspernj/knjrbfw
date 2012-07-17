@@ -1,15 +1,10 @@
 #Contains various methods for doing stuff quick using the Gtk2-extension.
 class Knj::Gtk2
-  Knj::Gtk2::MSGBOX = {
-    :current = nil
-  }
-  
-  STDOUT.print "ARGH!\n"
-  
   #Autoloader.
   def self.const_missing(name)
     require "#{$knjpath}gtk2_#{name.to_s.downcase}"
-    return Knj::Gtk2.const_get(name)
+    return Knj::Gtk2.const_get(name) if Knj::Gtk2.const_defined?(name)
+    raise "Could not load constant: '#{name}'."
   end
   
   #Alias for self.msgbox.
@@ -22,6 +17,8 @@ class Knj::Gtk2
   # Knj::Gtk2.msgbox("Message", "Title", "info")
   # Knj::Gtk2.msgbox("Question", "Title", "yesno") #=> "yes"|"no"|"cancel"|"close"
   def self.msgbox(paras, type = "warning", title = nil)
+    raise "A message-box is already shown." if Knj::Gtk2::Msgbox.shown?
+    
     if paras.is_a?(Array)
       msg = paras[0]
       title = paras[2]
@@ -124,9 +121,10 @@ class Knj::Gtk2
     dialog.has_separator = false
     dialog.show_all
     
-    Knj::Gtk2::MSGBOX[:current] = dialog
+    #Make the current-functionality work.
+    Knj::Gtk2::Msgbox::DATA[:current] = dialog
     dialog.signal_connect(:destroy) do
-      Knj::Gtk2::MSGBOX[:current] = nil
+      Knj::Gtk2::Msgbox::DATA[:current] = nil if Knj::Gtk2::Msgbox::DATA[:current].__id__ == dialog.__id__
     end
     
     if type == "list"
