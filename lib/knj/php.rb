@@ -219,7 +219,7 @@ module Knj::Php
   end
   
   def ucwords(string)
-    return string.to_s.split(" ").select {|w| w.capitalize! || w }.join(" ")
+    return string.to_s.split(" ").select{|w| w.capitalize! or w }.join(" ")
   end
   
   def strtoupper(str)

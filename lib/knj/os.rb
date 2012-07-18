@@ -98,10 +98,7 @@ module Knj::Os
   end
   
   def self.realpath(path)
-    if File.symlink?(path)
-      return self.realpath(File.readlink(path))
-    end
-    
+    return self.realpath(File.readlink(path)) if File.symlink?(path)
     return path
   end
   
