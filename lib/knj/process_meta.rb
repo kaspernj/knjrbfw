@@ -44,6 +44,7 @@ class Knj::Process_meta
     if RUBY_ENGINE == "jruby"
       pid, @stdin, @stdout, @stderr = IO.popen4("#{exec_path} --#{RUBY_VERSION[0, 3]} \"#{exec_file}\" \"#{id}\"")
     else
+      require "open3"
       @stdin, @stdout, @stderr = Open3.popen3(cmd)
     end
     
