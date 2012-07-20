@@ -5,7 +5,7 @@
 
 Gem::Specification.new do |s|
   s.name = %q{knjrbfw}
-  s.version = "0.0.65"
+  s.version = "0.0.66"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Kasper Johansen"]
@@ -91,6 +91,7 @@ Gem::Specification.new do |s|
     "lib/knj/gtk2.rb",
     "lib/knj/gtk2_cb.rb",
     "lib/knj/gtk2_menu.rb",
+    "lib/knj/gtk2_msgbox.rb",
     "lib/knj/gtk2_statuswindow.rb",
     "lib/knj/gtk2_tv.rb",
     "lib/knj/gtk2_window.rb",

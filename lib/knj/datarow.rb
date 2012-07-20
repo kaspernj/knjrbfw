@@ -619,6 +619,15 @@ class Knj::Datarow
   # print "That user is deleted." if user.deleted?
   def deleted?
     return true if !@ob and !@data and !@id
+    
+    #Try to reload data. Destroy object and return true if the row is gone from the database.
+    begin
+      self.reload
+    rescue Errno::ENOENT
+      self.destroy
+      return true
+    end
+    
     return false
   end
   
