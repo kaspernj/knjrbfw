@@ -389,11 +389,17 @@ class Knj::Web
       elsif args[:type] == :fckeditor
         args[:height] = 400 if !args[:height]
         
-        require "/usr/share/fckeditor/fckeditor.rb"
+        require "/usr/share/fckeditor/fckeditor.rb" if !Kernel.const_defined?(:FCKeditor)
         fck = FCKeditor.new(args[:name])
         fck.Height = args[:height].to_i
         fck.Value = value
         html << fck.CreateHtml
+      elsif args[:type] == :ckeditor
+        args[:height] = 400 if !args[:height]
+        require "ckeditor4ruby" if !Kernel.const_defined?(:CKEditor)
+        ck = CKEditor.new
+        ck.return_output = true
+        html << ck.editor(args[:name], value)
       elsif args[:type] == :select
         attr["multiple"] = "multiple" if args[:multiple]
         attr["size"] = args["size"] if args[:size]

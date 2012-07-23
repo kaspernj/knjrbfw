@@ -31,7 +31,7 @@ class KnjDB_mysql::Tables
       return table_obj if table_obj.name == table_name
     end
     
-    raise Errno::ENOENT.new("Table was not found: #{table_name}.")
+    raise Errno::ENOENT, "Table was not found: #{table_name}."
   end
   
   #Yields the tables of the current database.
@@ -160,7 +160,7 @@ class KnjDB_mysql::Tables::Table
       return col if col.name == name
     end
     
-    raise Errno::ENOENT.new("Column not found: '#{name}'.")
+    raise Errno::ENOENT, "Column not found: '#{name}'."
   end
   
   def columns(args = nil)
@@ -242,7 +242,7 @@ class KnjDB_mysql::Tables::Table
       return index if index.name.to_s == name
     end
     
-    raise Errno::ENOENT.new("Index not found: #{name}.")
+    raise Errno::ENOENT, "Index not found: #{name}."
   end
   
   def create_columns(col_arr)
