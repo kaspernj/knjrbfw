@@ -7,7 +7,10 @@ class Knj::Eruby
     @args = args
     
     @tmpdir = "#{Knj::Os.tmpdir}/knj_erb"
-    Dir.mkdir(@tmpdir, 0777) if !File.exists?(@tmpdir)
+    if !File.exists?(@tmpdir)
+      Dir.mkdir(@tmpdir, 0777)
+      File.chmod(0777, @tmpdir)
+    end
     
     
     #This argument can be used if a shared cache should be used to speed up performance.
