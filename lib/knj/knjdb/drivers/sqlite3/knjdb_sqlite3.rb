@@ -72,13 +72,13 @@ class KnjDB_sqlite3
   end
   
   #Escapes a string to be used as a column.
-  def sep_col(string)
+  def esc_col(string)
     string = string.to_s
     raise "Invalid column-string: #{string}" if string.index(@sep_col) != nil
     return string
   end
   
-  alias :sep_table :sep_col
+  alias :esc_table :esc_col
   alias :esc :escape
   
   #Returns the last inserted ID.
