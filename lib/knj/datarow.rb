@@ -619,16 +619,24 @@ class Knj::Datarow
   # print "That user is deleted." if user.deleted?
   def deleted?
     return true if !@ob and !@data and !@id
+    return false
+  end
+  
+  #Returns true if the given object no longer exists in the database. Also destroys the data on the object and sets it to deleted-status, if it no longer exists.
+  #===Examples
+  # print "That user is deleted." if user.deleted_from_db?
+  def deleted_from_db?
+    #Try to avoid db-query if object is already deleted.
+    return true if self.deleted?
     
     #Try to reload data. Destroy object and return true if the row is gone from the database.
     begin
       self.reload
+      return false
     rescue Errno::ENOENT
       self.destroy
       return true
     end
-    
-    return false
   end
   
   #Returns a specific data from the object by key.
