@@ -8,7 +8,7 @@ class Knj::Cmd_parser
     ret = []
     
     str.lines.each do |line|
-      next if line.match(/^total ([\d\.,]+)(M|k|G|)$/)
+      next if line.match(/^total([A-z]*)\s+([\d\.,]+)(M|k|G|)$/)
       match = line.match(/^(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)\s+(\d+)\s+(.+)\s+([^\W].+?)\s+([\d\.,]+)(M|k|G|K|)\s+((\d+)-(\d+)-(\d+)|(([A-z]{3})\s+(\d+)))\s+((\d+):(\d+)|(\d{4}))\s+(.+)$/)
       raise "Could not match: '#{line}'." if !match
       

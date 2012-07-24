@@ -703,7 +703,7 @@ module Knj::Php
     hour = cur_time.hour if hour == nil
     min = cur_time.min if min == nil
     sec = cur_time.sec if sec == nil
-    date = cur_time.date if date == nil
+    date = cur_time.day if date == nil
     month = cur_time.month if month == nil
     year = cur_time.year if year == nil
     
