@@ -1,15 +1,13 @@
 class KnjDB_mysql
-  attr_reader :knjdb, :conn, :conns, :escape_table, :escape_col, :escape_val, :esc_table
+  attr_reader :knjdb, :conn, :conns, :sep_table, :sep_col, :sep_val
   attr_accessor :tables, :cols, :indexes
   
   def initialize(knjdb_ob)
     @knjdb = knjdb_ob
     @opts = @knjdb.opts
-    @escape_table = "`"
-    @escape_col = "`"
-    @escape_val = "'"
-    @esc_table = "`"
-    @esc_col = "`"
+    @sep_table = "`"
+    @sep_col = "`"
+    @sep_val = "'"
     
     require "monitor"
     @mutex = Monitor.new
@@ -252,7 +250,7 @@ class KnjDB_mysql
   #Escapes a string to be safe to use as a column in a query.
   def esc_col(string)
     string = string.to_s
-    raise "Invalid column-string: #{string}" if string.index(@escape_col) != nil
+    raise "Invalid column-string: #{string}" if string.index(@sep_col) != nil
     return string
   end
   

@@ -1,15 +1,13 @@
 #This class handels SQLite3-specific behaviour.
 class KnjDB_sqlite3
-  attr_reader :knjdb, :conn, :escape_table, :escape_col, :escape_val, :esc_table, :esc_col, :symbolize
+  attr_reader :knjdb, :conn, :sep_table, :sep_col, :sep_val, :symbolize
   attr_accessor :tables, :cols, :indexes
   
   #Constructor. This should not be called manually.
   def initialize(knjdb_ob)
-    @escape_table = "`"
-    @escape_col = "`"
-    @escape_val = "'"
-    @esc_table = "`"
-    @esc_col = "`"
+    @sep_table = "`"
+    @sep_col = "`"
+    @sep_val = "'"
     
     @knjdb = knjdb_ob
     @path = @knjdb.opts[:path] if @knjdb.opts[:path]
@@ -74,13 +72,13 @@ class KnjDB_sqlite3
   end
   
   #Escapes a string to be used as a column.
-  def esc_col(string)
+  def sep_col(string)
     string = string.to_s
-    raise "Invalid column-string: #{string}" if string.index(@escape_col) != nil
+    raise "Invalid column-string: #{string}" if string.index(@sep_col) != nil
     return string
   end
   
-  alias :esc_table :esc_col
+  alias :sep_table :sep_col
   alias :esc :escape
   
   #Returns the last inserted ID.

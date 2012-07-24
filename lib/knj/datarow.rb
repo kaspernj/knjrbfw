@@ -4,17 +4,27 @@
 # ob = Knj::Objects.new(:db => db, :datarow => true, :path => "path_of_model_class_files")
 # user = ob.get(:User, 1) #=> <Models::User> that extends <Knj::Datarow>
 class Knj::Datarow
-  #Returns the data-hash that contains all the data from the database.
-  def data
-    self.reload if @should_reload
-    return @data
-  end
+  @@refs = {}
   
   #Returns the Knj::Objects which handels this model.
-  attr_reader :ob
+  def ob
+    return self.class.ob
+  end
   
   #Returns the Knj::Db which handels this model.
-  attr_reader :db
+  def db
+    return self.class.db
+  end
+  
+  #Returns the 'Knj::Objects'-object that handels this class.
+  def self.ob
+    return @ob
+  end
+  
+  #Returns the 'Knj::Db'-object that handels this class.
+  def self.db
+    return @db
+  end
   
   #This is used by 'Knj::Objects' to find out what data is required for this class. Returns the array that tells about required data.
   #===Examples
@@ -44,7 +54,7 @@ class Knj::Datarow
   
   #Returns true if this class has been initialized.
   def self.initialized?
-    return false if !@ob or !@columns_sqlhelper_args
+    return false if !@columns_sqlhelper_args
     return true
   end
   
@@ -59,11 +69,6 @@ class Knj::Datarow
   def self.autodelete_data
     @autodelete_data = [] if !@autodelete_data
     return @autodelete_data
-  end
-  
-  #Get the 'Knj::Objects'-object that handels this class.
-  def self.ob
-    return @ob
   end
   
   #This helps various parts of the framework determine if this is a datarow class without requiring it.
@@ -152,7 +157,7 @@ class Knj::Datarow
         list_args.merge!(where_args) if where_args
         list_args[colname.to_s] = self.id
         
-        return @ob.list(classname, list_args, &block)
+        return self.class.ob.list(classname, list_args, &block)
       end
       
       define_method("#{methodname}_count".to_sym) do |*args|
@@ -161,12 +166,12 @@ class Knj::Datarow
         list_args[colname.to_s] = self.id
         list_args["count"] = true
         
-        return @ob.list(classname, list_args)
+        return self.class.ob.list(classname, list_args)
       end
       
       define_method("#{methodname}_last".to_sym) do |args|
         args = {} if !args
-        return @ob.list(classname, {"orderby" => [["id", "desc"]], "limit" => 1}.merge(args))
+        return self.class.ob.list(classname, {"orderby" => [["id", "desc"]], "limit" => 1}.merge(args))
       end
       
       self.joined_tables(
@@ -235,13 +240,13 @@ class Knj::Datarow
       colname = "#{classname.to_s.downcase}_id".to_sym if !colname
       
       define_method(methodname) do
-        return @ob.get_try(self, colname, classname)
+        return self.class.ob.get_try(self, colname, classname)
       end
       
       methodname_html = "#{methodname}_html".to_sym
       define_method(methodname_html) do |*args|
         obj = self.__send__(methodname)
-        return @ob.events.call(:no_html, classname) if !obj
+        return self.class.ob.events.call(:no_html, classname) if !obj
         
         raise "Class '#{classname}' does not have a 'html'-method." if !obj.respond_to?(:html)
         return obj.html(*args)
@@ -250,7 +255,7 @@ class Knj::Datarow
       methodname_name = "#{methodname}_name".to_sym
       define_method(methodname_name) do |*args|
         obj = self.__send__(methodname)
-        return @ob.events.call(:no_name, classname) if !obj
+        return self.class.ob.events.call(:no_name, classname) if !obj
         return obj.name(*args)
       end
       
@@ -313,34 +318,6 @@ class Knj::Datarow
     @columns_joined_tables.merge!(hash)
   end
   
-  #Returns the table-name that should be used for this datarow.
-  #===Examples
-  # db.query("SELECT * FROM `#{Models::User.table}` WHERE username = 'John Doe'") do |data|
-  #   print data[:id]
-  # end
-  def self.table
-    return @table if @table
-    return self.name.split("::").last
-  end
-  
-  #This can be used to manually set the table-name. Useful when meta-programming classes that extends the datarow-class.
-  #===Examples
-  # Models::User.table = "prefix_User"
-  def self.table=(newtable)
-    @table = newtable
-    @columns_sqlhelper_args[:table] = @table if @columns_sqlhelper_args.is_a?(Hash)
-  end
-  
-  #Returns the class-name but without having to call the class-table-method. To make code look shorter.
-  #===Examples
-  # user = ob.get_by(:User, {:username => 'John Doe'})
-  # db.query("SELECT * FROM `#{user.table}` WHERE username = 'John Doe'") do |data|
-  #   print data[:id]
-  # end
-  def table
-    return self.class.table
-  end
-  
   #Returns various data for the objects-sql-helper. This can be used to view various informations about the columns and more.
   def self.columns_sqlhelper_args
     raise "No SQLHelper arguments has been spawned yet." if !@columns_sqlhelper_args
@@ -349,17 +326,24 @@ class Knj::Datarow
   
   #Called by Knj::Objects to initialize the model and load column-data on-the-fly.
   def self.load_columns(d)
-    @ob = d.ob if !@ob
+    @ob = d.ob
+    @db = d.db
     
-    @classname = self.name.split("::").last if !@classname
+    @classname = self.name.split("::").last.to_sym if !@classname
+    @table = @classname if !@table
     @mutex = Monitor.new if !@mutex
+    
+    #Cache these to avoid method-lookups.
+    @sep_col = @db.sep_col
+    @sep_table = @db.sep_table
+    @table_str = "#{@sep_table}#{@db.esc_table(@table)}#{@sep_table}"
     
     @mutex.synchronize do
       inst_methods = self.instance_methods(false)
       
       sqlhelper_args = {
-        :db => d.db,
-        :table => table,
+        :db => @db,
+        :table => @table,
         :cols_bools => [],
         :cols_date => [],
         :cols_dbrows => [],
@@ -368,9 +352,9 @@ class Knj::Datarow
         :cols => {}
       }
       
-      sqlhelper_args[:table] = @table if @table
+      sqlhelper_args[:table] = @table
       
-      d.db.tables[table].columns do |col_obj|
+      @db.tables[table].columns do |col_obj|
         col_name = col_obj.name
         col_type = col_obj.type
         col_type = :int if col_type == :bigint or col_type == :tinyint or col_type == :mediumint or col_type == :smallint
@@ -407,7 +391,7 @@ class Knj::Datarow
       if @columns_joined_tables
         @columns_joined_tables.each do |table_name, table_data|
           table_data[:where].each do |key, val|
-            val[:table] = self.table.to_sym if val.is_a?(Hash) and !val.key?(:table) and val[:type].to_sym == :col
+            val[:table] = @table if val.is_a?(Hash) and !val.key?(:table) and val[:type].to_sym == :col
           end
           
           table_data[:datarow] = @ob.args[:module].const_get(table_name.to_sym) if !table_data.key?(:datarow)
@@ -431,32 +415,29 @@ class Knj::Datarow
   # array = ob.list(:User, {"id" => 1})
   # print array.length
   def self.list(d, &block)
-    ec_col = d.db.enc_col
-    ec_table = d.db.enc_table
+    args = d.args
     
-    table_str = "#{ec_table}#{d.db.esc_table(self.table)}#{ec_table}"
-    
-    if d.args["count"]
+    if args["count"]
       count = true
-      d.args.delete("count")
-      sql = "SELECT COUNT(#{table_str}.#{ec_col}id#{ec_col}) AS count"
-    elsif d.args["select_col_as_array"]
+      args.delete("count")
+      sql = "SELECT COUNT(#{@table_str}.#{@sep_col}id#{@sep_col}) AS count"
+    elsif args["select_col_as_array"]
       select_col_as_array = true
-      sql = "SELECT #{table_str}.#{ec_col}#{d.args["select_col_as_array"]}#{ec_col} AS id"
-      d.args.delete("select_col_as_array")
+      sql = "SELECT #{@table_str}.#{@sep_col}#{args["select_col_as_array"]}#{@sep_col} AS id"
+      args.delete("select_col_as_array")
     else
-      sql = "SELECT #{table_str}.*"
+      sql = "SELECT #{@table_str}.*"
     end
     
     qargs = nil
     ret = self.list_helper(d)
     
-    sql << " FROM #{table_str}"
+    sql << " FROM #{@table_str}"
     sql << ret[:sql_joins]
     sql << " WHERE 1=1"
     sql << ret[:sql_where]
     
-    d.args.each do |key, val|
+    args.each do |key, val|
       case key
         when "return_sql"
           #ignore
@@ -470,7 +451,7 @@ class Knj::Datarow
     #The count will bug if there is a group-by-statement.
     grp_shown = false
     if !count and !ret[:sql_groupby]
-      sql << " GROUP BY #{table_str}.#{ec_col}id#{ec_col}"
+      sql << " GROUP BY #{@table_str}.#{@sep_col}id#{@sep_col}"
       grp_shown = true
     end
     
@@ -487,11 +468,11 @@ class Knj::Datarow
     sql << ret[:sql_order]
     sql << ret[:sql_limit]
     
-    return sql.to_s if d.args["return_sql"]
+    return sql.to_s if args["return_sql"]
     
     if select_col_as_array
       enum = Enumerator.new do |yielder|
-        d.db.q(sql, qargs) do |data|
+        @db.q(sql, qargs) do |data|
           yielder << data[:id]
         end
       end
@@ -499,25 +480,25 @@ class Knj::Datarow
       if block
         enum.each(&block)
         return nil
-      elsif d.ob.args[:array_enum]
+      elsif @ob.args[:array_enum]
         return Array_enumerator.new(enum)
       else
         return enum.to_a
       end
     elsif count
-      ret = d.db.query(sql).fetch
+      ret = @db.query(sql).fetch
       return ret[:count].to_i if ret
       return 0
     end
     
-    return d.ob.list_bysql(self.classname, sql, qargs, &block)
+    return @ob.list_bysql(self.classname, sql, qargs, &block)
   end
   
   #Helps call 'sqlhelper' on Knj::Objects to generate SQL-strings.
   def self.list_helper(d)
     self.load_columns(d) if !@columns_sqlhelper_args
-    @columns_sqlhelper_args[:table] = @table if @table
-    return d.ob.sqlhelper(d.args, @columns_sqlhelper_args)
+    @columns_sqlhelper_args[:table] = @table
+    return @ob.sqlhelper(d.args, @columns_sqlhelper_args)
   end
   
   #Returns the classname of the object without any subclasses.
@@ -530,14 +511,37 @@ class Knj::Datarow
     @classname = newclassname
   end
   
+  #Returns the table-name that should be used for this datarow.
+  #===Examples
+  # db.query("SELECT * FROM `#{Models::User.table}` WHERE username = 'John Doe'") do |data|
+  #   print data[:id]
+  # end
+  def self.table
+    return @table
+  end
+  
+  #This can be used to manually set the table-name. Useful when meta-programming classes that extends the datarow-class.
+  #===Examples
+  # Models::User.table = "prefix_User"
+  def self.table=(newtable)
+    @table = newtable
+    @columns_sqlhelper_args[:table] = @table if @columns_sqlhelper_args.is_a?(Hash)
+  end
+  
+  #Returns the class-name but without having to call the class-table-method. To make code look shorter.
+  #===Examples
+  # user = ob.get_by(:User, {:username => 'John Doe'})
+  # db.query("SELECT * FROM `#{user.table}` WHERE username = 'John Doe'") do |data|
+  #   print data[:id]
+  # end
+  def table
+    return self.class.table
+  end
+  
   #Initializes the object. This should be called from 'Knj::Objects' and not manually.
   #===Examples
   # user = ob.get(:User, 3)
   def initialize(data, args = nil)
-    @ob = self.class.ob
-    raise "No ob given." if !@ob
-    @db = ob.db
-    
     if data.is_a?(Hash) and data.key?(:id)
       @data = data
       @id = @data[:id].to_i
@@ -545,9 +549,9 @@ class Knj::Datarow
       @id = data.to_i
       
       classname = self.class.classname.to_sym
-      if @ob.ids_cache_should.key?(classname)
+      if self.class.ob.ids_cache_should.key?(classname)
         #ID caching is enabled for this model - dont reload until first use.
-        raise Errno::ENOENT, "ID was not found in cache: '#{id}'." if !@ob.ids_cache[classname].key?(@id)
+        raise Errno::ENOENT, "ID was not found in cache: '#{id}'." if !self.class.ob.ids_cache[classname].key?(@id)
         @should_reload = true
       else
         #ID caching is not enabled - reload now to check if row exists. Else set 'should_reload'-variable if 'skip_reload' is set.
@@ -573,8 +577,8 @@ class Knj::Datarow
   # user.reload
   # print "The username changed in the database!" if user[:username] != old_username
   def reload
-    @data = @db.single(self.table, {:id => @id})
-    raise Errno::ENOENT, "Could not find any data for the object with ID: '#{@id}' in the table '#{self.table}'." if !@data
+    @data = self.class.db.single(self.class.table, {:id => @id})
+    raise Errno::ENOENT, "Could not find any data for the object with ID: '#{@id}' in the table '#{self.class.table}'." if !@data
     @should_reload = false
   end
   
@@ -587,20 +591,24 @@ class Knj::Datarow
     @data = nil
   end
   
+  #Returns the data-hash that contains all the data from the database.
+  def data
+    self.reload if @should_reload
+    return @data
+  end
+  
   #Writes/updates new data for the object.
   #===Examples
   # user.update(:username => 'New username', :date_changed => Time.now)
   def update(newdata)
-    @db.update(self.table, newdata, {:id => @id})
+    self.class.db.update(self.class.table, newdata, {:id => @id})
     self.should_reload
-    @ob.call("object" => self, "signal" => "update") if @ob
+    self.class.ob.call("object" => self, "signal" => "update")
   end
   
   #Forcefully destroys the object. This is done after deleting it and should not be called manually.
   def destroy
     @id = nil
-    @ob = nil
-    @db = nil
     @data = nil
     @should_reload = nil
   end
@@ -618,7 +626,7 @@ class Knj::Datarow
   #===Examples
   # print "That user is deleted." if user.deleted?
   def deleted?
-    return true if !@ob and !@data and !@id
+    return true if !@data and !@id
     return false
   end
   
@@ -754,7 +762,7 @@ class Knj::Datarow
     if args[:inst_methods].index(method_name) == nil
       define_method(method_name) do |*method_args|
         if Datet.is_nullstamp?(self[args[:col_name].to_sym])
-          return @ob.events.call(:no_date, self.class.name)
+          return self.class.ob.events.call(:no_date, self.class.name)
         end
         
         return Datet.in(self[args[:col_name].to_sym]).out(*method_args)
@@ -788,7 +796,7 @@ class Knj::Datarow
     method_name = "by_#{args[:col_name]}".to_sym
     if args[:inst_methods].index(method_name) == nil and RUBY_VERSION.to_s.slice(0, 3) != "1.8"
       define_singleton_method(method_name) do |arg|
-        return d.ob.get_by(self.table, {args[:col_name].to_s => arg})
+        return self.class.ob.get_by(self.class.table, {args[:col_name].to_s => arg})
       end
     end
   end

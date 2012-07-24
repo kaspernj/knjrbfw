@@ -28,7 +28,7 @@ class Knj::Db
     return Knj::Db.const_get(name)
   end
   
-  attr_reader :opts, :conn, :conns, :int_types
+  attr_reader :sep_col, :sep_table, :sep_val, :opts, :conn, :conns, :int_types
   
   def initialize(opts)
     require "#{$knjpath}threadhandler"
@@ -43,6 +43,13 @@ class Knj::Db
     end
     
     @debug = @opts[:debug]
+    
+    self.conn_exec do |driver|
+      @sep_table = driver.sep_table
+      @sep_col = driver.sep_col
+      @sep_val = driver.sep_val
+      @esc_driver = driver
+    end
   end
   
   def args
@@ -239,43 +246,44 @@ class Knj::Db
   # id = db.insert(:users, {:name => "John", :lastname => "Doe"}, :return_id => true)
   # sql = db.insert(:users, {:name => "John", :lastname => "Doe"}, :return_sql => true) #=> "INSERT INTO `users` (`name`, `lastname`) VALUES ('John', 'Doe')"
   def insert(tablename, arr_insert, args = nil)
-    self.conn_exec do |driver|
-      sql = "INSERT INTO #{driver.escape_table}#{tablename.to_s}#{driver.escape_table}"
+    sql = "INSERT INTO #{@sep_table}#{tablename}#{@sep_table}"
+    
+    if !arr_insert or arr_insert.empty?
+      #This is the correct syntax for inserting a blank row in MySQL.
+      sql << " VALUES ()"
+    else
+      sql << " ("
       
-      if !arr_insert or arr_insert.empty?
-        #This is the correct syntax for inserting a blank row in MySQL.
-        sql << " VALUES ()"
-      else
-        sql << " ("
-        
-        first = true
-        arr_insert.each do |key, value|
-          if first
-            first = false
-          else
-            sql << ", "
-          end
-          
-          sql << "#{driver.escape_col}#{key.to_s}#{driver.escape_col}"
+      first = true
+      arr_insert.each do |key, value|
+        if first
+          first = false
+        else
+          sql << ", "
         end
         
-        sql << ")  VALUES ("
-        
-        first = true
-        arr_insert.each do |key, value|
-          if first
-            first = false
-          else
-            sql << ", "
-          end
-          
-          sql << "#{driver.escape_val}#{driver.escape(value.to_s)}#{driver.escape_val}"
-        end
-        
-        sql << ")"
+        sql << "#{@sep_col}#{key}#{@sep_col}"
       end
       
-      return sql if args and args[:return_sql]
+      sql << ")  VALUES ("
+      
+      first = true
+      arr_insert.each do |key, value|
+        if first
+          first = false
+        else
+          sql << ", "
+        end
+        
+        sql << "#{@sep_val}#{@esc_driver.escape(value)}#{@sep_val}"
+      end
+      
+      sql << ")"
+    end
+    
+    return sql if args and args[:return_sql]
+    
+    self.conn_exec do |driver|
       driver.query(sql)
       return driver.lastID if args and args[:return_id]
       return nil
@@ -292,28 +300,28 @@ class Knj::Db
   def insert_multi(tablename, arr_hashes, args = nil)
     return false if arr_hashes.empty?
     
-    self.conn_exec do |driver|
-      if driver.respond_to?(:insert_multi)
-        if args and args[:return_sql]
-          return [driver.insert_multi(tablename, arr_hashes, args)]
-        else
-          return driver.insert_multi(tablename, arr_hashes, args)
-        end
-      else
-        ret = [] if args and (args[:return_id] or args[:return_sql])
-        arr_hashes.each do |hash|
-          if ret
-            ret << self.insert(tablename, hash, args)
-          else
-            self.insert(tablename, hash, args)
-          end
-        end
-        
+    if @esc_driver.respond_to?(:insert_multi)
+      if args and args[:return_sql]
+        return [@esc_driver.insert_multi(tablename, arr_hashes, args)]
+      end
+      
+      self.conn_exec do |driver|
+        return driver.insert_multi(tablename, arr_hashes, args)
+      end
+    else
+      ret = [] if args and (args[:return_id] or args[:return_sql])
+      arr_hashes.each do |hash|
         if ret
-          return ret
+          ret << self.insert(tablename, hash, args)
         else
-          return nil
+          self.insert(tablename, hash, args)
         end
+      end
+      
+      if ret
+        return ret
+      else
+        return nil
       end
     end
   end
@@ -325,30 +333,31 @@ class Knj::Db
   def update(tablename, arr_update, arr_terms = {}, args = nil)
     return false if arr_update.empty?
     
+    sql = ""
+    sql << "UPDATE #{@sep_col}#{tablename}#{@sep_col} SET "
+    
+    first = true
+    arr_update.each do |key, value|
+      if first
+        first = false
+      else
+        sql << ", "
+      end
+      
+      #Convert dates to valid dbstr.
+      value = self.date_out(value) if value.is_a?(Datet) or value.is_a?(Time)
+      
+      sql << "#{@sep_col}#{key}#{@sep_col} = "
+      sql << "#{@sep_val}#{@esc_driver.escape(value)}#{@sep_val}"
+    end
+    
+    if arr_terms and arr_terms.length > 0
+      sql << " WHERE #{self.makeWhere(arr_terms)}"
+    end
+    
+    return sql if args and args[:return_sql]
+    
     self.conn_exec do |driver|
-      sql = ""
-      sql << "UPDATE #{driver.escape_col}#{tablename.to_s}#{driver.escape_col} SET "
-      
-      first = true
-      arr_update.each do |key, value|
-        if first
-          first = false
-        else
-          sql << ", "
-        end
-        
-        #Convert dates to valid dbstr.
-        value = self.date_out(value) if value.is_a?(Datet) or value.is_a?(Time)
-        
-        sql << "#{driver.escape_col}#{key.to_s}#{driver.escape_col} = "
-        sql << "#{driver.escape_val}#{driver.escape(value.to_s)}#{driver.escape_val}"
-      end
-      
-      if arr_terms and arr_terms.length > 0
-        sql << " WHERE #{self.makeWhere(arr_terms, driver)}"
-      end
-      
-      return sql if args and args[:return_sql]
       driver.query(sql)
     end
   end
@@ -376,28 +385,25 @@ class Knj::Db
       end
     end
     
-    #Get the driver and generate SQL.
-    self.conn_exec do |driver|
-      sql = "SELECT #{select_sql} FROM #{driver.escape_table}#{tablename.to_s}#{driver.escape_table}"
-      
-      if arr_terms != nil and !arr_terms.empty?
-        sql << " WHERE #{self.makeWhere(arr_terms, driver)}"
+    sql = "SELECT #{select_sql} FROM #{@sep_table}#{tablename}#{@sep_table}"
+    
+    if arr_terms != nil and !arr_terms.empty?
+      sql << " WHERE #{self.makeWhere(arr_terms)}"
+    end
+    
+    if args != nil
+      if args["orderby"]
+        sql << " ORDER BY #{args["orderby"]}"
       end
       
-      if args != nil
-        if args["orderby"]
-          sql << " ORDER BY #{args["orderby"]}"
-        end
-        
-        if args["limit"]
-          sql << " LIMIT #{args["limit"]}"
-        end
-        
-        if args["limit_from"] and args["limit_to"]
-          raise "'limit_from' was not numeric: '#{args["limit_from"]}'." if !Knj::Php.is_numeric(args["limit_from"])
-          raise "'limit_to' was not numeric: '#{args["limit_to"]}'." if !Knj::Php.is_numeric(args["limit_to"])
-          sql << " LIMIT #{args["limit_from"]}, #{args["limit_to"]}"
-        end
+      if args["limit"]
+        sql << " LIMIT #{args["limit"]}"
+      end
+      
+      if args["limit_from"] and args["limit_to"]
+        raise "'limit_from' was not numeric: '#{args["limit_from"]}'." if !Knj::Php.is_numeric(args["limit_from"])
+        raise "'limit_to' was not numeric: '#{args["limit_to"]}'." if !Knj::Php.is_numeric(args["limit_to"])
+        sql << " LIMIT #{args["limit_from"]}, #{args["limit_to"]}"
       end
     end
     
@@ -438,14 +444,15 @@ class Knj::Db
   #===Examples
   # db.delete(:users, {:lastname => "Doe"})
   def delete(tablename, arr_terms, args = nil)
+    sql = "DELETE FROM #{@sep_table}#{tablename}#{@sep_table}"
+    
+    if arr_terms != nil and !arr_terms.empty?
+      sql << " WHERE #{self.makeWhere(arr_terms)}"
+    end
+    
+    return sql if args and args[:return_sql]
+    
     self.conn_exec do |driver|
-      sql = "DELETE FROM #{driver.escape_table}#{tablename}#{driver.escape_table}"
-      
-      if arr_terms != nil and !arr_terms.empty?
-        sql << " WHERE #{self.makeWhere(arr_terms, driver)}"
-      end
-      
-      return sql if args and args[:return_sql]
       driver.query(sql)
     end
     
@@ -456,7 +463,7 @@ class Knj::Db
   #
   #===Examples
   # sql = db.makeWhere({:lastname => "Doe"}, driver_obj)
-  def makeWhere(arr_terms, driver)
+  def makeWhere(arr_terms, driver = nil)
     sql = ""
     
     first = true
@@ -469,11 +476,11 @@ class Knj::Db
       
       if value.is_a?(Array)
         raise "Array for column '#{key}' was empty." if value.empty?
-        sql << "#{driver.escape_col}#{key}#{driver.escape_col} IN (#{Knj::ArrayExt.join(:arr => value, :sep => ",", :surr => "'", :callback => proc{|ele| self.esc(ele)})})"
+        sql << "#{@sep_col}#{key}#{@sep_col} IN (#{Knj::ArrayExt.join(:arr => value, :sep => ",", :surr => "'", :callback => proc{|ele| self.esc(ele)})})"
       elsif value.is_a?(Hash)
         raise "Dont know how to handle hash."
       else
-        sql << "#{driver.escape_col}#{key}#{driver.escape_col} = #{driver.escape_val}#{driver.escape(value)}#{driver.escape_val}"
+        sql << "#{@sep_col}#{key}#{@sep_col} = #{@sep_val}#{@esc_driver.escape(value)}#{@sep_val}"
       end
     end
     
@@ -637,57 +644,27 @@ class Knj::Db
   #===Examples
   # db.q("INSERT INTO users (name) VALUES ('#{db.esc('John')}')")
   def escape(string)
-    self.conn_exec do |driver|
-      return driver.escape(string)
-    end
+    return @esc_driver.escape(string)
   end
   
   alias :esc :escape
   
   #Escapes the given string to be used as a column.
   def esc_col(str)
-    self.conn_exec do |driver|
-      return driver.esc_col(str)
-    end
+    return @esc_driver.esc_col(str)
   end
   
   #Escapes the given string to be used as a table.
   def esc_table(str)
-    self.conn_exec do |driver|
-      return driver.esc_table(str)
-    end
-  end
-  
-  #Returns the sign for surrounding the string that should be used as a table.
-  def enc_table
-    if !@enc_table
-      self.conn_exec do |driver|
-        @enc_table = driver.escape_table
-      end
-    end
-    
-    return @enc_table
-  end
-  
-  #Returns the sign for surrounding the string that should be used as a column.
-  def enc_col
-    if !@enc_col
-      self.conn_exec do |driver|
-        @enc_col = driver.escape_col
-      end
-    end
-    
-    return @enc_col
+    return @esc_driver.esc_table(str)
   end
   
   #Returns a string which can be used in SQL with the current driver.
   #===Examples
   # str = db.date_out(Time.now) #=> "2012-05-20 22:06:09"
   def date_out(date_obj = Datet.new, args = {})
-    conn_exec do |driver|
-      if driver.respond_to?(:date_out)
-        return driver.date_out(date_obj, args)
-      end
+    if @esc_driver.respond_to?(:date_out)
+      return @esc_driver.date_out(date_obj, args)
     end
     
     return Datet.in(date_obj).dbstr(args)
@@ -697,10 +674,8 @@ class Knj::Db
   #===Examples
   # db.date_in('2012-05-20 22:06:09') #=> 2012-05-20 22:06:09 +0200
   def date_in(date_obj)
-    conn_exec do |driver|
-      if driver.respond_to?(:date_in)
-        return driver.date_in(date_obj)
-      end
+    if @esc_driver.respond_to?(:date_in)
+      return @esc_driver.date_in(date_obj)
     end
     
     return Datet.in(date_obj)
@@ -708,16 +683,14 @@ class Knj::Db
   
   #Returns the table-module and spawns it if it isnt already spawned.
   def tables
-    conn_exec do |driver|
-      if !@tables
-        require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_tables" if (!@opts.key?(:require) or @opts[:require])
-        @tables = Kernel.const_get("KnjDB_#{@opts[:type]}".to_sym).const_get(:Tables).new(
-          :db => self
-        )
-      end
-      
-      return @tables
+    if !@tables
+      require "#{File.dirname(__FILE__)}/drivers/#{@opts[:type]}/knjdb_#{@opts[:type]}_tables" if (!@opts.key?(:require) or @opts[:require])
+      @tables = Kernel.const_get("KnjDB_#{@opts[:type]}".to_sym).const_get(:Tables).new(
+        :db => self
+      )
     end
+    
+    return @tables
   end
   
   #Returns the columns-module and spawns it if it isnt already spawned.
@@ -767,11 +740,6 @@ class Knj::Db
     self.conn_exec do |driver|
       driver.transaction(&block)
     end
-  end
-  
-  #Returns the sign to be used for surrounding tables.
-  def col_table
-    return "`"
   end
   
   #Optimizes all tables in the database.

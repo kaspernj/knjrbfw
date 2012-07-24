@@ -65,8 +65,9 @@ class Knj::Threadhandler
   
   def check_inactive
     raise "Destroyed Knj::Threadhandler." if !@mutex
+    cur_time = Time.now.to_i - @args[:timeout]
+    
     @mutex.synchronize do
-      cur_time = Time.now.to_i - @args[:timeout]
       @objects.each do |data|
         if data[:free] and !data[:inactive] and data[:free] < cur_time
           @inactive_blocks.each do |block|
@@ -81,46 +82,48 @@ class Knj::Threadhandler
   def get_and_lock
     raise "Destroyed Knj::Threadhandler." if !@mutex
     newobj = nil
-    sleep_do = false
     
     begin
+      retdata = nil
+      
       @mutex.synchronize do
-        retdata = false
         @objects.each do |data|
           if data[:free]
             retdata = data
             break
           end
         end
+      end
+      
+      if retdata
+        #Test if object is still free - if not, try again - knj.
+        return get_and_lock if !retdata[:free]
+        retdata[:free] = false
         
-        if retdata
-          #Test if object is still free - if not, try again - knj.
-          return get_and_lock if !retdata[:free]
-          retdata[:free] = false
-          
-          if retdata[:inactive]
-            @activate_blocks.each do |block|
-              block.call(:obj => retdata[:object])
-            end
-            
-            retdata.delete(:inactive)
+        if retdata[:inactive]
+          @activate_blocks.each do |block|
+            block.call(:obj => retdata[:object])
           end
           
-          return retdata[:object]
+          retdata.delete(:inactive)
         end
         
-        if @objects.length >= @args[:max]
-          #The maximum amount of objects has already been spawned... Sleep 0.1 sec and try to lock an object again...
-          raise Knj::Errors::Retry
-        else
-          #No free objects, but we can spawn a new one and use that...
-          newobj = @spawn_new_block.call
+        return retdata[:object]
+      end
+      
+      if @objects.length >= @args[:max]
+        #The maximum amount of objects has already been spawned... Sleep 0.1 sec and try to lock an object again...
+        raise Knj::Errors::Retry
+      else
+        #No free objects, but we can spawn a new one and use that...
+        newobj = @spawn_new_block.call
+        @mutex.synchronize do
           @objects << Tsafe::MonHash.new.merge(
             :free => false,
             :object => newobj
           )
-          STDOUT.print "Spawned db and locked new.\n" if @args[:debug]
         end
+        STDOUT.print "Spawned db and locked new.\n" if @args[:debug]
       end
       
       return newobj
