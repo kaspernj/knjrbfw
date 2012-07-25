@@ -388,14 +388,14 @@ class KnjDB_sqlite3::Tables::Table
       name = index_data["name"]
       name = "#{self.name}__#{name}" if @db.opts[:index_append_table_name]
       
-      sql = "CREATE INDEX #{@db.escape_col}#{@db.esc_col(name)}#{@db.escape_col} ON #{@db.escape_table}#{@db.esc_table(self.name)}#{@db.escape_table} ("
+      sql = "CREATE INDEX '#{@db.esc_col(name)}' ON `#{@db.esc_table(self.name)}` ("
       
       first = true
       index_data["columns"].each do |col_name|
         sql << ", " if !first
         first = false if first
         
-        sql << "#{@db.escape_col}#{@db.esc_col(col_name)}#{@db.escape_col}"
+        sql << "`#{@db.esc_col(col_name)}`"
       end
       
       sql << ")"

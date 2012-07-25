@@ -2,7 +2,7 @@ require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
 describe "Objects" do
   it "should be able to cache rows" do
-    require "~/Dev/Ruby/array_enumerator/lib/array_enumerator"
+    require "#{File.dirname(__FILE__)}/../../array_enumerator/lib/array_enumerator"
     require "sqlite3" if RUBY_ENGINE != "jruby"
     
     $db_path = "#{Knj::Os.tmpdir}/knjrbfw_objects_cache_test.sqlite3"
