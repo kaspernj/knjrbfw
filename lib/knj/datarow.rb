@@ -69,6 +69,7 @@ class Knj::Datarow
     return @autodelete_data
   end
   
+  #Returns the autozero-data (if any).
   def self.autozero_data
     return @autozero_data
   end
