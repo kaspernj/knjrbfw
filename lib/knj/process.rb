@@ -199,7 +199,7 @@ class Knj::Process
             buffer_done = false
             
             begin
-              buffer_answers = Knj::Threadsafe.std_array #JRuby needs the threadsafety.
+              buffer_answers = Tsafe.std_array #JRuby needs the threadsafety.
               buffer_thread = Knj::Thread.new do
                 loop do
                   arr = buffer_answers.shift(200)

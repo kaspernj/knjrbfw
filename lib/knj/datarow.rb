@@ -48,7 +48,6 @@ class Knj::Datarow
   #   ]
   # end
   def self.depending_data
-    @depending_data = [] if !@depending_data
     return @depending_data
   end
   
@@ -67,8 +66,11 @@ class Knj::Datarow
   #   ]
   # end
   def self.autodelete_data
-    @autodelete_data = [] if !@autodelete_data
     return @autodelete_data
+  end
+  
+  def self.autozero_data
+    return @autozero_data
   end
   
   #This helps various parts of the framework determine if this is a datarow class without requiring it.
@@ -111,7 +113,7 @@ class Knj::Datarow
               colname = hval
             when :method
               methodname = hval
-            when :depends, :autodelete, :where
+            when :depends, :autodelete, :autozero, :where
               #ignore
             else
               raise "Invalid key for 'has_many': '#{hkey}'."
@@ -121,14 +123,24 @@ class Knj::Datarow
         colname = "#{self.name.to_s.split("::").last.to_s.downcase}_id".to_sym if colname.to_s.empty?
         
         if val[:depends]
-          self.depending_data << {
+          @depending_data = [] if !@depending_data
+          @depending_data << {
             :colname => colname,
             :classname => classname
           }
         end
         
         if val[:autodelete]
-          self.autodelete_data << {
+          @autodelete_data = [] if !@autodelete_data
+          @autodelete_data << {
+            :colname => colname,
+            :classname => classname
+          }
+        end
+        
+        if val[:autozero]
+          @autozero_data = [] if !@autozero_data
+          @autozero_data << {
             :colname => colname,
             :classname => classname
           }

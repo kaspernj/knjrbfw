@@ -24,6 +24,7 @@ GEM
     wref (0.0.5)
 
 PLATFORMS
+  java
   ruby
 
 DEPENDENCIES

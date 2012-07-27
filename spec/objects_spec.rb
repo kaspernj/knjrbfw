@@ -174,6 +174,16 @@ describe "Objects" do
       ]
     })
     
+    $db.tables.create("Timelog", {
+      "columns" => [
+        {"name" => "id", "type" => "int", "autoincr" => true, "primarykey" => true},
+        {"name" => "person_id", "type" => "int"}
+      ],
+      "indexes" => [
+        "person_id"
+      ]
+    })
+    
     table = $db.tables["Project"]
     
     indexes = table.indexes
@@ -212,9 +222,17 @@ describe "Objects" do
     class Person < Knj::Datarow
       has_one [:Project]
       
+      has_many [
+        {:class => :Timelog, :autozero => true}
+      ]
+      
       def html
         return self[:name]
       end
+    end
+    
+    class Timelog < Knj::Datarow
+      
     end
     
     $ob = Knj::Objects.new(:db => $db, :datarow => true, :require => false)
@@ -332,6 +350,27 @@ describe "Objects" do
     
     persons = $ob.list(:Person).to_a
     raise "Expected persons count to be 0 but it wasnt: #{persons.map{|e| e.data} }" if persons.length > 0
+  end
+  
+  it "should do autozero when deleting objects" do
+    person1 = $ob.add(:Person, {
+      :name => "Kasper"
+    })
+    person2 = $ob.add(:Person, {
+      :name => "Charlotte"
+    })
+    
+    timelog1 = $ob.add(:Timelog, {
+      :person_id => person1.id
+    })
+    timelog2 = $ob.add(:Timelog, {
+      :person_id => person2.id
+    })
+    
+    $ob.delete(person1)
+    
+    raise "Expected timelog1's person-ID to be zero but it wasnt: '#{timelog1[:person_id]}'." if timelog1[:person_id].to_i != 0
+    raise "Expected timelog2's person-ID to be #{person2.id} but it wasnt: '#{timelog2[:person_id]}'." if timelog2[:person_id].to_i != person2.id.to_i
   end
   
   it "should delete the temp database again." do

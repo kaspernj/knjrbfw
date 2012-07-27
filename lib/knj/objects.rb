@@ -793,17 +793,29 @@ class Knj::Objects
     
     if @args[:datarow]
       #If autodelete is set by 'has_many'-method, go through it and delete the various objects first.
-      object.class.autodelete_data.each do |adel_data|
-        self.list(adel_data[:classname], {adel_data[:colname].to_s => object.id}) do |obj_del|
-          self.delete(obj_del, args)
+      if autodelete_data = object.class.autodelete_data
+        autodelete_data.each do |adel_data|
+          self.list(adel_data[:classname], {adel_data[:colname].to_s => object.id}) do |obj_del|
+            self.delete(obj_del, args)
+          end
         end
       end
       
       #If depend is set by 'has_many'-method, check if any objects exists and raise error if so.
-      object.class.depending_data.each do |dep_data|
-        obj = self.get_by(dep_data[:classname], {dep_data[:colname].to_s => object.id})
-        if obj
-          raise "Cannot delete <#{object.class.name}:#{object.id}> because <#{obj.class.name}:#{obj.id}> depends on it."
+      if dep_datas = object.class.depending_data
+        dep_datas.each do |dep_data|
+          if obj = self.get_by(dep_data[:classname], {dep_data[:colname].to_s => object.id})
+            raise "Cannot delete <#{object.class.name}:#{object.id}> because <#{obj.class.name}:#{obj.id}> depends on it."
+          end
+        end
+      end
+      
+      #If autozero is set by 'has_many'-method, check if any objects exists and set the ID to zero.
+      if autozero_datas = object.class.autozero_data
+        autozero_datas.each do |zero_data|
+          self.list(zero_data[:classname], {zero_data[:colname].to_s => object.id}) do |obj_zero|
+            obj_zero[zero_data[:colname].to_sym] = 0
+          end
         end
       end
       
