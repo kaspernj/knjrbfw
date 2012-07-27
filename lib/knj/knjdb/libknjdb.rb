@@ -244,7 +244,13 @@ class Knj::Db
     
     if !arr_insert or arr_insert.empty?
       #This is the correct syntax for inserting a blank row in MySQL.
-      sql << " VALUES ()"
+      if @opts[:type].to_s == "mysql"
+        sql << " VALUES ()"
+      elsif @opts[:type].to_s == "sqlite3"
+        sql << " DEFAULT VALUES"
+      else
+        raise "Unknown database-type: '#{@opts[:type]}'."
+      end
     else
       sql << " ("
       
