@@ -5,7 +5,7 @@
 
 Gem::Specification.new do |s|
   s.name = %q{knjrbfw}
-  s.version = "0.0.70"
+  s.version = "0.0.71"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Kasper Johansen"]
@@ -158,7 +158,6 @@ Gem::Specification.new do |s|
     "lib/knj/jruby-gtk2/treeview.rb",
     "lib/knj/jruby-gtk2/vbox.rb",
     "lib/knj/jruby-gtk2/window.rb",
-    "lib/knj/jruby/sqlitejdbc-v056.jar",
     "lib/knj/jruby_compiler.rb",
     "lib/knj/knj.rb",
     "lib/knj/knj_controller.rb",
