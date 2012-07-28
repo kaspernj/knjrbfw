@@ -33,7 +33,6 @@ class Knj::Objects
     raise "No class path given." if !@args[:class_path] and (@args[:require] or !@args.key?(:require))
     
     if args[:require_all]
-      require "#{$knjpath}php"
       loads = []
       
       Dir.foreach(@args[:class_path]) do |file|
