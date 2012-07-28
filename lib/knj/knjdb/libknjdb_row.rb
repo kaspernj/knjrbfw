@@ -130,6 +130,10 @@ class Knj::Db_row
     return @data.each(&args)
   end
   
+  def to_hash
+    return @data.clone
+  end
+  
   def esc(str)
     return self.db.escape(str)
   end

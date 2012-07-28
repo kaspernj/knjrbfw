@@ -59,9 +59,9 @@ class Knj::Table_writer
         val = arr[key]
         
         if val.is_a?(Hash) and val["type"] == "decimal"
-          arr[key] = Knj::Php.number_format(val["value"], @args["amount_decimals"], @args["amount_dsep"], @args["amount_tsep"])
+          arr[key] = Php4r.number_format(val["value"], @args["amount_decimals"], @args["amount_dsep"], @args["amount_tsep"])
         elsif val.is_a?(Hash) and val["type"] == "date"
-          arr[key] = Knj::Php.date(@args["date_format"], val["value"])
+          arr[key] = Php4r.date(@args["date_format"], val["value"])
         end
       end
       
@@ -72,9 +72,9 @@ class Knj::Table_writer
       col_count = 0
       arr.each do |val|
         if val.is_a?(Hash) and val["type"] == "decimal"
-          @ws[@row, col_count] = Knj::Php.number_format(val["value"], @args["amount_decimals"], @args["amount_dsep"], @args["amount_tsep"])
+          @ws[@row, col_count] = Php4r.number_format(val["value"], @args["amount_decimals"], @args["amount_dsep"], @args["amount_tsep"])
         elsif val.is_a?(Hash) and val["type"] == "date"
-          @ws[@row, col_count] = Knj::Php.date(@args["date_format"], val["value"])
+          @ws[@row, col_count] = Php4r.date(@args["date_format"], val["value"])
         else
           @ws[@row, col_count] = val
         end

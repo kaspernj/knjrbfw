@@ -1,3 +1,5 @@
+require "php4r"
+
 class Knj::Web
   #Parses URI and returns hash with data.
   def self.parse_uri(str)
@@ -128,7 +130,7 @@ class Knj::Web
       secname = try.to_s
     end
     
-    secname = secname.to_sym if args[:syms] and secname.is_a?(String) and !Knj::Php.is_numeric(secname)
+    secname = secname.to_sym if args[:syms] and secname.is_a?(String) and !Php4r.is_numeric(secname)
     return [secname, secname_empty]
   end
   
@@ -179,12 +181,12 @@ class Knj::Web
     #Header way
     if !@alert_sent
       if args[:perm]
-        Knj::Php.header("Status: 301 Moved Permanently")
+        Php4r.header("Status: 301 Moved Permanently")
       else
-        Knj::Php.header("Status: 303 See Other")
+        Php4r.header("Status: 303 See Other")
       end
       
-      Knj::Php.header("Location: #{string}")
+      Php4r.header("Location: #{string}")
     end
     
     print "<script type=\"text/javascript\">location.href=\"#{string}\";</script>" if do_js
@@ -285,7 +287,7 @@ class Knj::Web
       if cback.is_a?(Method)
         value = cback.call(value)
       elsif cback.is_a?(Array)
-        value = Knj::Php.call_user_func(args[:value_func], value)
+        value = Php4r.call_user_func(args[:value_func], value)
       elsif cback.is_a?(Proc)
         value = cback.call(value)
       else
@@ -378,7 +380,7 @@ class Knj::Web
       
       if args[:type] == :textarea
         if args.key?(:height)
-          if Knj::Php.is_numeric(args[:height])
+          if Php4r.is_numeric(args[:height])
             css["height"] = "#{args[:height]}px"
           else
             css["height"] = args[:height]
@@ -438,7 +440,7 @@ class Knj::Web
       elsif args[:type] == :textshow or args[:type] == :info
         html << value.to_s
       elsif args[:type] == :plain
-        html << "#{Knj::Php.nl2br(Knj::Web.html(value))}"
+        html << "#{Php4r.nl2br(Knj::Web.html(value))}"
       elsif args[:type] == :editarea
         css["width"] = "100%"
         css["height"] = args[:height] if args.key?(:height)
@@ -456,7 +458,7 @@ class Knj::Web
         
         html << "<script type=\"text/javascript\">"
         html << "function knj_web_init_#{args[:name]}(){"
-        html << "editAreaLoader.init(#{Knj::Php.json_encode(jshash)});"
+        html << "editAreaLoader.init(#{Php4r.json_encode(jshash)});"
         html << "}"
         html << "</script>"
       elsif args[:type] == :numeric
@@ -824,7 +826,7 @@ class Knj::Web
   def self.html_args(h)
     str = ""
     h.each do |key, val|
-      str << "&#{Knj::Php.urlencode(key)}=#{Knj::Php.urlencode(val)}"
+      str << "&#{Php4r.urlencode(key)}=#{Php4r.urlencode(val)}"
     end
     
     return str

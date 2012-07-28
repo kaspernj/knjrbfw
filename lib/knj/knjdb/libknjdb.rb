@@ -401,8 +401,8 @@ class Knj::Db
       end
       
       if args["limit_from"] and args["limit_to"]
-        raise "'limit_from' was not numeric: '#{args["limit_from"]}'." if !Knj::Php.is_numeric(args["limit_from"])
-        raise "'limit_to' was not numeric: '#{args["limit_to"]}'." if !Knj::Php.is_numeric(args["limit_to"])
+        raise "'limit_from' was not numeric: '#{args["limit_from"]}'." if !Php4r.is_numeric(args["limit_from"])
+        raise "'limit_to' was not numeric: '#{args["limit_to"]}'." if !Php4r.is_numeric(args["limit_to"])
         sql << " LIMIT #{args["limit_from"]}, #{args["limit_to"]}"
       end
     end

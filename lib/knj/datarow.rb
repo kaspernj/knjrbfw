@@ -732,6 +732,12 @@ class Knj::Datarow
     return @data.each(*args, &block)
   end
   
+  #Hash-compatible.
+  def to_hash
+    self.reload if @should_reload
+    return @data.clone
+  end
+  
   #Returns a default-URL to show the object.
   def url
     cname = self.class.classname.to_s.downcase

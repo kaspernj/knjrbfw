@@ -26,7 +26,7 @@ class Knj::Gtk2::Menu
       
       if menuitem["connect"]
         newitem.signal_connect("activate") do
-          Knj::Php.call_user_func(menuitem["connect"])
+          Php4r.call_user_func(menuitem["connect"])
         end
       else
         newitem.signal_connect("activate") do

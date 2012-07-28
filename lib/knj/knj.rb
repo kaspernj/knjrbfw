@@ -30,9 +30,9 @@ module Knj
     return File.realpath(File.dirname(__FILE__))
   end
   
-  #Shortcut to Knj::Php.print_r.
+  #Shortcut to Php4r.print_r.
   def self.p(*args, &block)
-    return Knj::Php.print_r(*args, &block)
+    return Php4r.print_r(*args, &block)
   end
   
   def self.handle_return(args)

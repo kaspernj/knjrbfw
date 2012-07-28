@@ -146,4 +146,8 @@ class Knj::Datarow_custom
   def each(&args)
     return @data.each(&args)
   end
+  
+  def to_hash
+    return @data.clone
+  end
 end

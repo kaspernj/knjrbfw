@@ -163,7 +163,7 @@ class KnjDB_sqlite3_result
     
     ret = {}
     result_hash.each do |key, val|
-      if Knj::Php::is_numeric(key)
+      if Php4r.is_numeric(key)
         #do nothing.
       elsif @symbols and !key.is_a?(Symbol)
         ret[key.to_sym] = val

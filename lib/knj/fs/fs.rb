@@ -1,11 +1,11 @@
 class Knj::Fs
   @drivers = []
-  drivers_path = Knj::Php.realpath("#{File.dirname(__FILE__)}/drivers")
+  drivers_path = Php4r.realpath("#{File.dirname(__FILE__)}/drivers")
   Dir.new(drivers_path).each do |file|
     fn = "#{drivers_path}/#{file}"
     next if file == "." or file == ".." or File.directory?(fn)
     
-    class_name = Knj::Php.ucwords(file.slice(0..-4)).to_sym
+    class_name = Php4r.ucwords(file.slice(0..-4)).to_sym
     print "Classname: #{class_name}\n"
     autoload class_name, fn
     
@@ -24,7 +24,7 @@ class Knj::Fs
   end
   
   def spawn_driver
-    class_name = Knj::Php.ucwords(@args[:driver])
+    class_name = Php4r.ucwords(@args[:driver])
     @driver = self.class.const_get(class_name).new(:fs => self, :args => @args)
   end
 end

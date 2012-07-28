@@ -7,4 +7,4 @@ results = dgs.search(
   :where => "Engvej 3, 4970 Rødby"
 )
 
-Knj::Php.print_r(results)
+Php4r.print_r(results)

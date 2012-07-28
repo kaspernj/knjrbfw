@@ -11,7 +11,7 @@ class Knj::Power_manager
       fn = "/proc/acpi/ac_adapter/#{file}"
       
       if File.directory?(fn)
-        @ac_folder = Knj::Php.realpath(fn)
+        @ac_folder = Php4r.realpath(fn)
         break
       end
     end

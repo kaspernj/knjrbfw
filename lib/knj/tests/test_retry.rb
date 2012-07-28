@@ -27,4 +27,4 @@ end
 
 #print "Error 1 was a #{result[0][:error].class.to_s} with the message: #{result[0][:error].message.to_s}\n"
 
-Knj::Php.print_r(result)
+Php4r.print_r(result)

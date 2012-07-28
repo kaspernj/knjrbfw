@@ -1,3 +1,5 @@
+require "php4r"
+
 module Knj::ArrayExt
   def self.join(args = {}, key = nil, sep = nil)
     if args.is_a?(Array) and sep
@@ -13,7 +15,7 @@ module Knj::ArrayExt
     str = ""
     first = true
     
-    Knj::Php.foreach(args[:arr]) do |key, value|
+    Php4r.foreach(args[:arr]) do |key, value|
       if first
         first = false
       else
@@ -30,7 +32,7 @@ module Knj::ArrayExt
         if args[:callback].is_a?(Proc) or args[:callback].is_a?(Method)
           value = args[:callback].call(value)
         else
-          value = Knj::Php.call_user_func(args[:callback], value) if args[:callback]
+          value = Php4r.call_user_func(args[:callback], value) if args[:callback]
         end
       end
       
@@ -58,7 +60,7 @@ module Knj::ArrayExt
   def self.hash_numeric_keys?(hash)
     all_num = true
     hash.each do |key, val|
-      if !Knj::Php.is_numeric(key)
+      if !Php4r.is_numeric(key)
         all_num = false
         break
       end
@@ -212,10 +214,10 @@ module Knj::ArrayExt
     return hash if !hash
     
     hash = hash.clone
-    Knj::Php.foreach(hash) do |key, val|
+    Php4r.foreach(hash) do |key, val|
       if val.is_a?(String)
         begin
-          hash[key] = Knj::Php.utf8_encode(val)
+          hash[key] = Php4r.utf8_encode(val)
         rescue Encoding::UndefinedConversionError => e
           if args["ignore_encoding_errors"]
             next

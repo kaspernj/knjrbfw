@@ -109,7 +109,7 @@ class Knj::Objects
                   end
                 end
                 
-                raise "No such joined table on '#{args[:table]}': '#{col.first}' (#{col.first.class.name}) with the following joined table:\n#{Knj::Php.print_r(args[:joined_tables], true)}" if !found
+                raise "No such joined table on '#{args[:table]}': '#{col.first}' (#{col.first.class.name}) with the following joined table:\n#{Php4r.print_r(args[:joined_tables], true)}" if !found
               elsif col.is_a?(String) or col.is_a?(Symbol)
                 col_str = "#{table_def}`#{col}`"
                 found = true

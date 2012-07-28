@@ -28,6 +28,15 @@ class Knj::Hash_methods < Hash
     return self[:data]
   end
   
+  def to_hash
+    h = {}
+    self.each do |key, val|
+      h[k] = val
+    end
+    
+    return h
+  end
+  
   #Proxies methods into the hash as keys.
   def method_missing(method, *args)
     method = method.to_sym

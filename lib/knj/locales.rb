@@ -51,7 +51,7 @@ module Knj::Locales
   # Knj::Locales.number_out(123456.68) #=> "123,456.68"
   def self.number_out(num_str, dec = 2)
     lc = Knj::Locales.localeconv
-    return Knj::Php.number_format(num_str, dec, lc["decimal_point"], lc["thousands_sep"])
+    return Php4r.number_format(num_str, dec, lc["decimal_point"], lc["thousands_sep"])
   end
   
   #Returns the current locale for the current environment (_session[:locale] or Thread.current[:locale]).

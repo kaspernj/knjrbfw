@@ -41,7 +41,7 @@ class Knj::Objects
         file_parsed = file
         file_parsed.gsub!(@args[:class_pre], "") if @args.key?(:class_pre)
         file_parsed.gsub!(/\.rb$/, "")
-        file_parsed = Knj::Php.ucwords(file_parsed)
+        file_parsed = Php4r.ucwords(file_parsed)
         
         loads << file_parsed
         self.requireclass(file_parsed, {:load => false})
@@ -186,7 +186,7 @@ class Knj::Objects
           
           callback["block"].call(*callargs)
         elsif callback["callback"]
-          Knj::Php.call_user_func(callback["callback"], args)
+          Php4r.call_user_func(callback["callback"], args)
         else
           raise "No valid callback given."
         end
@@ -403,7 +403,7 @@ class Knj::Objects
   def get_try(obj, col_name, obj_name = nil)
     if !obj_name
       if match = col_name.to_s.match(/^(.+)_id$/)
-        obj_name = Knj::Php.ucwords(match[1]).to_sym
+        obj_name = Php4r.ucwords(match[1]).to_sym
       else
         raise "Could not figure out objectname for: #{col_name}."
       end
@@ -557,7 +557,7 @@ class Knj::Objects
       list_args = {}
     end
     
-    if RUBY_VERSION[0..2] == 1.8 and Knj::Php.class_exists("Dictionary")
+    if RUBY_VERSION[0..2] == 1.8 and Php4r.class_exists("Dictionary")
       list = Dictionary.new
     else
       list = {}

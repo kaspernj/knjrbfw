@@ -15,4 +15,4 @@ resp = http.get(:url => "/?show=login")
 http = Http2.new(:host => "mexico.balance4u.com", :port => 443, :ssl => true)
 resp = http.get(:url => "/")
 
-Knj::Php.print_r(http.cookies)
+Php4r.print_r(http.cookies)
