@@ -5,7 +5,7 @@
 
 Gem::Specification.new do |s|
   s.name = %q{knjrbfw}
-  s.version = "0.0.72"
+  s.version = "0.0.74"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Kasper Johansen"]
@@ -198,7 +198,6 @@ Gem::Specification.new do |s|
     "lib/knj/objects/objects_sqlhelper.rb",
     "lib/knj/opts.rb",
     "lib/knj/os.rb",
-    "lib/knj/php.rb",
     "lib/knj/php_parser/arguments.rb",
     "lib/knj/php_parser/functions.rb",
     "lib/knj/php_parser/php_parser.rb",
@@ -259,7 +258,6 @@ Gem::Specification.new do |s|
     "spec/db_spec_encoding_test_file.txt",
     "spec/knjrbfw_spec.rb",
     "spec/objects_spec.rb",
-    "spec/php_spec.rb",
     "spec/process_meta_spec.rb",
     "spec/process_spec.rb",
     "spec/spec_helper.rb",
@@ -281,6 +279,7 @@ Gem::Specification.new do |s|
       s.add_runtime_dependency(%q<tsafe>, [">= 0"])
       s.add_runtime_dependency(%q<datet>, [">= 0"])
       s.add_runtime_dependency(%q<http2>, [">= 0"])
+      s.add_runtime_dependency(%q<php4r>, [">= 0"])
       s.add_development_dependency(%q<rspec>, ["~> 2.3.0"])
       s.add_development_dependency(%q<bundler>, [">= 1.0.0"])
       s.add_development_dependency(%q<jeweler>, ["~> 1.6.3"])
@@ -291,6 +290,7 @@ Gem::Specification.new do |s|
       s.add_dependency(%q<tsafe>, [">= 0"])
       s.add_dependency(%q<datet>, [">= 0"])
       s.add_dependency(%q<http2>, [">= 0"])
+      s.add_dependency(%q<php4r>, [">= 0"])
       s.add_dependency(%q<rspec>, ["~> 2.3.0"])
       s.add_dependency(%q<bundler>, [">= 1.0.0"])
       s.add_dependency(%q<jeweler>, ["~> 1.6.3"])
@@ -302,6 +302,7 @@ Gem::Specification.new do |s|
     s.add_dependency(%q<tsafe>, [">= 0"])
     s.add_dependency(%q<datet>, [">= 0"])
     s.add_dependency(%q<http2>, [">= 0"])
+    s.add_dependency(%q<php4r>, [">= 0"])
     s.add_dependency(%q<rspec>, ["~> 2.3.0"])
     s.add_dependency(%q<bundler>, [">= 1.0.0"])
     s.add_dependency(%q<jeweler>, ["~> 1.6.3"])
