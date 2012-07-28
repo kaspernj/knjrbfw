@@ -1,5 +1,5 @@
 require "knj/autoload"
-require "#{$knjpath}php"
+require "php4r"
 require "#{$knjpath}php_parser/php_parser"
 
 module Knj::Php_parser::Functions

@@ -7,7 +7,7 @@ class Knj::Rhodes
   def initialize(args = {})
     require "#{$knjpath}arrayext.rb"
     require "#{$knjpath}datet.rb"
-    require "#{$knjpath}php.rb"
+    require "php4r"
     require "#{$knjpath}objects.rb"
     require "#{$knjpath}datarow.rb"
     require "#{$knjpath}event_handler.rb"
