@@ -63,6 +63,11 @@ describe "Php" do
     raise "Invalid value for hash-trala2." if hash["hash"]["trala2"] != "wtf"
   end
   
+  it "file_get_contents - http" do
+    cont = Knj::Php.file_get_contents("https://www.kaspernj.org/myip.php")
+    raise "Not IP: '#{cont}'." if !cont.to_s.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/)
+  end
+  
   #Moved from "knjrbfw_spec.rb".
   it "should be able to execute various Knj::Php functions correctly." do
     str = "Kasper Johansen"

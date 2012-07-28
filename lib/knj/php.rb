@@ -374,28 +374,27 @@ module Knj::Php
     filepath = filepath.to_s
     
     if http_match = filepath.match(/^http(s|):\/\/([A-z_\d\.]+)(|:(\d+))(\/(.+))$/)
-      if http_match[4].to_s.length > 0
-        port = http_match[4].to_i
-      end
+      port = http_match[4].to_i if http_match[4].to_s.length > 0
       
       args = {
-        "host" => http_match[2]
+        :host => http_match[2]
       }
       
       if http_match[1] == "s"
-        args["ssl"] = true
-        args["validate"] = false
+        args[:ssl] = true
+        args[:validate] = false
         
         if !port
           port = 443
         end
       end
       
-      args["port"] = port if port
+      args[:port] = port if port
       
-      http = Knj::Http.new(args)
-      data = http.get(http_match[5])
-      return data["data"]
+      require "http2"
+      Http2.new(args) do |http|
+        return http.get(http_match[5]).body
+      end
     end
     
     return File.read(filepath.untaint)
