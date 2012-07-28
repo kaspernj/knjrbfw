@@ -1,5 +1,6 @@
 require "#{$knjpath}errors"
 require "#{$knjpath}thread"
+require "tsafe"
 
 #This class is able to control communicate with another Ruby-process also running Knj::Process.
 class Knj::Process
