@@ -289,10 +289,10 @@ class KnjDB_mysql::Tables::Table
       end
       
       sql << " UNIQUE" if index_data["unique"]
-      sql << " INDEX #{db.escape_col}#{db.esc_col(index_data["name"])}#{db.escape_col}"
+      sql << " INDEX `#{db.esc_col(index_data["name"])}`"
       
       if args[:on_table] or !args.key?(:on_table)
-        sql << " ON #{db.escape_table}#{db.esc_table(args[:table_name])}#{db.escape_table}"
+        sql << " ON `#{db.esc_table(args[:table_name])}`"
       end
       
       sql << " ("
@@ -302,7 +302,7 @@ class KnjDB_mysql::Tables::Table
         sql << ", " if !first
         first = false if first
         
-        sql << "#{db.escape_col}#{db.esc_col(col_name)}#{db.escape_col}"
+        sql << "`#{db.esc_col(col_name)}`"
       end
       
       sql << ")"

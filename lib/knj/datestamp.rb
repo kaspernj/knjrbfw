@@ -1,6 +1,6 @@
 class Knj::Datestamp
   def self.in(time = Time.new)
-    if Php4r.is_numeric(time)
+    if (Float(time) rescue false)
       time = Time.at(time.to_i)
     elsif time.is_a?(String)
       time = Time.local(*ParseDate.parsedate(time))
@@ -14,7 +14,7 @@ class Knj::Datestamp
       time = Time.new
     end
     
-    if Php4r.is_numeric(time)
+    if (Float(time) rescue false)
       time = Time.at(time.to_i)
     elsif time.is_a?(String)
       begin
@@ -42,7 +42,7 @@ class Knj::Datestamp
     
     time = Time.new if !time
     
-    if Php4r.is_numeric(time)
+    if (Float(time) rescue false)
       time = Time.at(time.to_i)
     elsif time.is_a?(String)
       time = Time.at(Php4r.strtotime(time))

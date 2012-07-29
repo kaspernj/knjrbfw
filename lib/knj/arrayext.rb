@@ -60,7 +60,7 @@ module Knj::ArrayExt
   def self.hash_numeric_keys?(hash)
     all_num = true
     hash.each do |key, val|
-      if !Php4r.is_numeric(key)
+      if !(Float(key) rescue false)
         all_num = false
         break
       end

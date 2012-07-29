@@ -18,7 +18,7 @@ describe "Cmd_parser" do
       res = Knj::Cmd_parser.lsl(str)
       
       res.each do |file|
-        raise "Byte was not numeric in: '#{str}'." if !Php4r.is_numeric(file[:size])
+        raise "Byte was not numeric in: '#{str}'." if !(Float(file[:size]) rescue false)
       end
     end
   end

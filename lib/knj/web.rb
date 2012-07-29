@@ -130,7 +130,7 @@ class Knj::Web
       secname = try.to_s
     end
     
-    secname = secname.to_sym if args[:syms] and secname.is_a?(String) and !Php4r.is_numeric(secname)
+    secname = secname.to_sym if args[:syms] and secname.is_a?(String) and !(Float(secname) rescue false)
     return [secname, secname_empty]
   end
   
@@ -380,7 +380,7 @@ class Knj::Web
       
       if args[:type] == :textarea
         if args.key?(:height)
-          if Php4r.is_numeric(args[:height])
+          if (Float(args[:height]) rescue false)
             css["height"] = "#{args[:height]}px"
           else
             css["height"] = args[:height]
