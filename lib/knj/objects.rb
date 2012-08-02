@@ -33,7 +33,6 @@ class Knj::Objects
     raise "No class path given." if !@args[:class_path] and (@args[:require] or !@args.key?(:require))
     
     if args[:require_all]
-      require "#{$knjpath}php"
       loads = []
       
       Dir.foreach(@args[:class_path]) do |file|
@@ -360,11 +359,11 @@ class Knj::Objects
           return obj
         else
           @objects[classname][id] = obj
+          return obj
       end
     end
     
-    #Return spawned object.
-    return obj
+    raise "Unexpected run?"
   end
   
   #Same as normal get but returns false if not found instead of raising error.
