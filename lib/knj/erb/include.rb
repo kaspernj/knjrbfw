@@ -30,7 +30,7 @@ class ERuby
     Dir.chdir(File.dirname(filename))
     
     fpath = "#{KnjEruby.filepath}/cache/#{filename.gsub("/", "_").gsub(".", "_")}"
-    pi = Knj::Php.pathinfo(filename)
+    pi = Php4r.pathinfo(filename)
     cachename = fpath + ".cache"
     
     filetime = File.mtime(filename)

@@ -140,6 +140,11 @@ class Knj::Unix_proc
     Process.kill(9, @data["pid"].to_i)
   end
   
+  #Hash-compatible.
+  def to_h
+    return @data.clone
+  end
+  
   #Tries to kill the process gently, waits a couple of secs to check if the process is actually dead, then sends -9 kill signals.
   def kill_ensure(args = {})
     begin

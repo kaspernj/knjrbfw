@@ -26,7 +26,7 @@ class Knj::Notify
       cmd = "notify-send"
       
       if args["time"]
-        raise "Time is not numeric." if !Knj::Php.is_numeric(args["time"])
+        raise "Time is not numeric." if !(Float(args["time"]) rescue false)
         cmd << " -t #{args["time"]}"
       end
       

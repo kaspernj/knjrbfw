@@ -137,8 +137,8 @@ class KnjDB_mysql::Columns::Column
   
   #Changes the column properties by the given hash.
   def change(data)
-    col_escaped = "#{@args[:db].enc_col}#{@args[:db].esc_col(self.name)}#{@args[:db].enc_col}"
-    table_escape = "#{@args[:db].enc_table}#{@args[:db].esc_table(self.table.name)}#{@args[:db].enc_table}"
+    col_escaped = "`#{@args[:db].esc_col(self.name)}`"
+    table_escape = "`#{@args[:db].esc_table(self.table.name)}`"
     newdata = data.clone
     
     newdata["name"] = self.name if !newdata.key?("name")

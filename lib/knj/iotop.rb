@@ -26,7 +26,7 @@ class Knj::Iotop
             
             if match[12].index("bestseller") != nil
               print line_str + "\n"
-              Knj::Php.print_r(match)
+              Php4r.print_r(match)
             end
             
             @data[pid] = {

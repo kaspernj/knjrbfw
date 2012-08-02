@@ -6,7 +6,7 @@ require "../autoload"
 print "Listing all mounts.\n"
 mounts = Knj::Mount.list
 mounts.each do |mount|
-  Knj::Php.print_r(mount.data)
+  Php4r.print_r(mount.data)
   print "Access: #{mount.access?}\n\n"
 end
 

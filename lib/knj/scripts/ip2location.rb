@@ -6,7 +6,7 @@ ip2loc = Knj::Ip2location.new
 data = ip2loc.lookup(ARGV[0])
 
 if ARGV[1] == "json"
-  print Knj::Php.json_encode(data)
+  print Php4r.json_encode(data)
 else
-  Knj::Php.print_r(data)
+  Php4r.print_r(data)
 end

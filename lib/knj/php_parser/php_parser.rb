@@ -7,7 +7,7 @@ class Knj::Php_parser
     
     if !args.key?("require_requirements") or args["require_requirements"]
       @retcont = "require \"knj/autoload\"\n"
-      @retcont << "require \"knj/php\"\n"
+      @retcont << "require \"php4r\"\n"
       @retcont << "require \"knj/php_parser/php_parser\"\n"
       @retcont << "\n"
     else

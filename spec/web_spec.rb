@@ -2,7 +2,7 @@ require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
 describe "Web" do
   it "should be able to parse url and generate hashes" do
-    require "knj/php"
+    require "php4r"
     require "knj/web"
     
     url = "first=test&#{Knj::Web.urlenc("second[trala][]")}=1&#{Knj::Web.urlenc("second[trala][]")}=2&#{Knj::Web.urlenc("second[trala][]")}=3"

@@ -40,7 +40,7 @@ class Knj::Objects
         file_parsed = file
         file_parsed.gsub!(@args[:class_pre], "") if @args.key?(:class_pre)
         file_parsed.gsub!(/\.rb$/, "")
-        file_parsed = Knj::Php.ucwords(file_parsed)
+        file_parsed = Php4r.ucwords(file_parsed)
         
         loads << file_parsed
         self.requireclass(file_parsed, {:load => false})
@@ -185,7 +185,7 @@ class Knj::Objects
           
           callback["block"].call(*callargs)
         elsif callback["callback"]
-          Knj::Php.call_user_func(callback["callback"], args)
+          Php4r.call_user_func(callback["callback"], args)
         else
           raise "No valid callback given."
         end
@@ -402,7 +402,7 @@ class Knj::Objects
   def get_try(obj, col_name, obj_name = nil)
     if !obj_name
       if match = col_name.to_s.match(/^(.+)_id$/)
-        obj_name = Knj::Php.ucwords(match[1]).to_sym
+        obj_name = Php4r.ucwords(match[1]).to_sym
       else
         raise "Could not figure out objectname for: #{col_name}."
       end
@@ -556,7 +556,7 @@ class Knj::Objects
       list_args = {}
     end
     
-    if RUBY_VERSION[0..2] == 1.8 and Knj::Php.class_exists("Dictionary")
+    if RUBY_VERSION[0..2] == 1.8 and Php4r.class_exists("Dictionary")
       list = Dictionary.new
     else
       list = {}
@@ -792,17 +792,29 @@ class Knj::Objects
     
     if @args[:datarow]
       #If autodelete is set by 'has_many'-method, go through it and delete the various objects first.
-      object.class.autodelete_data.each do |adel_data|
-        self.list(adel_data[:classname], {adel_data[:colname].to_s => object.id}) do |obj_del|
-          self.delete(obj_del, args)
+      if autodelete_data = object.class.autodelete_data
+        autodelete_data.each do |adel_data|
+          self.list(adel_data[:classname], {adel_data[:colname].to_s => object.id}) do |obj_del|
+            self.delete(obj_del, args)
+          end
         end
       end
       
       #If depend is set by 'has_many'-method, check if any objects exists and raise error if so.
-      object.class.depending_data.each do |dep_data|
-        obj = self.get_by(dep_data[:classname], {dep_data[:colname].to_s => object.id})
-        if obj
-          raise "Cannot delete <#{object.class.name}:#{object.id}> because <#{obj.class.name}:#{obj.id}> depends on it."
+      if dep_datas = object.class.depending_data
+        dep_datas.each do |dep_data|
+          if obj = self.get_by(dep_data[:classname], {dep_data[:colname].to_s => object.id})
+            raise "Cannot delete <#{object.class.name}:#{object.id}> because <#{obj.class.name}:#{obj.id}> depends on it."
+          end
+        end
+      end
+      
+      #If autozero is set by 'has_many'-method, check if any objects exists and set the ID to zero.
+      if autozero_datas = object.class.autozero_data
+        autozero_datas.each do |zero_data|
+          self.list(zero_data[:classname], {zero_data[:colname].to_s => object.id}) do |obj_zero|
+            obj_zero[zero_data[:colname].to_sym] = 0
+          end
         end
       end
       

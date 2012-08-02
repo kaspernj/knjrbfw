@@ -244,7 +244,13 @@ class Knj::Db
     
     if !arr_insert or arr_insert.empty?
       #This is the correct syntax for inserting a blank row in MySQL.
-      sql << " VALUES ()"
+      if @opts[:type].to_s == "mysql"
+        sql << " VALUES ()"
+      elsif @opts[:type].to_s == "sqlite3"
+        sql << " DEFAULT VALUES"
+      else
+        raise "Unknown database-type: '#{@opts[:type]}'."
+      end
     else
       sql << " ("
       
@@ -395,8 +401,8 @@ class Knj::Db
       end
       
       if args["limit_from"] and args["limit_to"]
-        raise "'limit_from' was not numeric: '#{args["limit_from"]}'." if !Knj::Php.is_numeric(args["limit_from"])
-        raise "'limit_to' was not numeric: '#{args["limit_to"]}'." if !Knj::Php.is_numeric(args["limit_to"])
+        raise "'limit_from' was not numeric: '#{args["limit_from"]}'." if !(Float(args["limit_from"]) rescue false)
+        raise "'limit_to' was not numeric: '#{args["limit_to"]}'." if !(Float(args["limit_to"]) rescue false)
         sql << " LIMIT #{args["limit_from"]}, #{args["limit_to"]}"
       end
     end

@@ -28,7 +28,7 @@ class WinAppEdit
     print "Save clicked.\n"
     
     val = @glade["tvTest"].sel
-    Knj::Php.print_r(val)
+    Php4r.print_r(val)
   end
   
   def on_btnCancel_clicked

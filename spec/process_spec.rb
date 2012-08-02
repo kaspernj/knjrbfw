@@ -108,6 +108,6 @@ describe "Process" do
     end
     
     #this can be used for debugging.
-    #Knj::Php.print_r(results)
+    #Php4r.print_r(results)
   end
 end

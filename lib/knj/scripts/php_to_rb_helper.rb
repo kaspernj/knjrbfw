@@ -159,12 +159,12 @@ end
 
 #Replace various forms of foreach'es.
 cont.scan(/((\s+?)foreach\s*\((.+?)\s+as\s+\$(#{regexes["var"]}?)\s+=>\s+\$(#{regexes["var"]}?)\)\s*{(\s+?))/i) do |match|
-  rb_str = "#{match[1]}Knj::Php.foreach(#{match[2]}) do |$#{match[3]}, $#{match[4]}|#{match[5]}"
+  rb_str = "#{match[1]}Php4r.foreach(#{match[2]}) do |$#{match[3]}, $#{match[4]}|#{match[5]}"
   cont = cont.gsub(match[0], rb_str)
 end
 
 cont.scan(/((\s+?)foreach\s*\((.+?)\s+as\s+\$(#{regexes["var"]}?)\s*\)\s*{(\s+?))/i) do |match|
-  rb_str = "#{match[1]}Knj::Php.foreach(#{match[2]}) do |$#{match[3]}|#{match[4]}"
+  rb_str = "#{match[1]}Php4r.foreach(#{match[2]}) do |$#{match[3]}|#{match[4]}"
   cont = cont.gsub(match[0], rb_str)
 end
 
@@ -327,7 +327,7 @@ replaces = {
   ";\n" => "\n"
 }
 
-pinfo = Knj::Php.pathinfo(options[:file])
+pinfo = Php4r.pathinfo(options[:file])
 
 if options.key?(:tags) and !options[:tags]
   rbfname = "#{pinfo["basename"]}.rb"
@@ -354,7 +354,7 @@ end
 
 funcs_skip = [:foreach]
 funcs_remove = [:session_start]
-funcs_all = funcs_skip | Knj::Php.instance_methods
+funcs_all = funcs_skip | Php4r.instance_methods
 
 funcs_all.each do |method_name|
   next if funcs_skip.index(method_name) != nil
@@ -362,7 +362,7 @@ funcs_all.each do |method_name|
     if funcs_remove.index(method_name) != nil
       cont = cont.gsub(match[0], "#{match[1]}#removal of func: #{method_name}(")
     else
-      cont = cont.gsub(match[0], "#{match[1]}Knj::Php.#{method_name}(")
+      cont = cont.gsub(match[0], "#{match[1]}Php4r.#{method_name}(")
     end
   end
 end
@@ -371,6 +371,6 @@ if pinfo["dirname"].to_s.length > 0
   rbfname = "#{pinfo["dirname"]}/#{rbfname}"
 end
 
-Knj::Php.file_put_contents(rbfname, cont)
+Php4r.file_put_contents(rbfname, cont)
 #require "#{Dir.pwd}/#{rbfname}"
 #print cont

@@ -14,7 +14,7 @@ class GladeXML
       @cont = filename
       @data = XmlSimple.xml_in(@cont)
       window_name = self.find_window(data)
-      Knj::Php.file_put_contents("temp.glade", @cont)
+      Php4r.file_put_contents("temp.glade", @cont)
       @glade = Glade::XML.new("temp.glade", window_name, nil)
       FileUtils.rm("temp.glade")
     end

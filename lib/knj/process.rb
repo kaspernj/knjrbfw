@@ -1,5 +1,6 @@
 require "#{$knjpath}errors"
 require "#{$knjpath}thread"
+require "tsafe"
 
 #This class is able to control communicate with another Ruby-process also running Knj::Process.
 class Knj::Process
@@ -199,7 +200,7 @@ class Knj::Process
             buffer_done = false
             
             begin
-              buffer_answers = Knj::Threadsafe.std_array #JRuby needs the threadsafety.
+              buffer_answers = Tsafe.std_array #JRuby needs the threadsafety.
               buffer_thread = Knj::Thread.new do
                 loop do
                   arr = buffer_answers.shift(200)

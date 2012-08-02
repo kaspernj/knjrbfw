@@ -7,7 +7,7 @@ class Knj::Degulesider
   end
   
   def search(sargs)
-    url = "/search/#{Knj::Php.urlencode(sargs[:where])}/-/1/"
+    url = "/search/#{Php4r.urlencode(sargs[:where])}/-/1/"
     
     html = @http.get(url)
     ret = []

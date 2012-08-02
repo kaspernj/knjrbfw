@@ -30,10 +30,10 @@ class Knj::Sms
       
       result = @soap.SendMessage({
         "cellphone" => @opts[:user],
-        "password" => Knj::Php.md5(@opts[:pass]),
+        "password" => Php4r.md5(@opts[:pass]),
         "smsTo" => {"string" => number},
         "smscontents" => msg,
-        "sendDate" => Knj::Php.date("Y-m-d"),
+        "sendDate" => Php4r.date("Y-m-d"),
         "deliveryReport" => "0",
         "fromNumber" => @opts[:user]
       })
@@ -45,7 +45,7 @@ class Knj::Sms
       @db.insert("outbox", {
         "number" => number,
         "text" => msg,
-        "insertdate" => Knj::Php.date("Y-m-d H:i:s")
+        "insertdate" => Php4r.date("Y-m-d H:i:s")
       })
     else
       raise "Not supported: " + @type

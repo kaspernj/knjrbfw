@@ -130,7 +130,7 @@ objects = {}
       elsif obj["type"] == "process_data"
         d.answer("type" => "process_data_success", "pid" => Process.pid)
       else
-        raise "Didnt know how to handle hash: '#{Knj::Php.print_r(obj, true)}'."
+        raise "Didnt know how to handle hash: '#{Php4r.print_r(obj, true)}'."
       end
     else
       raise "Unknown object: '#{obj.class.name}'."

@@ -1,5 +1,7 @@
 #encoding: utf-8
 
+require "php4r"
+
 #This module contains various methods to escape, change or treat strings.
 module Knj::Strings
   #Returns a string that is safe to use on the command line.
@@ -121,7 +123,7 @@ module Knj::Strings
   
   #Returns 'Yes' or 'No' based on a value. The value can be 0, 1, yes, no, true or false.
   def self.yn_str(value, str_yes = "Yes", str_no = "No")
-    value = value.to_i if Knj::Php.is_numeric(value)
+    value = value.to_i if (Float(value) rescue false)
     value_s = value.to_s
     
     if value.is_a?(Integer)
