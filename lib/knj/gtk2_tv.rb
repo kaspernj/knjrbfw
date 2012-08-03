@@ -27,6 +27,7 @@ module Knj::Gtk2::Tv
     
     list_store = Gtk::ListStore.new(*model_args)
     tv.model = list_store
+    tv.reorderable = true
     
     count = 0
     columns.each do |args|
@@ -68,9 +69,10 @@ module Knj::Gtk2::Tv
         raise "Invalid type: '#{args[:type]}'."
       end
       
-      count += 1
-      
+      col.reorderable = true
+      col.sort_column_id = count
       ret[:renderers] << renderer
+      count += 1
     end
     
     return ret

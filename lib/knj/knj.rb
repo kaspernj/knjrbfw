@@ -32,6 +32,7 @@ module Knj
   
   #Shortcut to Php4r.print_r.
   def self.p(*args, &block)
+    require "php4r" if !Kernel.const_defined?(:Php4r)
     return Php4r.print_r(*args, &block)
   end
   
