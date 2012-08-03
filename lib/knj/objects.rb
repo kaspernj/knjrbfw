@@ -359,11 +359,11 @@ class Knj::Objects
           return obj
         else
           @objects[classname][id] = obj
+          return obj
       end
     end
     
-    #Return spawned object.
-    return obj
+    raise "Unexpected run?"
   end
   
   #Same as normal get but returns false if not found instead of raising error.
