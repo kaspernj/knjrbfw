@@ -45,11 +45,9 @@ module Knj::Gtk2::Tv
         renderer = Gtk::CellRendererText.new
         col = Gtk::TreeViewColumn.new(args[:title], renderer, col_args)
         col.resizable = true
-        tv.append_column(col)
       elsif args[:type] == :toggle
         renderer = Gtk::CellRendererToggle.new
         col = Gtk::TreeViewColumn.new(args[:title], renderer, :active => count)
-        tv.append_column(col)
       elsif args[:type] == :combo
         renderer = Gtk::CellRendererCombo.new
         renderer.text_column = 0
@@ -61,16 +59,29 @@ module Knj::Gtk2::Tv
         end
         
         col = Gtk::TreeViewColumn.new(args[:title], renderer, col_args)
+        col.resizable = true
         
         renderer.model = args[:model] if args.key?(:model)
         renderer.has_entry = args[:has_entry] if args.key?(:has_entry)
-        tv.append_column(col)
       else
         raise "Invalid type: '#{args[:type]}'."
       end
       
+      col.spacing = 0
       col.reorderable = true
       col.sort_column_id = count
+      
+      if args.key?(:fixed_width)
+        col.sizing = Gtk::TreeViewColumn::FIXED
+      else
+        col.sizing = Gtk::TreeViewColumn::AUTOSIZE
+      end
+      
+      [:min_width, :max_width, :fixed_width, :expand, :spacing, :reorderable].each do |arg|
+        col.__send__("#{arg}=", args[arg]) if args.key?(arg)
+      end
+      
+      tv.append_column(col)
       ret[:renderers] << renderer
       count += 1
     end
@@ -148,6 +159,15 @@ module Knj::Gtk2::Tv
     :human_number => {
       :value => proc{ |data| Knj::Locales.number_in(data[:value]) },
       :value_set => proc{ |data| Knj::Locales.number_out(data[:value], data[:col_data][:decimals]) }
+    },
+    :toggle_rev => {
+      :value_set => lambda{|data|
+        if data[:value]
+          return false
+        else
+          return true
+        end
+      }
     }
   }
   
@@ -181,6 +201,16 @@ module Knj::Gtk2::Tv
       if args[:on_edit_done]
         renderer.signal_connect("editing-canceled") do |renderer|
           args[:on_edit_done].call(:renderer => renderer, :done_mode => :canceled, :args => args, :col_no => col_no, :col_data => col_data)
+        end
+      end
+      
+      if col_data[:on_edit]
+        renderer.signal_connect("editing-started") do |renderer, row_no, path|
+          iter = args[:tv].model.get_iter(path)
+          id = args[:tv].model.get_value(iter, args[:id_col])
+          model_obj = args[:ob].get(args[:model_class], id)
+          
+          col_data[:on_edit].call(:renderer => renderer, :row_no => row_no, :path => path, :iter => iter, :args => args, :model => model_obj, :col_no => col_no, :col_data => col_data)
         end
       end
       
@@ -230,10 +260,19 @@ module Knj::Gtk2::Tv
         end
       elsif renderer.is_a?(Gtk::CellRendererToggle)
         renderer.activatable = true
-        renderer.signal_connect("toggled") do |renderer, path, value|
+        renderer.signal_connect("toggled") do |renderer, path|
           iter = args[:tv].model.get_iter(path)
           id = args[:tv].model.get_value(iter, 0)
           model_obj = args[:ob].get(args[:model_class], id)
+          
+          if model_obj[col_data[:col]].to_i == 1
+            value = false
+            value_i = 0
+          else
+            value = true
+            value_i = 1
+          end
+          
           callback_hash = {:args => args, :value => value, :model => model_obj, :col_no => col_no, :col_data => col_data}
           
           if col_data[:value_callback]
@@ -246,16 +285,30 @@ module Knj::Gtk2::Tv
             end
           end
           
+          if value
+            value_i = 1
+          else
+            value_i = 0
+          end
+          
+          callback_hash[:value] = value
+          
           if !cancel
             args[:change_before].call(callback_hash) if args[:change_before]
             begin
-              if model_obj[col_data[:col]].to_i == 1
-                model_obj[col_data[:col]] = 0
-                iter[col_no] = 0
-              else
-                model_obj[col_data[:col]] = 1
-                iter[col_no] = 1
+              model_obj[col_data[:col]] = value_i
+              
+              if col_data.key?(:value_set_callback)
+                value = col_data[:value_set_callback].call(callback_hash)
+                
+                if value
+                  value_i = 1
+                else
+                  value_i = 0
+                end
               end
+              
+              iter[col_no] = value_i
             ensure
               args[:change_after].call(:args => args) if args[:change_after]
             end

@@ -51,7 +51,7 @@ class Knj::Eruby
     cachetime = File.mtime(cachename) if File.exists?(cachename)
     
     if !File.exists?(cachename) or filetime > cachetime
-      Knj::Eruby::Handler.load_file(filename, {:cachename => cachename})
+      Knj::Eruby::Handler.load_file(filename, :cachename => cachename)
       File.chmod(0777, cachename)
       cachetime = File.mtime(cachename)
       reload_cache = true

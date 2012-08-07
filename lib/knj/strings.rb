@@ -54,9 +54,7 @@ module Knj::Strings
       end
     end
     
-    regex = Regexp.new(pattern, arg_two)
-    
-    return regex
+    return Regexp.new(pattern, arg_two)
   end
   
   #Partens a string up in blocks for whatever words can be used to search for. Supports a block or returns an array.
@@ -272,8 +270,23 @@ module Knj::Strings
     end
   end
   
+  #Returns a short time-format for the given amount of seconds.
+  def self.secs_to_human_short_time(secs)
+    secs = secs.to_i
+    
+    return "#{secs}s" if secs < 60
+    
+    mins = (secs.to_f / 60.0).floor
+    if mins < 60
+      return "#{mins.to_i}m"
+    end
+    
+    hours = (mins.to_f / 60.0)
+    return "#{Knj::Locales.number_out(hours, 1)}t"
+  end
+  
   #Returns a human readable time-string from a given number of seconds.
-  def self.secs_to_human_time_str(secs)
+  def self.secs_to_human_time_str(secs, args = nil)
     secs = secs.to_i
     hours = (secs.to_f / 3600.0).floor.to_i
     secs = secs - (hours * 3600)
@@ -281,17 +294,23 @@ module Knj::Strings
     mins = (secs.to_f / 60).floor.to_i
     secs = secs - (mins * 60)
     
-    return "#{"%02d" % hours}:#{"%02d" % mins}:#{"%02d" % secs}"
+    str = "#{"%02d" % hours}:#{"%02d" % mins}"
+    
+    if !args or !args.key?(:secs) or args[:secs]
+      str << ":#{"%02d" % secs}"
+    end
+    
+    return str
   end
   
   #Turns a human readable time-string into a number of seconds.
   def self.human_time_str_to_secs(str)
-    match = str.match(/^\s*(\d+)\s*:\s*(\d+)\s*:\s*(\d+)\s*/)
+    match = str.match(/^\s*(\d+)\s*:\s*(\d+)(\s*:\s*(\d+)\s*|)/)
     raise "Could not match string: '#{str}'." if !match
     
     hours = match[1].to_i
     minutes = match[2].to_i
-    secs = match[3].to_i
+    secs = match[4].to_i
     
     total = (hours * 3600) + (minutes * 60) + secs
     return total
