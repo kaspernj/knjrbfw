@@ -81,6 +81,10 @@ module Knj::Gtk2::Tv
         col.__send__("#{arg}=", args[arg]) if args.key?(arg)
       end
       
+      [:width_chars, :wrap_mode, :wrap_width].each do |arg|
+        renderer.__send__("#{arg}=", args[arg]) if args.key?(arg)
+      end
+      
       tv.append_column(col)
       ret[:renderers] << renderer
       count += 1
