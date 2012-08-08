@@ -50,5 +50,11 @@ describe "Strings" do
     
     res = Knj::Strings.secs_to_human_short_time(185)
     raise "Expected '3m' but got '#{res}'." if res != "3m"
+    
+    res = Knj::Strings.secs_to_human_short_time(57, :secs => false)
+    raise "Expected '0m' but got '#{res}'." if res != "0m"
+    
+    res = Knj::Strings.secs_to_human_short_time(120, :mins => false)
+    raise "Expected '0.0t' but got '#{res}'." if res != "0.0t"
   end
 end

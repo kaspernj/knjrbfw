@@ -271,13 +271,13 @@ module Knj::Strings
   end
   
   #Returns a short time-format for the given amount of seconds.
-  def self.secs_to_human_short_time(secs)
+  def self.secs_to_human_short_time(secs, args = nil)
     secs = secs.to_i
     
-    return "#{secs}s" if secs < 60
+    return "#{secs}s" if secs < 60 and (!args or !args.key?(:secs) or args[:secs])
     
     mins = (secs.to_f / 60.0).floor
-    if mins < 60
+    if mins < 60 and (!args or !args.key?(:mins) or args[:mins])
       return "#{mins.to_i}m"
     end
     
