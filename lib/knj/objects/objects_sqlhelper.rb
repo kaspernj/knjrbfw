@@ -206,7 +206,20 @@ class Knj::Objects
         key = realkey
       end
       
-      if args[:cols].key?(key)
+      if args.key?(:cols_bools) and args[:cols_bools].index(key) != nil
+        val_s = val.to_s
+        
+        if val_s == "1" or val_s == "true"
+          realval = "1"
+        elsif val_s == "0" or val_s == "false"
+          realval = "0"
+        else
+          raise "Could not make real value out of class: #{val.class.name} => #{val}."
+        end
+        
+        sql_where << " AND #{table}`#{db.esc_col(key)}` = '#{db.esc(realval)}'"
+        found = true
+      elsif args[:cols].key?(key)
         if val.is_a?(Array)
           if val.empty? and db.opts[:type].to_s == "mysql"
             sql_where << " AND false"
@@ -234,17 +247,6 @@ class Knj::Objects
           sql_where << " AND #{table}`#{db.esc_col(key)}` = '#{db.esc(val)}'"
         end
         
-        found = true
-      elsif args.key?(:cols_bools) and args[:cols_bools].index(key) != nil
-        if val.is_a?(TrueClass) or (val.is_a?(Integer) and val.to_i == 1) or (val.is_a?(String) and (val == "true" or val == "1"))
-          realval = "1"
-        elsif val.is_a?(FalseClass) or (val.is_a?(Integer) and val.to_i == 0) or (val.is_a?(String) and (val == "false" or val == "0"))
-          realval = "0"
-        else
-          raise "Could not make real value out of class: #{val.class.name} => #{val}."
-        end
-        
-        sql_where << " AND #{table}`#{db.esc_col(key)}` = '#{db.esc(realval)}'"
         found = true
       elsif key.to_s == "limit_from"
         limit_from = val.to_i

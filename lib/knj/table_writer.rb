@@ -20,7 +20,7 @@ class Knj::Table_writer
     elsif @args["format"] == "excel2007"
       require "php_process"
       
-      @php = Php_process.new
+      @php = Php_process.new if !Kernel.const_defined?(:Php_process)
       @php.func("require_once", "PHPExcel.php")
       
       if @args["date_format"]
