@@ -328,7 +328,7 @@ class Knj::Objects
                 sql_where << " OR "
               end
               
-              sql_where << " AND #{db.sqlspecs.strftime("%d %m %Y", "#{table}`#{db.esc_col(match[1])}`")} #{self.not(not_v, "!")}= #{db.sqlspecs.strftime("%d %m %Y", "'#{db.esc(realval.dbstr)}'")}"
+              sql_where << "#{db.sqlspecs.strftime("%d %m %Y", "#{table}`#{db.esc_col(match[1])}`")} #{self.not(not_v, "!")}= #{db.sqlspecs.strftime("%d %m %Y", "'#{db.esc(realval.dbstr)}'")}"
             end
             
             sql_where << ")"
