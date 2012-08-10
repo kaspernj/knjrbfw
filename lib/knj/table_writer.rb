@@ -18,9 +18,9 @@ class Knj::Table_writer
       @ws = @wb.create_worksheet
       @row = 0
     elsif @args["format"] == "excel2007"
-      require "php_process"
+      require "php_process" if !Kernel.const_defined?(:Php_process)
       
-      @php = Php_process.new if !Kernel.const_defined?(:Php_process)
+      @php = Php_process.new
       @php.func("require_once", "PHPExcel.php")
       
       if @args["date_format"]
