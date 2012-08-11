@@ -5,6 +5,14 @@ class Knj::SSHRobot
     @forwards = []
     @args = Knj::ArrayExt.hash_sym(args)
     @args[:port] = 22 if !@args.key?(:port)
+    
+    if block_given?
+      begin
+        yield(self)
+      ensure
+        self.close
+      end
+    end
   end
   
   #Spawns a session if it hasnt already been spawned and returns it.
