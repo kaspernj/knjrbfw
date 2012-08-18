@@ -1,3 +1,6 @@
+require "datet" if !Kernel.const_defined?(:Datet)
+require "php4r" if !Kernel.const_defined?(:Php4r)
+
 class Knj::Table_writer
   def initialize(args = {})
     @args = args

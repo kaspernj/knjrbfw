@@ -1,11 +1,20 @@
 #This module can be used to handel various language-stuff.
 module Knj::Locales
+  LANG_CONVERTIONS = {
+    "en" => "en_GB"
+  }
+  
   #Returns the primary locale, secondary locale and the two put together.
   #===Examples
   # Knj::Locales.lang #=> {"first" => "en", "second" => "GB", "full" => "en_GB"}
   def self.lang
-    match = self.locale.to_s.match(/^([a-z]{2})_([A-Z]{2})/)
-    raise "Could not understand language: #{self.locale}." if !match
+    locale_str = self.locale.to_s
+    
+    #Sometimes language can be 'en'. Convert that to 'en_GB' if that is so.
+    locale_str = Knj::Locales::LANG_CONVERTIONS[locale_str] if Knj::Locales::LANG_CONVERTIONS.key?(locale_str)
+    
+    match = locale_str.match(/^([a-z]{2})_([A-Z]{2})/)
+    raise "Could not understand language: '#{locale_str}'." if !match
         
     return {
       "first" => match[1],
@@ -51,6 +60,8 @@ module Knj::Locales
   # Knj::Locales.number_out(123456.68) #=> "123,456.68"
   def self.number_out(num_str, dec = 2)
     lc = Knj::Locales.localeconv
+    
+    require "php4r"
     return Php4r.number_format(num_str, dec, lc["decimal_point"], lc["thousands_sep"])
   end
   

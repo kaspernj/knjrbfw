@@ -1,6 +1,6 @@
 #encoding: utf-8
 
-require "php4r"
+require "php4r" if !Kernel.const_defined?(:Php4r)
 
 #This module contains various methods to escape, change or treat strings.
 module Knj::Strings

@@ -1,4 +1,4 @@
-require "php4r"
+require "php4r" if !Kernel.const_defined?(:Php4r)
 
 class Knj::Web
   #Parses URI and returns hash with data.
