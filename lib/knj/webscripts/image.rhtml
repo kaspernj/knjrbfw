@@ -1,4 +1,11 @@
 <%
+  #Register appserver.
+  begin
+    appsrv = _hb
+  rescue NameError
+    appsrv = _kas
+  end
+  
   #Support for the PHP-version... Comes handy when converting PHP to Ruby...
   if !_get["path"]
     trans = {
@@ -171,12 +178,12 @@
 	end
 	
 	if tmp_use and !force
-    _kas.header("Last-Modified", "#{time_orig.httpdate} GMT") if time_orig
-		_kas.header("Content-Type", "image/png")
+    appsrv.header("Last-Modified", "#{time_orig.httpdate} GMT") if time_orig
+		appsrv.header("Content-Type", "image/png")
 		_httpsession.force_content(File.read(tmp_path))
 	else
-    _kas.header("Last-Modified", "#{time_orig.httpdate} GMT") if time_orig
-		_kas.header("Content-Type", "image/png")
+    appsrv.header("Last-Modified", "#{time_orig.httpdate} GMT") if time_orig
+		appsrv.header("Content-Type", "image/png")
 		_httpsession.force_content(blob_cont)
 	end
 %>

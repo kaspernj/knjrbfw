@@ -1,4 +1,4 @@
-#Requires the 'wref'-gem.
+#Require the 'wref'-gem if it hasnt already been.
 require "wref" if !Kernel.const_defined?(:Wref)
 
 #This class handels various stuff regarding Unix-processes.
@@ -35,7 +35,12 @@ class Knj::Unix_proc
     
     MUTEX.synchronize do
       ret = [] unless block_given?
-      res = Knj::Os.shellcmd(cmdstr)
+      
+      if args["psaux_str"]
+        res = args["psaux_str"]
+      else
+        res = Knj::Os.shellcmd(cmdstr)
+      end
       
       res.scan(/^(\S+)\s+([0-9]+)\s+([0-9.]+)\s+([0-9.]+)\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+ (.+)($|\n)/) do |match|
         pid = match[1]
@@ -64,12 +69,16 @@ class Knj::Unix_proc
           next if !found
         end
         
-        proc_obj = Knj::Unix_proc.spawn(data)
-        
-        if block_given?
-          yield(proc_obj)
+        if args["yield_data"]
+          yield(data)
         else
-          ret << proc_obj
+          proc_obj = Knj::Unix_proc.spawn(data)
+          
+          if block_given?
+            yield(proc_obj)
+          else
+            ret << proc_obj
+          end
         end
       end
       
