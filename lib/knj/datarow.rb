@@ -760,17 +760,32 @@ class Knj::Datarow
   #Various methods to define methods based on the columns for the datarow.
   def self.define_translation_methods(args)
     define_method("#{args[:val_dc]}=") do |newtransval|
-      _kas.trans_set(self, {
-        args[:val] => newtransval
-      })
+      begin
+        _hb.trans_set(self, {
+          args[:val] => newtransval
+        })
+      rescue NameError
+        _kas.trans_set(self, {
+          args[:val] => newtransval
+        })
+      end
     end
     
     define_method("#{args[:val_dc]}") do
-      return _kas.trans(self, args[:val])
+      begin
+        return _hb.trans(self, args[:val])
+      rescue NameError
+        return _kas.trans(self, args[:val])
+      end
     end
     
     define_method("#{args[:val_dc]}_html") do
-      str = _kas.trans(self, args[:val])
+      begin
+        str = _hb.trans(self, args[:val])
+      rescue NameError
+        str = _kas.trans(self, args[:val])
+      end
+      
       if str.to_s.strip.length <= 0
         return "[no translation for #{args[:val]}]"
       end
