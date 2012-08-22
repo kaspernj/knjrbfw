@@ -683,7 +683,7 @@ class Knj::Datarow
   
   #Returns the objects ID.
   def id
-    raise "This object has been deleted." if self.deleted?
+    raise Errno::ENOENT, "This object has been deleted." if self.deleted?
     raise "No ID on object." if !@id
     return @id
   end
