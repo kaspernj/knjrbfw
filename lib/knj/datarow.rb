@@ -579,7 +579,7 @@ class Knj::Datarow
     end
     
     if @id.to_i <= 0
-      raise "Invalid ID: '#{@id}' from '#{@data}'."if @data
+      raise "Invalid ID: '#{@id}' from '#{@data}'." if @data
       raise "Invalid ID: '#{@id}'."
     end
   end
