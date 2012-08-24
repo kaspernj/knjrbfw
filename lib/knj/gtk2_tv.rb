@@ -3,10 +3,17 @@ module Knj::Gtk2::Tv
   #Initializes a treeview with a model and a number of columns. Returns a hash containing various data like the renderers.
   #===Examples
   # Knj::Gtk2::Tv.init(treeview, ["ID", "Name"])
-  def self.init(tv, columns)
+  def self.init(tv, args)
     ret = {
       :renderers => []
     }
+    
+    if args.is_a?(Array)
+      columns = args
+      args = {}
+    else
+      columns = args[:cols]
+    end
     
     model_args = []
     columns.each do |args|
@@ -25,7 +32,12 @@ module Knj::Gtk2::Tv
       end
     end
     
-    list_store = Gtk::ListStore.new(*model_args)
+    if args[:type] == :treestore
+      list_store = Gtk::TreeStore.new(*model_args)
+    else
+      list_store = Gtk::ListStore.new(*model_args)
+    end
+    
     tv.model = list_store
     tv.reorderable = true
     
@@ -191,14 +203,17 @@ module Knj::Gtk2::Tv
       end
       
       renderer = args[:renderers][col_no]
+      raise "Could not find a renderer for column no. '#{col_no}'." if !renderer
       
       if args[:on_edit]
         renderer.signal_connect("editing-started") do |renderer, row_no, path|
           iter = args[:tv].model.get_iter(path)
           id = args[:tv].model.get_value(iter, args[:id_col])
-          model_obj = args[:ob].get(args[:model_class], id)
           
-          args[:on_edit].call(:renderer => renderer, :row_no => row_no, :path => path, :args => args, :model => model_obj, :col_no => col_no, :col_data => col_data)
+          if id.to_i > 0
+            model_obj = args[:ob].get(args[:model_class], id)
+            args[:on_edit].call(:renderer => renderer, :row_no => row_no, :path => path, :args => args, :model => model_obj, :col_no => col_no, :col_data => col_data)
+          end
         end
       end
       
@@ -223,41 +238,44 @@ module Knj::Gtk2::Tv
         renderer.signal_connect("edited") do |renderer, row_no, value|
           iter = args[:tv].model.get_iter(row_no)
           id = args[:tv].model.get_value(iter, args[:id_col])
-          model_obj = args[:ob].get(args[:model_class], id)
-          cancel = false
-          callback_hash = {:args => args, :value => value, :model => model_obj, :col_no => col_no, :col_data => col_data}
           
-          if args[:on_edit_done]
-            args[:on_edit_done].call(:renderer => renderer, :row_no => row_no, :done_mode => :canceled, :args => args, :model => model_obj, :col_no => col_no, :col_data => col_data)
-          end
-          
-          if col_data[:value_callback]
-            begin
-              value = col_data[:value_callback].call(callback_hash)
-              callback_hash[:value] = value
-            rescue => e
-              Knj::Gtk2.msgbox(e.message, "warning")
-              cancel = true
+          if id.to_i > 0
+            model_obj = args[:ob].get(args[:model_class], id)
+            cancel = false
+            callback_hash = {:args => args, :value => value, :model => model_obj, :col_no => col_no, :col_data => col_data}
+            
+            if args[:on_edit_done]
+              args[:on_edit_done].call(:renderer => renderer, :row_no => row_no, :done_mode => :canceled, :args => args, :model => model_obj, :col_no => col_no, :col_data => col_data)
             end
-          end
-          
-          if !cancel
-            begin
-              args[:change_before].call(callback_hash) if args[:change_before]
-            rescue => e
-              cancel = true
-              Knj::Gtk2.msgbox(e.message, "warning")
+            
+            if col_data[:value_callback]
+              begin
+                value = col_data[:value_callback].call(callback_hash)
+                callback_hash[:value] = value
+              rescue => e
+                Knj::Gtk2.msgbox(e.message, "warning")
+                cancel = true
+              end
             end
             
             if !cancel
               begin
-                model_obj[col_data[:col]] = value
-                value = col_data[:value_set_callback].call(callback_hash) if col_data.key?(:value_set_callback)
-                iter[col_no] = value
+                args[:change_before].call(callback_hash) if args[:change_before]
               rescue => e
+                cancel = true
                 Knj::Gtk2.msgbox(e.message, "warning")
-              ensure
-                args[:change_after].call(callback_hash) if args[:change_after]
+              end
+              
+              if !cancel
+                begin
+                  model_obj[col_data[:col]] = value
+                  value = col_data[:value_set_callback].call(callback_hash) if col_data.key?(:value_set_callback)
+                  iter[col_no] = value
+                rescue => e
+                  Knj::Gtk2.msgbox(e.message, "warning")
+                ensure
+                  args[:change_after].call(callback_hash) if args[:change_after]
+                end
               end
             end
           end
@@ -267,14 +285,26 @@ module Knj::Gtk2::Tv
         renderer.signal_connect("toggled") do |renderer, path|
           iter = args[:tv].model.get_iter(path)
           id = args[:tv].model.get_value(iter, 0)
-          model_obj = args[:ob].get(args[:model_class], id)
+          model_obj = args[:ob].get(args[:model_class], id) if id.to_i > 0
           
-          if model_obj[col_data[:col]].to_i == 1
-            value = false
-            value_i = 0
+          if model_obj and col_data[:col]
+            if model_obj[col_data[:col]].to_i == 1
+              value = false
+              value_i = 0
+            else
+              value = true
+              value_i = 1
+            end
           else
-            value = true
-            value_i = 1
+            puts "Test: #{iter[col_no]}"
+            
+            if iter[col_no] == 0
+              value = true
+              value_i = 1
+            else
+              value = false
+              value_i = 0
+            end
           end
           
           callback_hash = {:args => args, :value => value, :model => model_obj, :col_no => col_no, :col_data => col_data}
@@ -300,7 +330,7 @@ module Knj::Gtk2::Tv
           if !cancel
             args[:change_before].call(callback_hash) if args[:change_before]
             begin
-              model_obj[col_data[:col]] = value_i
+              model_obj[col_data[:col]] = value_i if model_obj and col_data[:col]
               
               if col_data.key?(:value_set_callback)
                 value = col_data[:value_set_callback].call(callback_hash)

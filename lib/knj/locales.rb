@@ -1,3 +1,6 @@
+#Fixes a bug in the 'locale'-gem when running under KDE and 'LANGUAGE'-ENV-variable is set but empty.
+ENV["LANGUAGE"] = "en_GB" if ENV["LANGUAGE"] == ""
+
 #This module can be used to handel various language-stuff.
 module Knj::Locales
   LANG_CONVERTIONS = {
@@ -8,7 +11,8 @@ module Knj::Locales
   #===Examples
   # Knj::Locales.lang #=> {"first" => "en", "second" => "GB", "full" => "en_GB"}
   def self.lang
-    locale_str = self.locale.to_s
+    locale_str = self.locale.to_s.strip
+    locale_str = "en_GB" if locale_str.empty?
     
     #Sometimes language can be 'en'. Convert that to 'en_GB' if that is so.
     locale_str = Knj::Locales::LANG_CONVERTIONS[locale_str] if Knj::Locales::LANG_CONVERTIONS.key?(locale_str)
@@ -84,6 +88,6 @@ module Knj::Locales
       return ENV["LANG"]
     end
     
-    raise "Could not figure out locale."
+    return "en_GB"
   end
 end
