@@ -39,7 +39,6 @@ module Knj::Gtk2::Tv
     end
     
     tv.model = list_store
-    tv.reorderable = true
     
     count = 0
     columns.each do |args|
@@ -296,8 +295,6 @@ module Knj::Gtk2::Tv
               value_i = 1
             end
           else
-            puts "Test: #{iter[col_no]}"
-            
             if iter[col_no] == 0
               value = true
               value_i = 1
