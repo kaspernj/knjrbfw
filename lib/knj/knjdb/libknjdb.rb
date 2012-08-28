@@ -16,9 +16,10 @@ require "datet" if !Kernel.const_defined?(:Datet)
 #   print data[:name]
 # end
 class Knj::Db
-  #Autoloader.
+  #Autoloader for subclasses..
   def self.const_missing(name)
-    require "#{$knjpath}knjdb/#{name.to_s.downcase}"
+    require "#{$knjpath}knjdb/#{name.to_s.downcase}.rb"
+    raise "Still not defined: '#{name}'." if !Knj::Db.const_defined?(name)
     return Knj::Db.const_get(name)
   end
   
