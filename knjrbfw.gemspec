@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{knjrbfw}
-  s.version = "0.0.90"
+  s.version = "0.0.91"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Kasper Johansen"]
-  s.date = %q{2012-08-23}
+  s.date = %q{2012-08-30}
   s.description = %q{Including stuff for HTTP, SSH and much more.}
   s.email = %q{k@spernj.org}
   s.extra_rdoc_files = [
@@ -208,7 +208,6 @@ Gem::Specification.new do |s|
     "lib/knj/process.rb",
     "lib/knj/process_meta.rb",
     "lib/knj/rand.rb",
-    "lib/knj/retry.rb",
     "lib/knj/rhodes/mutex.rb",
     "lib/knj/rhodes/rhodes.js",
     "lib/knj/rhodes/rhodes.rb",
@@ -236,7 +235,6 @@ Gem::Specification.new do |s|
     "lib/knj/tests/test_http2.rb",
     "lib/knj/tests/test_http2_proxy.rb",
     "lib/knj/tests/test_mount.rb",
-    "lib/knj/tests/test_retry.rb",
     "lib/knj/thread.rb",
     "lib/knj/thread2.rb",
     "lib/knj/threadhandler.rb",
