@@ -166,7 +166,7 @@ class Knj::Objects
         
         if callback.key?("signal") and args.key?("signal") and callback["signal"] == args["signal"]
           docall = true
-        elsif callback["signals"] and args["signal"] and callback["signals"].index(args["signal"]) != nil
+        elsif callback["signals"] and args["signal"] and callback["signals"].include?(args["signal"])
           docall = true
         end
         
@@ -185,6 +185,7 @@ class Knj::Objects
           
           callback["block"].call(*callargs)
         elsif callback["callback"]
+          require "php4r"
           Php4r.call_user_func(callback["callback"], args)
         else
           raise "No valid callback given."
