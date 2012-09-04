@@ -1,14 +1,17 @@
 module Knj::Gtk2::Cb
+  #This method can be used to invoke autoloading of this file.
   def self.init(paras)
     return paras["cb"].init(paras["items"])
   end
   
+  #This method can be used to invoke autoloading of this file.
   def self.sel(cb)
     return cb.sel
   end
 end
 
 class Gtk::ComboBox
+  #Shortcut to initialize a combobox with items (or models).
   def init(items)
     @knj = {
       :items => []
@@ -69,6 +72,7 @@ class Gtk::ComboBox
     return {}
   end
   
+  #Returns the active item (or model) for the combobox.
   def sel
     iter = self.active_iter
     
@@ -88,6 +92,7 @@ class Gtk::ComboBox
     end
   end
   
+  #Sets the active element (or model) in the combobox.
   def sel=(actob)
     if actob.respond_to?(:is_knj?)
       @knj[:items].each do |item|
@@ -117,6 +122,7 @@ class Gtk::ComboBox
     raise "Could not find such a row: '#{actob}'."
   end
   
+  #Resorts all items in the list-store. If an item doesnt have an ID, then that item will be put first (for 'Choose', 'All' and such options).
   def resort
     @ls.set_sort_column_id(0)
     @ls.set_sort_func(0, &lambda{|iter1, iter2|
