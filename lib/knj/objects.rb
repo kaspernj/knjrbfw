@@ -149,11 +149,21 @@ class Knj::Objects
   
   #Unconnects a connect by 'object' and 'conn_id'.
   def unconnect(args)
-    raise "No object given." if !args["object"]
-    raise "No conn-ID given." if !args["conn_id"]
-    raise "Object doesnt exist: '#{args["object"]}'." if !@callbacks.key?(args["object"].to_sym)
-    raise "Conn ID doest exist: '#{args["conn_id"]}'." if !@callbacks[args["object"].to_sym].key?(args["conn_id"])
-    @callbacks[args["object"].to_sym].delete(args["conn_id"])
+    raise ArgumentError, "No object given." if !args["object"]
+    raise ArgumentError, "Object doesnt exist: '#{args["object"]}'." if !@callbacks.key?(args["object"].to_sym)
+    
+    if args["conn_id"]
+      conn_ids = [args["conn_id"]]
+    elsif args["conn_ids"]
+      conn_ids = args["conn_ids"]
+    else
+      raise ArgumentError, "Could not figure out connection IDs."
+    end
+    
+    conn_ids.each do |conn_id|
+      raise Errno::ENOENT, "Conn ID doest exist: '#{conn_id}' (#{args})." if !@callbacks[args["object"].to_sym].key?(conn_id)
+      @callbacks[args["object"].to_sym].delete(conn_id)
+    end
   end
   
   #This method is used to call the connected callbacks for an event.

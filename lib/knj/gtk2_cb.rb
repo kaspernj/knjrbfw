@@ -26,7 +26,14 @@ class Gtk::ComboBox
         if appendob.is_a?(String)
           iter[0] = appendob
         elsif appendob.respond_to?(:is_knj?)
-          iter[0] = appendob.title
+          if appendob.respond_to?(:name)
+            iter[0] = appendob.name
+          elsif appendob.respond_to?(:title)
+            iter[0] = appendob.title
+          else
+            raise "Could not figure out of the name of the object."
+          end
+          
           @knj[:items] << {
             :iter => iter,
             :object => appendob
