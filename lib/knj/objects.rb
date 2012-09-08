@@ -389,7 +389,7 @@ class Knj::Objects
     self.requireclass(classname)
     classob = @args[:module].const_get(classname)
     
-    raise "list-function has not been implemented for #{classname}" if !classob.respond_to?("list")
+    raise "list-function has not been implemented for '#{classname}'." if !classob.respond_to?(:list)
     
     args["limit"] = 1
     self.list(classname, args) do |obj|
