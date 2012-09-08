@@ -144,7 +144,7 @@ class KnjDB_mysql
                 
                 #Save reference to result and statement, so we can close them when they are garbage collected.
                 @java_rs_data[id] = {:res => res, :stmt => stmt}
-                ObjectSpace.define_finalizer(ret, self.method("java_mysql_resultset_killer"))
+                ObjectSpace.define_finalizer(ret, self.method(:java_mysql_resultset_killer))
                 
                 return ret
               rescue => e

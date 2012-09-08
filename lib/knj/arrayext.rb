@@ -1,5 +1,3 @@
-require "php4r"
-
 module Knj::ArrayExt
   def self.join(args = {}, key = nil, sep = nil)
     if args.is_a?(Array) and sep
@@ -15,6 +13,7 @@ module Knj::ArrayExt
     str = ""
     first = true
     
+    require "php4r"
     Php4r.foreach(args[:arr]) do |key, value|
       if first
         first = false
@@ -213,6 +212,7 @@ module Knj::ArrayExt
   def self.clone_encode(hash, encoding, args = {})
     return hash if !hash
     
+    require "php4r"
     hash = hash.clone
     Php4r.foreach(hash) do |key, val|
       if val.is_a?(String)

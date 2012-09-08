@@ -1,20 +1,35 @@
 #This module contains various helper-methods for handeling stuff regarding treeviews.
 module Knj::Gtk2::Tv
+  ALLOWED_ARGS = [:cols, :reorderable, :sortable, :type]
+  
   #Initializes a treeview with a model and a number of columns. Returns a hash containing various data like the renderers.
   #===Examples
   # Knj::Gtk2::Tv.init(treeview, ["ID", "Name"])
-  def self.init(tv, args)
+  def self.init(tv, rargs)
     ret = {
       :renderers => []
     }
     
-    if args.is_a?(Array)
-      columns = args
-      args = {}
+    if rargs.is_a?(Array)
+      columns = rargs
+      rargs = {}
     else
-      columns = args[:cols]
+      columns = rargs[:cols]
     end
     
+    
+    #Default arguments.
+    rargs = {
+      :reorderable => true,
+      :sortable => true
+    }.merge!(rargs)
+    
+    rargs.each do |key, val|
+      raise "Invalid argument: '#{key}'." if !ALLOWED_ARGS.include?(key)
+    end
+    
+    
+    #Spawn store.
     model_args = []
     columns.each do |args|
       if args.is_a?(String)
@@ -32,7 +47,7 @@ module Knj::Gtk2::Tv
       end
     end
     
-    if args[:type] == :treestore
+    if rargs[:type] == :treestore
       list_store = Gtk::TreeStore.new(*model_args)
     else
       list_store = Gtk::ListStore.new(*model_args)
@@ -79,8 +94,13 @@ module Knj::Gtk2::Tv
       end
       
       col.spacing = 0
-      col.reorderable = true
-      col.sort_column_id = count
+      col.reorderable = rargs[:reorderable] if !args.key?(:reorderable) or args[:reorderable]
+      
+      if !rargs[:sortable]
+        col.sort_column_id = -1
+      else
+        col.sort_column_id = count
+      end
       
       if args.key?(:fixed_width)
         col.sizing = Gtk::TreeViewColumn::FIXED

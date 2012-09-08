@@ -190,9 +190,9 @@ class Knj::Gtk2
       class_str = object.class.to_s
       
       if object.is_a?(Gtk::Label) or object.is_a?(Gtk::Button)
-        object.label = GetText.gettext(object.label)
+        object.label = GetText.gettext(object.label) if !object.label.to_s.strip.empty?
       elsif object.is_a?(Gtk::Window)
-        object.title = GetText.gettext(object.title)
+        object.title = GetText.gettext(object.title) if !object.title.to_s.strip.empty?
       end
     end
   end
