@@ -15,7 +15,7 @@ module Knj::Errors
   #   print Knj::Errors.error_str(e, :html => true)
   # end
   def self.error_str(err, args = {})
-    if !err.is_a?(Exception) and err.class.message != "Java::JavaLang::LinkageError"
+    if !err.is_a?(Exception) and err.class.name != "Java::JavaLang::LinkageError"
       raise "Invalid object of class '#{err.class.name}' given."
     end
     
