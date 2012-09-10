@@ -23,7 +23,7 @@ class Knj::Gettext_threadded
     @dirs << dir
     check_folders = ["LC_MESSAGES", "LC_ALL"]
     
-    Dir.new(dir).each do |file|
+    Dir.foreach(dir) do |file|
       fn = "#{dir}/#{file}"
       if File.directory?(fn) and file.match(/^[a-z]{2}_[A-Z]{2}$/)
         @langs[file] = {} if !@langs[file]
@@ -32,7 +32,7 @@ class Knj::Gettext_threadded
           fpath = "#{dir}/#{file}/#{fname}"
           
           if File.exists?(fpath) and File.directory?(fpath)
-            Dir.new(fpath).each do |pofile|
+            Dir.foreach(fpath) do |pofile|
               if pofile.match(/\.po$/)
                 pofn = "#{dir}/#{file}/#{fname}/#{pofile}"
                 
