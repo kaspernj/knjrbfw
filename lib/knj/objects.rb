@@ -3,9 +3,6 @@ class Knj::Objects
   
   def initialize(args)
     require "monitor"
-    require "#{$knjpath}arrayext"
-    require "#{$knjpath}event_handler"
-    require "#{$knjpath}hash_methods"
     
     @callbacks = {}
     @args = args
