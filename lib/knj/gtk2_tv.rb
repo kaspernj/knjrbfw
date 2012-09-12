@@ -77,6 +77,8 @@ module Knj::Gtk2::Tv
       elsif args[:type] == :combo
         renderer = Gtk::CellRendererCombo.new
         renderer.text_column = 0
+        renderer.model = args[:model] if args.key?(:model)
+        renderer.has_entry = args[:has_entry] if args.key?(:has_entry)
         
         if args[:markup]
           col_args = {:markup => count}
@@ -86,9 +88,6 @@ module Knj::Gtk2::Tv
         
         col = Gtk::TreeViewColumn.new(args[:title], renderer, col_args)
         col.resizable = true
-        
-        renderer.model = args[:model] if args.key?(:model)
-        renderer.has_entry = args[:has_entry] if args.key?(:has_entry)
       else
         raise "Invalid type: '#{args[:type]}'."
       end

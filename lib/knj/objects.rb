@@ -827,7 +827,14 @@ class Knj::Objects
       end
       
       #Delete any translations that has been set on the object by 'has_translation'-method.
-      _kas.trans_del(object) if object.class.translations
+      if object.class.translations
+        begin
+          _hb.trans_del(object)
+        rescue NameError
+          _kas.trans_del(object)
+        end
+      end
+      
       
       #If a buffer is given in arguments, then use that to delete the object.
       if args and buffer = args[:db_buffer]
@@ -880,6 +887,18 @@ class Knj::Objects
         end
       end
     end
+  end
+  
+  #Deletes all objects with the given IDs 500 at a time to prevent memory exhaustion or timeout.
+  #===Examples
+  #  ob.delete_ids(:class => :Person, :ids => [1, 3, 5, 6, 7, 8, 9])
+  def delete_ids(args)
+    while !args[:ids].empty? and ids = args[:ids].shift(500)
+      objs = self.list(:Person, "id" => ids)
+      self.deletes(objs)
+    end
+    
+    return nil
   end
   
   #Try to clean up objects by unsetting everything, start the garbagecollector, get all the remaining objects via ObjectSpace and set them again. Some (if not all) should be cleaned up and our cache should still be safe... dirty but works.

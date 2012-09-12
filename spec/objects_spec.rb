@@ -373,6 +373,15 @@ describe "Objects" do
     raise "Expected timelog2's person-ID to be #{person2.id} but it wasnt: '#{timelog2[:person_id]}'." if timelog2[:person_id].to_i != person2.id.to_i
   end
   
+  it "should be able to do multiple deletes from ids" do
+    ids = []
+    1.upto(10) do |count|
+      ids << $ob.add(:Person).id
+    end
+    
+    $ob.delete_ids(:class => :Person, :ids => ids)
+  end
+  
   it "should delete the temp database again." do
     db_path = "#{Knj::Os.tmpdir}/knjrbfw_test_sqlite3.sqlite3"
     File.unlink(db_path) if File.exists?(db_path)
