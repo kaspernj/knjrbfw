@@ -15,7 +15,7 @@ class Knj::Objects
     @data = {}
     @lock_require = Monitor.new
     
-    require "wref" if @args[:cache] == :weak and !Kernel.const_defined?(:Wref)
+    Knj.gem_require(:Wref, "wref") if @args[:cache] == :weak and !Kernel.const_defined?(:Wref)
     require "#{@args[:array_enumerator_path]}array_enumerator" if @args[:array_enum] and !Kernel.const_defined?(:Array_enumerator)
     
     #Set up various events.
@@ -30,6 +30,7 @@ class Knj::Objects
     raise "No class path given." if !@args[:class_path] and (@args[:require] or !@args.key?(:require))
     
     if args[:require_all]
+      Knj.gem_require(:Php4r, "php4r")
       loads = []
       
       Dir.foreach(@args[:class_path]) do |file|
