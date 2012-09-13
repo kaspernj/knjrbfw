@@ -895,7 +895,7 @@ class Knj::Objects
   #  ob.delete_ids(:class => :Person, :ids => [1, 3, 5, 6, 7, 8, 9])
   def delete_ids(args)
     while !args[:ids].empty? and ids = args[:ids].shift(500)
-      objs = self.list(:Person, "id" => ids)
+      objs = self.list(args[:class], "id" => ids)
       self.deletes(objs)
     end
     
