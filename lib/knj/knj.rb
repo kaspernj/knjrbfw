@@ -54,7 +54,7 @@ module Knj
     found_custom = false
     
     paths = [
-      "#{File.dirname(__FILE__)}/../../../#{gem_name}/lib/#{gem_name}.rb"
+      "#{File.realpath("#{File.dirname(__FILE__)}/../../..")}/#{gem_name}/lib/#{gem_name}.rb"
     ]
     paths.each do |path|
       if File.exists?(path)
