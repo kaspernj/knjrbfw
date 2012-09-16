@@ -46,7 +46,9 @@ module Knj
   end
   
   #Loads a gem by a given name. First tries to load the gem from a custom parent directory to enable loading of development-gems.
-  def self.gem_require(gem_const, gem_name)
+  def self.gem_require(gem_const, gem_name = nil)
+    gem_name = gem_const.to_s.downcase.strip if !gem_name
+    
     #Return false if the constant is already loaded.
     return false if ::Kernel.const_defined?(gem_const)
     

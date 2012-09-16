@@ -47,63 +47,65 @@ class KnjDB_mysql
   
   #Respawns the connection to the MySQL-database.
   def reconnect
-    case @subtype
-      when "mysql"
-        @conn = Mysql.real_connect(@knjdb.opts[:host], @knjdb.opts[:user], @knjdb.opts[:pass], @knjdb.opts[:db], @port)
-      when "mysql2"
-        require "rubygems"
-        require "mysql2"
-        
-        args = {
-          :host => @knjdb.opts[:host],
-          :username => @knjdb.opts[:user],
-          :password => @knjdb.opts[:pass],
-          :database => @knjdb.opts[:db],
-          :port => @port,
-          :symbolize_keys => true,
-          :cache_rows => false
-        }
-        
-        #Symbolize keys should also be given here, else table-data wont be symbolized for some reason - knj.
-        @query_args = {:symbolize_keys => true}
-        @query_args.merge!(@knjdb.opts[:query_args]) if @knjdb.opts[:query_args]
-        
-        pos_args = [:as, :async, :cast_booleans, :database_timezone, :application_timezone, :cache_rows, :connect_flags, :cast]
-        pos_args.each do |key|
-          args[key] = @knjdb.opts[key] if @knjdb.opts.key?(key)
-        end
-        
-        args[:as] = :array if @opts[:result] == "array"
-        
-        tries = 0
-        begin
-          tries += 1
-          @conn = Mysql2::Client.new(args)
-        rescue => e
-          if tries <= 3
-            if e.message == "Can't connect to local MySQL server through socket '/var/run/mysqld/mysqld.sock' (111)"
-              sleep 1
-              retry
-            end
+    @mutex.synchronize do
+      case @subtype
+        when "mysql"
+          @conn = Mysql.real_connect(@knjdb.opts[:host], @knjdb.opts[:user], @knjdb.opts[:pass], @knjdb.opts[:db], @port)
+        when "mysql2"
+          require "rubygems"
+          require "mysql2"
+          
+          args = {
+            :host => @knjdb.opts[:host],
+            :username => @knjdb.opts[:user],
+            :password => @knjdb.opts[:pass],
+            :database => @knjdb.opts[:db],
+            :port => @port,
+            :symbolize_keys => true,
+            :cache_rows => false
+          }
+          
+          #Symbolize keys should also be given here, else table-data wont be symbolized for some reason - knj.
+          @query_args = {:symbolize_keys => true}
+          @query_args.merge!(@knjdb.opts[:query_args]) if @knjdb.opts[:query_args]
+          
+          pos_args = [:as, :async, :cast_booleans, :database_timezone, :application_timezone, :cache_rows, :connect_flags, :cast]
+          pos_args.each do |key|
+            args[key] = @knjdb.opts[key] if @knjdb.opts.key?(key)
           end
           
-          raise e
-        end
-      when "java"
-        if !@jdbc_loaded
-          require "java"
-          require "/usr/share/java/mysql-connector-java.jar" if File.exists?("/usr/share/java/mysql-connector-java.jar")
-          import "com.mysql.jdbc.Driver"
-          @jdbc_loaded = true
-        end
-        
-        @conn = java.sql::DriverManager.getConnection("jdbc:mysql://#{@knjdb.opts[:host]}:#{@port}/#{@knjdb.opts[:db]}?user=#{@knjdb.opts[:user]}&password=#{@knjdb.opts[:pass]}&populateInsertRowWithDefaultValues=true&zeroDateTimeBehavior=round&characterEncoding=#{@encoding}&holdResultsOpenOverStatementClose=true")
-        self.query("SET SQL_MODE = ''")
-      else
-        raise "Unknown subtype: #{@subtype}"
+          args[:as] = :array if @opts[:result] == "array"
+          
+          tries = 0
+          begin
+            tries += 1
+            @conn = Mysql2::Client.new(args)
+          rescue => e
+            if tries <= 3
+              if e.message == "Can't connect to local MySQL server through socket '/var/run/mysqld/mysqld.sock' (111)"
+                sleep 1
+                retry
+              end
+            end
+            
+            raise e
+          end
+        when "java"
+          if !@jdbc_loaded
+            require "java"
+            require "/usr/share/java/mysql-connector-java.jar" if File.exists?("/usr/share/java/mysql-connector-java.jar")
+            import "com.mysql.jdbc.Driver"
+            @jdbc_loaded = true
+          end
+          
+          @conn = java.sql::DriverManager.getConnection("jdbc:mysql://#{@knjdb.opts[:host]}:#{@port}/#{@knjdb.opts[:db]}?user=#{@knjdb.opts[:user]}&password=#{@knjdb.opts[:pass]}&populateInsertRowWithDefaultValues=true&zeroDateTimeBehavior=round&characterEncoding=#{@encoding}&holdResultsOpenOverStatementClose=true")
+          self.query("SET SQL_MODE = ''")
+        else
+          raise "Unknown subtype: #{@subtype}"
+      end
+      
+      self.query("SET NAMES '#{self.esc(@encoding)}'") if @encoding
     end
-    
-    self.query("SET NAMES '#{self.esc(@encoding)}'") if @encoding
   end
   
   #Executes a query and returns the result.
