@@ -124,9 +124,11 @@ class Knj::Objects
     raise "No object given." if !args["object"]
     raise "No signals given." if !args.key?("signal") and !args.key?("signals")
     args["block"] = block if block_given?
-    @callbacks[args["object"].to_sym] = {} if !@callbacks[args["object"]]
-    conn_id = @callbacks[args["object"].to_sym].length.to_s
-    @callbacks[args["object"].to_sym][conn_id] = args
+    object = args["object"].to_sym
+    
+    @callbacks[object] = {} if !@callbacks[object]
+    conn_id = @callbacks[object].length.to_s
+    @callbacks[object][conn_id] = args
     return conn_id
   end
   
@@ -134,11 +136,12 @@ class Knj::Objects
   def connected?(args)
     raise "No object given." if !args["object"]
     raise "No signal given." if !args.key?("signal")
+    object = args["object"].to_sym
     
-    if @callbacks.key?(args["object"].to_sym)
-      @callbacks[args["object"].to_sym].clone.each do |ckey, callback|
-        return true if callback.key?("signal") and callback["signal"] == args["signal"]
-        return true if callback.key?("signals") and callback["signals"].index(args["signal"]) != nil
+    if @callbacks.key?(object)
+      @callbacks[object].clone.each do |ckey, callback|
+        return true if callback.key?("signal") and callback["signal"].to_s == args["signal"].to_s
+        return true if callback.key?("signals") and (callback["signals"].include?(args["signal"].to_s) or callback["signals"].include?(args["signal"].to_sym))
       end
     end
     
@@ -148,7 +151,8 @@ class Knj::Objects
   #Unconnects a connect by 'object' and 'conn_id'.
   def unconnect(args)
     raise ArgumentError, "No object given." if !args["object"]
-    raise ArgumentError, "Object doesnt exist: '#{args["object"]}'." if !@callbacks.key?(args["object"].to_sym)
+    object = args["object"].to_sym
+    raise ArgumentError, "Object doesnt exist: '#{object}'." if !@callbacks.key?(object)
     
     if args["conn_id"]
       conn_ids = [args["conn_id"]]
@@ -159,8 +163,8 @@ class Knj::Objects
     end
     
     conn_ids.each do |conn_id|
-      raise Errno::ENOENT, "Conn ID doest exist: '#{conn_id}' (#{args})." if !@callbacks[args["object"].to_sym].key?(conn_id)
-      @callbacks[args["object"].to_sym].delete(conn_id)
+      raise Errno::ENOENT, "Conn ID doest exist: '#{conn_id}' (#{args})." if !@callbacks[object].key?(conn_id)
+      @callbacks[object].delete(conn_id)
     end
   end
   
@@ -172,9 +176,9 @@ class Knj::Objects
       @callbacks[classstr].clone.each do |callback_key, callback|
         docall = false
         
-        if callback.key?("signal") and args.key?("signal") and callback["signal"] == args["signal"]
+        if callback.key?("signal") and args.key?("signal") and callback["signal"].to_s == args["signal"].to_s
           docall = true
-        elsif callback["signals"] and args["signal"] and callback["signals"].include?(args["signal"])
+        elsif callback["signals"] and args["signal"] and (callback["signals"].include?(args["signal"].to_s) or callback["signals"].include?(args["signal"].to_sym))
           docall = true
         end
         
