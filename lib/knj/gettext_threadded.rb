@@ -41,8 +41,8 @@ class Knj::Gettext_threadded
                   cont = fp.read.encode("utf-8")
                 end
                 
-                cont.scan(/msgid\s+\"(.+)\"\nmsgstr\s+\"(.+)\"\n\n/) do |match|
-                  @langs[file][match[0]] = match[1].to_s.encode("utf-8")
+                cont.scan(/msgid\s+\"(.+)\"(\r|)\nmsgstr\s+\"(.+)\"(\r|)\n(\r|)\n/) do |match|
+                  @langs[file][match[0]] = match[2].to_s.encode("utf-8")
                 end
               end
             end
