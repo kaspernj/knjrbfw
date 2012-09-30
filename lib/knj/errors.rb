@@ -6,6 +6,9 @@ module Knj::Errors
   #An error that specifies that the caller should retry the operation.
   class Retry < StandardError; end
   
+  #An error that specifies that the current entry should be skipped.
+  class Skip < StandardError; end
+  
   #Returns a string describing the given error. Possible arguments can be given if you want the returned string formatted as HTML.
   #
   #===Examples
