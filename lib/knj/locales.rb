@@ -65,7 +65,7 @@ module Knj::Locales
   def self.number_out(num_str, dec = 2)
     lc = Knj::Locales.localeconv
     
-    require "php4r"
+    require "php4r" if !Kernel.const_defined?(:Php4r)
     return Php4r.number_format(num_str, dec, lc["decimal_point"], lc["thousands_sep"])
   end
   

@@ -13,7 +13,7 @@ module Knj::ArrayExt
     str = ""
     first = true
     
-    require "php4r"
+    require "php4r" if !Kernel.const_defined?(:Php4r)
     Php4r.foreach(args[:arr]) do |key, value|
       if first
         first = false
@@ -212,7 +212,7 @@ module Knj::ArrayExt
   def self.clone_encode(hash, encoding, args = {})
     return hash if !hash
     
-    require "php4r"
+    require "php4r" if !Kernel.const_defined?(:Php4r)
     hash = hash.clone
     Php4r.foreach(hash) do |key, val|
       if val.is_a?(String)

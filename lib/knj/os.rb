@@ -219,7 +219,7 @@ module Knj::Os
   
   #Returns the Ruby executable that is running the current process if possible.
   def self.executed_executable
-    return ENV["rvm_ruby_string"] if ENV["rvm_ruby_string"].to_s.length > 0
+    return ENV["rvm_ruby_string"] if !ENV["rvm_ruby_string"].to_s.empty?
     
     #Try to look the executeable up by command.
     if self.os == "linux"

@@ -6,20 +6,18 @@
 	</div>
 	<div data-role="content">
 		<ul data-role="listview">
-			<%if System::get_property('platform') != "APPLE"%>
+      <%if System::get_property("platform") == "APPLE"%>
+        <li>
+          <a href="javascript: knj_rhodes_html_links({'url': iphone_str})">
+            <h3><%=_"Open in built-in app. (iPhone)"%></h3>
+            <p><%=_"This will trigger the YouTube-app. on iPhone."%></p>
+          </a>
+        </li>
+      <%else%>
 				<li>
 					<a href="javascript: knj_rhodes_html_links({'url': 'vnd.youtube://<%=@params["youtube_id"]%>'})">
 						<h3><%=_"Open in built-in app. (VND)"%></h3>
 						<p><%=_"This will trigger the YouTube-app. in Android."%></p>
-					</a>
-				</li>
-			<%end%>
-			
-			<%if System::get_property("platform") == "APPLE"%>
-				<li>
-					<a href="javascript: knj_rhodes_html_links({'url': iphone_str})">
-						<h3><%=_"Open in built-in app. (iPhone)"%></h3>
-						<p><%=_"This will trigger the YouTube-app. on iPhone."%></p>
 					</a>
 				</li>
 			<%end%>
@@ -38,8 +36,10 @@
 			</li>
 		</ul>
 		
-		<script>
-			var iphone_str = "[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@\"http://www.youtube.com/v/oHg5SJYRHA0&f=gdata_videos\"]]; "
-		</script>
+		<%if System::get_property("platform") == "APPLE"%>
+      <script>
+        var iphone_str = "[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@\"http://www.youtube.com/v/oHg5SJYRHA0&f=gdata_videos\"]]; "
+      </script>
+    <%end%>
 	</div>
 </div>
