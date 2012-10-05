@@ -197,7 +197,7 @@ class Knj::Objects
           
           callback["block"].call(*callargs)
         elsif callback["callback"]
-          require "php4r"
+          require "php4r" if !Kernel.const_defined?(:Php4r)
           Php4r.call_user_func(callback["callback"], args)
         else
           raise "No valid callback given."
