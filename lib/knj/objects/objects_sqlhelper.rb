@@ -350,7 +350,7 @@ class Knj::Objects
         end
         
         found = true
-      elsif args.key?(:cols_num) and match = key.match(/^(.+)_(from|to|above|below)$/) and args[:cols_num].index(match[1]) != nil
+      elsif args.key?(:cols_num) and match = key.match(/^(.+)_(from|to|above|below|numeric)$/) and args[:cols_num].index(match[1]) != nil
         if match[2] == "from"
           sql_where << " AND #{table}`#{db.esc_col(match[1])}` >= '#{db.esc(val)}'"
         elsif match[2] == "to"
