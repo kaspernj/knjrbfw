@@ -751,8 +751,14 @@ class Knj::Datarow
   end
   
   #Returns the HTML for making a link to the object.
-  def html
-    return "<a href=\"#{Knj::Web.ahref_parse(self.url)}\">#{self.name_html}</a>"
+  def html(args = nil)
+    if args and args[:edit]
+      url = self.url_edit
+    else
+      url = self.url
+    end
+    
+    return "<a href=\"#{Knj::Web.ahref_parse(url)}\">#{self.name_html}</a>"
   end
   
   private

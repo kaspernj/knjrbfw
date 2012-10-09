@@ -334,6 +334,7 @@ class Knj::Db
   #===Examples
   # db.update(:users, {:name => "John"}, {:lastname => "Doe"})
   def update(tablename, arr_update, arr_terms = {}, args = nil)
+    raise "'arr_update' was not a hash." if !arr_update.is_a?(Hash)
     return false if arr_update.empty?
     
     sql = ""
