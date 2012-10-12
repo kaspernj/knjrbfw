@@ -170,26 +170,42 @@ class Knj::Web
   
   def self.alert(string)
     require "#{$knjpath}strings"
-    @alert_sent = true
-    html = "<script type=\"text/javascript\">alert(\"#{Knj::Strings.js_safe(string.to_s)}\");</script>"
-    print html
-  end
-  
-  def self.redirect(string, args = {})
-    do_js = true
     
-    #Header way
-    if !@alert_sent
-      if args[:perm]
-        Php4r.header("Status: 301 Moved Permanently")
-      else
-        Php4r.header("Status: 303 See Other")
-      end
-      
-      Php4r.header("Location: #{string}")
+    begin
+      _httpsession.alert_sent = true
+    rescue NameError
+      #ignore.
     end
     
-    print "<script type=\"text/javascript\">location.href=\"#{string}\";</script>" if do_js
+    @alert_sent = true
+    
+    html = "<script type=\"text/javascript\">alert(\"#{Knj::Strings.js_safe(string.to_s)}\");</script>"
+    print html
+    
+    return self
+  end
+  
+  #Redirects to another URL.
+  #===Examples
+  #  _hb.redirect("someotherpage.rhtml")
+  #  _hb.redirect("newpage.rhtml", :perm => true)
+  def self.redirect(url, args = {})
+    #Header way
+    begin
+      if !_httpsession.alert_sent and !_hb.headers_sent?
+        if args[:perm]
+          _httpsession.resp.status = 301 if !_hb.headers_sent?
+        else
+          _httpsession.resp.status = 303 if !_hb.headers_sent?
+        end
+        
+        _hb.header("Location", url) if !_hb.headers_sent?
+      end
+    rescue NameError
+      #ignore.
+    end
+    
+    print "<script type=\"text/javascript\">location.href=\"#{url}\";</script>"
     exit
   end
   
