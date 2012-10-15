@@ -373,7 +373,7 @@ class Knj::Datarow
         col_type = :int if col_type == :bigint or col_type == :tinyint or col_type == :mediumint or col_type == :smallint
         sqlhelper_args[:cols][col_name] = true
         
-        self.define_bool_methods(:inst_methods => inst_methods, :col_name => col_name)
+        self.define_bool_methods(inst_methods, col_name)
         
         if col_type == :enum and col_obj.maxlength == "'0','1'"
           sqlhelper_args[:cols_bools] << col_name
@@ -385,19 +385,19 @@ class Knj::Datarow
           sqlhelper_args[:cols_str] << col_name
         elsif col_type == :date or col_type == :datetime
           sqlhelper_args[:cols_date] << col_name
-          self.define_date_methods(:inst_methods => inst_methods, :col_name => col_name)
+          self.define_date_methods(inst_methods, col_name)
         end
         
         if col_type == :int or col_type == :decimal
-          self.define_numeric_methods(:inst_methods => inst_methods, :col_name => col_name)
+          self.define_numeric_methods(inst_methods, col_name)
         end
         
         if col_type == :int or col_type == :varchar
-          self.define_text_methods(:inst_methods => inst_methods, :col_name => col_name)
+          self.define_text_methods(inst_methods, col_name)
         end
         
         if col_type == :time
-          self.define_time_methods(:inst_methods => inst_methods, :col_name => col_name)
+          self.define_time_methods(inst_methods, col_name)
         end
       end
       
@@ -801,46 +801,41 @@ class Knj::Datarow
   end
   
   #Defines the boolean-methods based on enum-columns.
-  def self.define_bool_methods(args)
+  def self.define_bool_methods(inst_methods, col_name)
     #Spawns a method on the class which returns true if the data is 1.
-    method_name = "#{args[:col_name]}?".to_sym
-    
-    if args[:inst_methods].index(method_name) == nil
-      define_method(method_name) do
-        return true if self[args[:col_name].to_sym].to_s == "1"
+    if inst_methods.index("#{col_name}?".to_sym) == nil
+      define_method("#{col_name}?") do
+        return true if self[col_name.to_sym].to_s == "1"
         return false
       end
     end
   end
   
   #Defines date- and time-columns based on datetime- and date-columns.
-  def self.define_date_methods(args)
-    method_name = "#{args[:col_name]}_str".to_sym
-    if args[:inst_methods].index(method_name) == nil
-      define_method(method_name) do |*method_args|
-        if Datet.is_nullstamp?(self[args[:col_name].to_sym])
+  def self.define_date_methods(inst_methods, col_name)
+    if inst_methods.index("#{col_name}_str".to_sym) == nil
+      define_method("#{col_name}_str") do |*method_args|
+        if Datet.is_nullstamp?(self[col_name.to_sym])
           return self.class.ob.events.call(:no_date, self.class.name)
         end
         
-        return Datet.in(self[args[:col_name].to_sym]).out(*method_args)
+        return Datet.in(self[col_name.to_sym]).out(*method_args)
       end
     end
     
-    method_name = "#{args[:col_name]}".to_sym
-    if args[:inst_methods].index(method_name) == nil
-      define_method(method_name) do |*method_args|
-        return false if Datet.is_nullstamp?(self[args[:col_name].to_sym])
-        return Datet.in(self[args[:col_name].to_sym])
+    if inst_methods.index(col_name.to_sym) == nil
+      define_method(col_name) do |*method_args|
+        return false if Datet.is_nullstamp?(self[col_name.to_sym])
+        return Datet.in(self[col_name.to_sym])
       end
     end
   end
   
   #Define various methods based on integer-columns.
-  def self.define_numeric_methods(args)
-    method_name = "#{args[:col_name]}_format"
-    if args[:inst_methods].index(method_name) == nil
-      define_method(method_name) do |*method_args|
-        return Knj::Locales.number_out(self[args[:col_name].to_sym], *method_args)
+  def self.define_numeric_methods(inst_methods, col_name)
+    if inst_methods.index("#{col_name}_format".to_sym) == nil
+      define_method("#{col_name}_format") do |*method_args|
+        return Knj::Locales.number_out(self[col_name.to_sym], *method_args)
       end
     end
   end
@@ -849,21 +844,19 @@ class Knj::Datarow
   #===Examples
   #  user = Models::User.by_username('John Doe')
   #  print user.id
-  def self.define_text_methods(args)
-    method_name = "by_#{args[:col_name]}".to_sym
-    if args[:inst_methods].index(method_name) == nil and RUBY_VERSION.to_s.slice(0, 3) != "1.8"
-      define_singleton_method(method_name) do |arg|
-        return self.class.ob.get_by(self.class.table, {args[:col_name].to_s => arg})
+  def self.define_text_methods(inst_methods, col_name)
+    if inst_methods.index("by_#{col_name}".to_sym) == nil and RUBY_VERSION.to_s.slice(0, 3) != "1.8"
+      define_singleton_method("by_#{col_name}") do |arg|
+        return self.class.ob.get_by(self.class.table, {col_name.to_s => arg})
       end
     end
   end
   
   #Defines dbtime-methods based on time-columns.
-  def self.define_time_methods(args)
-    method_name = "#{args[:col_name]}_dbt"
-    if args[:inst_methods].index(method_name) == nil
-      define_method(method_name) do
-        return Knj::Db::Dbtime.new(self[args[:col_name].to_sym])
+  def self.define_time_methods(inst_methods, col_name)
+    if inst_methods.index("#{col_name}_dbt".to_sym) == nil
+      define_method("#{col_name}_dbt") do
+        return Knj::Db::Dbtime.new(self[col_name.to_sym])
       end
     end
   end

@@ -87,14 +87,15 @@
   
 	if !tmp_use or tmp_write or force
     blob_cont = nil
-    Knj::Process_meta.new("debug_err" => true) do |subproc|
-      subproc.static("Object", "require", "rubygems")
-      subproc.static("Object", "require", "#{File.dirname(Knj::Os.realpath(__FILE__))}/../../knjrbfw.rb")
-      subproc.static("Object", "require", "knj/autoload")
-      subproc.static("Dir", "chdir", File.dirname(__FILE__))
+    Ruby_process::Cproxy.run do |data|
+      subproc = data[:subproc]
+      subproc.static(:Object, :require, "rubygems")
+      subproc.static(:Object, :require, "#{Knj.knjrbfw_path}/../knjrbfw.rb")
+      subproc.static(:Object, :require, "RMagick")
+      subproc.static(:Dir, :chdir, File.dirname(__FILE__))
       
-      list_proxy = subproc.proxy_from_static("Magick::Image", "read", _get["path"])
-      pic = subproc.proxy_from_call(list_proxy, "first")
+      list_proxy = subproc.static("Magick::Image", :read, _get["path"])
+      pic = list_proxy.first
       #pic = Magick::Image.read(_get["path"]).first
       
       if !pic
@@ -102,10 +103,10 @@
         exit
       end
       
-      pic._pm_send_noret("format=", "png")
+      pic.format = "png"
       
-      pic_columns = pic.columns
-      pic_rows = pic.rows
+      pic_columns = pic.columns.__rp_marshal
+      pic_rows = pic.rows.__rp_marshal
       
       width = pic_columns
       height = pic_rows
@@ -147,8 +148,7 @@
       end
       
       if height != pic_rows or width != pic_columns
-        pic = subproc.proxy_from_call(pic, "resize_to_fit", width.to_i, height.to_i)
-        #pic = pic.resize_to_fit(width.to_i, height.to_i)
+        pic = pic.resize_to_fit(width.to_i, height.to_i)
       end
       
       if _get["rounded_corners"]
@@ -159,15 +159,11 @@
           args[:border_color] = _get["border_color"]
         end
         
-        #Spawn arguments-hash for Knj::Image.rounded_corners in subprocess.
-        proxy_hash = subproc.new("{}", args)
-        
         #Call rounded_corners with the proxy-hash.
-        subproc.static_noret("Knj::Image", "rounded_corners", proxy_hash)
-        #Knj::Image.rounded_corners(args)
+        subproc.static("Knj::Image", :rounded_corners, args)
       end
       
-      blob_cont = pic.to_blob
+      blob_cont = pic.to_blob.__rp_marshal
     end
 	end
 	
