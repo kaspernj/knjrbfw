@@ -944,7 +944,7 @@ class Knj::Objects
     end
   end
   
-  #Erases the whole cache and regenerates is from ObjectSpace if not running weak-link-caching. If running weaklink-caching then only removes the dead links.
+  #Erases the whole cache and regenerates it from ObjectSpace if not running weak-link-caching. If running weaklink-caching then it will only removes the dead links.
   def clean_all
     self.clean(@objects.keys)
   end
