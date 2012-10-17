@@ -11,25 +11,23 @@ class Knj::Google_sitemap
     
     #REXML is known to leak memory - use subprocess.
     Knj.gem_require(:Ruby_process)
-    @subproc = Ruby_process.new.spawn_process(:title => "google_sitemap", :debug_err => true)
     
     begin
-      @subproc.static("Object", "require", "rexml/rexml")
-      @subproc.static("Object", "require", "rexml/document")
-      @subproc.static("Object", "require", "rexml/element")
-      
-      @doc = @subproc.new("REXML::Document")
-      
-      xmldecl = @subproc.new("REXML::XMLDecl", "1.0", "UTF-8")
-      @doc << xmldecl
-      
-      urlset = @doc.add_element("urlset")
-      urlset.add_attributes("xmlns" => "http://www.sitemaps.org/schemas/sitemap/0.9")
-      
-      @root = @doc.root
-      
       Ruby_process::Cproxy.run do |data|
         @subproc = data[:subproc]
+        @subproc.static(:Object, :require, "rexml/rexml")
+        @subproc.static(:Object, :require, "rexml/document")
+        @subproc.static(:Object, :require, "rexml/element")
+        
+        @doc = @subproc.new("REXML::Document")
+        
+        xmldecl = @subproc.new("REXML::XMLDecl", "1.0", "UTF-8")
+        @doc << xmldecl
+        
+        urlset = @doc.add_element("urlset")
+        urlset.add_attributes("xmlns" => "http://www.sitemaps.org/schemas/sitemap/0.9")
+        
+        @root = @doc.root
         yield(self)
       end
     ensure
@@ -81,9 +79,9 @@ class Knj::Google_sitemap
   end
   
   #This will print the result.
-  def write
+  def write(io = $stdout)
     #Require and spawn StringIO in the subprocess.
-    @subproc.static("Object", "require", "stringio")
+    @subproc.static(:Object, :require, "stringio")
     string_io = @subproc.new("StringIO")
     
     #We want a human-readable print.
@@ -95,7 +93,7 @@ class Knj::Google_sitemap
     
     #Print out the result in bits to avoid raping the memory (subprocess is already raped - no question there...).
     string_io.each(4096) do |str|
-      print str
+      io.print(str)
     end
   end
 end

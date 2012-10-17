@@ -35,9 +35,9 @@ class Knj::Memory_analyzer
     to.print "<h1>Garbage collector</h1>\n"
     
     if GC.enable
-      to.print "<div>Garbage collector was not enabled! But it is again now!</div>\n"
+      to.print "<div>Garbage collector is not enabled! But it is again now!</div>\n"
     else
-      to.print "<div>Garbage collector was already enabled.</div>\n"
+      to.print "<div>Garbage collector is enabled.</div>\n"
     end
     
     GC.start
