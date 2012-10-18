@@ -39,7 +39,6 @@
     _get["path"] = Base64.decode64(_get["path64"])
   end
   
-  
 	idstr = Digest::MD5.hexdigest("#{_get["path"]}_#{_get["smartsize"].to_i}_#{_get["width"].to_i}_#{_get["height"].to_i}_#{_get["maxwidth"].to_i}_#{_get["maxheight"].to_i}_#{_get["rounded_corners"].to_i}_#{_get["border"].to_i}_#{_get["border_color"]}")
 	
 	if !_get["path"] or !File.exists?(_get["path"])
@@ -94,9 +93,7 @@
       subproc.static(:Object, :require, "RMagick")
       subproc.static(:Dir, :chdir, File.dirname(__FILE__))
       
-      list_proxy = subproc.static("Magick::Image", :read, _get["path"])
-      pic = list_proxy.first
-      #pic = Magick::Image.read(_get["path"]).first
+      pic = subproc.static("Magick::Image", :read, _get["path"]).first
       
       if !pic
         print "Could not open image from '#{_get["path"]}'."
@@ -163,23 +160,11 @@
         subproc.static("Knj::Image", :rounded_corners, args)
       end
       
-      blob_cont = pic.to_blob.__rp_marshal
+      pic.write(tmp_path) if tmp_write or force
     end
 	end
 	
-	if tmp_write and blob_cont
-    File.open(tmp_path, "w") do |fp|
-      fp.write(blob_cont)
-    end
-	end
-	
-	if tmp_use and !force
-    appsrv.header("Last-Modified", "#{time_orig.httpdate} GMT") if time_orig
-		appsrv.header("Content-Type", "image/png")
-		_httpsession.force_content(File.read(tmp_path))
-	else
-    appsrv.header("Last-Modified", "#{time_orig.httpdate} GMT") if time_orig
-		appsrv.header("Content-Type", "image/png")
-		_httpsession.force_content(blob_cont)
-	end
+	appsrv.header("Last-Modified", "#{time_orig.httpdate} GMT") if time_orig
+  appsrv.header("Content-Type", "image/png")
+  _httpsession.force_fileread(tmp_path)
 %>
