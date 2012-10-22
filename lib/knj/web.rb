@@ -187,8 +187,8 @@ class Knj::Web
   
   #Redirects to another URL.
   #===Examples
-  #  _hb.redirect("someotherpage.rhtml")
-  #  _hb.redirect("newpage.rhtml", :perm => true)
+  #  Knj::Web.redirect("someotherpage.rhtml")
+  #  Knj::Web.redirect("newpage.rhtml", :perm => true)
   def self.redirect(url, args = {})
     #Header way
     begin
