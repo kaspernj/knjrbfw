@@ -94,6 +94,8 @@ class Knj::Eruby
       @error = true
       self.handle_error(e)
     end
+    
+    return nil
   end
   
   #Destroyes this object unsetting all variables and clearing all cache.
@@ -109,6 +111,8 @@ class Knj::Eruby
     @connects = nil
     @headers = nil
     @cookies = nil
+    
+    return nil
   end
   
   #Returns various headers as one complete string ready to be used in a HTTP-request.
@@ -140,28 +144,33 @@ class Knj::Eruby
   #Resets all connections.
   def reset_connects
     @connects = {}
+    return nil
   end
   
   #Resets all headers.
   def reset_headers
     @headers = []
     @cookies = []
+    return nil
   end
   
   #Adds a new header to the list.
   def header(key, value)
     @headers << [key, value]
+    return nil
   end
   
   #Adds a new cookie to the list.
   def cookie(cookie_data)
     @cookies << cookie_data
+    return nil
   end
   
   #Connects a block to a certain event.
   def connect(signal, &block)
     @connects[signal] = [] if !@connects.key?(signal)
     @connects[signal] << block
+    return nil
   end
   
   def printcont(tmp_out, args = {})
@@ -183,6 +192,8 @@ class Knj::Eruby
         print tmp_out.read
       end
     end
+    
+    return nil
   end
   
   def load_return(filename, args = {})
@@ -221,6 +232,8 @@ class Knj::Eruby
       self.handle_error(e)
       self.printcont(tmp_out, args)
     end
+    
+    return nil
   end
   
   #This method will handle an error without crashing simply adding the error to the print-queue.
@@ -253,6 +266,8 @@ class Knj::Eruby
     end
     
     print "</pre>"
+    
+    return nil
   end
 end
 
