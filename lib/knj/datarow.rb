@@ -160,32 +160,7 @@ class Knj::Datarow
         where_args = nil
       end
       
-      define_method(methodname) do |*args, &block|
-        if args and args[0]
-          list_args = args[0] 
-        else
-          list_args = {}
-        end
-        
-        list_args.merge!(where_args) if where_args
-        list_args[colname.to_s] = self.id
-        
-        return self.class.ob.list(classname, list_args, &block)
-      end
-      
-      define_method("#{methodname}_count".to_sym) do |*args|
-        list_args = args[0] if args and args[0]
-        list_args = {} if !list_args
-        list_args[colname.to_s] = self.id
-        list_args["count"] = true
-        
-        return self.class.ob.list(classname, list_args)
-      end
-      
-      define_method("#{methodname}_last".to_sym) do |args|
-        args = {} if !args
-        return self.class.ob.list(classname, {"orderby" => [["id", "desc"]], "limit" => 1}.merge(args))
-      end
+      self.define_many_methods(classname, methodname, colname, where_args)
       
       self.joined_tables(
         classname => {
@@ -251,26 +226,7 @@ class Knj::Datarow
       
       methodname = classname.to_s.downcase if !methodname
       colname = "#{classname.to_s.downcase}_id".to_sym if !colname
-      
-      define_method(methodname) do
-        return self.class.ob.get_try(self, colname, classname)
-      end
-      
-      methodname_html = "#{methodname}_html".to_sym
-      define_method(methodname_html) do |*args|
-        obj = self.__send__(methodname)
-        return self.class.ob.events.call(:no_html, classname) if !obj
-        
-        raise "Class '#{classname}' does not have a 'html'-method." if !obj.respond_to?(:html)
-        return obj.html(*args)
-      end
-      
-      methodname_name = "#{methodname}_name".to_sym
-      define_method(methodname_name) do |*args|
-        obj = self.__send__(methodname)
-        return self.class.ob.events.call(:no_name, classname) if !obj
-        return obj.name(*args)
-      end
+      self.define_one_methods(classname, methodname, colname)
       
       self.joined_tables(
         classname => {
@@ -368,12 +324,13 @@ class Knj::Datarow
       sqlhelper_args[:table] = @table
       
       @db.tables[table].columns do |col_obj|
-        col_name = col_obj.name
+        col_name = col_obj.name.to_s
+        col_name_sym = col_name.to_sym
         col_type = col_obj.type
         col_type = :int if col_type == :bigint or col_type == :tinyint or col_type == :mediumint or col_type == :smallint
         sqlhelper_args[:cols][col_name] = true
         
-        self.define_bool_methods(:inst_methods => inst_methods, :col_name => col_name)
+        self.define_bool_methods(inst_methods, col_name)
         
         if col_type == :enum and col_obj.maxlength == "'0','1'"
           sqlhelper_args[:cols_bools] << col_name
@@ -385,19 +342,19 @@ class Knj::Datarow
           sqlhelper_args[:cols_str] << col_name
         elsif col_type == :date or col_type == :datetime
           sqlhelper_args[:cols_date] << col_name
-          self.define_date_methods(:inst_methods => inst_methods, :col_name => col_name)
+          self.define_date_methods(inst_methods, col_name_sym)
         end
         
         if col_type == :int or col_type == :decimal
-          self.define_numeric_methods(:inst_methods => inst_methods, :col_name => col_name)
+          self.define_numeric_methods(inst_methods, col_name_sym)
         end
         
         if col_type == :int or col_type == :varchar
-          self.define_text_methods(:inst_methods => inst_methods, :col_name => col_name)
+          self.define_text_methods(inst_methods, col_name_sym)
         end
         
         if col_type == :time
-          self.define_time_methods(:inst_methods => inst_methods, :col_name => col_name)
+          self.define_time_methods(inst_methods, col_name_sym)
         end
       end
       
@@ -801,46 +758,41 @@ class Knj::Datarow
   end
   
   #Defines the boolean-methods based on enum-columns.
-  def self.define_bool_methods(args)
+  def self.define_bool_methods(inst_methods, col_name)
     #Spawns a method on the class which returns true if the data is 1.
-    method_name = "#{args[:col_name]}?".to_sym
-    
-    if args[:inst_methods].index(method_name) == nil
-      define_method(method_name) do
-        return true if self[args[:col_name].to_sym].to_s == "1"
+    if !inst_methods.include?("#{col_name}?".to_sym)
+      define_method("#{col_name}?") do
+        return true if self[col_name.to_sym].to_s == "1"
         return false
       end
     end
   end
   
   #Defines date- and time-columns based on datetime- and date-columns.
-  def self.define_date_methods(args)
-    method_name = "#{args[:col_name]}_str".to_sym
-    if args[:inst_methods].index(method_name) == nil
-      define_method(method_name) do |*method_args|
-        if Datet.is_nullstamp?(self[args[:col_name].to_sym])
+  def self.define_date_methods(inst_methods, col_name)
+    if !inst_methods.include?("#{col_name}_str".to_sym)
+      define_method("#{col_name}_str") do |*method_args|
+        if Datet.is_nullstamp?(self[col_name])
           return self.class.ob.events.call(:no_date, self.class.name)
         end
         
-        return Datet.in(self[args[:col_name].to_sym]).out(*method_args)
+        return Datet.in(self[col_name]).out(*method_args)
       end
     end
     
-    method_name = "#{args[:col_name]}".to_sym
-    if args[:inst_methods].index(method_name) == nil
-      define_method(method_name) do |*method_args|
-        return false if Datet.is_nullstamp?(self[args[:col_name].to_sym])
-        return Datet.in(self[args[:col_name].to_sym])
+    if !inst_methods.include?(col_name)
+      define_method(col_name) do |*method_args|
+        return false if Datet.is_nullstamp?(self[col_name])
+        return Datet.in(self[col_name])
       end
     end
   end
   
   #Define various methods based on integer-columns.
-  def self.define_numeric_methods(args)
-    method_name = "#{args[:col_name]}_format"
-    if args[:inst_methods].index(method_name) == nil
-      define_method(method_name) do |*method_args|
-        return Knj::Locales.number_out(self[args[:col_name].to_sym], *method_args)
+  def self.define_numeric_methods(inst_methods, col_name)
+    if !inst_methods.include?("#{col_name}_format".to_sym)
+      define_method("#{col_name}_format") do |*method_args|
+        return Knj::Locales.number_out(self[col_name], *method_args)
       end
     end
   end
@@ -849,22 +801,73 @@ class Knj::Datarow
   #===Examples
   #  user = Models::User.by_username('John Doe')
   #  print user.id
-  def self.define_text_methods(args)
-    method_name = "by_#{args[:col_name]}".to_sym
-    if args[:inst_methods].index(method_name) == nil and RUBY_VERSION.to_s.slice(0, 3) != "1.8"
-      define_singleton_method(method_name) do |arg|
-        return self.class.ob.get_by(self.class.table, {args[:col_name].to_s => arg})
+  def self.define_text_methods(inst_methods, col_name)
+    if !inst_methods.include?("by_#{col_name}".to_sym) and RUBY_VERSION.to_s.slice(0, 3) != "1.8"
+      define_singleton_method("by_#{col_name}") do |arg|
+        return self.class.ob.get_by(self.class.table, {col_name.to_s => arg})
       end
     end
   end
   
   #Defines dbtime-methods based on time-columns.
-  def self.define_time_methods(args)
-    method_name = "#{args[:col_name]}_dbt"
-    if args[:inst_methods].index(method_name) == nil
-      define_method(method_name) do
-        return Knj::Db::Dbtime.new(self[args[:col_name].to_sym])
+  def self.define_time_methods(inst_methods, col_name)
+    if !inst_methods.include?("#{col_name}_dbt".to_sym)
+      define_method("#{col_name}_dbt") do
+        return Knj::Db::Dbtime.new(self[col_name.to_sym])
       end
+    end
+  end
+  
+  #Memory friendly helper method that defines methods for 'has_many'.
+  def self.define_many_methods(classname, methodname, colname, where_args)
+    define_method(methodname) do |*args, &block|
+      if args and args[0]
+        list_args = args[0] 
+      else
+        list_args = {}
+      end
+      
+      list_args.merge!(where_args) if where_args
+      list_args[colname.to_s] = self.id
+      
+      return self.class.ob.list(classname, list_args, &block)
+    end
+    
+    define_method("#{methodname}_count".to_sym) do |*args|
+      list_args = args[0] if args and args[0]
+      list_args = {} if !list_args
+      list_args[colname.to_s] = self.id
+      list_args["count"] = true
+      
+      return self.class.ob.list(classname, list_args)
+    end
+    
+    define_method("#{methodname}_last".to_sym) do |args|
+      args = {} if !args
+      return self.class.ob.list(classname, {"orderby" => [["id", "desc"]], "limit" => 1}.merge(args))
+    end
+  end
+  
+  #Memory friendly helper method that defines methods for 'has_one'.
+  def self.define_one_methods(classname, methodname, colname)
+    define_method(methodname) do
+      return self.class.ob.get_try(self, colname, classname)
+    end
+    
+    methodname_html = "#{methodname}_html".to_sym
+    define_method(methodname_html) do |*args|
+      obj = self.__send__(methodname)
+      return self.class.ob.events.call(:no_html, classname) if !obj
+      
+      raise "Class '#{classname}' does not have a 'html'-method." if !obj.respond_to?(:html)
+      return obj.html(*args)
+    end
+    
+    methodname_name = "#{methodname}_name".to_sym
+    define_method(methodname_name) do |*args|
+      obj = self.__send__(methodname)
+      return self.class.ob.events.call(:no_name, classname) if !obj
+      return obj.name(*args)
     end
   end
 end

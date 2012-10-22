@@ -546,13 +546,13 @@ class Knj::Web
     
     agent = servervar["HTTP_USER_AGENT"].to_s.downcase
     
-    if agent.index("webkit") != nil
+    if agent.include?("webkit") != nil
       return "webkit"
-    elsif agent.index("gecko") != nil
+    elsif agent.include?("gecko") != nil
       return "gecko"
-    elsif agent.index("msie") != nil
+    elsif agent.include?("msie") != nil
       return "msie"
-    elsif agent.index("w3c") != nil or agent.index("baiduspider") != nil or agent.index("googlebot") != nil or agent.index("bot") != nil
+    elsif agent.include?("w3c") != nil or agent.include?("baiduspider") != nil or agent.include?("googlebot") != nil or agent.include?("bot") != nil
       return "bot"
     else
       #print "Unknown agent: #{agent}"
@@ -568,12 +568,12 @@ class Knj::Web
     
     agent = servervar["HTTP_USER_AGENT"].to_s.downcase
     
-    if agent.index("(windows;") != nil or agent.index("windows nt") != nil
+    if agent.include?("(windows;") != nil or agent.include?("windows nt") != nil
       return {
         "os" => "win",
         "title" => "Windows"
       }
-    elsif agent.index("linux") != nil
+    elsif agent.include?("linux") != nil
       return {
         "os" => "linux",
         "title" => "Linux"
@@ -583,12 +583,13 @@ class Knj::Web
     raise "Unknown OS: #{agent}"
   end
   
+  #Returns various information about the current browser. Currently only works with the Hayabusa-project.
   def self.browser(servervar = nil)
     servervar = _server if !servervar
     raise "Could not figure out meta data." if !servervar
     agent = servervar["HTTP_USER_AGENT"].to_s.downcase
     
-    if match = agent.index("knj:true") != nil
+    if match = agent.include?("knj:true")
       browser = "bot"
       title = "Bot"
       version = "KnjHttp"
@@ -612,15 +613,15 @@ class Knj::Web
       browser = "bot"
       title = "Bot"
       version = "Wget #{match[1]}"
-    elsif agent.index("baiduspider") != nil
+    elsif agent.include?("baiduspider")
       browser = "bot"
       title = "Bot"
       version = "Baiduspider"
-    elsif agent.index("googlebot") != nil
+    elsif agent.include?("googlebot")
       browser = "bot"
       title = "Bot"
       version = "Googlebot"
-    elsif agent.index("gidbot") != nil
+    elsif agent.include?("gidbot")
       browser = "bot"
       title = "Bot"
       version = "GIDBot"
@@ -632,47 +633,47 @@ class Knj::Web
       browser = "safari"
       title = "Safari"
       version = match[1]
-    elsif agent.index("iPad") != nil
+    elsif agent.include?("iPad")
       browser = "safari"
       title = "Safari (iPad)"
       version = "ipad"
-    elsif agent.index("bingbot") != nil
+    elsif agent.include?("bingbot")
       browser = "bot"
       title = "Bot"
       version = "Bingbot"
-    elsif agent.index("yahoo! slurp") != nil
+    elsif agent.include?("yahoo! slurp")
       browser = "bot"
       title = "Bot"
       version = "Yahoo! Slurp"
-    elsif agent.index("hostharvest") != nil
+    elsif agent.include?("hostharvest")
       browser = "bot"
       title = "Bot"
       version = "HostHarvest"
-    elsif agent.index("exabot") != nil
+    elsif agent.include?("exabot")
       browser = "bot"
       title = "Bot"
       version = "Exabot"
-    elsif agent.index("dotbot") != nil
+    elsif agent.include?("dotbot")
       browser = "bot"
       title = "Bot"
       version = "DotBot"
-    elsif agent.index("msnbot") != nil
+    elsif agent.include?("msnbot")
       browser = "bot"
       title = "Bot"
       version = "MSN bot"
-    elsif agent.index("yandexbot") != nil
+    elsif agent.include?("yandexbot")
       browser = "bot"
       title = "Bot"
       version = "Yandex Bot"
-    elsif agent.index("mj12bot") != nil
+    elsif agent.include?("mj12bot")
       browser = "bot"
       title = "Bot"
       version = "Majestic12 Bot"
-    elsif agent.index("facebookexternalhit") != nil
+    elsif agent.include?("facebookexternalhit")
       browser = "bot"
       title = "Bot"
       version = "Facebook Externalhit"
-    elsif agent.index("sitebot") != nil
+    elsif agent.include?("sitebot")
       browser = "bot"
       title = "Bot"
       version = "SiteBot"
@@ -688,7 +689,7 @@ class Knj::Web
       browser = "bot"
       title = "AhrefsBot"
       version = match[1]
-    elsif agent.index("sosospider") != nil
+    elsif agent.include?("sosospider")
       browser = "bot"
       title = "Bot"
       version = "Sosospider"
@@ -700,7 +701,7 @@ class Knj::Web
     
     os = nil
     os_version = nil
-    if agent.index("linux") != nil
+    if agent.include?("linux") != nil
       os = "linux"
     elsif match = agent.match(/mac\s+os\s+x\s+([\d_+])/)
       os = "mac"
