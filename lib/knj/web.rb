@@ -693,6 +693,10 @@ class Knj::Web
       browser = "bot"
       title = "Bot"
       version = "Sosospider"
+    elsif servervar["HTTP_ACCEPT"] == "*/*" and servervar["HTTP_ACCEPT_LANGUAGE"] == "zh-cn,zh-hk,zh-tw,en-us" and servervar["HTTP_USER_AGENT"] == "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" and (servervar["REMOTE_ADDR"] == "114.80.93.55" or servervar["HTTP_X_FORWARDED_FOR"] == "114.80.93.55")
+      browser = "bot"
+      title = "bot"
+      version = "(unknown annoying bot)"
     else
       browser = "unknown"
       title = "(unknown browser)"
