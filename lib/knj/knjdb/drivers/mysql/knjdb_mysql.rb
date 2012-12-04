@@ -161,18 +161,17 @@ class KnjDB_mysql
         end
       end
     rescue => e
-      if tries < 3
+      if tries <= 3
         if e.message == "MySQL server has gone away" or e.message == "closed MySQL connection" or e.message == "Can't connect to local MySQL server through socket"
           sleep 0.5
           self.reconnect
           retry
-        elsif e.to_s.index("No operations allowed after connection closed") != nil or e.message == "This connection is still waiting for a result, try again once you have the result"
+        elsif e.message.include?("No operations allowed after connection closed") or e.message == "This connection is still waiting for a result, try again once you have the result" or e.message == "Lock wait timeout exceeded; try restarting transaction"
           self.reconnect
           retry
         end
       end
       
-      #print str
       raise e
     end
   end
@@ -584,13 +583,13 @@ class KnjDB_java_mysql_result
     
     if @as_hash
       ret = {}
-      1.upto(@keys.length) do |count|
-        ret[@keys[count - 1]] = @result.string(count)
+      1.upto(@count) do |count|
+        ret[@keys[count - 1]] = @result.object(count)
       end
     else
       ret = []
       1.upto(@count) do |count|
-        ret << @result.string(count)
+        ret << @result.object(count)
       end
     end
     
