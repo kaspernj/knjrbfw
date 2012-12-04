@@ -26,6 +26,7 @@ class KnjDB_mysql::Columns
     sql << " COMMENT '#{@args[:db].escape(data["comment"])}'" if data.key?("comment")
     sql << " AFTER `#{@args[:db].esc_col(data["after"])}`" if data["after"] and !data["first"]
     sql << " FIRST" if data["first"]
+    sql << " STORAGE #{data["storage"].to_s.upcase}" if data["storage"]
     
     return sql
   end
