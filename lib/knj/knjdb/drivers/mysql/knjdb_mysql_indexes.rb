@@ -56,6 +56,12 @@ class KnjDB_mysql::Indexes::Index
     end
   end
   
+  #Returns true if the index is a primary-index.
+  def primary?
+		return true if @args[:data][:Index_type] == "BTREE"
+		return false
+  end
+  
   #Inspect crashes if this is not present? - knj.
   def to_s
     return "#<#{self.class.name}>"
