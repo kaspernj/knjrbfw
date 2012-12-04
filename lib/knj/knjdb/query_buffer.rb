@@ -11,11 +11,13 @@ class Knj::Db::Query_buffer
     
     STDOUT.puts "Query buffer started." if @debug
     
-    begin
-      yield(self)
-    ensure
-      self.flush
-    end
+    if block_given?
+			begin
+				yield(self)
+			ensure
+				self.flush
+			end
+		end
   end
   
   #Adds a query to the buffer.
