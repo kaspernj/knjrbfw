@@ -601,6 +601,10 @@ class Knj::Web
       browser = "firefox"
       title = "Mozilla Firefox"
       version = match[1]
+    elsif servervar["HTTP_ACCEPT"] == "*/*" and servervar["HTTP_ACCEPT_LANGUAGE"] == "zh-cn,zh-hk,zh-tw,en-us" and servervar["HTTP_USER_AGENT"] == "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" and (servervar["REMOTE_ADDR"][0,10] == "114.80.93." or servervar["HTTP_X_FORWARDED_FOR"][0,10] == "114.80.93.")
+      browser = "bot"
+      title = "bot"
+      version = "(unknown annoying bot from China)"
     elsif match = agent.match(/msie\s*(\d+\.\d+)/)
       browser = "ie"
       title = "Microsoft Internet Explorer"

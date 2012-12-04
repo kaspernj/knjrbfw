@@ -27,6 +27,9 @@ class Knj::Memory_analyzer
     self.global_vars(to)
     GC.start
     
+    self.procs(to)
+    GC.start
+    
     to.print "</div>\n"
   end
   
@@ -287,6 +290,44 @@ class Knj::Memory_analyzer
         self.write_constant(to, classobj, subsubmod)
       end
     end
+  end
+  
+  #Writes information about which files (with line numbers) has spawned the most alive procs. This can give hints about memory leaks.
+  def procs(to = $stdout)
+    procs = {}
+    
+    ObjectSpace.each_object(Proc) do |blk|
+      sloc_arr = blk.source_location
+      next if !sloc_arr
+      
+      sloc = "#{sloc_arr[0]}:#{sloc_arr[1]}"
+      procs[sloc] = 0 if !procs.key?(sloc)
+      procs[sloc] += 1
+    end
+    
+    procs = Knj::ArrayExt.hash_sort(procs) do |ele1, ele2|
+      ele2[1] <=> ele1[1]
+    end
+    
+    to.puts "<h1>Alive procs by source</h1>"
+    to.puts "<table style=\"width: 600px;\">"
+    to.puts "\t<tbody>"
+    
+    procs.each do |sloc, count|
+      next if count <= 2
+      
+      to.puts "\t\t<tr>"
+      to.puts "\t\t\t<td>"
+      to.puts "\t\t\t\t#{sloc}"
+      to.puts "\t\t\t</td>"
+      to.puts "\t\t\t<td style=\"text-align: right;\">"
+      to.puts "\t\t\t\t#{_hb.num(count, 0)}"
+      to.puts "\t\t\t</td>"
+      to.puts "\t\t</tr>"
+    end
+    
+    to.puts "\t</tbody>"
+    to.puts "</table>"
   end
 end
 
