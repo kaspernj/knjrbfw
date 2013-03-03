@@ -57,4 +57,9 @@ describe "Strings" do
     res = Knj::Strings.secs_to_human_short_time(120, :mins => false)
     raise "Expected '0.0t' but got '#{res}'." if res != "0.0t"
   end
+  
+  it "sanitize_filename" do
+    res = Knj::Strings.sanitize_filename('1\2 3/4')
+    res.should eql("1_2_3_4")
+  end
 end
