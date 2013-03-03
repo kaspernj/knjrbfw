@@ -1,8 +1,4 @@
-if !Kernel.const_defined?(:Wref) or !Kernel.const_defined?(:Datet)
-  require "rubygems"
-  require "wref" if !Kernel.const_defined?(:Wref)
-  require "datet" if !Kernel.const_defined?(:Datet)
-end
+Knj.gem_require([:wref, :datet])
 
 #A wrapper of several possible database-types.
 #
