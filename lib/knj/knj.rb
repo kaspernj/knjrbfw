@@ -80,7 +80,7 @@ module Knj
     #Custom-path could not be loaded - load gem normally.
     if !found_custom
       require "rubygems"
-      require gem_name
+      require gem_name.to_s
     end
     
     #Return true to enable detection of that something was loaded.
