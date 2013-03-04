@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = "knjrbfw"
-  s.version = "0.0.102"
+  s.version = "0.0.103"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Kasper Johansen"]
-  s.date = "2013-03-03"
+  s.date = "2013-03-04"
   s.description = "Including stuff for HTTP, SSH and much more."
   s.email = "k@spernj.org"
   s.extra_rdoc_files = [
@@ -249,6 +249,7 @@ Gem::Specification.new do |s|
     "lib/knjrbfw.rb",
     "spec/amixer_spec.rb",
     "spec/arrayext_spec.rb",
+    "spec/autoload_spec.rb",
     "spec/cmd_parser_spec.rb",
     "spec/db_spec.rb",
     "spec/db_spec_encoding_test_file.txt",
