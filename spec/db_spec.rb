@@ -42,7 +42,9 @@ describe "Db" do
         "test_table" => {
           "columns" => [
             {"name" => "id", "type" => "int", "autoincr" => true, "primarykey" => true},
-            {"name" => "name", "type" => "varchar"}
+            {"name" => "name", "type" => "varchar"},
+            {"name" => "age", "type" => "int"},
+            {"name" => "nickname", "type" => "varchar"}
           ],
           "indexes" => [
             "name"
@@ -96,6 +98,25 @@ describe "Db" do
     end
     
     raise "Block with should have ran too little: #{block_ran}." if block_ran < rows_count
+    
+    
+    #Test upserting.
+    data = {:name => "Kasper Johansen"}
+    sel = {:nickname => "kaspernj"}
+    
+    table = db.tables[:test_table]
+    table.reload
+    rows_count = table.rows_count
+    
+    db.upsert(:test_table, sel, data)
+    
+    table.reload
+    table.rows_count.should eql(rows_count + 1)
+    
+    db.upsert(:test_table, sel, data)
+    
+    table.reload
+    table.rows_count.should eql(rows_count + 1)
     
     
     #Test dumping.

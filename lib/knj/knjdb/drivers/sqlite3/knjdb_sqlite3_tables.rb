@@ -113,6 +113,15 @@ class KnjDB_sqlite3::Tables::Table
     return @data[:maxlength]
   end
   
+  def reload
+    @data = @db.select("sqlite_master", {"type" => "table", "name" => self.name}, {"orderby" => "name"}).fetch
+  end
+  
+  def rows_count
+    data = @db.q("SELECT COUNT(*) AS count FROM `#{self.name}`").fetch
+    return data[:count].to_i
+  end
+  
   #Drops the table from the database.
   def drop
     raise "Cant drop native table: '#{self.name}'." if self.native?

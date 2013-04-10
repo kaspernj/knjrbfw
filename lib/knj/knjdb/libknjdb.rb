@@ -362,6 +362,17 @@ class Knj::Db
     end
   end
   
+  #Checks if a given selector exists. If it does, updates it to match data. If not inserts the row.
+  def upsert(table, selector, data)
+    row = self.select(table, selector, "limit" => 1).fetch
+    
+    if row
+      self.update(table, data, row)
+    else
+      self.insert(table, selector.merge(data))
+    end
+  end
+  
   #Makes a select from the given arguments: table-name, where-terms and other arguments as limits and orders. Also takes a block to avoid raping of memory.
   def select(tablename, arr_terms = nil, args = nil, &block)
     #Set up vars.
