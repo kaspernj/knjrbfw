@@ -180,4 +180,27 @@ describe "Db" do
     #Delete test-database if everything went well.
     File.unlink(db_path) if File.exists?(db_path)
   end
+  
+  it "should generate proper sql" do
+    require "knj/db"
+    require "knj/os"
+    require "rubygems"
+    require "sqlite3" if !Kernel.const_defined?("SQLite3") and RUBY_ENGINE != "jruby"
+    
+    db_path = "#{Knj::Os.tmpdir}/knjrbfw_test_sqlite3.sqlite3"
+    File.unlink(db_path) if File.exists?(db_path)
+    
+    db = Knj::Db.new(
+      :type => "sqlite3",
+      :path => db_path,
+      :return_keys => "symbols",
+      :index_append_table_name => true
+    )
+    
+    time = Time.new(1985, 6, 17, 10, 30)
+    db.insert(:test, {:date => time}, :return_sql => true).should eql("INSERT INTO `test` (`date`) VALUES ('1985-06-17 10:30:00')")
+    
+    date = Date.new(1985, 6, 17)
+    db.insert(:test, {:date => date}, :return_sql => true).should eql("INSERT INTO `test` (`date`) VALUES ('1985-06-17')")
+  end
 end

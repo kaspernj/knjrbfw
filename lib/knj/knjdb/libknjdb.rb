@@ -264,7 +264,7 @@ class Knj::Db
         sql << "#{@sep_col}#{key}#{@sep_col}"
       end
       
-      sql << ")  VALUES ("
+      sql << ") VALUES ("
       
       first = true
       arr_insert.each do |key, value|
@@ -274,7 +274,7 @@ class Knj::Db
           sql << ", "
         end
         
-        sql << "#{@sep_val}#{@esc_driver.escape(value)}#{@sep_val}"
+        sql << self.sqlval(value)
       end
       
       sql << ")"
@@ -286,6 +286,23 @@ class Knj::Db
       driver.query(sql)
       return driver.lastID if args and args[:return_id]
       return nil
+    end
+  end
+  
+  #Returns the correct SQL-value for the given value. If it is a number, then just the raw number as a string will be returned. nil's will be NULL and strings will have quotes and will be escaped.
+  def sqlval(val)
+    return @conn.sqlval(val) if @conn.respond_to?(:sqlval)
+    
+    if val.is_a?(Fixnum) or val.is_a?(Integer)
+      return val.to_s
+    elsif val == nil
+      return "NULL"
+    elsif val.is_a?(Date)
+      return "#{@sep_val}#{Datet.in(val).dbstr(:time => false)}#{@sep_val}"
+    elsif val.is_a?(Time) or val.is_a?(DateTime)
+      return "#{@sep_val}#{Datet.in(val).dbstr}#{@sep_val}"
+    else
+      return "#{@sep_val}#{self.escape(val)}#{@sep_val}"
     end
   end
   
