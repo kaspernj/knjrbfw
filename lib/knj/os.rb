@@ -54,17 +54,18 @@ module Knj::Os
   # print "I like it better now." if Knj::Os.os == "linux"
   def self.os
     if ENV["OS"]
-      teststring = ENV["OS"].to_s
+      teststring = ENV["OS"].to_s.downcase
     elsif RUBY_PLATFORM
-      teststring = RUBY_PLATFORM.to_s
+      teststring = RUBY_PLATFORM.to_s.downcase
     end
     
-    if teststring.downcase.index("windows") != nil
+    if teststring.include?("windows")
       return "windows"
-    elsif teststring.downcase.index("linux") != nil
+    elsif teststring.include?("linux")
       return "linux"
+    elsif teststring.include?("darwin")
     else
-      raise "Could not figure out OS."
+      raise "Could not figure out OS: '#{teststring}'."
     end
   end
   
@@ -221,6 +222,11 @@ module Knj::Os
   def self.executed_executable
     return ENV["rvm_ruby_string"] if !ENV["rvm_ruby_string"].to_s.empty?
     
+    if ENV["MY_RUBY_HOME"]
+      ruby_bin_path = "#{ENV["MY_RUBY_HOME"]}/bin/ruby"
+      return ruby_bin_path if File.exists?(ruby_bin_path)
+    end
+    
     #Try to look the executeable up by command.
     if self.os == "linux"
       unix_proc = Knj::Unix_proc.find_self
@@ -234,6 +240,8 @@ module Knj::Os
         raise "Could not find the self-process."
       end
     end
+    
+    puts ENV.to_hash
     
     raise "Could not figure out the executed executable."
   end

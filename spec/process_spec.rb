@@ -1,5 +1,7 @@
 require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
+require "socket"
+
 describe "Process" do
   it "should be able to start a server and a client" do
     require "timeout"

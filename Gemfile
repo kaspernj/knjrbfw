@@ -18,4 +18,5 @@ group :development do
   gem "sqlite3" if RUBY_ENGINE != "jruby"
   gem "rmagick" if RUBY_ENGINE != "jruby"
   gem "rmagick4j" if RUBY_ENGINE == "jruby"
+  gem "array_enumerator"
 end
