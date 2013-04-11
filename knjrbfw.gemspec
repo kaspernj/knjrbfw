@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = "knjrbfw"
-  s.version = "0.0.103"
+  s.version = "0.0.104"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Kasper Johansen"]
-  s.date = "2013-03-04"
+  s.date = "2013-04-11"
   s.description = "Including stuff for HTTP, SSH and much more."
   s.email = "k@spernj.org"
   s.extra_rdoc_files = [
@@ -284,6 +284,7 @@ Gem::Specification.new do |s|
       s.add_development_dependency(%q<jeweler>, [">= 0"])
       s.add_development_dependency(%q<sqlite3>, [">= 0"])
       s.add_development_dependency(%q<rmagick>, [">= 0"])
+      s.add_development_dependency(%q<array_enumerator>, [">= 0"])
     else
       s.add_dependency(%q<wref>, [">= 0"])
       s.add_dependency(%q<tsafe>, [">= 0"])
@@ -296,6 +297,7 @@ Gem::Specification.new do |s|
       s.add_dependency(%q<jeweler>, [">= 0"])
       s.add_dependency(%q<sqlite3>, [">= 0"])
       s.add_dependency(%q<rmagick>, [">= 0"])
+      s.add_dependency(%q<array_enumerator>, [">= 0"])
     end
   else
     s.add_dependency(%q<wref>, [">= 0"])
@@ -309,6 +311,7 @@ Gem::Specification.new do |s|
     s.add_dependency(%q<jeweler>, [">= 0"])
     s.add_dependency(%q<sqlite3>, [">= 0"])
     s.add_dependency(%q<rmagick>, [">= 0"])
+    s.add_dependency(%q<array_enumerator>, [">= 0"])
   end
 end
 
