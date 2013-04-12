@@ -31,6 +31,8 @@ class KnjDB_sqlite3::Tables
     
     @list_mutex.synchronize do
       q_tables = @db.select("sqlite_master", {"type" => "table"}, {"orderby" => "name"}) do |d_tables|
+        next if d_tables[:name] == "sqlite_sequence"
+        
         obj = @list.get!(d_tables[:name])
         
         if !obj
