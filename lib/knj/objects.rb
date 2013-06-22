@@ -335,7 +335,7 @@ class Knj::Objects
     elsif data.is_a?(Hash) and data.key?(@args[:col_id].to_s)
       id = data[@args[:col_id].to_s].to_i
     elsif
-      raise ArgumentError, "Unknown data: '#{data.class.to_s}'."
+      raise ArgumentError, "Unknown data for class '#{classname}': '#{data.class.to_s}' (#{data})."
     end
     
     if @objects.key?(classname)

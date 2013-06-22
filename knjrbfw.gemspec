@@ -4,14 +4,14 @@
 # -*- encoding: utf-8 -*-
 
 Gem::Specification.new do |s|
-  s.name = %q{knjrbfw}
-  s.version = "0.0.101"
+  s.name = "knjrbfw"
+  s.version = "0.0.104"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Kasper Johansen"]
-  s.date = %q{2012-10-12}
-  s.description = %q{Including stuff for HTTP, SSH and much more.}
-  s.email = %q{k@spernj.org}
+  s.date = "2013-04-11"
+  s.description = "Including stuff for HTTP, SSH and much more."
+  s.email = "k@spernj.org"
   s.extra_rdoc_files = [
     "LICENSE.txt",
     "README.rdoc"
@@ -61,7 +61,6 @@ Gem::Specification.new do |s|
     "lib/knj/csv.rb",
     "lib/knj/datarow.rb",
     "lib/knj/datarow_custom.rb",
-    "lib/knj/datestamp.rb",
     "lib/knj/db.rb",
     "lib/knj/degulesider.rb",
     "lib/knj/erb/apache_knjerb.conf",
@@ -250,6 +249,7 @@ Gem::Specification.new do |s|
     "lib/knjrbfw.rb",
     "spec/amixer_spec.rb",
     "spec/arrayext_spec.rb",
+    "spec/autoload_spec.rb",
     "spec/cmd_parser_spec.rb",
     "spec/db_spec.rb",
     "spec/db_spec_encoding_test_file.txt",
@@ -263,11 +263,11 @@ Gem::Specification.new do |s|
     "spec/web_spec.rb",
     "testfiles/image.jpg"
   ]
-  s.homepage = %q{http://github.com/kaspernj/knjrbfw}
+  s.homepage = "http://github.com/kaspernj/knjrbfw"
   s.licenses = ["MIT"]
   s.require_paths = ["lib"]
-  s.rubygems_version = %q{1.6.2}
-  s.summary = %q{A framework with lots of stuff for Ruby.}
+  s.rubygems_version = "1.8.25"
+  s.summary = "A framework with lots of stuff for Ruby."
 
   if s.respond_to? :specification_version then
     s.specification_version = 3
@@ -278,22 +278,26 @@ Gem::Specification.new do |s|
       s.add_runtime_dependency(%q<datet>, [">= 0"])
       s.add_runtime_dependency(%q<http2>, [">= 0"])
       s.add_runtime_dependency(%q<php4r>, [">= 0"])
-      s.add_development_dependency(%q<rspec>, ["~> 2.3.0"])
-      s.add_development_dependency(%q<bundler>, [">= 1.0.0"])
-      s.add_development_dependency(%q<jeweler>, ["~> 1.6.3"])
+      s.add_runtime_dependency(%q<ruby_process>, [">= 0"])
+      s.add_development_dependency(%q<rspec>, [">= 0"])
+      s.add_development_dependency(%q<bundler>, [">= 0"])
+      s.add_development_dependency(%q<jeweler>, [">= 0"])
       s.add_development_dependency(%q<sqlite3>, [">= 0"])
       s.add_development_dependency(%q<rmagick>, [">= 0"])
+      s.add_development_dependency(%q<array_enumerator>, [">= 0"])
     else
       s.add_dependency(%q<wref>, [">= 0"])
       s.add_dependency(%q<tsafe>, [">= 0"])
       s.add_dependency(%q<datet>, [">= 0"])
       s.add_dependency(%q<http2>, [">= 0"])
       s.add_dependency(%q<php4r>, [">= 0"])
-      s.add_dependency(%q<rspec>, ["~> 2.3.0"])
-      s.add_dependency(%q<bundler>, [">= 1.0.0"])
-      s.add_dependency(%q<jeweler>, ["~> 1.6.3"])
+      s.add_dependency(%q<ruby_process>, [">= 0"])
+      s.add_dependency(%q<rspec>, [">= 0"])
+      s.add_dependency(%q<bundler>, [">= 0"])
+      s.add_dependency(%q<jeweler>, [">= 0"])
       s.add_dependency(%q<sqlite3>, [">= 0"])
       s.add_dependency(%q<rmagick>, [">= 0"])
+      s.add_dependency(%q<array_enumerator>, [">= 0"])
     end
   else
     s.add_dependency(%q<wref>, [">= 0"])
@@ -301,11 +305,13 @@ Gem::Specification.new do |s|
     s.add_dependency(%q<datet>, [">= 0"])
     s.add_dependency(%q<http2>, [">= 0"])
     s.add_dependency(%q<php4r>, [">= 0"])
-    s.add_dependency(%q<rspec>, ["~> 2.3.0"])
-    s.add_dependency(%q<bundler>, [">= 1.0.0"])
-    s.add_dependency(%q<jeweler>, ["~> 1.6.3"])
+    s.add_dependency(%q<ruby_process>, [">= 0"])
+    s.add_dependency(%q<rspec>, [">= 0"])
+    s.add_dependency(%q<bundler>, [">= 0"])
+    s.add_dependency(%q<jeweler>, [">= 0"])
     s.add_dependency(%q<sqlite3>, [">= 0"])
     s.add_dependency(%q<rmagick>, [">= 0"])
+    s.add_dependency(%q<array_enumerator>, [">= 0"])
   end
 end
 

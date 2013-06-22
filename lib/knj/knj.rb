@@ -47,7 +47,18 @@ module Knj
   
   #Loads a gem by a given name. First tries to load the gem from a custom parent directory to enable loading of development-gems.
   def self.gem_require(gem_const, gem_name = nil)
+    #Support given an array for multiple gem-names in one call.
+    if gem_const.is_a?(Array) and gem_name == nil
+      gem_const.each do |gem_i|
+        self.gem_require(gem_i)
+      end
+      
+      return nil
+    end
+    
+    #Set correct names.
     gem_name = gem_const.to_s.downcase.strip if !gem_name
+    gem_const = "#{gem_const.to_s[0].upcase}#{gem_const.to_s[1, gem_name.length]}"
     
     #Return false if the constant is already loaded.
     return false if ::Kernel.const_defined?(gem_const)
@@ -68,7 +79,8 @@ module Knj
     
     #Custom-path could not be loaded - load gem normally.
     if !found_custom
-      require gem_name
+      require "rubygems"
+      require gem_name.to_s
     end
     
     #Return true to enable detection of that something was loaded.

@@ -42,7 +42,9 @@ describe "Db" do
         "test_table" => {
           "columns" => [
             {"name" => "id", "type" => "int", "autoincr" => true, "primarykey" => true},
-            {"name" => "name", "type" => "varchar"}
+            {"name" => "name", "type" => "varchar"},
+            {"name" => "age", "type" => "int"},
+            {"name" => "nickname", "type" => "varchar"}
           ],
           "indexes" => [
             "name"
@@ -96,6 +98,25 @@ describe "Db" do
     end
     
     raise "Block with should have ran too little: #{block_ran}." if block_ran < rows_count
+    
+    
+    #Test upserting.
+    data = {:name => "Kasper Johansen"}
+    sel = {:nickname => "kaspernj"}
+    
+    table = db.tables[:test_table]
+    table.reload
+    rows_count = table.rows_count
+    
+    db.upsert(:test_table, sel, data)
+    
+    table.reload
+    table.rows_count.should eql(rows_count + 1)
+    
+    db.upsert(:test_table, sel, data)
+    
+    table.reload
+    table.rows_count.should eql(rows_count + 1)
     
     
     #Test dumping.
@@ -158,5 +179,104 @@ describe "Db" do
     
     #Delete test-database if everything went well.
     File.unlink(db_path) if File.exists?(db_path)
+  end
+  
+  it "should generate proper sql" do
+    require "knj/db"
+    require "knj/os"
+    require "rubygems"
+    require "sqlite3" if !Kernel.const_defined?("SQLite3") and RUBY_ENGINE != "jruby"
+    
+    db_path = "#{Knj::Os.tmpdir}/knjrbfw_test_sqlite3.sqlite3"
+    File.unlink(db_path) if File.exists?(db_path)
+    
+    db = Knj::Db.new(
+      :type => "sqlite3",
+      :path => db_path,
+      :return_keys => "symbols",
+      :index_append_table_name => true
+    )
+    
+    time = Time.new(1985, 6, 17, 10, 30)
+    db.insert(:test, {:date => time}, :return_sql => true).should eql("INSERT INTO `test` (`date`) VALUES ('1985-06-17 10:30:00')")
+    
+    date = Date.new(1985, 6, 17)
+    db.insert(:test, {:date => date}, :return_sql => true).should eql("INSERT INTO `test` (`date`) VALUES ('1985-06-17')")
+  end
+  
+  it "should copy database structure and data" do
+    require "knj/db"
+    require "knj/os"
+    require "rubygems"
+    require "sqlite3" if !Kernel.const_defined?("SQLite3") and RUBY_ENGINE != "jruby"
+    
+    db_path1 = "#{Knj::Os.tmpdir}/knjrbfw_test_sqlite3_db1.sqlite3"
+    File.unlink(db_path1) if File.exists?(db_path1)
+    
+    db_path2 = "#{Knj::Os.tmpdir}/knjrbfw_test_sqlite3_db2.sqlite3"
+    File.unlink(db_path2) if File.exists?(db_path2)
+    
+    db1 = Knj::Db.new(
+      :type => "sqlite3",
+      :path => db_path1,
+      :return_keys => "symbols",
+      :index_append_table_name => true
+    )
+    
+    db1.tables.create(:test_table, {
+      "columns" => [
+        {"name" => "id", "type" => "int", "autoincr" => true, "primarykey" => true},
+        {"name" => "testname", "type" => "varchar"}
+      ],
+      "indexes" => [
+        "testname"
+      ]
+    })
+    
+    table1 = db1.tables["test_table"]
+    cols1 = table1.columns
+    
+    100.times do |count|
+      table1.insert(:testname => "TestRow#{count}")
+    end
+    
+    db2 = Knj::Db.new(
+      :type => "sqlite3",
+      :path => db_path2,
+      :return_keys => "symbols",
+      :index_append_table_name => true
+    )
+    
+    begin
+      table2 = db2.tables["test_table"]
+      raise "Expected not-found exception."
+    rescue Errno::ENOENT
+      #expected
+    end
+    
+    db1.copy_to(db2)
+    
+    table2 = db2.tables["test_table"]
+    
+    cols2 = table2.columns
+    cols2.length.should eql(cols1.length)
+    
+    table2.rows_count.should eql(table1.rows_count)
+    
+    db1.select(:test_table) do |row1|
+      found = 0
+      db2.select(:test_table, row1) do |row2|
+        found += 1
+        
+        row1.each do |key, val|
+          row2[key].should eql(val)
+        end
+      end
+      
+      found.should eql(1)
+    end
+    
+    table1.indexes.length.should eql(1)
+    table2.indexes.length.should eql(table1.indexes.length)
   end
 end

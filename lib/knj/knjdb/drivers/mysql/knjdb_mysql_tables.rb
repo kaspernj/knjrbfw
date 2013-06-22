@@ -1,3 +1,5 @@
+require "monitor"
+
 #This class handels various MySQL-table-specific behaviour.
 class KnjDB_mysql::Tables
   attr_reader :db, :list
@@ -7,7 +9,7 @@ class KnjDB_mysql::Tables
     @args = args
     @db = @args[:db]
     @subtype = @db.opts[:subtype]
-    @list_mutex = Mutex.new
+    @list_mutex = Monitor.new
     @list = Wref_map.new
     @list_should_be_reloaded = true
   end
@@ -84,7 +86,7 @@ class KnjDB_mysql::Tables
       sql << @db.cols.data_sql(col_data)
     end
     
-    if data["indexes"]
+    if data["indexes"] and !data["indexes"].empty?
       sql << ", "
       sql << KnjDB_mysql::Tables::Table.create_indexes(data["indexes"], {
         :db => @db,
@@ -352,5 +354,90 @@ class KnjDB_mysql::Tables::Table
   
   def insert(data)
     @db.insert(self.name, data)
+  end
+  
+  #Returns the current engine of the table.
+  def engine
+		return @data[:Engine]
+  end
+  
+  def clone(newname, args = {})
+    raise "Invalid name." if newname.to_s.strip.empty?
+    
+    sql = "CREATE TABLE `#{@db.esc_table(newname)}` ("
+    first = true
+    pkey_found = false
+    pkeys = []
+    
+    self.columns do |col|
+      sql << ", " if !first
+      first = false if first
+      
+      col_data = col.data
+      pkey_found = true if !pkey_found and col_data["primarykey"] and args[:force_single_pkey]
+      
+      if args[:no_pkey] or (pkey_found and col_data["primarykey"] and args[:force_single_pkey])
+				col_data["primarykey"] = false
+			end
+			
+			if col_data["primarykey"]
+				pkeys << col_data["name"]
+				col_data.delete("primarykey")
+			end
+			
+			if args[:all_cols_storage]
+				col_data["storage"] = args[:all_cols_storage]
+			end
+			
+      sql << @db.cols.data_sql(col_data)
+    end
+    
+    if !pkeys.empty?
+			sql << ", PRIMARY KEY ("
+			
+			first = true
+			pkeys.each do |pkey|
+				sql << ", " if !first
+				first = false if first
+				sql << "`#{@db.esc_col(pkey)}`"
+			end
+			
+			sql << ")"
+    end
+    
+    sql << ")"
+    sql << " TABLESPACE #{args[:tablespace]}" if args[:tablespace]
+    sql << " ENGINE=#{args[:engine]}" if args[:engine]
+    sql << ";"
+    
+    puts sql
+    
+    #Create table.
+    @db.query(sql)
+    
+    
+    #Insert data of previous data in a single query.
+    @db.query("INSERT INTO `#{newname}` SELECT * FROM `#{self.name}`")
+    
+    
+    #Create indexes.
+    new_table = @db.tables[newname]
+    indexes_list = []
+    self.indexes do |index|
+			indexes_list << index.data if !index.primary?
+    end
+    
+    new_table.create_indexes(indexes_list)
+    
+    
+    #Return new table.
+    return new_table
+  end
+  
+  #Changes the engine for a table.
+  def engine=(newengine)
+		raise "Invalid engine: '#{newengine}'." if !newengine.to_s.match(/^[A-z]+$/)
+		@db.query("ALTER TABLE `#{@db.esc_table(self.name)}` ENGINE = #{newengine}") if self.engine.to_s != newengine.to_s
+		@data[:Engine] = newengine
   end
 end

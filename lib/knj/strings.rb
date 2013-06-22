@@ -1,6 +1,6 @@
 #encoding: utf-8
 
-require "php4r" if !Kernel.const_defined?(:Php4r)
+Knj.gem_require "php4r" if !Kernel.const_defined?(:Php4r)
 
 #This module contains various methods to escape, change or treat strings.
 module Knj::Strings
@@ -333,5 +333,10 @@ module Knj::Strings
     end
     
     return false
+  end
+  
+  #Takes a string and converts it to a safe string for filenames.
+  def self.sanitize_filename(filename)
+    return filename.gsub(/[^0-9A-z.\-]/, '_').gsub("\\", "_")
   end
 end

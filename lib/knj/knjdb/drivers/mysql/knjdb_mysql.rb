@@ -332,7 +332,7 @@ class KnjDB_mysql
             sql << ","
           end
           
-          sql << "'#{self.escape(val)}'"
+          sql << @knjdb.sqlval(val)
         end
       else
         hash.each do |key, val|
@@ -342,7 +342,7 @@ class KnjDB_mysql
             sql << ","
           end
           
-          sql << "'#{self.escape(val)}'"
+          sql << @knjdb.sqlval(val)
         end
       end
     end

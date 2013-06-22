@@ -1,3 +1,5 @@
+Knj.gem_require(:Datet, :datet)
+
 #This class can help you parse results from command-line commands.
 class Knj::Cmd_parser
   #Parses the results of "ls -l".
