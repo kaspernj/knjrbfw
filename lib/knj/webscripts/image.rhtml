@@ -114,6 +114,12 @@
       height = _get["height"].to_i if _get["height"]
       width = _get["width"].to_i if _get["width"]
       
+      if _get["width"] && !_get["height"]
+        height = (pic_rows.to_f / (pic_columns.to_f / width.to_f)).to_i
+      elsif _get["height"] && !_get["width"]
+        width = (pic_columns.to_f / (pic_rows.to_f / height.to_f)).to_i
+      end
+      
       if _get["smartsize"]
         if pic_columns > pic_rows
           width = _get["smartsize"].to_i
@@ -148,7 +154,7 @@
       end
       
       if height != pic_rows or width != pic_columns
-        pic = pic.resize_to_fit(width.to_i, height.to_i)
+        pic = pic.resize_to_fill(width.to_i, height.to_i)
       end
       
       if _get["rounded_corners"]
