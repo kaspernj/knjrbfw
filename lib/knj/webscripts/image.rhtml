@@ -86,6 +86,8 @@
   
 	if !tmp_use or tmp_write or force
     blob_cont = nil
+    
+    require "ruby_process"
     Ruby_process::Cproxy.run do |data|
       subproc = data[:subproc]
       subproc.static(:Object, :require, "rubygems")
