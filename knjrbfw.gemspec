@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = "knjrbfw"
-  s.version = "0.0.104"
+  s.version = "0.0.105"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Kasper Johansen"]
-  s.date = "2013-04-11"
+  s.date = "2013-06-28"
   s.description = "Including stuff for HTTP, SSH and much more."
   s.email = "k@spernj.org"
   s.extra_rdoc_files = [
@@ -241,6 +241,7 @@ Gem::Specification.new do |s|
     "lib/knj/unix_proc.rb",
     "lib/knj/web.rb",
     "lib/knj/webscripts/image.rhtml",
+    "lib/knj/webscripts/image_subproc.rhtml",
     "lib/knj/win.rb",
     "lib/knj/win_registry.rb",
     "lib/knj/win_tightvnc.rb",
@@ -266,7 +267,7 @@ Gem::Specification.new do |s|
   s.homepage = "http://github.com/kaspernj/knjrbfw"
   s.licenses = ["MIT"]
   s.require_paths = ["lib"]
-  s.rubygems_version = "1.8.25"
+  s.rubygems_version = "1.8.23"
   s.summary = "A framework with lots of stuff for Ruby."
 
   if s.respond_to? :specification_version then
