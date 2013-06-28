@@ -241,8 +241,12 @@ module Knj::Os
       end
     end
     
-    puts ENV.to_hash
+    # Code for returning RBEnv Ruby path if running through RBEnv.
+    if ENV["RBENV_VERSION"] && ENV["RBENV_ROOT"]
+      rbenv_path = "#{ENV["RBENV_ROOT"]}/versions/#{ENV["RBENV_VERSION"]}/bin/ruby"
+      return rbenv_path if File.exists?(rbenv_path)
+    end
     
-    raise "Could not figure out the executed executable."
+    raise "Could not figure out the executed executable from the environment: '#{ENV.to_hash}'."
   end
 end
