@@ -1,3 +1,5 @@
+# encoding: utf-8
+
 require "php4r" if !Kernel.const_defined?(:Php4r)
 
 class Knj::Web
@@ -873,6 +875,23 @@ class Knj::Web
     url << meta["REQUEST_URI"] if !args.key?(:uri) or args[:uri]
     
     return url
+  end
+  
+  URL_SAFE_REPLACES = {
+    "ø" => "oe",
+    "æ" => "ae",
+    "å" => "aa",
+    /\s+/ => "_",
+    "ö" => "oe"
+  }
+  def self.url_safe(str)
+    str = str.to_s.downcase
+    
+    URL_SAFE_REPLACES.each do |key, val|
+      str.gsub!(key, val)
+    end
+    
+    return Knj::Strings.remove_non_ascii(str)
   end
 end
 
