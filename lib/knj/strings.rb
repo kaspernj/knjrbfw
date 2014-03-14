@@ -339,4 +339,9 @@ module Knj::Strings
   def self.sanitize_filename(filename)
     return filename.gsub(/[^0-9A-z.\-]/, '_').gsub("\\", "_")
   end
+  
+  # Removes all non-ASCII parts of a string.
+  def self.remove_non_ascii(str, replacement = "") 
+    return str.gsub(/\P{ASCII}/, '')
+  end
 end
