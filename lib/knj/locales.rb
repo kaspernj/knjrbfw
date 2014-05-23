@@ -18,7 +18,10 @@ module Knj::Locales
     locale_str = Knj::Locales::LANG_CONVERTIONS[locale_str] if Knj::Locales::LANG_CONVERTIONS.key?(locale_str)
     
     match = locale_str.match(/^([a-z]{2})_([A-Z]{2})/)
-    raise "Could not understand language: '#{locale_str}'." if !match
+    if !match
+      match = locale_str.match(/^[a-z]{2}$/)
+      raise "Could not understand language: '#{locale_str}'." unless match
+    end
         
     return {
       "first" => match[1],
@@ -82,6 +85,8 @@ module Knj::Locales
     
     if Thread.current[:locale]
       return Thread.current[:locale]
+    elsif ::Kernel.const_defined?(:I18n) && !I18n.locale.to_s.strip.empty?
+      return I18n.locale
     elsif ENV["LANGUAGE"]
       return ENV["LANGUAGE"]
     elsif ENV["LANG"]
