@@ -11,9 +11,10 @@ class Knj::Image
   # )
   def self.rounded_corners(args)
     raise "No or invalid ':img' given: '#{args}'." if !args[:img]
-    raise "No or invalid ':radius' given: '#{args}'." if !args[:radius].respond_to?("to_i") or args[:radius].to_i <= 0
+    raise "No or invalid ':radius' given: '#{args}'." if !args[:radius].respond_to?(:to_i) || args[:radius].to_i <= 0
     
     pic = args[:img]
+    raise "Format '#{pic.format}' does not support transparency." if pic.format == "JPEG"
     
     r = args[:radius].to_i
     r_half = r / 2
@@ -25,12 +26,12 @@ class Knj::Image
     
     coords = {}
     0.upto(r) do |x|
-      y = center_y + Math.sqrt(r2 - ((x - center_x) * (x - center_x)))
+      y = center_y + ::Math.sqrt(r2 - ((x - center_x) * (x - center_x)))
       coords[x] = y.to_i
     end
     
     if args[:border]
-      draw = Magick::Draw.new
+      draw = ::Magick::Draw.new
       draw.stroke(args[:border_color])
       draw.stroke_width(1)
       
@@ -100,22 +101,11 @@ class Knj::Image
         
         next if y_to <= 0
         
-        #Make corners transparent.
-        if false or RUBY_ENGINE == "jruby"
-          #Make up for the fact that "get_pixels" has not been implemented in "rmagick4j"...
-          pixels = []
-          0.upto(y_to) do |count|
-            pixels << Magick::Pixel.new(0, 0, 0, 255)
-          end
-          
-          pic.store_pixels(x_from, y_from, 1, y_to, pixels)
-        else
-          pixels = pic.get_pixels(x_from, y_from, 1, y_to)
-          pixels.each do |pixel|
-            pixel.opacity = Magick::TransparentOpacity
-          end
-          pic.store_pixels(x_from, y_from, 1, y_to, pixels)
+        pixels = pic.get_pixels(x_from, y_from, 1, y_to)
+        pixels.each do |pixel|
+          pixel.opacity = ::Magick::TransparentOpacity
         end
+        pic.store_pixels(x_from, y_from, 1, y_to, pixels)
       end
     end
     
@@ -137,9 +127,9 @@ class Knj::Image
             b = color[3, 2].hex
             g = color[5, 2].hex
             
-            pixel = Magick::Pixel.new(r, b, g)
+            pixel = ::Magick::Pixel.new(r, b, g)
           else
-            pixel = Magick::Pixel.from_color(color)
+            pixel = ::Magick::Pixel.from_color(color)
           end
           
           if border.key?(:x)
