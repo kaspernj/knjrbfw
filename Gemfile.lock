@@ -51,7 +51,7 @@ GEM
       http2
       string-strtr
     rack (1.5.2)
-    rake (10.2.2)
+    rake (10.3.2)
     rdoc (4.1.1)
       json (~> 1.4)
     rmagick (2.13.2)
