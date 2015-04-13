@@ -7,11 +7,11 @@ begin
   options = {}
   OptionParser.new do |opts|
     opts.banner = "Usage: example.rb [options]"
-    
+
     opts.on("-f PHPFILE", "--file", "The PHP-file you want help to convert.") do |f|
       options[:file] = f
     end
-    
+
     opts.on("-t", "--tags-remove", "Removes the PHP-tags completely.") do |t|
       options[:tags] = false
     end
@@ -37,15 +37,8 @@ cont.gsub!(/\A#!\/usr\/bin\/env\s+php5/, "!#/usr/bin/env ruby1.9.1")
 #Replace class extends.
 cont.scan(/(class\s+(.+?)\s+extends\s+(.+?){)/) do |match|
   rb_classname = "#{match[1][0..0].upcase}#{match[1][1..999]}"
-  
-  if match[2] == "knjdb_row"
-    extends = "Knj::Datarow"
-  else
-    extends = "#{match[2][0..0].upcase}#{match[2][1..999]}"
-  end
-  
+  extends = "#{match[2][0..0].upcase}#{match[2][1..999]}"
   rb_str = "class #{rb_classname} < #{extends}"
-  
   cont = cont.gsub(match[0], rb_str)
 end
 
@@ -54,7 +47,7 @@ end
 cont.scan(/(class\s+(.+?)\s*{)/) do |match|
   rb_classname = "#{match[1][0..0].upcase}#{match[1][1..999]}"
   rb_str = "class #{rb_classname}"
-  
+
   cont = cont.gsub(match[0], rb_str)
 end
 
@@ -68,7 +61,7 @@ cont.scan(/(static\s+function\s+(.+?)\((.*?)\)\s*{)/) do |match|
   else
     func_name = match[1]
   end
-  
+
   rb_str = "def self.#{func_name}(#{match[2]})"
   cont = cont.gsub(match[0], rb_str)
 end
@@ -101,7 +94,7 @@ end
 cont.scan(/((\s+?)}\s*catch\s*\(\s*(#{regexes["class"]})\s+\$(#{regexes["var"]})\s*\)\s*{(\s+))/) do |match|
   classname = "#{match[2][0..0].upcase}#{match[2][1..999]}"
   classname = "Errno::ENOENT" if classname == "Knjdb_rownotfound_exception"
-  
+
   rb_str = "#{match[1]}rescue #{classname} => #{match[3]}#{match[4]}"
   cont = cont.gsub(match[0], rb_str)
 end
@@ -111,7 +104,7 @@ end
 cont.scan(/((\s+?)require_once\s+\"(.+)\"\s*;(\s+?))/) do |match|
   filename = match[2]
   filename.gsub!(/\.php$/, ".rb")
-  
+
   rb_str = "#{match[1]}require \"#{filename}\"#{match[3]}"
   cont = cont.gsub(match[0], rb_str)
 end
@@ -123,7 +116,7 @@ cont.scan(/(function\s(.+?)\((.*?)\))/) do |match|
   def_args.scan(/(([A-z]+)\s+\$(#{regexes["var"]}))/) do |match_arg|
     def_args = def_args.gsub(match_arg[0], "#{match_arg[2]}")
   end
-  
+
   rb_str = "def #{match[1]}(#{def_args})"
   cont = cont.gsub(match[0], rb_str)
 end
@@ -267,11 +260,11 @@ end
 #Replace multi-line comments.
 cont.scan(/((\s+|<\?)\/\*([\s\S]+?)\*\/)/) do |match|
   rb_str = "\n=begin\n#{match[2]}\n=end\n"
-  
+
   if match[1] == "<?"
     rb_str = "<%#{rb_str}"
   end
-  
+
   cont = cont.gsub(match[0], rb_str)
 end
 
@@ -300,14 +293,14 @@ end
 #Replace variable-names.
 cont.scan(/(([^%\d])(\$(#{regexes["var"]})))/) do |match|
   vname = match[3]
-  
+
   if vname[-1..-1] == "["
     vname = vname[0..-2]
     match[0] = match[0][0..-2]
     match[2] = match[2][0..-2]
     match[3] = match[3][0..-2]
   end
-  
+
   if vname == "this"
     rb_varname = "self"
   elsif global_vars.key?(vname)
@@ -315,7 +308,7 @@ cont.scan(/(([^%\d])(\$(#{regexes["var"]})))/) do |match|
   else
     rb_varname = "#{vname}"
   end
-  
+
   cont = cont.gsub(match[2], rb_varname)
 end
 
