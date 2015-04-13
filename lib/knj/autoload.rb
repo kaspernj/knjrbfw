@@ -63,7 +63,7 @@ else
   autoload :GetText, $knjpath + "autoload/gettext"
   autoload :Gtk, $knjpath + "autoload/gtk2"
   autoload :GladeXML, "libglade2"
-  
+
   #this bugs?
   #autoload :Gdk, $knjpath + "autoload/gtk2"
 end
@@ -90,4 +90,3 @@ autoload :Cinch, $knjpath + "autoload/cinch"
 autoload :Facebooker, $knjpath + "autoload/facebooker"
 autoload :Tsafe, "tsafe"
 autoload :Wref, $knjpath + "autoload/wref"
-autoload :Wref_map, $knjpath + "autoload/wref"

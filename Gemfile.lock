@@ -70,7 +70,7 @@ GEM
     string-strtr (0.0.3)
     thread_safe (0.3.3)
     tsafe (0.0.11)
-    wref (0.0.6)
+    wref (0.0.8)
 
 PLATFORMS
   ruby
@@ -87,4 +87,4 @@ DEPENDENCIES
   ruby_process
   sqlite3
   tsafe
-  wref
+  wref (>= 0.0.8)
