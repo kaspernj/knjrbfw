@@ -102,11 +102,10 @@ class Knj::Image
         next if y_to <= 0
 
         if RUBY_ENGINE == "jruby"
-          # Hack around missing method in rmagick4j Image#get_pixels
+          # Hack around missing method in rmagick4j Image#get_pixels. It will be black :-(
           pixels = []
           y_to.times do |count|
             pixel = Magick::Pixel.new(0, 0, 0, 255)
-            pixel.opacity = ::Magick::TransparentOpacity
             pixels << pixel
           end
 
