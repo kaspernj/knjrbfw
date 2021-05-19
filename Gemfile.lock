@@ -31,7 +31,7 @@ GEM
       nokogiri (>= 1.5.10)
       rake
       rdoc
-    json (1.8.1)
+    json (1.8.6)
     jwt (0.1.11)
       multi_json (>= 1.5)
     mini_portile (0.5.3)
@@ -54,7 +54,7 @@ GEM
     rake (10.3.2)
     rdoc (4.1.1)
       json (~> 1.4)
-    rmagick (2.13.2)
+    rmagick (4.0.0)
     rspec (2.14.1)
       rspec-core (~> 2.14.0)
       rspec-expectations (~> 2.14.0)
@@ -88,3 +88,6 @@ DEPENDENCIES
   sqlite3
   tsafe
   wref (>= 0.0.8)
+
+BUNDLED WITH
+   2.0.2
