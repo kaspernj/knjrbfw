@@ -36,12 +36,13 @@ GEM
       semver2
     jwt (2.2.3)
     mime-types (2.99.3)
-    mini_portile2 (2.4.0)
+    mini_portile2 (2.5.1)
     multi_json (1.15.0)
     multi_xml (0.6.0)
     multipart-post (2.1.1)
-    nokogiri (1.10.10)
-      mini_portile2 (~> 2.4.0)
+    nokogiri (1.11.4)
+      mini_portile2 (~> 2.5.0)
+      racc (~> 1.4)
     oauth2 (1.4.7)
       faraday (>= 0.8, < 2.0)
       jwt (>= 1.0, < 3.0)
@@ -53,6 +54,7 @@ GEM
       http2
       string-strtr
     psych (4.0.0)
+    racc (1.5.2)
     rack (2.2.3)
     rake (13.0.3)
     rchardet (1.8.0)
