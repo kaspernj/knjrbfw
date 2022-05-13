@@ -113,7 +113,7 @@ class Knj::Image
         else
           pixels = pic.get_pixels(x_from, y_from, 1, y_to)
           pixels.each do |pixel|
-            pixel.opacity = ::Magick::QuantumRange
+            pixel.alpha = ::Magick::QuantumRange
           end
           pic.store_pixels(x_from, y_from, 1, y_to, pixels)
         end
@@ -159,8 +159,6 @@ class Knj::Image
         end
       end
     end
-
-    pic.matte = true
   end
 
   #Returns the width relative to the height.
