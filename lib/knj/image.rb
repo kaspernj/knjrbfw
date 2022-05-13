@@ -113,7 +113,7 @@ class Knj::Image
         else
           pixels = pic.get_pixels(x_from, y_from, 1, y_to)
           pixels.each do |pixel|
-            pixel.opacity = ::Magick::TransparentOpacity
+            pixel.opacity = ::Magick::QuantumRange
           end
           pic.store_pixels(x_from, y_from, 1, y_to, pixels)
         end
