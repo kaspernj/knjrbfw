@@ -11,20 +11,6 @@ rescue Bundler::BundlerError => e
 end
 require 'rake'
 
-require 'jeweler'
-Jeweler::Tasks.new do |gem|
-  # gem is a Gem::Specification... see http://docs.rubygems.org/read/chapter/20 for more options
-  gem.name = "knjrbfw"
-  gem.homepage = "http://github.com/kaspernj/knjrbfw"
-  gem.license = "MIT"
-  gem.summary = %Q{A framework with lots of stuff for Ruby.}
-  gem.description = %Q{Including stuff for HTTP, SSH and much more.}
-  gem.email = "k@spernj.org"
-  gem.authors = ["Kasper Johansen"]
-  # dependencies defined in Gemfile
-end
-Jeweler::RubygemsDotOrgTasks.new
-
 require 'rspec/core'
 require 'rspec/core/rake_task'
 RSpec::Core::RakeTask.new(:spec) do |spec|
