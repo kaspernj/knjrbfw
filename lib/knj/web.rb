@@ -919,13 +919,3 @@ class Symbol
     return self.to_s.sql
   end
 end
-
-class Fixnum
-  def sql
-    return self.to_s.sql
-  end
-
-  def html
-    return self.to_s.html
-  end
-end
