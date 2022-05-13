@@ -14,7 +14,6 @@ gem "ruby_process"
 group :development do
   gem "rspec"
   gem "bundler"
-  gem "jeweler"
   gem "sqlite3" if RUBY_ENGINE != "jruby"
   gem "rmagick" if RUBY_ENGINE != "jruby"
   gem "rmagick4j" if RUBY_ENGINE == "jruby"
