@@ -91,7 +91,8 @@ GEM
       tsafe
       wref
     semver2 (3.4.2)
-    sqlite3 (1.4.4)
+    sqlite3 (1.5.0)
+      mini_portile2 (~> 2.8.0)
     string-cases (0.0.4)
     string-strtr (0.0.3)
     stringio (3.0.2)
