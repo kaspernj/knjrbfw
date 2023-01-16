@@ -47,7 +47,7 @@ GEM
       semver2
     jwt (2.3.0)
     mime-types (2.99.3)
-    mini_portile2 (2.8.0)
+    mini_portile2 (2.8.1)
     multi_json (1.15.0)
     multi_xml (0.6.0)
     multipart-post (2.1.1)
@@ -93,7 +93,7 @@ GEM
       tsafe
       wref
     semver2 (3.4.2)
-    sqlite3 (1.5.4)
+    sqlite3 (1.6.0)
       mini_portile2 (~> 2.8.0)
     string-cases (0.0.4)
     string-strtr (0.0.3)
