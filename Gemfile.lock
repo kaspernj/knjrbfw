@@ -93,7 +93,7 @@ GEM
       tsafe
       wref
     semver2 (3.4.2)
-    sqlite3 (1.6.0)
+    sqlite3 (1.6.1)
       mini_portile2 (~> 2.8.0)
     string-cases (0.0.4)
     string-strtr (0.0.3)
