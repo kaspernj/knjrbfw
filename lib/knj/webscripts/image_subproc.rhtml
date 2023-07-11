@@ -42,7 +42,7 @@
   require "digest/md5"
 	idstr = Digest::MD5.hexdigest("#{_get["path"]}_#{_get["smartsize"].to_i}_#{_get["width"].to_i}_#{_get["height"].to_i}_#{_get["maxwidth"].to_i}_#{_get["maxheight"].to_i}_#{_get["rounded_corners"].to_i}_#{_get["border"].to_i}_#{_get["border_color"]}")
 
-	if !_get["path"] or !File.exists?(_get["path"])
+	if !_get["path"] or !File.exist?(_get["path"])
     print "File does not exist: '#{_get["path"]}'.\n"
     exit
   end
@@ -56,7 +56,7 @@
     tmp_path = "#{Knj::Os.tmpdir}/knjrbfw_image_#{idstr}"
   end
 
-  tmp_exists = File.exists?(tmp_path)
+  tmp_exists = File.exist?(tmp_path)
   tmp_write = true if !tmp_exists
 
   if !tmp_write and tmp_exists

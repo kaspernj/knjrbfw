@@ -5,17 +5,17 @@
   rescue NameError
     appsrv = _kas
   end
-  
+
   #Support for the PHP-version... Comes handy when converting PHP to Ruby...
   if !_get["path"]
     trans = {
       "picture" => "path"
     }
-    
+
     if _get["edgesize"]
       _get["rounded_corners"] = (_get["edgesize"].to_f / 3.0).to_i
     end
-    
+
     if _get["edgeborder"]
       if _get["edgeborder"].length == 6
         _get["border_color"] = "##{_get["edgeborder"]}"
@@ -23,30 +23,30 @@
         _get["border_color"] = _get["edbeborder"]
       end
     end
-    
+
     if _get["edgeborder"]
       _get["border"] = 1
     end
-    
+
     trans.each do |key, val|
       _get[val] = _get[key] if _get[key]
     end
   end
-  
+
   #Base64-encoding of path.
   if _get["path64"]
     require "base64"
     _get["path"] = Base64.decode64(_get["path64"])
   end
-  
+
   require "digest/md5"
 	idstr = Digest::MD5.hexdigest("#{Process.euid}_#{_get["path"]}_#{_get["smartsize"].to_i}_#{_get["width"].to_i}_#{_get["height"].to_i}_#{_get["maxwidth"].to_i}_#{_get["maxheight"].to_i}_#{_get["rounded_corners"].to_i}_#{_get["border"].to_i}_#{_get["border_color"]}")
-	
-	if !_get["path"] or !File.exists?(_get["path"])
+
+	if !_get["path"] or !File.exist?(_get["path"])
     print "File does not exist: '#{_get["path"]}'.\n"
     exit
   end
-	
+
 	time_orig = File.mtime(_get["path"])
 	tmp_write = false
 	if Knj::CONFIG["webscripts_image"]
@@ -54,65 +54,65 @@
 	else
     tmp_path = "#{Knj::Os.tmpdir}/knjrbfw_image_#{idstr}"
   end
-  
-  tmp_exists = File.exists?(tmp_path)
+
+  tmp_exists = File.exist?(tmp_path)
   tmp_write = true unless tmp_exists
-  
+
   if !tmp_write and tmp_exists
     time_cache = File.mtime(tmp_path)
-    
+
     if time_orig > time_cache
       tmp_write = true
     end
   end
-	
+
 	if _get["force"] == "true" or _get["force"] == "1"
     force = true
   else
     force = false
   end
-  
+
 	notchanged = false
-	
+
 	if _httpsession.handler.modified_since and time_cache and _httpsession.handler.modified_since.utc.to_s == time_cache.utc.to_s
     notchanged = true
   elsif _httpsession.handler.modified_since and _httpsession.handler.modified_since.utc.to_s == time_orig.utc.to_s
     notchanged = true
   end
-  
+
   if notchanged and !force
     _httpsession.resp.status = 304
     exit
   end
-  
+
 	if tmp_write or force
     blob_cont = nil
-    
+
     raise "RMagick has not been loaded. If loaded through here bugs will occur. Load in beginning of script." unless ::Kernel.const_defined?(:Magick)
     pic = Magick::Image.read(_get["path"]).first
-    
+
     if !pic
       print "Could not open image from '#{_get["path"]}'."
       exit
     end
-    
+
     pic.format = "png"
-    
+
     pic_columns = pic.columns
     pic_rows = pic.rows
-    
+
     width = pic_columns
     height = pic_rows
-    
+
     height = _get["height"].to_i if _get["height"]
     width = _get["width"].to_i if _get["width"]
-    
+
     if _get["width"] && !_get["height"]
       height = (pic_rows.to_f / (pic_columns.to_f / width.to_f)).to_i
     elsif _get["height"] && !_get["width"]
       width = (pic_columns.to_f / (pic_rows.to_f / height.to_f)).to_i
     end
-    
+
     if _get["smartsize"]
       if pic_columns > pic_rows
         width = _get["smartsize"].to_i
@@ -122,51 +122,51 @@
         width = (pic_columns.to_f / (pic_rows.to_f / height.to_f)).to_i
       end
     end
-    
+
     if _get["maxwidth"]
       maxwidth = _get["maxwidth"].to_i
-      
+
       if width > maxwidth
         height = (pic_rows.to_f / (pic_columns.to_f / maxwidth.to_f)).to_i
         width = maxwidth
       end
     end
-    
+
     if _get["maxheight"]
       maxheight = _get["maxheight"].to_i
-      
+
       if height > maxheight
         width = (pic_columns.to_f / (pic_rows.to_f / maxheight.to_f)).to_i
         height = maxheight
       end
     end
-    
+
     if _get["width"] and _get["height"]
       width = _get["width"].to_i
       height = _get["height"].to_i
     end
-    
+
     if height != pic_rows or width != pic_columns
       pic = pic.resize_to_fill(width.to_i, height.to_i)
     end
-    
+
     if _get["rounded_corners"]
       args = {:img => pic, :radius => _get["rounded_corners"].to_i}
-      
+
       if _get["border"] and _get["border_color"]
         args[:border] = _get["border"].to_i
         args[:border_color] = _get["border_color"]
       end
-      
+
       #Call rounded_corners with the proxy-hash.
       Knj::Image.rounded_corners(args)
     end
-    
+
     pic.write(tmp_path) if tmp_write or force
 	end
-  
-  raise "Picture was not written: '#{tmp_path}'." if !tmp_path || !File.exists?(tmp_path)
-	
+
+  raise "Picture was not written: '#{tmp_path}'." if !tmp_path || !File.exist?(tmp_path)
+
 	appsrv.header("Last-Modified", "#{time_orig.httpdate} GMT") if time_orig
   appsrv.header("Content-Type", "image/png")
   _httpsession.force_fileread(tmp_path)

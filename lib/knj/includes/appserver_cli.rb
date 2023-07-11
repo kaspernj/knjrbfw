@@ -5,15 +5,15 @@ class Appserver_cli
   def self.loadfile(filepath)
     require filepath
   end
-  
+
   def self._(str)
     return str
   end
-  
+
   def self.gettext
     return self
   end
-  
+
   def self.lang_opts
     return []
   end
@@ -32,7 +32,7 @@ def _ob
 end
 
 autoinc_cli_path = "../include/autoinclude_cli.rb"
-if File.exists?(autoinc_cli_path)
+if File.exist?(autoinc_cli_path)
   require autoinc_cli_path
 else
   require "../include/autoinclude.rb"
