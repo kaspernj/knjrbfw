@@ -1,15 +1,15 @@
 class Knj::Win::TightVNC
   def initialize(args)
     @args = ArrayExt.hash_sym(args)
-    
+
     @args[:port] = 5900 if !@args[:port]
     @args[:port_http] = 5800 if !@args[:http_port]
-    
+
     raise "No path given." if !@args[:path]
-    
+
     exefile = @args[:path] + "/WinVNC.exe"
-    raise "#{exefile} was not found." if !File.exists?(exefile)
-    
+    raise "#{exefile} was not found." if !File.exist?(exefile)
+
     @wmi = WIN32OLE.connect("winmgmts://")
     processes = @wmi.ExecQuery("SELECT * FROM win32_process")
     ended = false
@@ -19,13 +19,13 @@ class Knj::Win::TightVNC
         ended = true
       end
     end
-    
+
     sleep 1 if ended
-    
+
     #print Win::Registry.get(:cur_user, 'Software\ORL\WinVNC3', 'Password', :sz).unpack('H*')[0] + "\n"
     #print ["160e9d46f26586ca"].pack('H*').unpack('H*')[0] + "\n"
     #exit
-    
+
     Win::Registry.set(:cur_user, 'Software\ORL\WinVNC3', [
       ["AutoPortSelect", 1, :dword],
       ["BlankScreen", 0, :dword],
@@ -61,7 +61,7 @@ class Knj::Win::TightVNC
       ["LoopbackOnly", 0, :dword]
     ])
     #password is of this moment only 'kaspernj'.
-    
+
     @wmi = WIN32OLE.connect("winmgmts://")
     processes = @wmi.ExecQuery("SELECT * FROM win32_process")
     ended = false
@@ -71,17 +71,17 @@ class Knj::Win::TightVNC
         ended = true
       end
     end
-    
+
     sleep 1 if ended
-    
+
     Knj::Thread.new do
       IO.popen(exefile) do |process|
         #nothing
       end
     end
-    
+
     sleep 1
-    
+
     @processes = @wmi.ExecQuery("SELECT * FROM win32_process")
     for process in @processes do
       if process.Name == "WinVNC.exe"
@@ -89,14 +89,14 @@ class Knj::Win::TightVNC
         break
       end
     end
-    
+
     raise "Could not start WinVNC.exe." if !@process
-    
+
     Kernel.at_exit do
       self.close
     end
   end
-  
+
   def open?
     begin
       @process.GetOwner
@@ -105,10 +105,10 @@ class Knj::Win::TightVNC
       return false
     end
   end
-  
+
   def close
     return nil if !@process
-    
+
     begin
       @process.Terminate
     rescue => e
@@ -118,7 +118,7 @@ class Knj::Win::TightVNC
         raise e
       end
     end
-    
+
     @process = nil
     @args = nil
     @wmi = nil

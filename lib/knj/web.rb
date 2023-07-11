@@ -443,7 +443,7 @@ class Knj::Web
         raise "No value given in arguments for imageupload-input." if !args.key?(:value)
 
         path = args[:path].gsub("%value%", value.to_s).untaint
-        if File.exists?(path)
+        if File.exist?(path)
           html << "<img src=\"image.rhtml?path=#{self.urlenc(path).html}&smartsize=100&rounded_corners=10&border_color=black&force=true&ts=#{Time.new.to_f}\" alt=\"Image\" />"
 
           if args[:dellink]
