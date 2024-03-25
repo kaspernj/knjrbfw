@@ -66,13 +66,13 @@ GEM
       http2
       string-strtr
     pkg-config (1.5.6)
-    psych (4.0.3)
+    psych (5.1.2)
       stringio
     racc (1.6.2)
     rack (2.2.8.1)
     rake (13.0.6)
     rchardet (1.8.0)
-    rdoc (6.4.0)
+    rdoc (6.6.3.1)
       psych (>= 4.0.0)
     ref (2.0.0)
     rmagick (5.4.4)
@@ -100,7 +100,7 @@ GEM
       mini_portile2 (~> 2.8.0)
     string-cases (0.0.4)
     string-strtr (0.0.3)
-    stringio (3.0.2)
+    stringio (3.1.0)
     thread_safe (0.3.6)
     tsafe (0.0.12)
     weakling (0.0.3)
