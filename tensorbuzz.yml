@@ -1,0 +1,26 @@
+rvm: true
+builds:
+  ruby_2_7:
+    environment:
+      RUBY_VERSION: 2.7.8
+    name: Ruby 2.7.8
+    paths:
+      - "**"
+      - "!**/*.md"
+      - "!**/*.rdoc"
+      - "!LICENSE.txt"
+      - "!README.rdoc"
+    script:
+      - bundle exec rspec
+  ruby_3_2:
+    environment:
+      RUBY_VERSION: 3.2.2
+    name: Ruby 3.2.2
+    paths:
+      - "**"
+      - "!**/*.md"
+      - "!**/*.rdoc"
+      - "!LICENSE.txt"
+      - "!README.rdoc"
+    script:
+      - bundle exec rspec
